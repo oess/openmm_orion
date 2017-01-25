@@ -1,7 +1,8 @@
 # OE Stack
 openeye-toolkits==2016.10.1
-openeye-floe==0.2.115
+openeye-floe==0.2.127
 
 # Dev Stack
 invoke
 pytest
+#-e git+git://github.com/pandegroup/pdbfixer.git@5ed0d2550b156961ae4de900f33ae6c6120faea7#egg=pdbfixer

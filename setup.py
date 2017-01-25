@@ -21,18 +21,18 @@ except TypeError:
 
 def get_version():
     _version_re = re.compile(r'__version__\s+=\s+(.*)')
-    with open('PlatformTestCubes/__init__.py', 'rb') as f:
+    with open('OpenMMCubes/__init__.py', 'rb') as f:
         version = str(ast.literal_eval(_version_re.search(f.read().decode('utf-8')).group(1)))
         return version
 
 setup(
-    name="OpenMM-PlatformTest-floe",
+    name="OpenMMCubes-floe",
     version=get_version(),
     packages=find_packages(exclude=['tests*']),
     include_package_data=True,
     author="Christopher Bayly",
     author_email="bayly@eyesopen.com",
-    description='Checking available OpenMM Platforms',
+    description='Setup complex for MD with OpenMM',
     install_requires=install_reqs,
     license='Other/Proprietary License',
     classifiers=[

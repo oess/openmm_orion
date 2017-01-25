@@ -17,7 +17,7 @@
 ### MacOS 10.12 Sierra
 ```bash
 git clone git@github.com:openeye-private/openmm_orion.git
-cd openmm_orion 
+cd openmm_orion
 
 #Create a new local conda environment and install dependencies
 conda create -c omnia -c omnia/label/dev -n openmm_mac python=3.5 openmm==7.0.1 openmoltools==0.7.4 ambermini==16.16.0 smarty==0.1.4 parmed==2.7.1
@@ -30,7 +30,7 @@ pip install -e git+https://github.com/pandegroup/pdbfixer.git@5ed0d2550b156961ae
 pip install OpenEye-toolkits-python3-osx-10.11-x64-2016.10.1.tar.gz
 
 #Modify the OpenEye-floe installation requirements
-tar -xvzf OpenEye-floe-0.2.115.tar.gz
+tar -xvzf OpenEye-floe-0.2.127.tar.gz
 cd OpenEye-floe-0.2.115
 #Change line to install_requires=['requests']
 vi setup.py
@@ -46,14 +46,14 @@ python setup.py develop
 ### Linux
 ```bash
 git clone git@github.com:openeye-private/openmm_orion.git
-cd openmm_orion 
+cd openmm_orion
 
 #Create a new local conda environment and install dependencies
 conda create -c omnia -c omnia/label/dev -n openmm_linux python=3.5 openmm==7.0.1 openmoltools==0.7.4 ambermini==16.16.0 smarty==0.1.4 parmed==2.7.1 pdbfixer-dev
 source activate openmm_linux
 
 #Install the OpenEye-floe package
-pip install OpenEye-floe-0.2.115.tar.gz
+pip install OpenEye-floe-0.2.127.tar.gz
 
 #Install the main OpenMM Orion Floes
 python setup.py develop
