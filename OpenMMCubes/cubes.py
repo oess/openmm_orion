@@ -11,8 +11,11 @@ from simtk.openmm import app
 from openeye import oechem
 import os, smarty, parmed, pdbfixer
 from openmoltools import forcefield_generators
-import lzma
 from simtk.openmm import XmlSerializer
+
+from alchemy import AbsoluteAlchemicalFactory, AlchemicalState
+import blues.ncmc as blues
+import blues.ncmc_switching as blues_switching
 
 # For parallel, import and inherit from ParallelOEMolComputeCube
 class OpenMMComplexSetup(OEMolComputeCube):
@@ -95,7 +98,8 @@ class OpenMMComplexSetup(OEMolComputeCube):
 
     def process(self, mol, port):
         try:
-            self.log.info('Parameterizing the ligand...')
+            cubename = '[{}]'.format( str(self.name) )
+            self.log.info(cubename+'Parameterizing the ligand...')
             # Generate smarty ligand structure
             from smarty.forcefield import ForceField
             ffxml = mol.GetData(oechem.OEGetTag('forcefield')).encode()
@@ -108,7 +112,7 @@ class OpenMMComplexSetup(OEMolComputeCube):
             molecule_structure.residues[0].name = "MOL"
             self.log.info('\t{}'.format(str(molecule_structure)))
 
-            self.log.info('Parameterizing the protein...')
+            self.log.info(cubename+'Parameterizing the protein...')
             #Generate protein Structure object
             forcefield = app.ForceField(self.args.protein_forcefield, self.args.solvent_forcefield)
             protein_system = forcefield.createSystem( self.proteinpdb.topology )
@@ -135,12 +139,11 @@ class OpenMMComplexSetup(OEMolComputeCube):
             positions = unit.Quantity(positions, positions_unit)
 
             #Store Structure object
-            #structure.coordinates = coordinates
             pl_structure.positions = positions
             pl_structure.save('pl_tmp.pdb', overwrite=True)
 
             # Solvate with PDBFixer
-            self.log.info('Solvating system with PDBFixer...')
+            self.log.info(cubename+'Solvating system with PDBFixer...')
             self.log.info('\tpH = {}'.format(self.args.pH))
             self.log.info('\tpadding = {}'.format(unit.Quantity(self.args.solvent_padding, unit.angstroms)))
             self.log.info('\tionicStrength = {}'.format(unit.Quantity(self.args.salt_concentration, unit.millimolar)))
@@ -180,26 +183,27 @@ class OpenMMComplexSetup(OEMolComputeCube):
             full_structure.box = nomol.box
             # Save full structure
             full_structure.save('complex.pdb', overwrite=True)
-            self.log.info('Saving the protien:ligand complex')
+            self.log.info(cubename+'Saving the protien:ligand complex')
             self.log.info('\t{}'.format(str(full_structure)))
             self.log.info('\tBox = {}'.format(full_structure.box))
 
-            self.log.info('Generating the OpenMM system...')
+            self.log.info(cubename+'Generating the OpenMM system...')
             # Regenerate OpenMM system with parmed
             system = full_structure.createSystem(nonbondedMethod=app.PME,
                                                 nonbondedCutoff=10.0*unit.angstroms,
                                                 constraints=app.HBonds)
 
-            self.log.info('Saving System to complex.oeb.gz')
-            # Pack mol into oeb and emit system
+            self.log.info(cubename+'Saving System to complex.oeb.gz')
+            # Pack complex into oeb and emit system
+            complex_mol = oechem.OEMol()
             output = OpenMMSystemOutput('output')
             with oechem.oemolistream('complex.pdb') as ifs:
-                if not oechem.OEReadMolecule(ifs, mol):
+                if not oechem.OEReadMolecule(ifs, complex_mol):
                     raise RuntimeError("Error reading complex pdb")
                 with oechem.oemolostream('complex.oeb.gz') as ofs:
-                    mol.SetData(oechem.OEGetTag('system'), output.encode(system))
-                    oechem.OEWriteConstMolecule(ofs, mol)
-            self.success.emit(mol)
+                    complex_mol.SetData(oechem.OEGetTag('system'), output.encode(system))
+                    oechem.OEWriteConstMolecule(ofs, complex_mol)
+            self.success.emit(complex_mol)
 
         except Exception as e:
             # Attach error message to the molecule that failed
@@ -262,41 +266,44 @@ class OpenMMSimulation(OEMolComputeCube):
 
     def process(self, mol, port):
         try:
-            self.log.info('Regenerating positions and topology from OEMol input file stream.')
-            positions = unit.Quantity(np.zeros([mol.NumAtoms(), 3], np.float32), unit.angstroms)
-            coords = mol.GetCoords()
-            for index in range(mol.NumAtoms()):
-                positions[index,:] = unit.Quantity(coords[index], unit.angstroms)
-            topology = forcefield_generators.generateTopologyFromOEMol(mol)
-            self.log.info(str(topology))
-
+            cubename = '[{}]'.format( str(self.name) )
             # Reconstruct the OpenMM system
             if 'system' in mol.GetData().keys():
-                self.log.info('Regenerating System from OEMol input file stream')
+                self.log.info(cubename+'Regenerating System from OEMol')
                 serialized_system = mol.GetData(oechem.OEGetTag('system'))
                 system = openmm.XmlSerializer.deserialize( serialized_system )
+
+                self.log.info(cubename+'Regenerating positions and topology from OEMol')
+                positions = unit.Quantity(np.zeros([mol.NumAtoms(), 3], np.float32), unit.angstroms)
+                coords = mol.GetCoords()
+                for index in range(mol.NumAtoms()):
+                    positions[index,:] = unit.Quantity(coords[index], unit.angstroms)
+                topology = forcefield_generators.generateTopologyFromOEMol(mol)
+                self.log.info(str(topology))
+
                 # Initialize Simulation
                 simulation = app.Simulation(topology, system, self.integrator)
                 #simulation = app.Simulation(topology, system, self.integrator, openmm.Platform.getPlatformByName('CPU'))
                 platform = simulation.context.getPlatform().getName()
-                self.log.info('Running OpenMMSimulation on Platform {}'.format(platform))
+                self.log.info(cubename+'Running OpenMMSimulation on Platform {}'.format(platform))
             else:
                 raise RuntimeError('Could not find system from mol')
 
             # Check if mol has State data attached
             if 'state' in mol.GetData().keys():
-                self.log.info('Found a saved State, restarting simulation')
+                self.log.info(cubename+'Found a saved State, restarting simulation')
                 outfname = 'restart'
                 mol.GetData(oechem.OEGetTag('state'))
                 serialized_state = mol.GetData(oechem.OEGetTag('state'))
                 state = openmm.XmlSerializer.deserialize( serialized_state )
                 simulation.context.setState(state)
             else:
-                self.log.info('Minimizing system...')
+                self.log.info(cubename+'Minimizing system...')
                 outfname = 'simulation'
                 # Set initial positions and velocities then minimize
                 simulation.context.setPositions(positions)
                 simulation.context.setVelocitiesToTemperature(self.args.temperature*unit.kelvin)
+
                 # Temporarily, place some restrictions on minization to run faster
                 if in_orion():
                     simulation.minimizeEnergy(tolerance=unit.Quantity(10.0,unit.kilojoules/unit.moles),maxIterations=100)
@@ -305,7 +312,7 @@ class OpenMMSimulation(OEMolComputeCube):
                 st = simulation.context.getState(getPositions=True,getEnergy=True)
                 self.log.info('\tMinimized energy is {}'.format(st.getPotentialEnergy()))
 
-            self.log.info('Running {} MD steps at {}K'.format(self.args.steps, self.args.temperature))
+            self.log.info(cubename+'Running {} MD steps at {}K'.format(self.args.steps, self.args.temperature))
             # Do MD simulation and report energies
             statereporter = app.StateDataReporter(outfname+'.log', 100, step=True, potentialEnergy=True, temperature=True)
             simulation.reporters.append(statereporter)
@@ -320,8 +327,7 @@ class OpenMMSimulation(OEMolComputeCube):
 
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
-            self.log.info('Saving to {}'.format(outfname+'.oeb.gz'))
-            #with oechem.oemolostream('simulation.pdb') as ofs:
+            self.log.info(cubename+'Saving to {}'.format(outfname+'.oeb.gz'))
             with oechem.oemolostream(outfname+'.oeb.gz') as ofs:
                 mol.SetData(oechem.OEGetTag('system'), output.encode(system))
                 mol.SetData(oechem.OEGetTag('state'), output.encode(state))
@@ -365,10 +371,20 @@ class BluesNCMC(OEMolComputeCube):
         help_text='timestep'
     )
 
-    steps = parameter.IntegerParameter(
-        'steps',
-        default=1000,
+    mdsteps = parameter.IntegerParameter(
+        'mdsteps',
+        default=100,
         help_text="Number of MD steps")
+
+    ncsteps = parameter.IntegerParameter(
+        'ncsteps',
+        default=10,
+        help_text="Number of NCMC steps")
+
+    nciter = parameter.IntegerParameter(
+        'nciter',
+        default=10,
+        help_text="Number of NCMC iterations")
 
     complex_mol = parameter.DataSetInputParameter(
         'complex_mol',
@@ -381,102 +397,99 @@ class BluesNCMC(OEMolComputeCube):
         self.md_integrator = openmm.LangevinIntegrator(self.args.temperature*unit.kelvin,
                                                   self.args.friction/unit.picosecond,
                                                   self.args.timestep*unit.picoseconds)
-        self.dummy_integrator = openmm.LangevinIntegrator(self.args.temperature*unit.kelvin,
+        self.alch_integrator = openmm.LangevinIntegrator(self.args.temperature*unit.kelvin,
                                                   self.args.friction/unit.picosecond,
                                                   self.args.timestep*unit.picoseconds)
+
+        #Defines ncmc move eqns for lambda peturbation of sterics/electrostatics
+        self.functions = { 'lambda_sterics' : 'step(0.199999-lambda) + step(lambda-0.2)*step(0.8-lambda)*abs(lambda-0.5)*1/0.3 + step(lambda-0.800001)',
+                    'lambda_electrostatics' : 'step(0.2-lambda)- 1/0.2*lambda*step(0.2-lambda) + 1/0.2*(lambda-0.8)*step(lambda-0.8)' }
 
 
     def process(self, mol, port):
         try:
-            from alchemy import AbsoluteAlchemicalFactory, AlchemicalState
-            import blues.ncmc as blues
-            import blues.ncmc_switching as blues_switching
+            cubename = '[{}]'.format( str(self.name) )
+            # Reconstruct the OpenMM system
+            if 'system' in mol.GetData().keys():
+                self.log.info(cubename+'Regenerating System from OEMol')
+                serialized_system = mol.GetData(oechem.OEGetTag('system'))
+                system = openmm.XmlSerializer.deserialize( serialized_system )
 
-            self.log.info('Regenerating positions and topology from OEMol input file stream.')
-            positions = unit.Quantity(np.zeros([mol.NumAtoms(), 3], np.float32), unit.angstroms)
-            coords = mol.GetCoords()
-            for index in range(mol.NumAtoms()):
-                positions[index,:] = unit.Quantity(coords[index], unit.angstroms)
+                self.log.info(cubename+'Regenerating positions and topology from OEMol.')
+                positions = unit.Quantity(np.zeros([mol.NumAtoms(), 3], np.float32), unit.angstroms)
+                coords = mol.GetCoords()
+                for index in range(mol.NumAtoms()):
+                    positions[index,:] = unit.Quantity(coords[index], unit.angstroms)
+                topology = forcefield_generators.generateTopologyFromOEMol(mol)
+                self.log.info(str(topology))
+            else:
+                raise RuntimeError('Could not find system from mol')
 
             # Get indices of ligand atoms
-            idx=0
             lig_atoms = []
             if not oechem.OEHasResidues(mol):
                 oechem.OEPerceiveResidues(mol, oechem.OEPreserveResInfo_All)
             for atom in mol.GetAtoms():
                 thisRes = oechem.OEAtomGetResidue(atom)
                 resname = thisRes.GetName()
-                resid = thisRes.GetResidueNumber()
-                chainid = thisRes.GetChainID()
                 if 'MOL' in resname:
-                    lig_atoms.append(idx)
-                idx+=1
-            self.log.info('Selected ligand atoms: {}'.format(str(lig_atoms)))
-            topology = forcefield_generators.generateTopologyFromOEMol(mol)
+                    lig_atoms.append(atom.GetIdx())
+            self.log.info(cubename+'Selected ligand atoms: {}'.format(str(lig_atoms)))
 
-            # Reconstruct the OpenMM system
-            if 'system' in mol.GetData().keys():
-                self.log.info('Regenerating System from OEMol input file stream')
-                serialized_system = mol.GetData(oechem.OEGetTag('system'))
-                system = openmm.XmlSerializer.deserialize( serialized_system )
-            else:
-                raise RuntimeError('Could not find system from mol')
+            #Initialize MD simualtion
+            md_sim = app.Simulation(topology, system, self.md_integrator)
+            md_sim.context.setPositions(positions)
+            md_sim.context.setVelocitiesToTemperature(self.args.temperature*unit.kelvin)
+            platform = md_sim.context.getPlatform().getName()
+            self.log.info(cubename+'Running BluesNCMC on Platform {}'.format(platform))
 
+            #Add reporters
+            statereporter = app.StateDataReporter('blues_mdsim.log', 100, step=True, potentialEnergy=True, temperature=True)
+            md_sim.reporters.append(statereporter)
+            md_sim.reporters.append(app.dcdreporter.DCDReporter('traj.dcd', self.args.mdsteps))
+
+            #Initialize Alchemical Simulation
+            # performs alchemical corrections
+            # Reporter for NCMC moves
+            alch_sim = app.Simulation(topology, system, self.alch_integrator)
             # Generate Alchemical System
             factory = AbsoluteAlchemicalFactory(system,
                                                 ligand_atoms=lig_atoms,
                                                 annihilate_sterics=True,
                                                 annihilate_electrostatics=True)
+            alch_system = factory.createPerturbedSystem()
 
-            alchemical_system = factory.createPerturbedSystem()
-
-            #Setup OpenMMSimulation
-            md_sim = app.Simulation(topology, system, self.md_integrator)
-            #Setup Dummy Simulation, performs alchemical corrections
-            # Reporter for NCMC moves
-            dummy_sim = app.Simulation(topology, system, self.dummy_integrator)
-            md_sim.context.setPositions(positions)
-            md_sim.context.setVelocitiesToTemperature(self.args.temperature*unit.kelvin)
-            # set nc attributes
-            numIter = 5
-            nstepsNC = 5
-            nstepsMD = 100
-            #Add reporters
-            #md_sim.reporters.append(app.dcdreporter.DCDReporter('traj.dcd', nstepsMD))
-            statereporter = app.StateDataReporter('blues_mdsim.log', 10, step=True, potentialEnergy=True, temperature=True)
-            md_sim.reporters.append(statereporter)
-            practice_run = blues.SimNCMC(temperature=self.args.temperature*unit.kelvin, residueList=lig_atoms)
-
-            #functions here defines the equation of the lambda peturbation of the sterics and electrostatics over the course of a ncmc move
-            functions = { 'lambda_sterics' : 'step(0.199999-lambda) + step(lambda-0.2)*step(0.8-lambda)*abs(lambda-0.5)*1/0.3 + step(lambda-0.800001)',
-                        'lambda_electrostatics' : 'step(0.2-lambda)- 1/0.2*lambda*step(0.2-lambda) + 1/0.2*(lambda-0.8)*step(lambda-0.8)' }
-
+            # Generate NC Integrator/Context
             nc_integrator = blues_switching.NCMCVVAlchemicalIntegrator(self.args.temperature*unit.kelvin,
-                                                      alchemical_system,
-                                                      functions,
-                                                      nsteps=nstepsNC,
+                                                      alch_system,
+                                                      self.functions,
+                                                      nsteps=self.args.ncsteps,
                                                       direction='insert',
                                                       timestep=0.001*unit.picoseconds,
                                                       steps_per_propagation=1)
+            nc_context = openmm.Context(alch_system, nc_integrator)
 
-            nc_context = openmm.Context(alchemical_system, nc_integrator)
-            #during the ncmc move, perform a rotation around the center of mass at the start of step 49 (again to maintain symmetry of ncmc move
-            ncmove = [[practice_run.rotationalMove, [49]]]
+            #Initialize BLUES engine
+            blues = blues.SimNCMC(temperature=self.args.temperature*unit.kelvin, residueList=lig_atoms)
+            #Define NC Move
+            # Rotation around the COM at some step
+            # Again to maintain symmetry of ncmc move
+            rot_step = (self.args.ncsteps/2) - 1
+            nc_move = [[blues.rotationalMove, [rot_step]]]
 
             # actually run
             outlog = open('blues_mdsim.log', 'r')
-            practice_run.get_particle_masses(system, residueList=lig_atoms)
-            practice_run.runSim(md_sim, nc_context, nc_integrator,
-                        dummy_sim, movekey=ncmove,
-                        niter=numIter, nstepsNC=nstepsNC, nstepsMD=nstepsMD,
-                        alchemical_correction=True)
-
+            blues.get_particle_masses(system, residueList=lig_atoms)
+            blues.runSim(md_sim, nc_context, nc_integrator,
+                            alch_sim, movekey=nc_move,
+                            niter=self.args.nciter, nstepsNC=self.args.ncsteps, nstepsMD=self.args.mdsteps,
+                            alchemical_correction=True)
 
             self.log.info(outlog.read())
-            state = practice_run.md_simulation.context.getState(getPositions=True,getEnergy=True)
+            state = blues.md_simulation.context.getState(getPositions=True,getEnergy=True)
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
-            self.log.info('Saving to {}'.format('blues.oeb.gz'))
+            self.log.info(cubename+'Saving to {}'.format('blues.oeb.gz'))
             with oechem.oemolostream('blues.oeb.gz') as ofs:
                 mol.SetData(oechem.OEGetTag('system'), output.encode(system))
                 mol.SetData(oechem.OEGetTag('state'), output.encode(state))
