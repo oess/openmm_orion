@@ -11,6 +11,7 @@ from floe.api import (
     parameter, ParallelOEMolComputeCube, OEMolComputeCube, SinkCube, MoleculeInputPort,
     StringParameter, MoleculeOutputPort, BinaryOutputPort
 )
+from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
 
 
 class OEOmegaConfGen(ParallelOEMolComputeCube):
@@ -18,6 +19,10 @@ class OEOmegaConfGen(ParallelOEMolComputeCube):
     classification = [["Conformer Generation"]]
     tags = "OMEGA,Conformer Generation".split(",")
     title = "OMEGA"
+
+    #Define Custom Ports to handle oeb.gz files
+    intake = CustomMoleculeInputPort('intake')
+    success = CustomMoleculeOutputPort('success')
 
     maxConfs = parameter.IntegerParameter('maxConfs', default=200,
                                           help_text="MaxConfs parameter for Omega")

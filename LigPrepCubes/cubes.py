@@ -6,6 +6,7 @@ from floe.api import (
 from floe.api.orion import in_orion, StreamingDataset
 from floe.constants import BYTES
 from openeye import oechem, oedocking, oeomega
+from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
 
 class Attachffxml(ParallelOEMolComputeCube):
     title = "Attach FFXML to OE molecules"
@@ -31,7 +32,6 @@ class Attachffxml(ParallelOEMolComputeCube):
     def process(self, mol, port):
         cubename = '[{}]'.format( str(self.name) )
         try:
-            #self.log.info('Emitting {}'.format(mol.GetTitle()))
             mol.SetData(oechem.OEGetTag('forcefield'), self.ffxml.read())
             self.success.emit(mol)
         except Exception as e:
@@ -50,6 +50,10 @@ class FREDDocking(ParallelOEMolComputeCube):
         ["OpenEye", "Ligand Preparation"],
     ]
     tags = [tag for lists in classification for tag in lists]
+
+    #Define Custom Ports to handle oeb.gz files
+    intake = CustomMoleculeInputPort('intake')
+    success = CustomMoleculeOutputPort('success')
 
     receptor = parameter.DataSetInputParameter(
         'receptor',
@@ -80,6 +84,7 @@ class FREDDocking(ParallelOEMolComputeCube):
         if not self.dock.Initialize(receptor):
             raise Exception("Unable to initialize Docking with {0}".format(self.args.receptor))
         self._setup = True
+
     def clean(self, mol):
         mol.DeleteData('CLASH')
         mol.DeleteData('CLASHTYPE')
@@ -88,8 +93,14 @@ class FREDDocking(ParallelOEMolComputeCube):
 
     def process(self, mol, port):
         molname = mol.GetTitle()
+
+        #Set AtomTypes
+        oechem.OETriposAtomNames(mol)
+        oechem.OETriposAtomTypeNames(mol)
+
         cubename = '[{}]'.format( str(self.name) )
         dockedMol = oechem.OEMol()
+        self.log.info("{} has {} conformers".format(molname, mol.NumConfs()))
         res = self.dock.DockMultiConformerMolecule(dockedMol, mol)
         if res == oedocking.OEDockingReturnCode_Success:
 
@@ -101,16 +112,11 @@ class FREDDocking(ParallelOEMolComputeCube):
             oechem.OESetSDData(dockedMol, "__ParentMol", self.sdtag)
 
             self.dock.AnnotatePose(dockedMol)
-            #oechem.OEWriteMolecule(ofs, dockedMol)
             self.log.info("%s score = %f" % (molname, self.dock.ScoreLigand(dockedMol)))
-            self.log.info("Score components contributions to score:")
-            for comp in self.dock.GetComponentNames():
-                self.log.info("%12s: %6.2f" % (comp, self.dock.ScoreLigandComponent(dockedMol, comp)))
-                
-            ofs = oechem.oemolostream('{}-docked.oeb.gz'.format(molname))
-            oechem.OEWriteConstMolecule(ofs, dockedMol)
-            #self.clean(dockedMol)
-            #self.success.emit(dockedMol)
+
+            self.clean(dockedMol)
+            self.success.emit(dockedMol)
+
         else:
             # Attach error message to the molecule that failed
             self.log.error(traceback.format_exc())

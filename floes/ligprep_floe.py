@@ -30,8 +30,8 @@ omega = OEOmegaConfGen('omega')
 fred = FREDDocking('fred')
 fred.promote_parameter('receptor', promoted_name='receptor', description='Receptor OEB')
 
-#complex_setup = OpenMMComplexSetup("complex_setup")
-#complex_setup.promote_parameter('protein', promoted_name='protein')
+complex_setup = OpenMMComplexSetup("complex_setup")
+complex_setup.promote_parameter('protein', promoted_name='receptor')
 #complex_setup.promote_parameter('molecule_forcefield', promoted_name='molecule_forcefield')
 #complex_setup.promote_parameter('protein_forcefield', promoted_name='protein_forcefield')
 #complex_setup.promote_parameter('solvent_forcefield', promoted_name='solvent_forcefield')
@@ -41,14 +41,14 @@ fred.promote_parameter('receptor', promoted_name='receptor', description='Recept
 #md_sim.set_parameters(complex_mol='complex.oeb.gz')
 
 ofs = OEMolOStreamCube('ofs')
-ofs.set_parameters(data_out="test.oeb.gz")
+#ofs.set_parameters(data_out="test.oeb.gz")
 
 
-job.add_cubes(ifs, ffxml, omega, fred)
-ifs.success.connect(ffxml.intake)
-ffxml.success.connect(omega.intake)
+job.add_cubes(ifs, omega, fred, ffxml)#, complex_setup)
+ifs.success.connect(omega.intake)
 omega.success.connect(fred.intake)
-#fred.success.connect(ofs.intake)
+fred.success.connect(ffxml.intake)
+#ffxml.success.connect(complex_setup.intake)
 
 
 if __name__ == "__main__":
