@@ -64,5 +64,6 @@ python setup.py develop
 ```bash
 # Setup protein-ligand complex and Run short MD simulation
 python floes/openmm_setup_md.py --protein OpenMMCubes/tests/input/T4-protein.pdb --ligand OpenMMCubes/tests/input/smirff_mol.oeb.gz
-
+# Starting from SMILES
+python floes/ligprep_floe.py --ifs notebooks/blind_test/test.ism --receptor notebooks/blind_test/epoxide_hydrolase_apo_receptor.oeb.gz --ffxml OpenMMCubes/tests/input/forcefield/smirff99Frosst.ffxml --protein receptor-fixed.pdb
 ```
