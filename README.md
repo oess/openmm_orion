@@ -62,8 +62,10 @@ python setup.py develop
 
 ## Example
 ```bash
+# Starting from SMILES, generate conformers, dock using FRED, and parameterize with SMIRFF parameters.
+python floes/ligprep_floe.py --ifs input/test_smiles.ism --receptor input/test-receptor.oeb.gz --ffxml input/smirff99Frosst.ffxml
+
 # Setup protein-ligand complex and Run short MD simulation
-python floes/openmm_setup_md.py --protein OpenMMCubes/tests/input/T4-protein.pdb --ligand OpenMMCubes/tests/input/smirff_mol.oeb.gz
-# Starting from SMILES
-python floes/ligprep_floe.py --ifs notebooks/blind_test/test.ism --receptor notebooks/blind_test/epoxide_hydrolase_apo_receptor.oeb.gz --ffxml OpenMMCubes/tests/input/forcefield/smirff99Frosst.ffxml --protein receptor-fixed.pdb
+python floes/openmm_setup_md.py --protein input/T4-protein.pdb --ligand input/smirff_mol.oeb.gz
+
 ```

@@ -1,4 +1,4 @@
-import traceback
+import traceback, string, random, os, io
 from floe.api import (
     parameter, ParallelOEMolComputeCube, OEMolComputeCube, SinkCube, MoleculeInputPort,
     StringParameter, MoleculeOutputPort
@@ -6,33 +6,34 @@ from floe.api import (
 from floe.api.orion import in_orion, StreamingDataset
 from floe.constants import BYTES
 from openeye import oechem, oedocking, oeomega
-from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
+from LigPrepCubes.ports import (
+    CustomMoleculeInputPort, CustomMoleculeOutputPort,
+    ParmEdStructureInput, ParmEdStructureOutput)
 
-class Attachffxml(ParallelOEMolComputeCube):
-    title = "Attach FFXML to OE molecules"
+def _generateRandomID(size=5, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+class SetIDTagfromTitle(OEMolComputeCube):
+    title = "SetIDTagfromTitle"
     description = """
-    Attach FFXML to OE molecules
+    Attach IDname to OEMol tag.
     """
-    classification = [
-        ["OpenEye", "Ligand Preparation"],
-    ]
+    classification = [["OpenEye", "Ligand Preparation"]]
     tags = [tag for lists in classification for tag in lists]
 
-    molecule_forcefield = parameter.DataSetInputParameter(
-        'molecule_forcefield',
-        required=True,
-        help_text='Forcefield FFXML file for molecule')
-
-    def begin(self):        # Write the protein to a PDB
-        if in_orion():
-            pass
-        else:
-            self.ffxml = open(self.args.molecule_forcefield, 'rb')
-
     def process(self, mol, port):
-        cubename = '[{}]'.format( str(self.name) )
+        #Check for OEMol title for ID labeling
+        if not mol.GetTitle():
+            idtag = _generateRandomID()
+            oechem.OEThrow.Warning('No title found, setting to {}'.format(idtag))
+            mol.SetTitle(idtag)
+        else:
+            idtag = mol.GetTitle()
         try:
-            mol.SetData(oechem.OEGetTag('forcefield'), self.ffxml.read())
+            # Set AtomTypes
+            oechem.OETriposAtomNames(mol)
+            oechem.OETriposAtomTypeNames(mol)
+            mol.SetData(oechem.OEGetTag('idtag'), mol.GetTitle())
             self.success.emit(mol)
         except Exception as e:
             # Attach error message to the molecule that failed
@@ -41,86 +42,83 @@ class Attachffxml(ParallelOEMolComputeCube):
             # Return failed molecule
             self.failure.emit(mol)
 
-class FREDDocking(ParallelOEMolComputeCube):
-    title = "Docking Molecules"
+
+class SMIRFFParameterization(OEMolComputeCube):
+    title = "Attach FFXML to OE molecules"
     description = """
-    Dock OE molecules
+    Attach FFXML to OE molecules and parameterize
     """
-    classification = [
-        ["OpenEye", "Ligand Preparation"],
-    ]
+    classification = [["OpenEye", "Ligand Preparation"]]
     tags = [tag for lists in classification for tag in lists]
 
-    #Define Custom Ports to handle oeb.gz files
-    intake = CustomMoleculeInputPort('intake')
-    success = CustomMoleculeOutputPort('success')
-
-    receptor = parameter.DataSetInputParameter(
-        'receptor',
+    molecule_forcefield = parameter.DataSetInputParameter(
+        'molecule_forcefield',
         required=True,
-        help_text='Receptor OEB File')
+        help_text='Forcefield FFXML file for molecule')
 
-    def __init__(self, *args, **kwargs):
-        super(FREDDocking, self).__init__(*args, **kwargs)
-        self._setup = False
+    def generateSMIRFFStructureFromOEMol(self, molecule):
+        # Generate SMIRNOFF ligand mol object
+        # Generate parameterized Parmed Structure
+        import smarty, parmed
+        from smarty.forcefield import ForceField
+        ffxml = open( self.args.molecule_forcefield, 'rb')
+        mol_ff = ForceField( ffxml )
+        mol_top, mol_sys, mol_pos = smarty.forcefield_utils.create_system_from_molecule(mol_ff, molecule)
+        molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)
+        molecule_structure.residues[0].name = "MOL"
+        ffxml.close()
+        return molecule_structure
 
     def begin(self):
-        if self._setup:
-            return
-        #Read in the Receptor
-        receptor = oechem.OEGraphMol()
-        #apofname = 'epoxide_hydrolase_apo_receptor.oeb.gz'
-        if not oedocking.OEReadReceptorFile(receptor, self.args.receptor):
-            OEThrow.Fatal("Unable to read receptor")
-
-        #Initialize Docking
-        dock_method = oedocking.OEDockMethod_Hybrid
-        if not oedocking.OEReceptorHasBoundLigand(receptor):
-            oechem.OEThrow.Warning("No bound ligand, switching OEDockMethod to ChemGauss4.")
-            dock_method = oedocking.OEDockMethod_Chemgauss4
-        dock_resolution = oedocking.OESearchResolution_Default
-        self.sdtag = oedocking.OEDockMethodGetName(dock_method)
-        self.dock = oedocking.OEDock(dock_method, dock_resolution)
-        if not self.dock.Initialize(receptor):
-            raise Exception("Unable to initialize Docking with {0}".format(self.args.receptor))
-        self._setup = True
-
-    def clean(self, mol):
-        mol.DeleteData('CLASH')
-        mol.DeleteData('CLASHTYPE')
-        mol.GetActive().DeleteData('CLASH')
-        mol.GetActive().DeleteData('CLASHTYPE')
+        try:
+            ffxml = open(self.args.molecule_forcefield, 'rb')
+        except:
+            raise RuntimeError('Error opening {}'.format(self.args.molecule_forcefield))
+        ffxml.close()
 
     def process(self, mol, port):
-        molname = mol.GetTitle()
+        # Create a copy incase of error
+        init_mol = oechem.OEMol(mol)
+        try:
+            # Encode ParmEd Structure to attach to OEMol
+            molecule_structure = self.generateSMIRFFStructureFromOEMol(mol)
+            output = ParmEdStructureOutput('output')
+            encoded_structure = output.encode(molecule_structure)
 
-        #Set AtomTypes
-        oechem.OETriposAtomNames(mol)
-        oechem.OETriposAtomTypeNames(mol)
+            self.log.info('{} {}'.format(mol.GetTitle(), molecule_structure))
+            mol.SetData(oechem.OEGetTag('Structure'), encoded_structure.read())
+            self.success.emit(mol)
 
-        cubename = '[{}]'.format( str(self.name) )
-        dockedMol = oechem.OEMol()
-        self.log.info("{} has {} conformers".format(molname, mol.NumConfs()))
-        res = self.dock.DockMultiConformerMolecule(dockedMol, mol)
-        if res == oedocking.OEDockingReturnCode_Success:
-
-            oedocking.OESetSDScore(dockedMol, self.dock, self.sdtag)
-            if oechem.OEHasSDData(dockedMol, self.sdtag):
-                method = str(oechem.OEGetSDData(dockedMol, self.sdtag))
-                oechem.OEDeleteSDData(dockedMol, self.sdtag)
-                oechem.OESetSDData(dockedMol, self.sdtag, "%s".format(method))
-            oechem.OESetSDData(dockedMol, "__ParentMol", self.sdtag)
-
-            self.dock.AnnotatePose(dockedMol)
-            self.log.info("%s score = %f" % (molname, self.dock.ScoreLigand(dockedMol)))
-
-            self.clean(dockedMol)
-            self.success.emit(dockedMol)
-
-        else:
+        except Exception as e:
             # Attach error message to the molecule that failed
             self.log.error(traceback.format_exc())
-            mol.SetData('error', str(e))
+            init_mol.SetData('error', str(e))
             # Return failed molecule
-            self.failure.emit(mol)
-        return dockedMol
+            self.failure.emit(init_mol)
+
+
+class OEBSinkCube(SinkCube):
+    """
+    A sink custom cube that writes molecules to a oeb.gz
+    """
+    classification = [["Output"]]
+    title = "Dataset Writer"
+    #Define Custom Ports to handle oeb.gz files
+    intake = CustomMoleculeInputPort('intake')
+
+    directory = parameter.StringParameter('directory',
+                                         default='output',
+                                         description='Directory name')
+    suffix = parameter.StringParameter('suffix',
+                                        required=True,
+                                        description='suffix to append')
+    def begin(self):
+        if not os.path.exists(self.args.directory):
+            os.makedirs(self.args.directory)
+
+    def write(self, mol, port):
+        outfname = '{}/{}-{}.oeb.gz'.format(self.args.directory,
+                                           mol.GetTitle(), self.args.suffix)
+        with oechem.oemolostream(outfname) as ofs:
+            oechem.OEWriteConstMolecule(ofs, mol)
+        self.log.info('Saving to {}'.format(outfname))

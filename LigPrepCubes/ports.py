@@ -6,6 +6,11 @@ from openeye.oechem import (
     OEWriteMolReturnCode_Success, OEFormat_OEB,
     OEReadMolecule, OEGetTag)
 #from floe.constants import BYTES
+import io
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 class MoleculeSerializerMixin(object):
 
@@ -61,3 +66,21 @@ class CustomMoleculeInputPort(InputPort, MoleculePortSerializer):
 
 class CustomMoleculeOutputPort(OutputPort, MoleculePortSerializer):
     pass
+
+
+class ParmEdStructureSerializationMixin(object):
+    def encode(self, structure):
+        fobj = io.BytesIO()
+        pickle.dump(structure, fobj)
+        fobj.seek(0)
+        return fobj
+
+    def decode(self, pickled_structure):
+        return pickle.load(pickled_structure)
+
+
+class ParmEdStructureInput(ParmEdStructureSerializationMixin, InputPort):
+    PORT_TYPES = (BYTES, "ParmEdStructure")
+
+class ParmEdStructureOutput(ParmEdStructureSerializationMixin, OutputPort):
+    PORT_TYPES = (BYTES, "ParmEdStructure")

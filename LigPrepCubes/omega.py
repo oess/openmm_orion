@@ -14,7 +14,7 @@ from floe.api import (
 from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
 
 
-class OEOmegaConfGen(ParallelOEMolComputeCube):
+class OEOmegaConfGen(OEMolComputeCube):
 
     classification = [["Conformer Generation"]]
     tags = "OMEGA,Conformer Generation".split(",")
@@ -50,7 +50,8 @@ class OEOmegaConfGen(ParallelOEMolComputeCube):
                 self.log.error('omega returned empty molecule: {}'.format(copy_mol.GetTitle()))
                 self.failure.emit(copy_mol)
             else:
-                #self.log.info('Generated Conformers for {}'.format(mol.GetTitle()))
+                nconfs = mol.GetMaxConfIdx()
+                self.log.info('OMEGA generated {} conformers for {}'.format(nconfs, mol.GetTitle()))
                 self.success.emit(mol)
         else:
             self.failure.emit(copy_mol)
