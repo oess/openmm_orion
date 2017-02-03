@@ -12,17 +12,12 @@ from openeye import oechem
 import os, smarty, parmed, pdbfixer
 from openmoltools import forcefield_generators
 from simtk.openmm import XmlSerializer
-
 from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
-
-#from alchemy import AbsoluteAlchemicalFactory, AlchemicalState
-#import blues.ncmc as blues
-#import blues.ncmc_switching as blues_switching
+import OpenMMCubes.utils as utils
 
 #For parallel, import and inherit from ParallelOEMolComputeCube
-from floe.api import ParallelOEMolComputeCube
-class OpenMMComplexSetup(ParallelOEMolComputeCube):
-    title = "Set up complex for simulation in OpenMM"
+class OpenMMComplexSetup(OEMolComputeCube):
+    title = "OpenMMComplexSetup"
     description = """
     Set up protein:ligand complex for simulation with OpenMM.
 
@@ -53,7 +48,7 @@ class OpenMMComplexSetup(ParallelOEMolComputeCube):
 
     solvent_padding = parameter.DecimalParameter(
         'solvent_padding',
-        default=10,
+        default=5,
         help_text="Padding around protein for solvent box (angstroms)",
     )
 
@@ -61,12 +56,6 @@ class OpenMMComplexSetup(ParallelOEMolComputeCube):
         'salt_concentration',
         default=50,
         help_text="Salt concentration (millimolar)",
-    )
-
-    molecule_forcefield = parameter.DataSetInputParameter(
-        'molecule_forcefield',
-    #    required=True,
-        help_text='Forcefield parameters for molecule'
     )
 
     protein_forcefield = parameter.DataSetInputParameter(
@@ -85,44 +74,53 @@ class OpenMMComplexSetup(ParallelOEMolComputeCube):
 
     def begin(self):
         pdbfilename = 'protein.pdb'
-
         # Write the protein to a PDB
         if in_orion():
             stream = StreamingDataset(self.args.protein, input_format=".pdb")
             stream.download_to_file(pdbfilename)
         else:
-            pass
-            #protein = oechem.OEMol()
-            #with oechem.oemolistream(self.args.protein) as ifs:
-            #    if not oechem.OEReadMolecule(ifs, protein):
-            #        raise RuntimeError("Error reading molecule")
-                #with oechem.oemolostream(pdbfilename) as ofs:
-                #    res = oechem.OEWriteConstMolecule(ofs, protein)
-            #        if res != oechem.OEWriteMolReturnCode_Success:
-            #            raise RuntimeError("Error writing protein: {}".format(res))
+            protein = oechem.OEMol()
+            with oechem.oemolistream(self.args.protein) as ifs:
+                if not oechem.OEReadMolecule(ifs, protein):
+                    raise RuntimeError("Error reading molecule")
 
         # Read the PDB file into an OpenMM PDBFile object
         self.proteinpdb = app.PDBFile(self.args.protein)
 
-    def process(self, mol, port):
-        try:
-            molname = 'output/{}-'.format(mol.GetTitle())
-            cubename = '[{}]'.format( str(mol.GetTitle()) )
-            self.log.info(cubename+'Parameterizing the ligand...')
-            # Generate smarty ligand structure
-            from smarty.forcefield import ForceField
-            mol_ff = ForceField(self.args.molecule_forcefield)
-            #ffxml = mol.GetData(oechem.OEGetTag('forcefield')).encode()
-            #with open('mol_parameters.ffxml', 'wb') as out:
-            #    out.write(ffxml)
-            #mol_ff = ForceField(open('mol_parameters.ffxml'))
-            mol_top, mol_sys, mol_pos = smarty.forcefield_utils.create_system_from_molecule(mol_ff, mol)
-            molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)
-            #Alter molecule residue name for easy selection
-            molecule_structure.residues[0].name = "MOL"
-            self.log.info('\t{}'.format(str(molecule_structure)))
+    def check_tagdata(self, mol):
+        # Ensure tagged generic data is retained across cubes
+        if 'idtag' not in mol.GetData().keys():
+            raise RuntimeError('Could not find idtag for molecule')
+        else:
+            idtag =  mol.GetData(oechem.OEGetTag('idtag'))
+            self.idtag = idtag
+        # Regenerate Parmed Molecule structure
+        if 'system' not in mol.GetData().keys():
+            raise RuntimeError("Could not find system for molecule")
+        else:
+            intake = OpenMMSystemInput('intake')
+            systag = oechem.OEGetTag('system')
+            system = intake.decode(mol.GetData(systag))
+            positions = utils.getPositionsFromOEMol(mol)
+            topology = utils.generateTopologyFromOEMol(mol)
+            structure = parmed.openmm.load_topology(topology,
+                                                    system,
+                                                    xyz=positions)
+            structure.residues[0].name = "MOL"
+            self.structure = structure
 
-            self.log.info(cubename+'Parameterizing the protein...')
+        if not any([self.idtag, self.structure]):
+            raise RuntimeError('Missing tagged generic data')
+        else:
+            return True
+
+    def process(self, mol, port):
+        if self.check_tagdata(mol):
+            idtag = self.idtag
+            self.outfname = 'output/{}-complex'.format(idtag)
+            outfname = self.outfname
+            molecule_structure = self.structure
+        try:
             #Generate protein Structure object
             forcefield = app.ForceField(self.args.protein_forcefield, self.args.solvent_forcefield)
             protein_system = forcefield.createSystem( self.proteinpdb.topology )
@@ -130,37 +128,26 @@ class OpenMMComplexSetup(ParallelOEMolComputeCube):
                                                              protein_system,
                                                              xyz=self.proteinpdb.positions )
 
-            self.log.info('\t{}'.format(str(protein_structure)))
-            # Merge structures
+            # Merge structures to prevent adding solvent in pocket
             pl_structure = protein_structure + molecule_structure
+            self.log.info('{}-complex: {}'.format(idtag, pl_structure))
 
-            #Concatenate positions arrays (ensures same units)
-            positions_unit = unit.angstroms
-            positions0_dimensionless = np.array( self.proteinpdb.positions / positions_unit )
-            positions1_dimensionless = np.array( molecule_structure.positions / positions_unit )
-            coordinates = np.vstack((positions0_dimensionless,positions1_dimensionless))
-            natoms = len(coordinates)
-            positions = np.zeros([natoms,3], np.float32)
-            for index in range(natoms):
-                (x,y,z) = coordinates[index]
-                positions[index,0] = x
-                positions[index,1] = y
-                positions[index,2] = z
-            positions = unit.Quantity(positions, positions_unit)
-
-            #Store Structure object
-            pl_structure.positions = positions
-            pl_structure.save(molname+'pl_tmp.pdb', overwrite=True)
+            # Retain positions and save
+            pl_structure.positions = utils.combinePostions(protein_structure.positions,
+                                            molecule_structure.positions)
+            pl_structure.save(outfname+'-pl.tmp',format='pdb',overwrite=True)
 
             # Solvate with PDBFixer
-            self.log.info(cubename+'Solvating system with PDBFixer...')
+            self.log.info('PDBFixer solvating {}-complex:'.format(idtag))
             self.log.info('\tpH = {}'.format(self.args.pH))
             self.log.info('\tpadding = {}'.format(unit.Quantity(self.args.solvent_padding, unit.angstroms)))
             self.log.info('\tionicStrength = {}'.format(unit.Quantity(self.args.salt_concentration, unit.millimolar)))
-            fixer = pdbfixer.PDBFixer(molname+'pl_tmp.pdb')
+            fixer = pdbfixer.PDBFixer(outfname+'-pl.tmp')
             fixer.findMissingResidues()
             fixer.findMissingAtoms()
-            fixer.addMissingAtoms()
+            if fixer.missingAtoms:
+                self.log.info('Adding missing atoms: {}'.format(fixer.missingAtoms))
+                fixer.addMissingAtoms()
             fixer.addMissingHydrogens(self.args.pH)
             fixer.addSolvent(padding=unit.Quantity(self.args.solvent_padding, unit.angstroms),
                             ionicStrength=unit.Quantity(self.args.salt_concentration, unit.millimolar)
@@ -172,54 +159,50 @@ class OpenMMComplexSetup(ParallelOEMolComputeCube):
             full_positions = tmp.positions
             full_topology = tmp.topology
             full_box = tmp.box
-
             # Remove ligand from protein Structure by AmberMask selection
             tmp.strip(":MOL")
-            tmp.save(molname+'nomol_tmp.pdb', overwrite=True)
-            nomol = app.PDBFile(molname+'nomol_tmp.pdb')
-            #nomol = parmed.load_file(molname+'nomol_tmp.pdb')
-
+            tmp.save(outfname+'-nomol.tmp',format='pdb',overwrite=True)
+            # Reload PDBFile
+            nomol = app.PDBFile(outfname+'-nomol.tmp')
             # Regenerate openMM System to parameterize solvent
             nomol_system = forcefield.createSystem(nomol.topology, rigidWater=False)
-
             # Regenerate parameterized solvated protein structure
-            solv_structure = parmed.openmm.load_topology( nomol.topology,
-                                                            nomol_system,
-                                                            xyz=nomol.positions,
-                                                            box=full_box)
+            solv_structure = parmed.openmm.load_topology(nomol.topology,
+                                                        nomol_system,
+                                                        xyz=nomol.positions,
+                                                        box=full_box)
 
             # Remerge with ligand structure
             full_structure = solv_structure + molecule_structure
             # Restore box dimensions
             full_structure.box = full_box
             # Save full structure
-            full_structure.save(molname+'complex.pdb', overwrite=True)
-            self.log.info(cubename+'Saving the protien:ligand complex')
-            self.log.info('\t{}'.format(str(full_structure)))
+            full_structure.save(outfname+'.pdb', overwrite=True)
+            self.log.info('Solvated {}-complex {}'.format(idtag, full_structure))
             self.log.info('\tBox = {}'.format(full_structure.box))
 
-            self.log.info(cubename+'Generating the OpenMM system...')
             # Regenerate OpenMM system with parmed
             system = full_structure.createSystem(nonbondedMethod=app.PME,
                                                 nonbondedCutoff=10.0*unit.angstroms,
                                                 constraints=app.HBonds)
 
-            self.log.info(cubename+'Saving System to {}complex.oeb.gz'.format(molname))
-            # Pack complex into oeb and emit system
+            # Pack solvated complex into oeb and emit system
             complex_mol = oechem.OEMol()
             output = OpenMMSystemOutput('output')
-            with oechem.oemolistream(molname+'complex.pdb') as ifs:
+            with oechem.oemolistream(outfname+'.pdb') as ifs:
                 if not oechem.OEReadMolecule(ifs, complex_mol):
-                    raise RuntimeError("Error reading complex pdb")
-                with oechem.oemolostream(molname+'complex.oeb.gz') as ofs:
-                    complex_mol.SetData(oechem.OEGetTag('molname'), str(mol.GetTitle()))
+                    raise RuntimeError("Error reading {}.pdb".format(outfname))
+
+                with oechem.oemolostream(outfname+'.oeb.gz') as ofs:
+                    complex_mol.SetData(oechem.OEGetTag('idtag'), idtag)
                     complex_mol.SetData(oechem.OEGetTag('system'), output.encode(system))
-                    oechem.OEWriteConstMolecule(ofs, complex_mol)
+                    res = oechem.OEWriteConstMolecule(ofs, complex_mol)
+                    if res != oechem.OEWriteMolReturnCode_Success:
+                        raise RuntimeError("Error writing {}.oeb.gz".format(outfname))
+                    else:
+                        self.log.info('Saved System to: {}.oeb.gz'.format(outfname))
             self.success.emit(complex_mol)
 
-            os.remove(molname+'pl_tmp.pdb')
-            os.remove(molname+'nomol_tmp.pdb')
-            os.remove(molname+'complex.pdb')
         except Exception as e:
             # Attach error message to the molecule that failed
             self.log.error(traceback.format_exc())
@@ -227,16 +210,12 @@ class OpenMMComplexSetup(ParallelOEMolComputeCube):
             # Return failed molecule
             self.failure.emit(mol)
 
-    #def end(self):
+    def end(self):
         #Clean up
-        #os.remove('protein.pdb')
-        #os.remove('mol_parameters.ffxml')
-        #os.remove(molname+'pl_tmp.pdb')
-        #os.remove(molname+'nomol_tmp.pdb')
-        #os.remove(molname+'complex.pdb')
+        os.remove(self.outfname+'-pl.tmp')
+        os.remove(self.outfname+'-nomol.tmp')
 
-
-class OpenMMSimulation(ParallelOEMolComputeCube):
+class OpenMMSimulation(OEMolComputeCube):
     title = "Run simulation in OpenMM"
     description = """
     Run simulation with OpenMM for protein:ligand complex.
@@ -267,7 +246,6 @@ class OpenMMSimulation(ParallelOEMolComputeCube):
         default=300,
         help_text="Temperature (Kelvin)"
     )
-
     steps = parameter.IntegerParameter(
         'steps',
         default=1000,
@@ -275,71 +253,113 @@ class OpenMMSimulation(ParallelOEMolComputeCube):
 
     complex_mol = parameter.DataSetInputParameter(
         'complex_mol',
-        default='complex.oeb.gz',
-        #required=True,
+        #default='complex.oeb.gz',
         help_text='Single protein to Dock Against')
 
+    def __init__(self, *args, **kwargs):
+        super(OpenMMSimulation, self).__init__(*args, **kwargs)
+        self._setup = False
+
     def begin(self):
-        # Initialize openmm integrator
-        self.integrator = openmm.LangevinIntegrator(self.args.temperature*unit.kelvin, 1/unit.picoseconds, 0.002*unit.picoseconds)
+        if self._setup:
+            return
+        self._setup = True
 
-    def process(self, mol, port):
+    def check_tagdata(self, mol):
+        # Ensure tagged generic data is retained across cubes
+        if 'idtag' not in mol.GetData().keys():
+            raise RuntimeError('Could not find idtag for molecule')
+        else:
+            idtag =  mol.GetData(oechem.OEGetTag('idtag'))
+            self.idtag = idtag
+        # Regenerate Parmed Molecule structure
+        if 'system' not in mol.GetData().keys():
+            raise RuntimeError("Could not find system for molecule")
+        else:
+            intake = OpenMMSystemInput('intake')
+            systag = oechem.OEGetTag('system')
+            system = intake.decode(mol.GetData(systag))
+            positions = utils.getPositionsFromOEMol(mol)
+            topology = utils.generateTopologyFromOEMol(mol)
+            self.system = system
+            self.positions = positions
+            self.topology = topology
+
+        # Check if mol has State data attached
+        if 'state' in mol.GetData().keys():
+            self.log.info('Found a saved State, restarting simulation')
+            mol.GetData(oechem.OEGetTag('state'))
+            serialized_state = mol.GetData(oechem.OEGetTag('state'))
+            state = openmm.XmlSerializer.deserialize( serialized_state )
+            self.state = state
+        else:
+            self.state = None
+
+        if not any([self.idtag, self.system, self.positions, self.topology]):
+            raise RuntimeError('Missing tagged generic data')
+        else:
+            return True
+
+    def setReporters(self):
+        from sys import stdout
+        progress_reporter = app.StateDataReporter(stdout,
+                                            reportInterval=100, totalSteps=1000,
+                                            time=True, speed=True, progress=True,
+                                            elapsedTime=True, remainingTime=True)
+
+        state_reporter = app.StateDataReporter(self.outfname+'.log',
+                                            reportInterval=100, step=True,
+                                            potentialEnergy=True, totalEnergy=True,
+                                            volume=True, temperature=True)
+        self.reporters = [progress_reporter, state_reporter]
+        return self.reporters
+
+    def process(self, complex_mol, port):
+        if self.check_tagdata(complex_mol):
+            idtag = self.idtag
+            self.outfname = 'output/{}-simulation'.format(idtag)
+            outfname = self.outfname
+            system = self.system
+            positions = self.positions
+            topology = self.topology
         try:
-            if 'molname' in mol.GetData().keys():
-                idname =  mol.GetData(oechem.OEGetTag('molname'))
-                molname = 'output/{}-'.format(idname)
-                cubename = '[{}]'.format( str(idname) )
-            # Reconstruct the OpenMM system
-            if 'system' in mol.GetData().keys():
-                self.log.info(cubename+'Regenerating System from OEMol')
-                serialized_system = mol.GetData(oechem.OEGetTag('system'))
-                system = openmm.XmlSerializer.deserialize( serialized_system )
-
-                self.log.info(cubename+'Regenerating positions and topology from OEMol')
-                positions = unit.Quantity(np.zeros([mol.NumAtoms(), 3], np.float32), unit.angstroms)
-                coords = mol.GetCoords()
-                for index in range(mol.NumAtoms()):
-                    positions[index,:] = unit.Quantity(coords[index], unit.angstroms)
-                topology = forcefield_generators.generateTopologyFromOEMol(mol)
-                self.log.info(str(topology))
-
-                # Initialize Simulation
-                simulation = app.Simulation(topology, system, self.integrator)
-                #simulation = app.Simulation(topology, system, self.integrator, openmm.Platform.getPlatformByName('CPU'))
-                platform = simulation.context.getPlatform().getName()
-                self.log.info(cubename+'Running OpenMMSimulation on Platform {}'.format(platform))
-            else:
-                raise RuntimeError('Could not find system from mol')
+            # Initialize Simulation
+            integrator = openmm.LangevinIntegrator(self.args.temperature*unit.kelvin, 1/unit.picoseconds, 0.002*unit.picoseconds)
+            simulation = app.Simulation(topology, system, integrator)
+            #simulation = app.Simulation(topology, system, self.integrator, openmm.Platform.getPlatformByName('CPU'))
+            platform = simulation.context.getPlatform().getName()
+            self.log.info('Running OpenMMSimulation on Platform {}'.format(platform))
 
             # Check if mol has State data attached
-            if 'state' in mol.GetData().keys():
-                self.log.info(cubename+'Found a saved State, restarting simulation')
-                outfname = molname+'_restart'
-                mol.GetData(oechem.OEGetTag('state'))
-                serialized_state = mol.GetData(oechem.OEGetTag('state'))
-                state = openmm.XmlSerializer.deserialize( serialized_state )
-                simulation.context.setState(state)
+            if self.state:
+                simulation.context.setState(self.state)
+                self.outfname = 'output/{}-restart'.format(idtag)
+                outfname = self.outfname
             else:
-                self.log.info(cubename+'Minimizing system...')
-                outfname = molname+'_simulation'
                 # Set initial positions and velocities then minimize
                 simulation.context.setPositions(positions)
                 simulation.context.setVelocitiesToTemperature(self.args.temperature*unit.kelvin)
-
+                init = simulation.context.getState(getEnergy=True)
+                self.log.info('Initial energy is {}'.format(init.getPotentialEnergy()))
                 # Temporarily, place some restrictions on minization to run faster
+                self.log.info('Minimizing {} system...'.format(idtag))
                 if in_orion():
                     simulation.minimizeEnergy(tolerance=unit.Quantity(10.0,unit.kilojoules/unit.moles),maxIterations=100)
                 else:
                     simulation.minimizeEnergy()
                 st = simulation.context.getState(getPositions=True,getEnergy=True)
-                self.log.info('\tMinimized energy is {}'.format(st.getPotentialEnergy()))
+                self.log.info('Minimized energy is {}'.format(st.getPotentialEnergy()))
 
-            self.log.info(cubename+'Running {} MD steps at {}K'.format(self.args.steps, self.args.temperature))
-            # Do MD simulation and report energies
-            statereporter = app.StateDataReporter(outfname+'.log', 100, step=True, potentialEnergy=True, temperature=True)
-            simulation.reporters.append(statereporter)
-            outlog = open(outfname+'.log', 'r')
+
+            #Append Reporters to simulation
+            reporters = self.setReporters()
+            for rep in reporters:
+                simulation.reporters.append(rep)
+
+            self.log.info('Running {} MD steps at {}K'.format(self.args.steps, self.args.temperature))
+
             simulation.step(self.args.steps)
+            outlog = open(outfname+'.log', 'r')
             self.log.info(outlog.read())
 
             # Save serialized State object
@@ -349,179 +369,18 @@ class OpenMMSimulation(ParallelOEMolComputeCube):
 
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
-            self.log.info(cubename+'Saving to {}'.format(outfname+'.oeb.gz'))
+            self.log.info('Saving to {}'.format(outfname+'.oeb.gz'))
             with oechem.oemolostream(outfname+'.oeb.gz') as ofs:
-                mol.SetData(oechem.OEGetTag('system'), output.encode(system))
-                mol.SetData(oechem.OEGetTag('state'), output.encode(state))
-                mol.SetData(oechem.OEGetTag('log'), outlog.read())
-                oechem.OEWriteConstMolecule(ofs, mol)
-            self.success.emit(mol)
+                complex_mol.SetData(oechem.OEGetTag('system'), output.encode(system))
+                complex_mol.AddData(oechem.OEGetTag('state'), output.encode(state))
+                complex_mol.AddData(oechem.OEGetTag('log'), outlog.read())
+                oechem.OEWriteConstMolecule(ofs, complex_mol)
+            self.success.emit(complex_mol)
+            outlog.close()
 
         except Exception as e:
                 # Attach error message to the molecule that failed
                 self.log.error(traceback.format_exc())
-                mol.SetData('error', str(e))
+                complex_mol.SetData('error', str(e))
                 # Return failed mol
-                self.failure.emit(mol)
-
-class BluesNCMC(OEMolComputeCube):
-    title = "Run enhanced sampling method BLUES"
-    description = """
-    Some long description.
-    """
-    classification = [
-        ["Testing", "OpenMM"],
-        ["Testing", "Simulation"],
-    ]
-    tags = [tag for lists in classification for tag in lists]
-
-    temperature = parameter.DecimalParameter(
-        'temperature',
-        default=300,
-        help_text="Temperature (Kelvin)"
-    )
-
-    friction = parameter.DecimalParameter(
-        'friction',
-        default=1,
-        help_text="Friction coefficient"
-    )
-
-    timestep = parameter.DecimalParameter(
-        'timestep',
-        default=0.002,
-        help_text='timestep'
-    )
-
-    mdsteps = parameter.IntegerParameter(
-        'mdsteps',
-        default=100,
-        help_text="Number of MD steps")
-
-    ncsteps = parameter.IntegerParameter(
-        'ncsteps',
-        default=10,
-        help_text="Number of NCMC steps")
-
-    nciter = parameter.IntegerParameter(
-        'nciter',
-        default=10,
-        help_text="Number of NCMC iterations")
-
-    complex_mol = parameter.DataSetInputParameter(
-        'complex_mol',
-        default='complex.oeb.gz',
-        #required=True,
-        help_text='Single protein to Dock Against')
-
-    def begin(self):
-        #Initialize integrators
-        self.md_integrator = openmm.LangevinIntegrator(self.args.temperature*unit.kelvin,
-                                                  self.args.friction/unit.picosecond,
-                                                  self.args.timestep*unit.picoseconds)
-        self.alch_integrator = openmm.LangevinIntegrator(self.args.temperature*unit.kelvin,
-                                                  self.args.friction/unit.picosecond,
-                                                  self.args.timestep*unit.picoseconds)
-
-        #Defines ncmc move eqns for lambda peturbation of sterics/electrostatics
-        self.functions = { 'lambda_sterics' : 'step(0.199999-lambda) + step(lambda-0.2)*step(0.8-lambda)*abs(lambda-0.5)*1/0.3 + step(lambda-0.800001)',
-                    'lambda_electrostatics' : 'step(0.2-lambda)- 1/0.2*lambda*step(0.2-lambda) + 1/0.2*(lambda-0.8)*step(lambda-0.8)' }
-
-
-    def process(self, mol, port):
-        try:
-            cubename = '[{}]'.format( str(self.name) )
-            # Reconstruct the OpenMM system
-            if 'system' in mol.GetData().keys():
-                self.log.info(cubename+'Regenerating System from OEMol')
-                serialized_system = mol.GetData(oechem.OEGetTag('system'))
-                system = openmm.XmlSerializer.deserialize( serialized_system )
-
-                self.log.info(cubename+'Regenerating positions and topology from OEMol.')
-                positions = unit.Quantity(np.zeros([mol.NumAtoms(), 3], np.float32), unit.angstroms)
-                coords = mol.GetCoords()
-                for index in range(mol.NumAtoms()):
-                    positions[index,:] = unit.Quantity(coords[index], unit.angstroms)
-                topology = forcefield_generators.generateTopologyFromOEMol(mol)
-                self.log.info(str(topology))
-            else:
-                raise RuntimeError('Could not find system from mol')
-
-            # Get indices of ligand atoms
-            lig_atoms = []
-            if not oechem.OEHasResidues(mol):
-                oechem.OEPerceiveResidues(mol, oechem.OEPreserveResInfo_All)
-            for atom in mol.GetAtoms():
-                thisRes = oechem.OEAtomGetResidue(atom)
-                resname = thisRes.GetName()
-                if 'MOL' in resname:
-                    lig_atoms.append(atom.GetIdx())
-            self.log.info(cubename+'Selected ligand atoms: {}'.format(str(lig_atoms)))
-
-            #Initialize MD simualtion
-            md_sim = app.Simulation(topology, system, self.md_integrator)
-            md_sim.context.setPositions(positions)
-            md_sim.context.setVelocitiesToTemperature(self.args.temperature*unit.kelvin)
-            platform = md_sim.context.getPlatform().getName()
-            self.log.info(cubename+'Running BluesNCMC on Platform {}'.format(platform))
-
-            #Add reporters
-            statereporter = app.StateDataReporter('blues_mdsim.log', 100, step=True, potentialEnergy=True, temperature=True)
-            md_sim.reporters.append(statereporter)
-            md_sim.reporters.append(app.dcdreporter.DCDReporter('traj.dcd', self.args.mdsteps))
-
-            #Initialize Alchemical Simulation
-            # performs alchemical corrections
-            # Reporter for NCMC moves
-            alch_sim = app.Simulation(topology, system, self.alch_integrator)
-            # Generate Alchemical System
-            factory = AbsoluteAlchemicalFactory(system,
-                                                ligand_atoms=lig_atoms,
-                                                annihilate_sterics=True,
-                                                annihilate_electrostatics=True)
-            alch_system = factory.createPerturbedSystem()
-
-            # Generate NC Integrator/Context
-            nc_integrator = blues_switching.NCMCVVAlchemicalIntegrator(self.args.temperature*unit.kelvin,
-                                                      alch_system,
-                                                      self.functions,
-                                                      nsteps=self.args.ncsteps,
-                                                      direction='insert',
-                                                      timestep=0.001*unit.picoseconds,
-                                                      steps_per_propagation=1)
-            nc_context = openmm.Context(alch_system, nc_integrator)
-
-            #Initialize BLUES engine
-            blues = blues.SimNCMC(temperature=self.args.temperature*unit.kelvin, residueList=lig_atoms)
-            #Define NC Move
-            # Rotation around the COM at some step
-            # Again to maintain symmetry of ncmc move
-            rot_step = (self.args.ncsteps/2) - 1
-            nc_move = [[blues.rotationalMove, [rot_step]]]
-
-            # actually run
-            outlog = open('blues_mdsim.log', 'r')
-            blues.get_particle_masses(system, residueList=lig_atoms)
-            blues.runSim(md_sim, nc_context, nc_integrator,
-                            alch_sim, movekey=nc_move,
-                            niter=self.args.nciter, nstepsNC=self.args.ncsteps, nstepsMD=self.args.mdsteps,
-                            alchemical_correction=True)
-
-            self.log.info(outlog.read())
-            state = blues.md_simulation.context.getState(getPositions=True,getEnergy=True)
-            # Attach openmm objects to mol, emit to output
-            output = OpenMMSystemOutput('output')
-            self.log.info(cubename+'Saving to {}'.format('blues.oeb.gz'))
-            with oechem.oemolostream('blues.oeb.gz') as ofs:
-                mol.SetData(oechem.OEGetTag('system'), output.encode(system))
-                mol.SetData(oechem.OEGetTag('state'), output.encode(state))
-                mol.SetData(oechem.OEGetTag('log'), outlog.read())
-                oechem.OEWriteConstMolecule(ofs, mol)
-            self.success.emit(mol)
-
-        except Exception as e:
-                # Attach error message to the molecule that failed
-                self.log.error(traceback.format_exc())
-                mol.SetData('error', str(e))
-                # Return failed mol
-                self.failure.emit(mol)
+                self.failure.emit(complex_mol)

@@ -9,6 +9,7 @@ from openeye import oechem, oedocking, oeomega
 from LigPrepCubes.ports import (
     CustomMoleculeInputPort, CustomMoleculeOutputPort,
     ParmEdStructureInput, ParmEdStructureOutput)
+from OpenMMCubes.ports import OpenMMSystemOutput, OpenMMSystemInput
 
 def _generateRandomID(size=5, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -33,7 +34,7 @@ class SetIDTagfromTitle(OEMolComputeCube):
             # Set AtomTypes
             oechem.OETriposAtomNames(mol)
             oechem.OETriposAtomTypeNames(mol)
-            mol.SetData(oechem.OEGetTag('idtag'), mol.GetTitle())
+            mol.AddData(oechem.OEGetTag('idtag'), mol.GetTitle())
             self.success.emit(mol)
         except Exception as e:
             # Attach error message to the molecule that failed
@@ -56,19 +57,6 @@ class SMIRFFParameterization(OEMolComputeCube):
         required=True,
         help_text='Forcefield FFXML file for molecule')
 
-    def generateSMIRFFStructureFromOEMol(self, molecule):
-        # Generate SMIRNOFF ligand mol object
-        # Generate parameterized Parmed Structure
-        import smarty, parmed
-        from smarty.forcefield import ForceField
-        ffxml = open( self.args.molecule_forcefield, 'rb')
-        mol_ff = ForceField( ffxml )
-        mol_top, mol_sys, mol_pos = smarty.forcefield_utils.create_system_from_molecule(mol_ff, molecule)
-        molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)
-        molecule_structure.residues[0].name = "MOL"
-        ffxml.close()
-        return molecule_structure
-
     def begin(self):
         try:
             ffxml = open(self.args.molecule_forcefield, 'rb')
@@ -80,13 +68,14 @@ class SMIRFFParameterization(OEMolComputeCube):
         # Create a copy incase of error
         init_mol = oechem.OEMol(mol)
         try:
-            # Encode ParmEd Structure to attach to OEMol
-            molecule_structure = self.generateSMIRFFStructureFromOEMol(mol)
-            output = ParmEdStructureOutput('output')
-            encoded_structure = output.encode(molecule_structure)
+            from smarty.forcefield import ForceField
+            from smarty.forcefield_utils import create_system_from_molecule
+            with open( self.args.molecule_forcefield, 'r') as ffxml:
+                mol_ff = ForceField( ffxml )
+            mol_topology, mol_system, mol_positions = create_system_from_molecule(mol_ff, mol)
 
-            self.log.info('{} {}'.format(mol.GetTitle(), molecule_structure))
-            mol.SetData(oechem.OEGetTag('Structure'), encoded_structure.read())
+            output = OpenMMSystemOutput('output')
+            mol.SetData(oechem.OEGetTag('system'), output.encode(mol_system))
             self.success.emit(mol)
 
         except Exception as e:
