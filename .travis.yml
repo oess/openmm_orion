@@ -1,0 +1,31 @@
+dist: trusty
+sudo: false
+language: python
+python:
+- 3.5
+
+env:
+- secure: TKZkv0KOQ53fffSqY/9DsmtQXKiHF3zRUJAnISH1czbT/vAApQf6dZV6Ijso57dbCl4+4tPI5kD8QBfNxskoilmm0Na7s+yqAS0YPlphk/fdiHgXtgut9vXX3rurdgCB5aqQj1z4MrUZZlN0NKGhIr7E1XwgXxuBEE+6R9RpiL9CTQbM5usZi2QuEbgmKwhA2oCjoUKTuF/hIqST8W+J8KlYk2Ho6g42r1JJaIYpcdKThOuISCF4TaTQl+NjVU/4B5n3D/ucTcgbCmelJxaWRzU08I3qKANS8tevv4zJYG7FgSgxavOEVWv6RlY3MtGBEisC6Vj0FmtVL3g8uMLfGieX5e4uRzfGFqLDYkr8c0wLqQiw11dWLaFKR3NPGNfPDZtL3ZvBLKRlYqRPq6DS3yWD7kxs01YvtQV+xE5xgZoFgEX84V3L5hDJCCJlWfjSMW1P/DS07k3IqPGjm13dGUFwmWeuX25+Sw10BKpzvjGqrlgRI4KNlTjk7UK9OTSSCobbX07eSmO5apLf/oHBpO/gDXJvpG0imy8etkE6zGgdId7xwBCzWmp/DxkNX4Wn1lbCoUm0GpRpVIdup9mBPPwrH1a34duEMtGh2PynMKoVg17bCRGO1nUoOtYw3cpXYeWyMMdg99WpDCbZIxSHjqG5QxTS6QKFIZ/y/FEyFtA=
+
+before_install:
+- openssl aes-256-cbc -K $encrypted_bf8b0267ba78_key -iv $encrypted_bf8b0267ba78_iv
+  -in oe_license.txt.enc -out oe_license.txt -d
+- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+- bash miniconda.sh -b -p $HOME/miniconda
+- export PATH=$HOME/miniconda/bin:$PATH
+- hash -r
+- conda config --set always_yes true --set changeps1 no
+- conda update --yes -q conda
+- conda info -a
+
+install:
+- conda create -c omnia -c omnia/label/dev -n openmm_linux python=$TRAVIS_PYTHON_VERSION
+  openmm==7.0.1 openmoltools==0.7.4 ambermini==16.16.0 smarty==0.1.4 parmed==2.7.1
+  pdbfixer-dev
+- source activate openmm_linux
+- pip install --extra-index-url https://pypi.anaconda.org/OpenEye/simple
+    --extra-index-url https://pypi.anaconda.org/t/$CONDA_TOKEN/OpenEye/label/Orion/simple -r dev_requirements.txt
+
+script:
+- py.test -v OpenMMCubes
+- py.test -v PlatformTestCubes
