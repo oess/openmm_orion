@@ -47,7 +47,8 @@ class SetIDTagfromTitle(OEMolComputeCube):
 class SMIRFFParameterization(OEMolComputeCube):
     title = "Attach FFXML to OE molecules"
     description = """
-    Attach FFXML to OE molecules and parameterize
+    Parameterize the ligand with the smirff99Frosst.ffxml parameters,
+    which is parsed with smarty. Attach the System to the OEMol.
     """
     classification = [["OpenEye", "Ligand Preparation"]]
     tags = [tag for lists in classification for tag in lists]
@@ -88,7 +89,7 @@ class SMIRFFParameterization(OEMolComputeCube):
 
 class OEBSinkCube(SinkCube):
     """
-    A sink custom cube that writes molecules to a oeb.gz
+    A custom sink cube that writes molecules to a oeb.gz
     """
     classification = [["Output"]]
     title = "Dataset Writer"

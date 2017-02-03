@@ -9,7 +9,7 @@ from LigPrepCubes.cubes import SMIRFFParameterization, SetIDTagfromTitle, OEBSin
 
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
 
-job = WorkFloe("SmirffFragPrep")
+job = WorkFloe("SmirffComplexMD)
 
 job.description = """
 Starting with SMILE Strings, generate multiconformers using OMEGA,
