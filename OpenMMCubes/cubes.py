@@ -254,14 +254,6 @@ class OpenMMSimulation(OEMolComputeCube):
         'complex_mol',
         help_text='OEB file of protein:ligand complex')
 
-    def __init__(self, *args, **kwargs):
-        super(OpenMMSimulation, self).__init__(*args, **kwargs)
-        self._setup = False
-
-    def begin(self):
-        if self._setup:
-            return
-        self._setup = True
 
     def check_tagdata(self, mol):
         # Ensure tagged generic data is retained across cubes
@@ -300,16 +292,20 @@ class OpenMMSimulation(OEMolComputeCube):
 
     def setReporters(self):
         from sys import stdout
-        progress_reporter = app.StateDataReporter(stdout,
-                                            reportInterval=100, totalSteps=1000,
+        progress_reporter = app.StateDataReporter(stdout,separator="\t",
+                                            reportInterval=1000, totalSteps=self.args.steps,
                                             time=True, speed=True, progress=True,
                                             elapsedTime=True, remainingTime=True)
 
-        state_reporter = app.StateDataReporter(self.outfname+'.log',
-                                            reportInterval=100, step=True,
+        state_reporter = app.StateDataReporter(self.outfname+'.log',separator="\t",
+                                            reportInterval=1000, step=True,
                                             potentialEnergy=True, totalEnergy=True,
                                             volume=True, temperature=True)
-        self.reporters = [progress_reporter, state_reporter]
+        import mdtraj
+        traj_reporter = mdtraj.reporters.HDF5Reporter(self.outfname+'.h5', 10000)
+        dcd_reporter = app.dcdreporter.DCDReporter(self.outfname+'.dcd', 10000)
+        chk_reporter = app.checkpointreporter.CheckpointReporter(self.outfname+'.chk', 10000)
+        self.reporters = [progress_reporter, state_reporter, traj_reporter, dcd_reporter, chk_reporter]
         return self.reporters
 
     def process(self, complex_mol, port):

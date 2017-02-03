@@ -7,8 +7,7 @@ from floe.api.orion import in_orion, StreamingDataset
 from floe.constants import BYTES
 from openeye import oechem, oedocking, oeomega
 from LigPrepCubes.ports import (
-    CustomMoleculeInputPort, CustomMoleculeOutputPort,
-    ParmEdStructureInput, ParmEdStructureOutput)
+    CustomMoleculeInputPort, CustomMoleculeOutputPort)
 from OpenMMCubes.ports import OpenMMSystemOutput, OpenMMSystemInput
 
 def _generateRandomID(size=5, chars=string.ascii_uppercase + string.digits):
