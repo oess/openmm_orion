@@ -46,18 +46,19 @@ complex_out = OEBSinkCube('complex_out')
 complex_out.set_parameters(suffix='complex')
 
 md_sim = OpenMMSimulation('md_sim')
-#md_sim.promote_parameter('complex_mol', promoted_name='complex_mol')
-md_sim.set_parameters(steps='100000')
+md_sim.promote_parameter('complex_mol', promoted_name='complex_mol')
+md_sim.promote_parameter('steps', promoted_name='steps')
 sim_out = OEBSinkCube('sim_out')
 sim_out.set_parameters(suffix='simulation')
 
+cubes = [ifs, omega, fred, idtag, smirff, smirff_out,
+        complex_setup, complex_out, md_sim, sim_out]
 
-job.add_cubes(ifs, omega, fred, idtag, smirff, complex_setup, md_sim, fred_out, smirff_out, complex_out, sim_out)
+job.add_cubes(*cubes)
+
 ifs.success.connect(omega.intake)
 omega.success.connect(fred.intake)
-
 fred.success.connect(idtag.intake)
-idtag.success.connect(fred_out.intake)
 idtag.success.connect(smirff.intake)
 
 smirff.success.connect(smirff_out.intake)
@@ -65,6 +66,7 @@ smirff.success.connect(complex_setup.intake)
 
 complex_setup.success.connect(complex_out.intake)
 complex_setup.success.connect(md_sim.intake)
+
 md_sim.success.connect(sim_out.intake)
 
 if __name__ == "__main__":

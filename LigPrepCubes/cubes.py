@@ -1,14 +1,19 @@
-import traceback, string, random, os, io
+import io, os, traceback, string, random, parmed
+from openeye import oechem, oedocking, oeomega
 from floe.api import (
     parameter, ParallelOEMolComputeCube, OEMolComputeCube, SinkCube, MoleculeInputPort,
     StringParameter, MoleculeOutputPort
 )
 from floe.api.orion import in_orion, StreamingDataset
 from floe.constants import BYTES
-from openeye import oechem, oedocking, oeomega
+
 from LigPrepCubes.ports import (
     CustomMoleculeInputPort, CustomMoleculeOutputPort)
-from OpenMMCubes.ports import OpenMMSystemOutput, OpenMMSystemInput
+from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
+    OpenMMSystemOutput, OpenMMSystemInput )
+
+from smarty.forcefield import ForceField
+from smarty.forcefield_utils import create_system_from_molecule
 
 def _generateRandomID(size=5, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -68,14 +73,18 @@ class SMIRFFParameterization(OEMolComputeCube):
         # Create a copy incase of error
         init_mol = oechem.OEMol(mol)
         try:
-            from smarty.forcefield import ForceField
-            from smarty.forcefield_utils import create_system_from_molecule
             with open( self.args.molecule_forcefield, 'r') as ffxml:
                 mol_ff = ForceField( ffxml )
-            mol_topology, mol_system, mol_positions = create_system_from_molecule(mol_ff, mol)
+            mol_top, mol_sys, mol_pos = create_system_from_molecule(mol_ff, mol)
+            molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)
+            molecule_structure.residues[0].name = "MOL"
+            ffxml.close()
 
-            output = OpenMMSystemOutput('output')
-            mol.SetData(oechem.OEGetTag('system'), output.encode(mol_system))
+            # Encode System/Structure, Attach to mol
+            sys_out = OpenMMSystemOutput('sys_put')
+            struct_out = ParmEdStructureOutput('struct_out')
+            mol.SetData(oechem.OEGetTag('system'), sys_out.encode(mol_sys))
+            mol.SetData(oechem.OEGetTag('structure'), struct_out.encode(molecule_structure))
             self.success.emit(mol)
 
         except Exception as e:
@@ -106,8 +115,13 @@ class OEBSinkCube(SinkCube):
             os.makedirs(self.args.directory)
 
     def write(self, mol, port):
+        if 'idtag' in mol.GetData().keys():
+            idtag = mol.GetData(oechem.OEGetTag('idtag'))
         outfname = '{}/{}-{}.oeb.gz'.format(self.args.directory,
-                                           mol.GetTitle(), self.args.suffix)
+                                           idtag, self.args.suffix)
         with oechem.oemolostream(outfname) as ofs:
-            oechem.OEWriteConstMolecule(ofs, mol)
-        self.log.info('Saving to {}'.format(outfname))
+            res = oechem.OEWriteConstMolecule(ofs, mol)
+            if res != oechem.OEWriteMolReturnCode_Success:
+                raise RuntimeError("Error writing {}.oeb.gz".format(outfname))
+            else:
+                self.log.info('Saving to {}'.format(outfname))
