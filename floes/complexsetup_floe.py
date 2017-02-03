@@ -9,7 +9,7 @@ from LigPrepCubes.cubes import SMIRFFParameterization, SetIDTagfromTitle, OEBSin
 
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
 
-job = WorkFloe("SmirffComplexMD")
+job = WorkFloe("SmirffFragPrep")
 
 job.description = """
 Starting with SMILE Strings, generate multiconformers using OMEGA,
@@ -30,41 +30,24 @@ omega = OEOmegaConfGen('omega')
 
 fred = FREDDocking('fred')
 fred.promote_parameter('receptor', promoted_name='receptor', description='Receptor OEB')
-fred_out = OEBSinkCube('fred_out')
-fred_out.set_parameters(suffix='docked')
 
 idtag = SetIDTagfromTitle('idtag')
 
 smirff = SMIRFFParameterization('smirff')
 smirff.promote_parameter('molecule_forcefield', promoted_name='ffxml', description="SMIRFF FFXML")
-smirff_out = OEBSinkCube('smirff_out')
-smirff_out.set_parameters(suffix='smirff')
 
 complex_setup = OpenMMComplexSetup("complex_setup")
 complex_setup.promote_parameter('protein', promoted_name='protein')
-complex_out = OEBSinkCube('complex_out')
-complex_out.set_parameters(suffix='complex')
 
-md_sim = OpenMMSimulation('md_sim')
-#md_sim.promote_parameter('complex_mol', promoted_name='complex_mol')
-sim_out = OEBSinkCube('sim_out')
-sim_out.set_parameters(suffix='simulation')
+ofs = OEBSinkCube('ofs')
+ofs.set_parameters(suffix='smirff')
 
-
-job.add_cubes(ifs, omega, fred, idtag, smirff, complex_setup, md_sim)
+job.add_cubes(ifs, omega, fred, idtag, smirff, complex_setup)
 ifs.success.connect(omega.intake)
 omega.success.connect(fred.intake)
-
 fred.success.connect(idtag.intake)
-#idtag.success.connect(fred_out.intake)
 idtag.success.connect(smirff.intake)
-
-#smirff.success.connect(smirff_out.intake)
 smirff.success.connect(complex_setup.intake)
-
-#complex_setup.success.connect(complex_out.intake)
-complex_setup.success.connect(md_sim.intake)
-#md_sim.success.connect(sim_out.intake)
 
 if __name__ == "__main__":
     job.run()

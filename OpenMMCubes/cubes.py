@@ -47,7 +47,7 @@ class OpenMMComplexSetup(OEMolComputeCube):
 
     solvent_padding = parameter.DecimalParameter(
         'solvent_padding',
-        default=5,
+        default=10,
         help_text="Padding around protein for solvent box (angstroms)",
     )
 
@@ -252,8 +252,7 @@ class OpenMMSimulation(OEMolComputeCube):
 
     complex_mol = parameter.DataSetInputParameter(
         'complex_mol',
-        #default='complex.oeb.gz',
-        help_text='Single protein to Dock Against')
+        help_text='OEB file of protein:ligand complex')
 
     def __init__(self, *args, **kwargs):
         super(OpenMMSimulation, self).__init__(*args, **kwargs)
