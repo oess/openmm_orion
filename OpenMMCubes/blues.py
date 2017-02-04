@@ -122,7 +122,7 @@ class BluesNCMC(OEMolComputeCube):
         from sys import stdout
         progress_reporter = app.StateDataReporter(stdout, separator="\t",
                                             reportInterval=self.args.reporter_interval,
-                                            totalSteps=self.args.md_steps,
+                                            totalSteps=self.args.mdsteps,
                                             time=True, speed=True, progress=True,
                                             elapsedTime=True, remainingTime=True)
 
@@ -205,7 +205,7 @@ class BluesNCMC(OEMolComputeCube):
             # Rotation around the COM at some step
             # Again to maintain symmetry of ncmc move
             rot_step = (self.args.ncsteps/2) - 1
-            nc_move = [[ncmc.rotationalMove, [rot_step]]]
+            nc_move = [[blues.rotationalMove, [rot_step]]]
 
             # actually run
             outlog = open(outfname+'.log', 'r')
@@ -216,7 +216,7 @@ class BluesNCMC(OEMolComputeCube):
                         alchemical_correction=True)
             self.log.info(outlog.read())
 
-            state = ncmc.md_simulation.context.getState(getPositions=True,getEnergy=True)
+            state = blues.md_simulation.context.getState(getPositions=True,getEnergy=True)
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
             struct_out = ParmEdStructureOutput('struct_out')

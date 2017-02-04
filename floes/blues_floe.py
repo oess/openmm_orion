@@ -62,7 +62,6 @@ complex_setup.promote_parameter('solvent_forcefield', promoted_name='solvent_for
 md_sim = OpenMMSimulation('md_sim')
 md_sim.promote_parameter('complex_mol', promoted_name='complex_mol')
 md_sim.promote_parameter('steps', promoted_name='steps')
-md_sim.set_parameters(steps=5000)
 sim_out = OEBSinkCube('sim_out')
 sim_out.set_parameters(suffix='simulation')
 
