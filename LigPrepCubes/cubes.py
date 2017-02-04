@@ -23,7 +23,7 @@ class SetIDTagfromTitle(OEMolComputeCube):
     description = """
     Attach IDname to OEMol tag.
     """
-    classification = [["OpenEye", "Ligand Preparation"]]
+    classification = [["Testing", "Ligand Preparation"]]
     tags = [tag for lists in classification for tag in lists]
 
     def process(self, mol, port):
@@ -54,7 +54,7 @@ class SMIRFFParameterization(OEMolComputeCube):
     Parameterize the ligand with the smirff99Frosst.ffxml parameters,
     which is parsed with smarty. Attach the System to the OEMol.
     """
-    classification = [["OpenEye", "Ligand Preparation"]]
+    classification = [["Testing", "Ligand Preparation"]]
     tags = [tag for lists in classification for tag in lists]
 
     molecule_forcefield = parameter.DataSetInputParameter(
@@ -99,7 +99,7 @@ class OEBSinkCube(SinkCube):
     """
     A custom sink cube that writes molecules to a oeb.gz
     """
-    classification = [["Output"]]
+    classification = [["Testing", "Output"]]
     title = "Dataset Writer"
     #Define Custom Ports to handle oeb.gz files
     intake = CustomMoleculeInputPort('intake')

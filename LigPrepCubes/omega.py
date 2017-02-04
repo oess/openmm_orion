@@ -16,7 +16,7 @@ from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
 
 class OEOmegaConfGen(OEMolComputeCube):
 
-    classification = [["Conformer Generation"]]
+    classification = [["OpenEye", "Conformer Generation"]]
     tags = "OMEGA,Conformer Generation".split(",")
     title = "OMEGA"
 
@@ -91,7 +91,7 @@ class OEFlipStereo(OEMolComputeCube):
 
     title = 'Enumerate Stereo'
 
-    classification = [["Conformer Generation"]]
+    classification = [["OpenEye", "Conformer Generation"]]
 
     add_label = parameter.BooleanParameter(
         'add_label',

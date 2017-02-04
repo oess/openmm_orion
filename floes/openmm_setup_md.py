@@ -39,7 +39,7 @@ packaged with the OEMol.
 """
 
 job.classification = [
-    ["OpenMM", "Simulation"],
+    ["Testing", "Simulation"],
 ]
 job.tags = [tag for lists in job.classification for tag in lists]
 

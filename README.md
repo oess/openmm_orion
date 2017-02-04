@@ -88,6 +88,9 @@ python floes/openmm_complex_setup.py --ligand input/toluene.pdb --protein input/
 # Setup protein-ligand complex and Run short MD simulation
 python floes/openmm_setup_md.py --ligand input/toluene.pdb --protein input/T4-protein.pdb --ffxml input/smirff99Frosst.ffxml
 
+# Above with BLUES
+python floes/blues_floe.py --ligand input/toluene.pdb --protein input/T4-protein.pdb --ffxml input/smirff99Frosst.ffxml --steps 5000
+
 # Run a MD Simulation given a complex oeb.gz
 python floes/openmm_md.py --ifs input/9PC1X-complex.oeb.gz
 

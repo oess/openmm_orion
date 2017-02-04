@@ -24,9 +24,7 @@ class OpenMMComplexSetup(OEMolComputeCube):
     will be stored into a <idtag>-complex.oeb.gz file, with the System and Structure
     attached and streamed into the OpenMMSimulation cube.
     """
-    classification = [
-        ["OpenMM", "ProtLigComplex Setup"],
-    ]
+    classification = [["Testing", "Complex Setup"]]
     tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
@@ -216,13 +214,13 @@ class OpenMMSimulation(OEMolComputeCube):
     minimize the system, save the minimized PDB, and run 1000 MD steps at 300K.
     The potential energies are evaluated every 1000 steps and stored to a log file.
     Stdout is a progress/benchmark timings reporter every 1000 steps.
-    The Structure, OpenMM System, State, and log file are attached to the OEMol and 
+    The Structure, OpenMM System, State, and log file are attached to the OEMol and
     saved to the file simulation.oeb.gz.
 
     The simulation.oeb.gz file, containing the State can then be reused to
     restart the MD simulation.
     """
-    classification = [ ["OpenMM", "Simulation"]] 
+    classification = [ ["Testing", "Simulation"]] 
     tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files

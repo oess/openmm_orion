@@ -13,9 +13,7 @@ class FREDDocking(OEMolComputeCube):
     description = """
     Dock OE molecules
     """
-    classification = [
-        ["OpenEye", "Ligand Preparation"],
-    ]
+    classification = [["Testing", "Ligand Preparation"],]
     tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
