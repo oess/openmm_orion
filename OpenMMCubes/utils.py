@@ -6,13 +6,72 @@ from tempfile import NamedTemporaryFile
 from openeye.oechem import(
     oemolostream, OEWriteConstMolecule
 )
+from openeye import oechem
 from openeye.oedocking import OEWriteReceptorFile
-
+import numpy as np
 from floe.api.orion import in_orion, StreamingDataset
-
+from simtk.openmm.app import Topology
+from simtk.openmm.app.element import Element
+from simtk import unit, openmm
 # Prevents repeated downloads of the same Dataset
 download_cache = {}
 
+
+def getPositionsFromOEMol(molecule):
+    positions = unit.Quantity(
+        np.zeros([molecule.NumAtoms(), 3], np.float32), unit.angstroms)
+    coords = molecule.GetCoords()
+    for index in range(molecule.NumAtoms()):
+        positions[index, :] = unit.Quantity(coords[index], unit.angstroms)
+    return positions
+
+def generateTopologyFromOEMol(molecule):
+    # Create a Topology object with one Chain and one Residue.
+    if not oechem.OEHasResidues(molecule):
+        oechem.OEPerceiveResidues(molecule, oechem.OEPreserveResInfo_All)
+    topology = Topology()
+    chain = topology.addChain()
+    resname = molecule.GetTitle()
+    residue = topology.addResidue(resname, chain)
+
+    # Create atoms in the residue.
+    for atom in molecule.GetAtoms():
+        # Regenerate atom properties
+        index = atom.GetIdx()
+        atomname = atom.GetName()
+        atomtype = atom.GetType()
+        element = Element.getByAtomicNumber(atom.GetAtomicNum())
+        # Add the atoms to Topology
+        atom = topology.addAtom(atomname, element, residue)
+        # Regenerate residue properties
+        # thisRes = oechem.OEAtomGetResidue(atom)
+        # resname = thisRes.GetName()
+        # resid = thisRes.GetResidueNumber()
+        # chainid = thisRes.GetChainID()
+    # Create bonds.
+    atoms = {atom.name: atom for atom in topology.atoms()}
+    for bond in molecule.GetBonds():
+        topology.addBond(atoms[bond.GetBgn().GetName()], atoms[
+                         bond.GetEnd().GetName()])
+    return topology
+
+
+def combinePostions(proteinPositions, molPositions):
+    # Concatenate positions arrays (ensures same units)
+    positions_unit = unit.angstroms
+    positions0_dimensionless = np.array(proteinPositions / positions_unit)
+    positions1_dimensionless = np.array(molPositions / positions_unit)
+    coordinates = np.vstack(
+        (positions0_dimensionless, positions1_dimensionless))
+    natoms = len(coordinates)
+    positions = np.zeros([natoms, 3], np.float32)
+    for index in range(natoms):
+            (x, y, z) = coordinates[index]
+            positions[index, 0] = x
+            positions[index, 1] = y
+            positions[index, 2] = z
+    positions = unit.Quantity(positions, positions_unit)
+    return positions
 
 def download_dataset_to_file(dataset_id):
     """

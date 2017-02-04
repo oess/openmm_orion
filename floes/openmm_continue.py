@@ -4,11 +4,12 @@ Copyright (C) 2016 OpenEye Scientific Software
 """
 from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube, FileOutputCube, DataSetInputParameter, FileInputCube
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
+from LigPrepCubes.cubes import OEBSinkCube
 
 job = WorkFloe("RestartOpenMMSimulation")
 
 job.description = """
-**Restart a OpenMM Simulation**
+**Restart an OpenMM Simulation**
 
 Check out the awesome stuff at the [OpenMM website](http://openmm.org)
 """
@@ -23,8 +24,8 @@ ifs.promote_parameter("data_in", promoted_name="ifs", description="complex file"
 
 md_sim = OpenMMSimulation('md_sim')
 
-ofs = OEMolOStreamCube('ofs')
-ofs.set_parameters(data_out="restart.oeb.gz")
+ofs = OEBSinkCube('ofs')
+ofs.set_parameters(suffix="restart")
 
 job.add_cubes(ifs, md_sim, ofs)
 ifs.success.connect(md_sim.intake)
