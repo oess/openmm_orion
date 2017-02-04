@@ -19,9 +19,10 @@ class OpenMMComplexSetup(OEMolComputeCube):
     description = """
     Set up protein:ligand complex for simulation with OpenMM.
 
-    This cube will generate an OpenMM System object containing
+    This cube will generate an OpenMM System containing
     a TIP3P solvated protein:ligand complex. The complex
-    will be stored into a complex.oeb.gz file and streamed into the OpenMMSimulation cube.
+    will be stored into a <idtag>-complex.oeb.gz file, with the System and Structure
+    attached and streamed into the OpenMMSimulation cube.
     """
     classification = [
         ["OpenMM", "ProtLigComplex Setup"],
@@ -211,20 +212,17 @@ class OpenMMSimulation(OEMolComputeCube):
     Run simulation with OpenMM for protein:ligand complex.
 
     This cube will take in the streamed complex.oeb.gz file containing
-    the protein:ligand complex, reconstruct the OpenMM System object,
-    minimize the system and run 1000 MD steps at 300K.
-    The potential energies are evaluated every 100 steps and stored to a log file.
-    Stdout is a progress/benchmark timings reporter.
-    The OpenMM System, State, and log file are attached to the OEMol and saved
-    to the file simulation.oeb.gz.
+    the protein:ligand complex, reconstruct the OpenMM System,
+    minimize the system, save the minimized PDB, and run 1000 MD steps at 300K.
+    The potential energies are evaluated every 1000 steps and stored to a log file.
+    Stdout is a progress/benchmark timings reporter every 1000 steps.
+    The Structure, OpenMM System, State, and log file are attached to the OEMol and 
+    saved to the file simulation.oeb.gz.
 
     The simulation.oeb.gz file, containing the State can then be reused to
     restart the MD simulation.
     """
-    classification = [
-        ["Testing", "OpenMM"],
-        ["Testing", "Simulation"],
-    ]
+    classification = [ ["OpenMM", "Simulation"]] 
     tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files

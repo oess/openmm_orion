@@ -1,57 +1,77 @@
 from __future__ import unicode_literals
-"""
-Copyright (C) 2016 OpenEye Scientific Software
-"""
 from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube, FileOutputCube, DataSetInputParameter, FileInputCube
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
+from LigPrepCubes.cubes import SMIRFFParameterization, SetIDTagfromTitle, OEBSinkCube
 
-job = WorkFloe("SetupMD")
+job = WorkFloe("SetupOpenMMSimulation")
 
 job.description = """
-**Set up an OpenMM complex for simulation and run 1000 steps of MD**
+**Set up an OpenMM complex for simulation and run 10000 steps of MD**
 
-This floe will generate a fully solvated system with TIP3P, where the ligad is parameterized
-with the SMIRFF forcefield parameters and the protein parameterized with amber99sbild.
-It will then generate the OpenMM system to be run for 1000 steps of MD and
-store the System and State for easy restarting of the simulation.
+This floe will do the following in each cube:
+  (1) ifs: Read in the ligand file (toluene.pdb),
+  (2) idtag: Add an idtag from the molecule's title or use a random 6 character string.
+  (3a) smirff: Parameterize the molecule with the ffxml file (smirff99Frosst.ffxml)
+        Generate the ParmEd Structure and attach it to the OEMol.
+  (3b) smirff_out: Write out the OEMol to a <idtag>-smirff-oeb.gz
+  (4) complex_setup: Paramterize the protein (T4-protein.pdb) and merge with the molecule Structure,
+        Using PDBFixer: add missing atoms, add hydrogens given a pH, and solvate with TIP3P.
+        Attach tagged data containing the <idtag>, <Structure> and <System>.
+  (5) md_sim: Run 10000 steps of MD using the prepared complex and report every 1000 steps.
+      Reporters: Progress of the simulation, state data for energies, checkpoints, DCD and h5.
+      Attach tagged data containing the <idtag>, <Structure>, <System>, <State>, and <logfile>.
+  (6) ofs: Write out the OEMOl of the complex to a <idtag>-simulation.oeb.gz
 
 Parameters:
 -----------
+ligand (ifs): expected to be a ligand already docked to the protein structure.
 protein: Assumed to be taken from a 'pre-prepared' protein structure.
-ligand (ifs): This floe expects an .oeb.gz file (smirrf_mol.oeb.gz),
-where the ligand (toulene.pdb) is packaged with the smirff99Frosst.ffxml
-forcefield parameters into an .oeb.gz file.
+ffxml: The smirff99Frosst.ffxml file.
 
-Returns:
+Outputs:
 --------
-ofs: Outputs a simulation.oeb.gz file containing the
-OpenMM System, State, and log file packaged with the
-OEMol of the protein:ligand complex
+smirff_out: Outputs a <idtag>-smirff.oeb.gz file containing the
+OpenMM System and ParmEd Structure of the ligand, packaged with the OEMol.
+
+ofs: Outputs a <idtag>-simulation.oeb.gz file containing the
+OpenMM System and ParmEd Structure of the protein:ligand complex,
+packaged with the OEMol.
 """
 
 job.classification = [
-    ["OpenEye", "OpenMM"],
+    ["OpenMM", "Simulation"],
 ]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = OEMolIStreamCube("ifs")
 ifs.promote_parameter("data_in", promoted_name="ligand", description="docked ligands")
 
+idtag = SetIDTagfromTitle('idtag')
+
+smirff = SMIRFFParameterization('smirff')
+smirff.promote_parameter('molecule_forcefield', promoted_name='ffxml', description="SMIRFF FFXML")
+smirff_out = OEBSinkCube('smirff_out')
+smirff_out.set_parameters(suffix='smirff')
+
 complex_setup = OpenMMComplexSetup("complex_setup")
 complex_setup.promote_parameter('protein', promoted_name='protein')
-complex_setup.promote_parameter('molecule_forcefield', promoted_name='molecule_forcefield')
 complex_setup.promote_parameter('protein_forcefield', promoted_name='protein_forcefield')
 complex_setup.promote_parameter('solvent_forcefield', promoted_name='solvent_forcefield')
 
 md_sim = OpenMMSimulation('md_sim')
 md_sim.promote_parameter('complex_mol', promoted_name='complex_mol')
-md_sim.set_parameters(complex_mol='complex.oeb.gz')
+md_sim.promote_parameter('steps', promoted_name='steps')
 
-ofs = OEMolOStreamCube('ofs')
-ofs.set_parameters(data_out="simulation.oeb.gz")
+ofs = OEBSinkCube('ofs')
+ofs.set_parameters(suffix='simulation')
 
-job.add_cubes(ifs, complex_setup, md_sim, ofs)
-ifs.success.connect(complex_setup.intake)
+job.add_cubes(ifs, idtag, smirff, smirff_out, complex_setup, md_sim, ofs)
+ifs.success.connect(idtag.intake)
+idtag.success.connect(smirff.intake)
+
+smirff.success.connect(smirff_out.intake)
+smirff.success.connect(complex_setup.intake)
+
 complex_setup.success.connect(md_sim.intake)
 md_sim.success.connect(ofs.intake)
 
