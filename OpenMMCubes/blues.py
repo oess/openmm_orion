@@ -54,12 +54,12 @@ class BluesNCMC(OEMolComputeCube):
 
     mdsteps = parameter.IntegerParameter(
         'mdsteps',
-        default=100,
+        default=25000,
         help_text="Number of MD steps")
 
     ncsteps = parameter.IntegerParameter(
         'ncsteps',
-        default=10,
+        default=25,
         help_text="Number of NCMC steps")
 
     nciter = parameter.IntegerParameter(
@@ -67,17 +67,11 @@ class BluesNCMC(OEMolComputeCube):
         default=10,
         help_text="Number of NCMC iterations")
 
-    complex_mol = parameter.DataSetInputParameter(
-        'complex_mol',
-        default='complex.oeb.gz',
-        help_text='Single protein to Dock Against')
-
     def check_tagdata(self, mol):
         if 'idtag' not in mol.GetData().keys():
             raise RuntimeError('Could not find idtag for molecule')
         else:
             idtag =  mol.GetData(oechem.OEGetTag('idtag'))
-            self.outfname = 'output/{}-blues'.format(idtag)
             self.idtag = idtag
         if 'system' not in mol.GetData().keys():
             raise RuntimeError("Could not find system for molecule")
@@ -101,8 +95,10 @@ class BluesNCMC(OEMolComputeCube):
             serialized_state = mol.GetData(oechem.OEGetTag('state'))
             state = openmm.XmlSerializer.deserialize( serialized_state )
             self.state = state
-            self.outfname = 'output/{}-restart'.format(self.idtag)
+            self.outfname = 'output/{}-blues'.format(self.idtag)
         else:
+            self.outfname = 'output/{}-blues_0'.format(self.idtag)
+            oechem.OEThrow.Warning('Could not find a saved state, recommend equilibrating system before BLUES.')
             self.state = None
 
         if not any([self.idtag, self.system, self.structure]):
@@ -120,9 +116,11 @@ class BluesNCMC(OEMolComputeCube):
 
     def setReporters(self):
         from sys import stdout
+        #Add initial number of MD steps
+        totalSteps = 50000 + int(self.args.mdsteps)
         progress_reporter = app.StateDataReporter(stdout, separator="\t",
                                             reportInterval=self.args.reporter_interval,
-                                            totalSteps=self.args.md_steps,
+                                            totalSteps=totalSteps,
                                             time=True, speed=True, progress=True,
                                             elapsedTime=True, remainingTime=True)
 
@@ -132,7 +130,7 @@ class BluesNCMC(OEMolComputeCube):
                                             potentialEnergy=True, totalEnergy=True,
                                             volume=True, temperature=True)
         chk_reporter = app.checkpointreporter.CheckpointReporter(self.outfname+'.chk',
-                                                                self.args.reporter_interval)
+                                                                reportInterval=int(self.args.reporter_interval * 10))
         import mdtraj
         traj_reporter = mdtraj.reporters.HDF5Reporter(self.outfname+'.h5', self.args.reporter_interval)
         dcd_reporter = app.dcdreporter.DCDReporter(self.outfname+'.dcd', self.args.reporter_interval)
@@ -140,19 +138,19 @@ class BluesNCMC(OEMolComputeCube):
         return self.reporters
 
     def process(self, mol, port):
-        if self.check_tagdata(mol):
-            idtag = self.idtag
-            outfname = self.outfname
-            system = self.system
-            structure = self.structure
-            positions = structure.positions
-            topology = structure.topology
-            ligand_atoms = self.atomIndexfromTop('MOL', topology)
-            if not ligand_atoms:
-                raise RuntimeError('Could not found resname MOL in molecule {}'.format(idtag))
-            else:
-                self.log.info('Selected ligand atoms: {}'.format(str(ligand_atoms)))
         try:
+            if self.check_tagdata(mol):
+                idtag = self.idtag
+                outfname = self.outfname
+                system = self.system
+                structure = self.structure
+                positions = structure.positions
+                topology = structure.topology
+                ligand_atoms = self.atomIndexfromTop('MOL', topology)
+                if not ligand_atoms:
+                    raise RuntimeError('Could not found resname MOL in molecule {}'.format(idtag))
+                else:
+                    self.log.info('Selected ligand atoms: {}'.format(str(ligand_atoms)))
             #Initialize integrators
             md_integrator = openmm.LangevinIntegrator(self.args.temperature*unit.kelvin,
                                                         self.args.friction/unit.picosecond,
@@ -205,7 +203,7 @@ class BluesNCMC(OEMolComputeCube):
             # Rotation around the COM at some step
             # Again to maintain symmetry of ncmc move
             rot_step = (self.args.ncsteps/2) - 1
-            nc_move = [[ncmc.rotationalMove, [rot_step]]]
+            nc_move = [[blues.rotationalMove, [rot_step]]]
 
             # actually run
             outlog = open(outfname+'.log', 'r')
@@ -216,7 +214,7 @@ class BluesNCMC(OEMolComputeCube):
                         alchemical_correction=True)
             self.log.info(outlog.read())
 
-            state = ncmc.md_simulation.context.getState(getPositions=True,getEnergy=True)
+            state = blues.md_simulation.context.getState(getPositions=True,getEnergy=True)
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
             struct_out = ParmEdStructureOutput('struct_out')

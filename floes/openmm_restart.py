@@ -3,16 +3,16 @@ from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube, FileOutputCub
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
 from LigPrepCubes.cubes import OEBSinkCube
 
-job = WorkFloe("RunOpenMMSimulation")
+job = WorkFloe("RestartOpenMMSimulation")
 
 job.description = """
-**Run an OpenMM Simulation**
+**Restart an OpenMM Simulation from a saved state**
 
-Ex. `python floes/openmm_md.py --complex input/9PC1X-complex.oeb.gz --steps 10000`
+Ex. `python floes/openmm_restart.py --complex output/9PC1X-simulation.oeb.gz --steps 10000`
 
 Parameters:
 -----------
-complex (ifs): .OEB file of the prepared protein:ligand complex
+complex (ifs): .OEB file of the simulated protein:ligand complex containing the saved state
 
 Optional:
 --------
@@ -20,7 +20,7 @@ steps: Number of MD steps to equilibrate the complex (default: 50,000)
 
 Outputs:
 --------
-ofs: Outputs to a <idtag>-simulation.oeb.gz file
+ofs: Outputs to a <idtag>-restart.oeb.gz file
 """
 
 job.classification = [["Testing", "OpenMM"], ["Testing", "Simulation"]]
@@ -33,8 +33,7 @@ md = OpenMMSimulation('md')
 md.promote_parameter('steps', promoted_name='steps')
 
 ofs = OEBSinkCube('ofs')
-ofs.set_parameters(suffix='simulation')
-
+ofs.set_parameters(suffix="restart")
 
 job.add_cubes(ifs, md, ofs)
 ifs.success.connect(md.intake)

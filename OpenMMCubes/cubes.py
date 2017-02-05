@@ -4,7 +4,7 @@ import numpy as np
 from simtk import unit, openmm
 from simtk.openmm import app
 
-from floe.api import OEMolComputeCube, parameter, MoleculeInputPort, BinaryMoleculeInputPort, BinaryOutputPort, OutputPort
+from floe.api import OEMolComputeCube, parameter, MoleculeInputPort, BinaryMoleculeInputPort, BinaryOutputPort, OutputPort, ParallelOEMolComputeCube
 from floe.api.orion import in_orion, StreamingDataset
 from floe.constants import BYTES
 
@@ -109,12 +109,12 @@ class OpenMMComplexSetup(OEMolComputeCube):
             return True
 
     def process(self, mol, port):
-        if self.check_tagdata(mol):
-            idtag = self.idtag
-            outfname = self.outfname
-            system = self.system
-            molecule_structure = self.structure
         try:
+            if self.check_tagdata(mol):
+                idtag = self.idtag
+                outfname = self.outfname
+                system = self.system
+                molecule_structure = self.structure
             #Generate protein Structure object
             forcefield = app.ForceField(self.args.protein_forcefield, self.args.solvent_forcefield)
             protein_system = forcefield.createSystem( self.proteinpdb.topology )
@@ -156,9 +156,7 @@ class OpenMMComplexSetup(OEMolComputeCube):
             # Remove ligand from protein Structure by AmberMask selection
             tmp.strip(":MOL")
             tmp.save(outfname+'-nomol.tmp',format='pdb',overwrite=True)
-            # Reload PDBFile
-            nomol = app.PDBFile(outfname+'-nomol.tmp')
-            # Regenerate openMM System to parameterize solvent
+
             nomol_system = forcefield.createSystem(nomol.topology, rigidWater=False)
             # Regenerate parameterized solvated protein structure
             solv_structure = parmed.openmm.load_topology(nomol.topology,
@@ -220,7 +218,7 @@ class OpenMMSimulation(OEMolComputeCube):
     The simulation.oeb.gz file, containing the State can then be reused to
     restart the MD simulation.
     """
-    classification = [ ["Testing", "Simulation"]] 
+    classification = [ ["Testing", "Simulation"]]
     tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
@@ -234,7 +232,7 @@ class OpenMMSimulation(OEMolComputeCube):
     )
     steps = parameter.IntegerParameter(
         'steps',
-        default=10000,
+        default=50000,
         help_text="Number of MD steps")
 
     reporter_interval = parameter.IntegerParameter(
@@ -242,10 +240,6 @@ class OpenMMSimulation(OEMolComputeCube):
         default=1000,
         help_text="Step interval for reporting data."
     )
-
-    complex_mol = parameter.DataSetInputParameter(
-        'complex_mol',
-        help_text='OEB file of protein:ligand complex')
 
     def check_tagdata(self, mol):
         if 'idtag' not in mol.GetData().keys():
@@ -307,14 +301,14 @@ class OpenMMSimulation(OEMolComputeCube):
         return self.reporters
 
     def process(self, complex_mol, port):
-        if self.check_tagdata(complex_mol):
-            idtag = self.idtag
-            outfname = self.outfname
-            system = self.system
-            structure = self.structure
-            positions = structure.positions
-            topology = structure.topology
         try:
+            if self.check_tagdata(complex_mol):
+                idtag = self.idtag
+                outfname = self.outfname
+                system = self.system
+                structure = self.structure
+                positions = structure.positions
+                topology = structure.topology
             # Initialize Simulation
             integrator = openmm.LangevinIntegrator(self.args.temperature*unit.kelvin, 1/unit.picoseconds, 0.002*unit.picoseconds)
             simulation = app.Simulation(topology, system, integrator)
