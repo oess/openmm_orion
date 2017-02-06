@@ -156,7 +156,8 @@ class OpenMMComplexSetup(OEMolComputeCube):
             # Remove ligand from protein Structure by AmberMask selection
             tmp.strip(":MOL")
             tmp.save(outfname+'-nomol.tmp',format='pdb',overwrite=True)
-
+            # Reload PDBFile
+            nomol = app.PDBFile(outfname+'-nomol.tmp')
             nomol_system = forcefield.createSystem(nomol.topology, rigidWater=False)
             # Regenerate parameterized solvated protein structure
             solv_structure = parmed.openmm.load_topology(nomol.topology,
