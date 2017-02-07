@@ -28,7 +28,7 @@ class OMEGATester(unittest.TestCase):
 
     def test_success(self):
         print('Testing cube:', self.cube.name)
-        self.cube.args.ligand = '../../input/test_smiles.ism'
+        self.cube.args.ligand = 'input/test_smiles.ism'
         # Read a molecule
         mol = oechem.OEMol()
         ifs = oechem.oemolistream(self.cube.args.ligand)
@@ -59,13 +59,13 @@ class FREDTester(unittest.TestCase):
     """
     def setUp(self):
         self.cube = FREDDocking('fred')
-        self.cube.args.receptor = '../../input/test-receptor.oeb.gz'
+        self.cube.args.receptor = 'input/test-receptor.oeb.gz'
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
 
     def test_success(self):
         print('Testing cube:', self.cube.name)
-        self.cube.args.ligand = 'mcmol.oeb.gz'
+        self.cube.args.ligand = 'input/mcmol.oeb.gz'
         # Read a molecule
         mol = oechem.OEMol()
         ifs = oechem.oemolistream(self.cube.args.ligand)
@@ -96,13 +96,13 @@ class SMIRFFTester(unittest.TestCase):
     """
     def setUp(self):
         self.cube = SMIRFFParameterization('smirff')
-        self.cube.args.molecule_forcefield = '../../input/smirff99Frosst.ffxml'
+        self.cube.args.molecule_forcefield = 'input/smirff99Frosst.ffxml'
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
 
     def test_success(self):
         print('Testing cube:', self.cube.name)
-        self.cube.args.ligand = '../../input/toluene.pdb'
+        self.cube.args.ligand = 'input/toluene.pdb'
         # Read a molecule
         mol = oechem.OEMol()
         ifs = oechem.oemolistream(self.cube.args.ligand)

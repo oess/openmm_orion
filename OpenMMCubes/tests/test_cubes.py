@@ -17,7 +17,7 @@ class SetupCubeTester(unittest.TestCase):
 
     def setUp(self):
         self.cube = OpenMMComplexSetup("complex_setup")
-        self.cube.args.protein = '../../input/T4-protein.pdb'
+        self.cube.args.protein = 'input/T4-protein.pdb'
 
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
@@ -26,7 +26,7 @@ class SetupCubeTester(unittest.TestCase):
         print('Testing cube:', self.cube.name)
         # Read a molecule
         mol = oechem.OEMol()
-        ifs = oechem.oemolistream('../../input/9PC1X-smirff.oeb.gz')
+        ifs = oechem.oemolistream('input/9PC1X-smirff.oeb.gz')
         if not oechem.OEReadMolecule(ifs, mol):
             raise Exception('Cannot read molecule from %s' % self.cube.args.ligand)
         ifs.close()
@@ -66,6 +66,7 @@ class SetupCubeTester(unittest.TestCase):
             newsys = sys_in.decode(newmol.GetData(oechem.OEGetTag('system')))
             self.assertEqual(newsys.getNumParticles(), 0)
             self.assertEqual(len(newstruct.atoms), 0)
+        os.remove('empty-mol.oeb.gz')
 
     def tearDown(self):
         self.runner.finalize()
@@ -76,7 +77,7 @@ class SimulationCubeTester(unittest.TestCase):
     def setUp(self):
         self.cube = OpenMMSimulation("md")
         self.runner = CubeTestRunner(self.cube)
-        self.cube.args.complex_oeb = '../../input/9PC1X-complex.oeb.gz'
+        self.cube.args.complex_oeb = 'input/9PC1X-complex.oeb.gz'
         self.cube.args.steps = 5000
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
