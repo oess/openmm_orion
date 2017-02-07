@@ -1,4 +1,4 @@
-import unittest
+import unittest, os
 
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
 from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
@@ -28,7 +28,7 @@ class SetupCubeTester(unittest.TestCase):
         mol = oechem.OEMol()
         ifs = oechem.oemolistream('input/9PC1X-smirff.oeb.gz')
         if not oechem.OEReadMolecule(ifs, mol):
-            raise Exception('Cannot read molecule from %s' % self.cube.args.ligand)
+            raise Exception('Cannot read molecule')
         ifs.close()
 
         # Process the molecules

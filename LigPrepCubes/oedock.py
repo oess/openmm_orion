@@ -26,10 +26,16 @@ class FREDDocking(OEMolComputeCube):
         help_text='Receptor OEB File')
 
     def begin(self):
-        #Read in the Receptor
+        oebfname = 'receptor.oeb'
         receptor = oechem.OEGraphMol()
-        if not oedocking.OEReadReceptorFile(receptor, self.args.receptor):
-            OEThrow.Fatal("Unable to read receptor")
+        # Write the receptor to an OEB
+        if in_orion():
+            stream = StreamingDataset(self.args.receptor, input_format=".oeb.gz")
+            stream.download_to_file(oebfname)
+        else:
+            with oechem.oemolistream(self.args.receptor) as ifs:
+                if not oedocking.OEReadReceptorFile(receptor, self.args.receptor):
+                    raise RuntimeError("Unable to read receptor")
 
         #Initialize Docking
         dock_method = oedocking.OEDockMethod_Hybrid

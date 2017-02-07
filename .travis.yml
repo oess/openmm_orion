@@ -27,6 +27,6 @@ install:
     --extra-index-url https://pypi.anaconda.org/t/$CONDA_TOKEN/OpenEye/label/Orion/simple -r dev_requirements.txt
 
 script:
-- py.test -v OpenMMCubes
 - py.test -v PlatformTestCubes
 - py.test -v LigPrepCubes
+- py.test -v OpenMMCubes
