@@ -23,8 +23,8 @@ class SetIDTagfromTitle(OEMolComputeCube):
     description = """
     Attach IDname to OEMol tag.
     """
-    classification = [["Testing", "Ligand Preparation"]]
-    tags = [tag for lists in classification for tag in lists]
+    #classification = [["Testing", "Ligand Preparation"]]
+    #tags = [tag for lists in classification for tag in lists]
 
     def process(self, mol, port):
         #Check for OEMol title for ID labeling
@@ -99,8 +99,8 @@ class OEBSinkCube(SinkCube):
     """
     A custom sink cube that writes molecules to a oeb.gz
     """
-    classification = [["Testing", "Output"]]
-    title = "Dataset Writer"
+    #classification = [["Testing", "Output"]]
+    title = "OEBSinkCube"
     #Define Custom Ports to handle oeb.gz files
     intake = CustomMoleculeInputPort('intake')
 

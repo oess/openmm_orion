@@ -15,7 +15,7 @@ class OpenMMSystemSerializationMixin(object):
         return openmm.XmlSerializer.serialize(openmm_system).encode()
 
     def decode(self, serialized_system):
-        return openmm.XmlSerializer.deserialize(serialized_system)# .decode()
+        return openmm.XmlSerializer.deserialize(serialized_system)#.decode()
 
 class OpenMMSystemInput(OpenMMSystemSerializationMixin, InputPort):
     PORT_TYPES = (BYTES, "OpenMMSystem")

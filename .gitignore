@@ -1,3 +1,9 @@
+notebooks/
+output/*.pdb
+*.h5
+*.chk
+*.sh
+
 *.py[cod]
 
 # C extensions

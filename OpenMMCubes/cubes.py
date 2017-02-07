@@ -24,8 +24,8 @@ class OpenMMComplexSetup(OEMolComputeCube):
     will be stored into a <idtag>-complex.oeb.gz file, with the System and Structure
     attached and streamed into the OpenMMSimulation cube.
     """
-    classification = [["Testing", "Complex Setup"]]
-    tags = [tag for lists in classification for tag in lists]
+    #classification = [["Testing", "Complex Setup"]]
+    #tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
     intake = CustomMoleculeInputPort('intake')
@@ -87,6 +87,8 @@ class OpenMMComplexSetup(OEMolComputeCube):
             raise RuntimeError('Could not find idtag for molecule')
         else:
             idtag =  mol.GetData(oechem.OEGetTag('idtag'))
+            if not os.path.exists('./output'):
+                os.makedirs('./output')
             self.outfname = 'output/{}-complex'.format(idtag)
             self.idtag = idtag
         if 'system' not in mol.GetData().keys():
@@ -190,7 +192,8 @@ class OpenMMComplexSetup(OEMolComputeCube):
                 complex_mol.SetData(oechem.OEGetTag('system'), sys_out.encode(system))
                 complex_mol.SetData(oechem.OEGetTag('structure'), struct_out.encode(full_structure))
             self.success.emit(complex_mol)
-
+            os.remove(self.outfname+'-pl.tmp')
+            os.remove(self.outfname+'-nomol.tmp')
         except Exception as e:
             # Attach error message to the molecule that failed
             self.log.error(traceback.format_exc())
@@ -198,10 +201,6 @@ class OpenMMComplexSetup(OEMolComputeCube):
             # Return failed molecule
             self.failure.emit(mol)
 
-    def end(self):
-        #Clean up
-        os.remove(self.outfname+'-pl.tmp')
-        os.remove(self.outfname+'-nomol.tmp')
 
 class OpenMMSimulation(OEMolComputeCube):
     title = "Run simulation in OpenMM"
@@ -219,8 +218,8 @@ class OpenMMSimulation(OEMolComputeCube):
     The simulation.oeb.gz file, containing the State can then be reused to
     restart the MD simulation.
     """
-    classification = [ ["Testing", "Simulation"]]
-    tags = [tag for lists in classification for tag in lists]
+    #classification = [ ["Testing", "Simulation"]]
+    #tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
     intake = CustomMoleculeInputPort('intake')
@@ -242,11 +241,17 @@ class OpenMMSimulation(OEMolComputeCube):
         help_text="Step interval for reporting data."
     )
 
+    complex_oeb = parameter.DataSetInputParameter(
+        'complex_oeb',
+        help_text='Prepared complex OEB')
+
     def check_tagdata(self, mol):
         if 'idtag' not in mol.GetData().keys():
             raise RuntimeError('Could not find idtag for molecule')
         else:
             idtag =  mol.GetData(oechem.OEGetTag('idtag'))
+            if not os.path.exists('./output'):
+                os.makedirs('./output')
             self.outfname = 'output/{}-simulation'.format(idtag)
             self.idtag = idtag
         if 'system' not in mol.GetData().keys():
@@ -300,6 +305,22 @@ class OpenMMSimulation(OEMolComputeCube):
         dcd_reporter = app.dcdreporter.DCDReporter(self.outfname+'.dcd', self.args.reporter_interval)
         self.reporters = [progress_reporter, state_reporter, traj_reporter, dcd_reporter, chk_reporter]
         return self.reporters
+
+    def begin(self):
+        oebfname = 'complex.oeb.gz'
+        complex_mol = oechem.OEMol()
+        # Write the protein to a PDB
+        if in_orion():
+            stream = StreamingDataset(self.args.complex_oeb, input_format=".oeb.gz")
+            stream.download_to_file(oebfname)
+        else:
+            with oechem.oemolistream(self.args.complex_oeb) as ifs:
+                if not oechem.OEReadMolecule(ifs, complex_mol):
+                    raise RuntimeError("Error reading complex_oeb")
+                with oechem.oemolostream(oebfname) as ofs:
+                    res = oechem.OEWriteConstMolecule(ofs, complex_mol)
+                    if res != oechem.OEWriteMolReturnCode_Success:
+                        raise RuntimeError("Error writing complex_oeb: {}".format(res))
 
     def process(self, complex_mol, port):
         try:

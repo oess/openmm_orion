@@ -49,30 +49,25 @@ class FREDDocking(OEMolComputeCube):
         mol.GetActive().DeleteData('CLASHTYPE')
 
     def process(self, mcmol, port):
-        dockedMol = oechem.OEMol()
-        res = self.dock.DockMultiConformerMolecule(dockedMol, mcmol)
-        if res == oedocking.OEDockingReturnCode_Success:
+        try:
+            dockedMol = oechem.OEMol()
+            res = self.dock.DockMultiConformerMolecule(dockedMol, mcmol)
+            if res == oedocking.OEDockingReturnCode_Success:
+                oedocking.OESetSDScore(dockedMol, self.dock, self.sdtag)
+                self.dock.AnnotatePose(dockedMol)
+                score = self.dock.ScoreLigand(dockedMol)
+                self.log.info("{} {} score = {:.4f}".format(self.sdtag, dockedMol.GetTitle(), score))
+                oechem.OESetSDData(dockedMol, self.sdtag, "{}".format(score))
+                self.clean(dockedMol)
+                self.success.emit(dockedMol)
 
-            oedocking.OESetSDScore(dockedMol, self.dock, self.sdtag)
-            if oechem.OEHasSDData(dockedMol, self.sdtag):
-                method = str(oechem.OEGetSDData(dockedMol, self.sdtag))
-                oechem.OEDeleteSDData(dockedMol, self.sdtag)
-                oechem.OESetSDData(dockedMol, self.sdtag, "%s".format(method))
-            oechem.OESetSDData(dockedMol, "__ParentMol", self.sdtag)
-
-            # Get top scoring pose
-            self.dock.AnnotatePose(dockedMol)
-            self.log.info("FRED %s score = %f" % (dockedMol.GetTitle(), self.dock.ScoreLigand(dockedMol)))
-            self.clean(dockedMol)
-            self.success.emit(dockedMol)
-
-        else:
+        except Exception as e:
             # Attach error message to the molecule that failed
             self.log.error(traceback.format_exc())
-            mol.SetData('error', str(e))
+            mcmol.SetData('error', str(e))
             # Return failed molecule
-            self.failure.emit(mol)
-        return dockedMol
+            self.failure.emit(mcmol)
+        #return dockedMol
 
     def end(self):
         pass
