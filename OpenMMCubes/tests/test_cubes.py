@@ -9,11 +9,11 @@ from floe.test import CubeTestRunner
 
 from openeye import oechem
 
-"""
+
 class SetupCubeTester(unittest.TestCase):
-
-    #Test the OpenMM complex setup cube
-
+    """
+    Test the OpenMM complex setup cube
+    """
 
     def setUp(self):
         self.cube = OpenMMComplexSetup("complex_setup")
@@ -69,7 +69,7 @@ class SetupCubeTester(unittest.TestCase):
 
     def tearDown(self):
         self.runner.finalize()
-"""
+
 
 class SimulationCubeTester(unittest.TestCase):
 
