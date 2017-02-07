@@ -65,12 +65,11 @@ class FREDTester(unittest.TestCase):
 
     def test_success(self):
         print('Testing cube:', self.cube.name)
-        self.cube.args.ligand = 'input/mcmol.oeb.gz'
         # Read a molecule
         mol = oechem.OEMol()
-        ifs = oechem.oemolistream(self.cube.args.ligand)
+        ifs = oechem.oemolistream('input/mcmol.oeb')
         if not oechem.OEReadMolecule(ifs, mol):
-            raise Exception('Cannot read molecule from %s' % self.cube.args.ligand)
+            raise Exception('Cannot read molecule')
         ifs.close()
 
         # Process the molecules

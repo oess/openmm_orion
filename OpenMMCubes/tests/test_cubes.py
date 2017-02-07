@@ -26,7 +26,7 @@ class SetupCubeTester(unittest.TestCase):
         print('Testing cube:', self.cube.name)
         # Read a molecule
         mol = oechem.OEMol()
-        ifs = oechem.oemolistream('input/9PC1X-smirff.oeb.gz')
+        ifs = oechem.oemolistream('input/9PC1X-smirff.oeb')
         if not oechem.OEReadMolecule(ifs, mol):
             raise Exception('Cannot read molecule')
         ifs.close()

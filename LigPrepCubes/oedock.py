@@ -30,7 +30,7 @@ class FREDDocking(OEMolComputeCube):
         receptor = oechem.OEGraphMol()
         # Write the receptor to an OEB
         if in_orion():
-            stream = StreamingDataset(self.args.receptor, input_format=".oeb.gz")
+            stream = StreamingDataset(self.args.receptor)
             stream.download_to_file(oebfname)
         else:
             with oechem.oemolistream(self.args.receptor) as ifs:
