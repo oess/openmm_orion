@@ -26,7 +26,8 @@ class SetupCubeTester(unittest.TestCase):
         print('Testing cube:', self.cube.name)
         # Read a molecule
         mol = oechem.OEMol()
-        ifs = oechem.oemolistream('input/9PC1X-smirff.oeb')
+        oebfname = 'input/9PC1X-smirff.oeb'
+        ifs = oechem.oemolistream(oebfname)
         if not oechem.OEReadMolecule(ifs, mol):
             raise Exception('Cannot read molecule')
         ifs.close()
@@ -78,7 +79,7 @@ class SimulationCubeTester(unittest.TestCase):
         self.cube = OpenMMSimulation("md")
         self.runner = CubeTestRunner(self.cube)
         self.cube.args.complex_oeb = 'input/9PC1X-complex.oeb.gz'
-        self.cube.args.steps = 5000
+        self.cube.args.steps = 1000
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
 
