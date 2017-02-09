@@ -15,11 +15,11 @@ import parmed, base64, pickle
 
 from floe.test import CubeTestRunner
 from openeye import oechem, oedocking
-
+"""
 class OMEGATester(unittest.TestCase):
-    """
-    Test the OMEGA Cube
-    """
+
+    #Test the OMEGA Cube
+
     def setUp(self):
         self.cube = OEOmegaConfGen('omega')
         self.cube.args.maxConfs = 1
@@ -54,9 +54,9 @@ class OMEGATester(unittest.TestCase):
         self.runner.finalize()
 
 class FREDTester(unittest.TestCase):
-    """
+
     Test the FRED Cube
-    """
+
     def setUp(self):
         self.cube = FREDDocking('fred')
         self.cube.args.receptor = 'input/test-receptor.oeb.gz'
@@ -88,7 +88,7 @@ class FREDTester(unittest.TestCase):
         pass
     def tearDown(self):
         self.runner.finalize()
-
+"""
 class SMIRFFTester(unittest.TestCase):
     """
     Test the SMIRFFParameterization Cube
