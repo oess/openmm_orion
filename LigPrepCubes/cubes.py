@@ -14,7 +14,7 @@ from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
 
 from smarty.forcefield import ForceField
 from smarty.forcefield_utils import create_system_from_molecule
-from OpenMMCubes.utils import download_dataset_to_file
+
 def _generateRandomID(size=5, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
@@ -23,8 +23,8 @@ class SetIDTagfromTitle(OEMolComputeCube):
     description = """
     Attach IDname to OEMol tag.
     """
-    classification = [["Testing", "Ligand Preparation"]]
-    tags = [tag for lists in classification for tag in lists]
+    #classification = [["Testing", "Ligand Preparation"]]
+    #tags = [tag for lists in classification for tag in lists]
 
     def process(self, mol, port):
         #Check for OEMol title for ID labeling
@@ -63,25 +63,17 @@ class SMIRFFParameterization(OEMolComputeCube):
         help_text='Forcefield FFXML file for molecule')
 
     def begin(self):
-        #xmlfname = 'mol_ff.ffxml'
-        self.args.molecule_forcefield = download_dataset_to_file(self.args.molecule_forcefield)
-        #if in_orion():
-        #    stream = StreamingDataset(self.args.molecule_forcefield, input_format=".ffxml")
-        #    stream.download_to_file(xmlfname)
-        #    self.xmlfname = xmlfname
-        #else:
         try:
-            ffxml = open(self.args.molecule_forcefield, 'r')
+            ffxml = open(self.args.molecule_forcefield, 'rb')
         except:
             raise RuntimeError('Error opening {}'.format(self.args.molecule_forcefield))
         ffxml.close()
-        self.xmlfname = self.args.molecule_forcefield
 
     def process(self, mol, port):
         # Create a copy incase of error
         init_mol = oechem.OEMol(mol)
         try:
-            with open( self.xmlfname, 'r') as ffxml:
+            with open( self.args.molecule_forcefield, 'r') as ffxml:
                 mol_ff = ForceField( ffxml )
             mol_top, mol_sys, mol_pos = create_system_from_molecule(mol_ff, mol)
             molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)

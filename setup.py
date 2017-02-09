@@ -28,7 +28,7 @@ def get_version():
 setup(
     name="OpenMMCubes-floe",
     version=get_version(),
-    packages=find_packages('input', exclude=['tests*']),
+    packages=find_packages(exclude=['tests*']),
     include_package_data=True,
     author="Christopher Bayly",
     author_email="bayly@eyesopen.com",

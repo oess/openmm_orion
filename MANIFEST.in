@@ -1,8 +1,7 @@
 include README.md
 include manifest.json
 include requirements.txt
-recursive-include input *.oeb *.py *.ffxml *.gz
+include input/*.ffxml
 recursive-include floes *.py
 recursive-include PlatformTestCubes *.py *.pdb
-recursive-include OpenMMCubes *.py *.pdb
-recursive-include LigPrepCubes *.py *.pdb
+recursive-include OpenMMCubes *.py *.pdb *.mol2 *.gz
