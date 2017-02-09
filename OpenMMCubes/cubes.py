@@ -12,7 +12,7 @@ from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
 import OpenMMCubes.utils as utils
 from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
     OpenMMSystemOutput, OpenMMSystemInput )
-
+from OpenMMCubes.utils import download_dataset_to_file
 #For parallel, import and inherit from ParallelOEMolComputeCube
 class OpenMMComplexSetup(OEMolComputeCube):
     title = "OpenMMComplexSetup"
@@ -24,8 +24,8 @@ class OpenMMComplexSetup(OEMolComputeCube):
     will be stored into a <idtag>-complex.oeb.gz file, with the System and Structure
     attached and streamed into the OpenMMSimulation cube.
     """
-    #classification = [["Testing", "Complex Setup"]]
-    #tags = [tag for lists in classification for tag in lists]
+    classification = ["Complex Setup"]
+    tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
     intake = CustomMoleculeInputPort('intake')
@@ -67,17 +67,25 @@ class OpenMMComplexSetup(OEMolComputeCube):
     )
 
     def begin(self):
-        pdbfilename = 'protein.pdb'
+        #pdbfilename = 'protein.pdb'
+        protein = oechem.OEMol()
+        self.args.protein = download_dataset_to_file(self.args.protein)
+        with oechem.oemolistream(self.args.protein) as ifs:
+            if not oechem.OEReadMolecule(ifs, protein):
+                raise RuntimeError("Error reading protein")
         # Write the protein to a PDB
-        if in_orion():
-            stream = StreamingDataset(self.args.protein, input_format=".pdb")
-            stream.download_to_file(pdbfilename)
-        else:
-            protein = oechem.OEMol()
-            with oechem.oemolistream(self.args.protein) as ifs:
-                if not oechem.OEReadMolecule(ifs, protein):
-                    raise RuntimeError("Error reading molecule")
-
+        #if in_orion():
+        #    stream = StreamingDataset(self.args.protein, input_format=".pdb")
+        #    stream.download_to_file(pdbfilename)
+        #else:
+            #protein = oechem.OEMol()
+            #with oechem.oemolistream(self.args.protein) as ifs:
+        #        if not oechem.OEReadMolecule(ifs, protein):
+            #        raise RuntimeError("Error reading molecule")
+            #    with oechem.oemolostream(pdbfilename) as ofs:
+                #    res = oechem.OEWriteConstMolecule(ofs, protein)
+                #    if res != oechem.OEWriteMolReturnCode_Success:
+                #        raise RuntimeError("Error writing protein: {}".format(res))
         # Read the PDB file into an OpenMM PDBFile object
         self.proteinpdb = app.PDBFile(self.args.protein)
 
@@ -140,10 +148,17 @@ class OpenMMComplexSetup(OEMolComputeCube):
             self.log.info('\tionicStrength = {}'.format(unit.Quantity(self.args.salt_concentration, unit.millimolar)))
             fixer = pdbfixer.PDBFixer(outfname+'-pl.tmp')
             fixer.findMissingResidues()
+            fixer.findNonstandardResidues()
             fixer.findMissingAtoms()
-            if fixer.missingAtoms:
-                self.log.info('Adding missing atoms: {}'.format(fixer.missingAtoms))
-                fixer.addMissingAtoms()
+            print('Initial Topology', fixer.topology)
+            fixer.replaceNonstandardResidues()
+            #fixer.removeHeterogens(False)
+            fixer.addMissingAtoms()
+
+            print('Missing atoms', fixer.missingAtoms, fixer.missingResidues, fixer.missingTerminals)
+            print('Nonstandard Residues', fixer.nonstandardResidues)
+            print('Modified Residues', fixer.modifiedResidues)
+            print(fixer.topology)
             fixer.addMissingHydrogens(self.args.pH)
             fixer.addSolvent(padding=unit.Quantity(self.args.solvent_padding, unit.angstroms),
                             ionicStrength=unit.Quantity(self.args.salt_concentration, unit.millimolar)
@@ -194,6 +209,7 @@ class OpenMMComplexSetup(OEMolComputeCube):
             self.success.emit(complex_mol)
             os.remove(self.outfname+'-pl.tmp')
             os.remove(self.outfname+'-nomol.tmp')
+            os.remove('protein.pdb')
         except Exception as e:
             # Attach error message to the molecule that failed
             self.log.error(traceback.format_exc())
@@ -218,8 +234,8 @@ class OpenMMSimulation(OEMolComputeCube):
     The simulation.oeb.gz file, containing the State can then be reused to
     restart the MD simulation.
     """
-    #classification = [ ["Testing", "Simulation"]]
-    #tags = [tag for lists in classification for tag in lists]
+    classification = ["Simulation"]
+    tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
     intake = CustomMoleculeInputPort('intake')
