@@ -16,6 +16,24 @@ from simtk import unit, openmm
 # Prevents repeated downloads of the same Dataset
 download_cache = {}
 
+def get_data_filename(relative_path):
+    """Get the full path to one of the reference files in testsystems.
+    In the source distribution, these files are in ``smarty/data/``,
+    but on installation, they're moved to somewhere in the user's python
+    site-packages directory.
+    Parameters
+    ----------
+    name : str
+        Name of the file to load (with respect to the repex folder).
+    """
+
+    from pkg_resources import resource_filename
+    fn = resource_filename('input', os.path.join(relative_path))
+
+    if not os.path.exists(fn):
+        raise ValueError("Sorry! %s does not exist. If you just added it, you'll have to re-install" % fn)
+
+    return fn
 
 def getPositionsFromOEMol(molecule):
     positions = unit.Quantity(

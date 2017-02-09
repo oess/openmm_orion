@@ -7,7 +7,7 @@ from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
 from LigPrepCubes.omega import OEOmegaConfGen
 from LigPrepCubes.oedock import FREDDocking
 from LigPrepCubes.cubes import SMIRFFParameterization, SetIDTagfromTitle, OEBSinkCube
-
+from OpenMMCubes.utils import get_data_filename
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
 from OpenMMCubes.ports import OpenMMSystemInput, OpenMMSystemOutput
 from simtk import openmm, unit
@@ -95,7 +95,7 @@ class SMIRFFTester(unittest.TestCase):
     """
     def setUp(self):
         self.cube = SMIRFFParameterization('smirff')
-        self.cube.args.molecule_forcefield = 'input/smirff99Frosst.ffxml'
+        self.cube.args.molecule_forcefield = get_data_filename('smirff99Frosst.ffxml')#'input/smirff99Frosst.ffxml'
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
 
