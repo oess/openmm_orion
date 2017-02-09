@@ -323,17 +323,18 @@ class OpenMMSimulation(OEMolComputeCube):
         return self.reporters
 
     def begin(self):
-        oebfname = 'complex.oeb.gz'
-        complex_mol = oechem.OEMol()
+        pass
+        #oebfname = 'complex.oeb.gz'
+        #complex_mol = oechem.OEMol()
         # Write the protein to a PDB
-        self.args.complex_oeb = download_dataset_to_file(self.args.complex_oeb)
-        with oechem.oemolistream(self.args.complex_oeb) as ifs:
-            if not oechem.OEReadMolecule(ifs, complex_mol):
-                raise RuntimeError("Error reading complex_oeb")
-            with oechem.oemolostream(oebfname) as ofs:
-                res = oechem.OEWriteConstMolecule(ofs, complex_mol)
-                if res != oechem.OEWriteMolReturnCode_Success:
-                    raise RuntimeError("Error writing complex_oeb: {}".format(res))
+        #self.args.complex_oeb = download_dataset_to_file(self.args.complex_oeb)
+        #with oechem.oemolistream(self.args.complex_oeb) as ifs:
+        #    if not oechem.OEReadMolecule(ifs, complex_mol):
+        #        raise RuntimeError("Error reading complex_oeb")
+        #    with oechem.oemolostream(oebfname) as ofs:
+        #        res = oechem.OEWriteConstMolecule(ofs, complex_mol)
+        #        if res != oechem.OEWriteMolReturnCode_Success:
+        #            raise RuntimeError("Error writing complex_oeb: {}".format(res))
 
     def process(self, complex_mol, port):
         try:

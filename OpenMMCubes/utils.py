@@ -28,7 +28,7 @@ def get_data_filename(relative_path):
     """
 
     from pkg_resources import resource_filename
-    fn = resource_filename('input', os.path.join('input', relative_path))
+    fn = resource_filename('input', os.path.join(relative_path))
     print(fn)
     if not os.path.exists(fn):
         raise ValueError("Sorry! %s does not exist. If you just added it, you'll have to re-install" % fn)

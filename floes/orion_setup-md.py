@@ -28,7 +28,7 @@ This floe will do the following in each cube:
       Attach tagged data containing the <idtag>, <Structure>, <System>, <State>, and <logfile>.
   (8) ofs: Write out the OEMOl of the simulated complex to a <idtag>-simulation.oeb.gz
 
-Ex. `python floes/smiles_setup-md.py --ligand input/test_smiles.ism --receptor input/test-receptor.oeb.gz --ffxml input/smirff99Frosst.ffxml --protein input/receptor-fixed.pdb --steps 10000`
+Ex. `python floes/orion_setup-md.py --ligand input/test_smiles.ism --receptor input/test-receptor.oeb.gz --ffxml input/smirff99Frosst.ffxml --protein input/receptor-fixed.pdb --steps 10000`
 
 Parameters:
 -----------
@@ -68,7 +68,7 @@ idtag = SetIDTagfromTitle('idtag')
 
 smirff = SMIRFFParameterization('smirff')
 smirff.promote_parameter('molecule_forcefield', promoted_name='ffxml', description="SMIRFF FFXML")
-smirff.set_parameters(molecule_forcefield='input/smirff99Frosst.ffxml')
+smirff.set_parameters(molecule_forcefield='smirff99Frosst.ffxml')
 smirff_out = OEBSinkCube('smirff_out')
 smirff_out.set_parameters(suffix='smirff')
 

@@ -14,7 +14,8 @@ from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
 
 from smarty.forcefield import ForceField
 from smarty.forcefield_utils import create_system_from_molecule
-from OpenMMCubes.utils import download_dataset_to_file
+from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
+
 def _generateRandomID(size=5, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
@@ -64,7 +65,8 @@ class SMIRFFParameterization(OEMolComputeCube):
 
     def begin(self):
         #xmlfname = 'mol_ff.ffxml'
-        self.args.molecule_forcefield = download_dataset_to_file(self.args.molecule_forcefield)
+        self.args.molecule_forcefield = get_data_filename(self.args.molecule_forcefield)
+        #self.args.molecule_forcefield = download_dataset_to_file(self.args.molecule_forcefield)
         #if in_orion():
         #    stream = StreamingDataset(self.args.molecule_forcefield, input_format=".ffxml")
         #    stream.download_to_file(xmlfname)
