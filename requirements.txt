@@ -1,3 +1,7 @@
 # OE Stack
 openeye-toolkits==2016.10.1
-openeye-floe==0.2.115
+openeye-floe==0.2.127
+
+# Dev Stack
+invoke
+pytest
