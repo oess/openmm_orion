@@ -12,11 +12,11 @@ Ex. `python floes/openmm_restart.py --complex output/9PC1X-simulation.oeb.gz --s
 
 Parameters:
 -----------
-complex (ifs): .OEB file of the simulated protein:ligand complex containing the saved state
+complex (file): OEB file of the simulated protein:ligand complex containing a saved state
 
 Optional:
 --------
-steps: Number of MD steps to equilibrate the complex (default: 50,000)
+steps (int): Number of MD steps to equilibrate the complex (default: 50,000)
 
 Outputs:
 --------

@@ -18,7 +18,7 @@ download_cache = {}
 
 def get_data_filename(relative_path):
     """Get the full path to one of the reference files in testsystems.
-    In the source distribution, these files are in ``smarty/data/``,
+    In the source distribution, these files are in ``examples/data/``,
     but on installation, they're moved to somewhere in the user's python
     site-packages directory.
     Parameters
@@ -28,11 +28,9 @@ def get_data_filename(relative_path):
     """
 
     from pkg_resources import resource_filename
-    fn = resource_filename('input', os.path.join(relative_path))
-    print(fn)
+    fn = resource_filename('examples', os.path.join('data', relative_path))
     if not os.path.exists(fn):
         raise ValueError("Sorry! %s does not exist. If you just added it, you'll have to re-install" % fn)
-
     return fn
 
 def getPositionsFromOEMol(molecule):
@@ -42,37 +40,6 @@ def getPositionsFromOEMol(molecule):
     for index in range(molecule.NumAtoms()):
         positions[index, :] = unit.Quantity(coords[index], unit.angstroms)
     return positions
-
-def generateTopologyFromOEMol(molecule):
-    # Create a Topology object with one Chain and one Residue.
-    if not oechem.OEHasResidues(molecule):
-        oechem.OEPerceiveResidues(molecule, oechem.OEPreserveResInfo_All)
-    topology = Topology()
-    chain = topology.addChain()
-    resname = molecule.GetTitle()
-    residue = topology.addResidue(resname, chain)
-
-    # Create atoms in the residue.
-    for atom in molecule.GetAtoms():
-        # Regenerate atom properties
-        index = atom.GetIdx()
-        atomname = atom.GetName()
-        atomtype = atom.GetType()
-        element = Element.getByAtomicNumber(atom.GetAtomicNum())
-        # Add the atoms to Topology
-        atom = topology.addAtom(atomname, element, residue)
-        # Regenerate residue properties
-        # thisRes = oechem.OEAtomGetResidue(atom)
-        # resname = thisRes.GetName()
-        # resid = thisRes.GetResidueNumber()
-        # chainid = thisRes.GetChainID()
-    # Create bonds.
-    atoms = {atom.name: atom for atom in topology.atoms()}
-    for bond in molecule.GetBonds():
-        topology.addBond(atoms[bond.GetBgn().GetName()], atoms[
-                         bond.GetEnd().GetName()])
-    return topology
-
 
 def combinePostions(proteinPositions, molPositions):
     # Concatenate positions arrays (ensures same units)

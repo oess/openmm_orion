@@ -39,6 +39,10 @@ pip install OpenEye-floe-0.2.127.tar.gz
 
 #Install the main OpenMM Orion Floes
 python setup.py develop
+
+# Run the tests.
+python LigPrepCubes/tests/test_cubes.py
+python OpenMMCubes/tests/test_cubes.py
 ```
 #### MacOS 10.12 Sierra
 If you're running on MacOS 10.12 Sierra, you may have to install
@@ -62,34 +66,38 @@ cd .. && python setup.py develop
 ## Examples
 ### Starting from PDBs
 #### [SetupOpenMMComplex]: Setup the protein:ligand complex.
-*Assuming input ligand PDB is in docked position* Setup the protein-ligand complex.
+*Assuming input ligand PDB is in docked position*
+Setup the protein-ligand complex.
 ```
-python floes/openmm_complex-setup.py --ligand input/toluene.pdb --protein input/T4-protein.pdb --ffxml input/smirff99Frosst.ffxml
+python floes/openmm_complex-setup.py --ligand examples/data/toluene.pdb --protein examples/data/T4-protein.pdb
+
+# Available options
+python floes/openmm_complex-setup.py --ligand examples/data/toluene.pdb --protein examples/data/T4-protein.pdb --ffxml examples/data/smirff99Frosst.ffxml --protein_ff amber99sbildn.xml --solvent_ff tip3p.xml --pH 7.0 --salt_conc 10
 ```
 
 #### [SetupOpenMMSimulation]: Setup and simulate the protein:ligand complex.
-Does the same above and run 10000 MD steps.
+Does the same above and run 10,000 MD steps.
 ```
-python floes/openmm_setup-md.py --ligand input/toluene.pdb --protein input/T4-protein.pdb --ffxml input/smirff99Frosst.ffxml --steps 10000
+python floes/openmm_setup-md.py --ligand examples/data/toluene.pdb --protein examples/data/T4-protein.pdb --steps 10000
 ```
 
 ### Using the prepared complex.oeb.gz files
 #### [RunOpenMMSimulation] Run a MD Simulation given a complex.oeb.gz
 If you want to just run MD from the prepared complex:
 ```
-python floes/openmm_md.py --complex input/9PC1X-complex.oeb.gz --steps 10000
+python floes/openmm_md.py --complex examples/data/9PC1X-complex.oeb.gz --steps 10000
 ```
 
 #### [RestartOpenMMSimulation] Restart MD Simulation from the saved state in the simulation.oeb.gz
 To restart the MD simulation from the previous run:
 ```
-python floes/openmm_restart.py --complex output/9PC1X-simulation.oeb.gz --steps 10000
+python floes/openmm_restart.py --complex examples/data/9PC1X-simulation.oeb.gz --steps 10000
 ```
 
-#### [RunOpenMMBLUES] Run an equil MD simulation and MD+Blues
-To run MD and then MD+BLUES:
+#### [RunOpenMMBLUES] Run BLUES
+*After equilibration,* to use the BLUES enhanced sampling method:
 ```
-python floes/openmm_mdblues.py --complex input/9PC1X-complex.oeb.gz --steps 5000 --mdsteps 5000 --ncsteps 2500
+python floes/openmm_mdblues.py --complex examples/data/9PC1X-simulation.oeb.gz --mdsteps 5000 --ncsteps 25 --nciter 10
 ```
 
 ### Starting from SMILES
@@ -98,24 +106,24 @@ Starting from a SMILE string, generate conformers with OMEGA, dock to a
 prepared receptor using FRED, and parameterize the molecules. Writes out the
 SMIRFF molecules in their docked poses.
 ```
-python floes/smiles_ligprep.py --ligand input/test_smiles.ism --receptor input/test-receptor.oeb.gz --ffxml input/smirff99Frosst.ffxml
+python floes/smiles_ligprep.py --ligand examples/data/test_smiles.ism --receptor examples/data/test-receptor.oeb.gz
 ```
 
 #### [SmilesComplexPrep]: Setup the protein:ligand complexes
 Does the same as above and then prepares the complex from a PDB of the receptor.
 Writes out the protein:ligand complex.
 ```
-python floes/smiles_complex-setup.py --ligand input/test_smiles.ism --receptor input/test-receptor.oeb.gz --ffxml input/smirff99Frosst.ffxml --protein input/receptor-fixed.pdb
+python floes/smiles_complex-setup.py --ligand examples/data/test_smiles.ism --receptor examples/data/test-receptor.oeb.gz --protein examples/data/receptor-fixed.pdb
 ```
 
 #### [SmilesSimulation]: Setup and prepare the MD simulation.
 Does all the preparation steps above and runs the MD simulation:
 ```
-python floes/smiles_setup-md.py --ligand input/test_smiles.ism --receptor input/test-receptor.oeb.gz --ffxml input/smirff99Frosst.ffxml --protein input/receptor-fixed.pdb --steps 10000
+python floes/smiles_setup-md.py --ligand examples/data/test_smiles.ism --receptor examples/data/test-receptor.oeb.gz --protein examples/data/receptor-fixed.pd --steps 10000
 ```
 
 #### [SmilesMDBLUES] Running all the cubes together.
 Prepare the systems, equil. 5000 MD steps, and run 5000 MD+2500 BLUES steps.
 ```
-python floes/smiles_mdblues.py --ligand input/test_smiles.ism --receptor input/test-receptor.oeb.gz --ffxml input/smirff99Frosst.ffxml --protein input/receptor-fixed.pdb --steps 5000 --mdsteps 5000 --ncsteps 2500
+python floes/smiles_mdblues.py--ligand examples/data/test_smiles.ism --receptor examples/data/test-receptor.oeb.gz --protein examples/data/receptor-fixed.pdb --steps 5000 --mdsteps 5000 --ncsteps 25 --nciter 10
 ```

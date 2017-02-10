@@ -18,13 +18,21 @@ This floe will do the following in each cube:
         Attach tagged data containing the <idtag>, <Structure> and <System>
   (5) ofs: Write out the OEMOl of the complex to a <idtag>-complex.oeb.gz
 
-Ex. `python floes/openmm_complex-setup.py --ligand input/toluene.pdb --protein input/T4-protein.pdb --ffxml input/smirff99Frosst.ffxml`
+Ex. `python floes/openmm_complex-setup.py --ligand examples/data/toluene.pdb --protein examples/data/T4-protein.pdb`
 
 Parameters:
 -----------
-ligand (ifs): PDB of ligand in docked position to the protein structure.
-protein: Assumed to be taken from a 'pre-prepared' protein PDB structure.
-ffxml: The smirff99Frosst.ffxml file.
+ligand (file): PDB file of ligand in docked position to the protein structure.
+protein (file): PDB file of the protein structure, *assumed to be `pre-prepared`*
+
+*Optionals:
+-----------
+pH (float): Solvent pH used to select protein protonation states (default: 7.0)
+solvent_padding (float): Padding around protein for solvent box (default: 10 angstroms)
+salt_concentration (float): Salt concentration (default: 50 millimolar)
+molecule_forcefield (file): Smarty parsable FFXML file containining parameters for the molecule (default: smirff99Frosst.ffxml)
+protein_forcefield (file): XML file containing forcefield parameters for protein (default: amber99sbildn.xml)
+solvent_forcefield (file): XML file containing forcefield parameter for solvent (default: tip3p.xml)
 
 Outputs:
 --------
@@ -33,11 +41,11 @@ OpenMM System and ParmEd Structure of the protein:ligand complex,
 packaged with the OEMol.
 """
 
-job.classification = [["Testing", "OpenMM"], ["Testing", "Simulation"]]
+job.classification = [["Complex Setup"]]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = OEMolIStreamCube("ifs")
-ifs.promote_parameter("data_in", promoted_name="ligand", description="docked ligands")
+ifs.promote_parameter("data_in", promoted_name="ligand", description="PDB of docked ligand")
 
 idtag = SetIDTagfromTitle('idtag')
 
@@ -45,9 +53,12 @@ smirff = SMIRFFParameterization('smirff')
 smirff.promote_parameter('molecule_forcefield', promoted_name='ffxml', description="SMIRFF FFXML")
 
 complex_setup = OpenMMComplexSetup("complex_setup")
-complex_setup.promote_parameter('protein', promoted_name='protein')
-complex_setup.promote_parameter('protein_forcefield', promoted_name='protein_forcefield')
-complex_setup.promote_parameter('solvent_forcefield', promoted_name='solvent_forcefield')
+complex_setup.promote_parameter('protein', promoted_name='protein', description="PDB of protein structure")
+complex_setup.promote_parameter('pH', promoted_name='pH')
+complex_setup.promote_parameter('solvent_padding', promoted_name='solvent_padding')
+complex_setup.promote_parameter('salt_concentration', promoted_name='salt_conc')
+complex_setup.promote_parameter('protein_forcefield', promoted_name='protein_ff')
+complex_setup.promote_parameter('solvent_forcefield', promoted_name='solvent_ff')
 
 ofs = OEBSinkCube('ofs')
 ofs.set_parameters(suffix='complex')

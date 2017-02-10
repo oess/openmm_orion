@@ -19,13 +19,16 @@ This floe will do the following in each cube:
         Generate the ParmEd Structure and attach it to the OEMol.
   (6) ofs: Write out the OEMOl of the complex to a <idtag>-complex.oeb.gz
 
-Ex. `python floes/smiles_ligprep.py --ligand input/test_smiles.ism --receptor input/test-receptor.oeb.gz --ffxml input/smirff99Frosst.ffxml`
+Ex. `python floes/smiles_ligprep.py --ligand examples/data/test_smiles.ism --receptor examples/data/test-receptor.oeb.gz`
 
 Parameters:
 -----------
-ligand (ifs): .ISM file containing SMILE strings
-receptor: .OEB of a receptor prepared for docking.
-ffxml: The smirff99Frosst.ffxml file.
+ligand (file): .ISM file containing SMILE strings
+receptor (file): OEB of a receptor prepared for docking.
+
+*Optionals:
+-----------
+molecule_forcefield (file): Smarty parsable FFXML file containining parameters for the molecule (default: smirff99Frosst.ffxml)
 
 Outputs:
 --------
@@ -33,7 +36,7 @@ ofs: Outputs a <idtag>-smirff.oeb.gz file containing: <idtag>, <Structure> and <
 attached to the OEMol of the ligand as generic data.
 """
 
-job.classification = [["Testing", "Simulation"],["Testing", "OpenMM"], ["Testing", "LigPrep"]]
+job.classification = [["Ligand Preparation"]]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = OEMolIStreamCube("ifs")

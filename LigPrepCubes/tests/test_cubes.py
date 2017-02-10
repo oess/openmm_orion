@@ -1,25 +1,21 @@
-import unittest
-from LigPrepCubes.ports import (
-    CustomMoleculeInputPort, CustomMoleculeOutputPort)
-from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
-    OpenMMSystemOutput, OpenMMSystemInput )
-
+import unittest, parmed, base64, pickle
+from LigPrepCubes.ports import (CustomMoleculeInputPort, CustomMoleculeOutputPort)
 from LigPrepCubes.omega import OEOmegaConfGen
 from LigPrepCubes.oedock import FREDDocking
 from LigPrepCubes.cubes import SMIRFFParameterization, SetIDTagfromTitle, OEBSinkCube
-from OpenMMCubes.utils import get_data_filename
+from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
-from OpenMMCubes.ports import OpenMMSystemInput, OpenMMSystemOutput
+from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
+    OpenMMSystemOutput, OpenMMSystemInput )
 from simtk import openmm, unit
-import parmed, base64, pickle
-
 from floe.test import CubeTestRunner
 from openeye import oechem, oedocking
-"""
+
 class OMEGATester(unittest.TestCase):
-
-    #Test the OMEGA Cube
-
+    """
+    Test the OMEGA cube
+    Example inputs from `openmm_orion/examples/data`
+    """
     def setUp(self):
         self.cube = OEOmegaConfGen('omega')
         self.cube.args.maxConfs = 1
@@ -28,7 +24,8 @@ class OMEGATester(unittest.TestCase):
 
     def test_success(self):
         print('Testing cube:', self.cube.name)
-        self.cube.args.ligand = 'input/test_smiles.ism'
+        self.cube.args.ligand = get_data_filename('test_smiles.ism')
+
         # Read a molecule
         mol = oechem.OEMol()
         ifs = oechem.oemolistream(self.cube.args.ligand)
@@ -54,12 +51,13 @@ class OMEGATester(unittest.TestCase):
         self.runner.finalize()
 
 class FREDTester(unittest.TestCase):
-
-    Test the FRED Cube
-
+    """
+    Test the OMEGA cube
+    Example inputs from `openmm_orion/examples/data`
+    """
     def setUp(self):
         self.cube = FREDDocking('fred')
-        self.cube.args.receptor = 'input/test-receptor.oeb.gz'
+        self.cube.args.receptor = get_data_filename('test-receptor.oeb.gz')
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
 
@@ -67,7 +65,7 @@ class FREDTester(unittest.TestCase):
         print('Testing cube:', self.cube.name)
         # Read a molecule
         mol = oechem.OEMol()
-        ifs = oechem.oemolistream('input/mcmol.oeb')
+        ifs = oechem.oemolistream(get_data_filename('mcmol.oeb'))
         if not oechem.OEReadMolecule(ifs, mol):
             raise Exception('Cannot read molecule')
         ifs.close()
@@ -88,20 +86,21 @@ class FREDTester(unittest.TestCase):
         pass
     def tearDown(self):
         self.runner.finalize()
-"""
+
 class SMIRFFTester(unittest.TestCase):
     """
-    Test the SMIRFFParameterization Cube
+    Test the SMIRFF Parameterization cube
+    Example inputs from `openmm_orion/examples/data`
     """
     def setUp(self):
         self.cube = SMIRFFParameterization('smirff')
-        self.cube.args.molecule_forcefield = get_data_filename('smirff99Frosst.ffxml')#'input/smirff99Frosst.ffxml'
+        self.cube.args.molecule_forcefield = 'smirff99Frosst.ffxml'
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
 
     def test_success(self):
         print('Testing cube:', self.cube.name)
-        self.cube.args.ligand = 'input/toluene.pdb'
+        self.cube.args.ligand = get_data_filename('toluene.pdb')
         # Read a molecule
         mol = oechem.OEMol()
         ifs = oechem.oemolistream(self.cube.args.ligand)

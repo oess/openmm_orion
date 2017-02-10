@@ -1,5 +1,5 @@
 notebooks/
-output/*.pdb
+output/
 *.h5
 *.chk
 *.sh

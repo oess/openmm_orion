@@ -22,14 +22,22 @@ This floe will do the following in each cube:
         Attach tagged data containing the <idtag>, <Structure> and <System>.
   (7) ofs: Write out the OEMOl of the complex to a <idtag>-complex.oeb.gz
 
-Ex. `python floes/smiles_complex-setup.py --ligand input/test_smiles.ism --receptor input/test-receptor.oeb.gz --ffxml input/smirff99Frosst.ffxml --protein input/receptor-fixed.pdb`
+Ex. `python floes/smiles_complex-setup.py --ligand examples/data/test_smiles.ism --receptor examples/data/test-receptor.oeb.gz --protein examples/data/receptor-fixed.pdb`
 
 Parameters:
 -----------
-ligand (ifs): .ISM file containing SMILE strings
-receptor: .OEB of a receptor prepared for docking.
-ffxml: The smirff99Frosst.ffxml file.
-protein: prepared PDB file of the receptor
+ligand (file): .ISM file containing SMILE strings
+receptor (file): OEB of a receptor prepared for docking.
+protein (file): PDB of the prepared protein structure.
+
+*Optionals:
+-----------
+pH (float): Solvent pH used to select protein protonation states (default: 7.0)
+solvent_padding (float): Padding around protein for solvent box (default: 10 angstroms)
+salt_concentration (float): Salt concentration (default: 50 millimolar)
+molecule_forcefield (file): Smarty parsable FFXML file containining parameters for the molecule (default: smirff99Frosst.ffxml)
+protein_forcefield (file): XML file containing forcefield parameters for protein (default: amber99sbildn.xml)
+solvent_forcefield (file): XML file containing forcefield parameter for solvent (default: tip3p.xml)
 
 Outputs:
 --------
@@ -56,9 +64,12 @@ smirff = SMIRFFParameterization('smirff')
 smirff.promote_parameter('molecule_forcefield', promoted_name='ffxml', description="SMIRFF FFXML")
 
 complex_setup = OpenMMComplexSetup("complex_setup")
-complex_setup.promote_parameter('protein', promoted_name='protein')
+complex_setup.promote_parameter('protein', promoted_name='protein', description="PDB of protein structure")
 complex_setup.promote_parameter('pH', promoted_name='pH')
-complex_setup.promote_parameter('salt_concentration', promoted_name='salt_concentration')
+complex_setup.promote_parameter('solvent_padding', promoted_name='solvent_padding')
+complex_setup.promote_parameter('salt_concentration', promoted_name='salt_conc')
+complex_setup.promote_parameter('protein_forcefield', promoted_name='protein_ff')
+complex_setup.promote_parameter('solvent_forcefield', promoted_name='solvent_ff')
 
 ofs = OEBSinkCube('ofs')
 ofs.set_parameters(suffix='complex')

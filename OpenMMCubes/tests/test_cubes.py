@@ -1,24 +1,21 @@
-import unittest, os
-
+import unittest, os, parmed
+from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
 from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
     OpenMMSystemOutput, OpenMMSystemInput )
 from simtk import openmm, unit
-import parmed
 from floe.test import CubeTestRunner
-
 from openeye import oechem
 
 
 class SetupCubeTester(unittest.TestCase):
     """
     Test the OpenMM complex setup cube
+    Example inputs from `openmm_orion/examples/data`
     """
-
     def setUp(self):
         self.cube = OpenMMComplexSetup("complex_setup")
-        self.cube.args.protein = 'input/T4-protein.pdb'
-
+        self.cube.args.protein = get_data_filename('T4-protein.pdb')
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
 
@@ -26,8 +23,7 @@ class SetupCubeTester(unittest.TestCase):
         print('Testing cube:', self.cube.name)
         # Read a molecule
         mol = oechem.OEMol()
-        oebfname = 'input/9PC1X-smirff.oeb'
-        ifs = oechem.oemolistream(oebfname)
+        ifs = oechem.oemolistream(get_data_filename('9PC1X-smirff.oeb.gz'))
         if not oechem.OEReadMolecule(ifs, mol):
             raise Exception('Cannot read molecule')
         ifs.close()
@@ -74,11 +70,13 @@ class SetupCubeTester(unittest.TestCase):
 
 
 class SimulationCubeTester(unittest.TestCase):
-
+    """
+    Test the OpenMM Simulation cube
+    Example inputs from `openmm_orion/examples/data`
+    """
     def setUp(self):
         self.cube = OpenMMSimulation("md")
         self.runner = CubeTestRunner(self.cube)
-        self.cube.args.complex_oeb = 'input/9PC1X-complex.oeb.gz'
         self.cube.args.steps = 1000
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
@@ -89,9 +87,10 @@ class SimulationCubeTester(unittest.TestCase):
     def test_success(self):
         print('Testing cube:', self.cube.name)
         mol = oechem.OEMol()
-        ifs = oechem.oemolistream(self.cube.args.complex_oeb)
+        fname = get_data_filename('9PC1X-complex.oeb.gz')
+        ifs = oechem.oemolistream(fname)
         if not oechem.OEReadMolecule(ifs, mol):
-            raise Exception('Cannot read complex from %s' % self.cube.args.complex_oeb)
+            raise Exception('Cannot read complex from %s' % fname)
         ifs.close()
 
         # Process the molecules

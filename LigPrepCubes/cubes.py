@@ -60,35 +60,24 @@ class SMIRFFParameterization(OEMolComputeCube):
 
     molecule_forcefield = parameter.DataSetInputParameter(
         'molecule_forcefield',
-        required=True,
+        default='smirff99Frosst.ffxml',
         help_text='Forcefield FFXML file for molecule')
 
     def begin(self):
-        #xmlfname = 'mol_ff.ffxml'
-        self.args.molecule_forcefield = get_data_filename(self.args.molecule_forcefield)
-        #self.args.molecule_forcefield = download_dataset_to_file(self.args.molecule_forcefield)
-        #if in_orion():
-        #    stream = StreamingDataset(self.args.molecule_forcefield, input_format=".ffxml")
-        #    stream.download_to_file(xmlfname)
-        #    self.xmlfname = xmlfname
-        #else:
         try:
-            ffxml = open(self.args.molecule_forcefield, 'r')
+            dfname = get_data_filename(self.args.molecule_forcefield)
+            with open(dfname) as ffxml:
+                self.mol_ff = ForceField(ffxml)
         except:
-            raise RuntimeError('Error opening {}'.format(self.args.molecule_forcefield))
-        ffxml.close()
-        self.xmlfname = self.args.molecule_forcefield
+            raise RuntimeError('Error opening {}'.format(dfname))
 
     def process(self, mol, port):
         # Create a copy incase of error
         init_mol = oechem.OEMol(mol)
         try:
-            with open( self.xmlfname, 'r') as ffxml:
-                mol_ff = ForceField( ffxml )
-            mol_top, mol_sys, mol_pos = create_system_from_molecule(mol_ff, mol)
+            mol_top, mol_sys, mol_pos = create_system_from_molecule(self.mol_ff, mol)
             molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)
             molecule_structure.residues[0].name = "MOL"
-            ffxml.close()
 
             # Encode System/Structure, Attach to mol
             sys_out = OpenMMSystemOutput('sys_put')

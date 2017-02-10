@@ -12,8 +12,9 @@ from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
 import OpenMMCubes.utils as utils
 from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
     OpenMMSystemOutput, OpenMMSystemInput )
-from OpenMMCubes.utils import download_dataset_to_file
-#For parallel, import and inherit from ParallelOEMolComputeCube
+from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
+
+
 class OpenMMComplexSetup(OEMolComputeCube):
     title = "OpenMMComplexSetup"
     description = """
@@ -73,19 +74,11 @@ class OpenMMComplexSetup(OEMolComputeCube):
         with oechem.oemolistream(self.args.protein) as ifs:
             if not oechem.OEReadMolecule(ifs, protein):
                 raise RuntimeError("Error reading protein")
-        # Write the protein to a PDB
-        #if in_orion():
-        #    stream = StreamingDataset(self.args.protein, input_format=".pdb")
-        #    stream.download_to_file(pdbfilename)
-        #else:
-            #protein = oechem.OEMol()
-            #with oechem.oemolistream(self.args.protein) as ifs:
-        #        if not oechem.OEReadMolecule(ifs, protein):
-            #        raise RuntimeError("Error reading molecule")
         with oechem.oemolostream(pdbfilename) as ofs:
             res = oechem.OEWriteConstMolecule(ofs, protein)
             if res != oechem.OEWriteMolReturnCode_Success:
                 raise RuntimeError("Error writing protein: {}".format(res))
+
         # Read the PDB file into an OpenMM PDBFile object
         self.proteinpdb = app.PDBFile(pdbfilename)
 
@@ -150,15 +143,9 @@ class OpenMMComplexSetup(OEMolComputeCube):
             fixer.findMissingResidues()
             fixer.findNonstandardResidues()
             fixer.findMissingAtoms()
-            self.log.info('Initial Topology', fixer.topology)
             fixer.replaceNonstandardResidues()
             #fixer.removeHeterogens(False)
             fixer.addMissingAtoms()
-
-            #self.log.info('Missing atoms', fixer.missingAtoms, fixer.missingResidues, fixer.missingTerminals)
-            #self.log.info('Nonstandard Residues', fixer.nonstandardResidues)
-            #self.log.info('Modified Residues', fixer.modifiedResidues)
-            #self.log.info(fixer.topology)
             fixer.addMissingHydrogens(self.args.pH)
             fixer.addSolvent(padding=unit.Quantity(self.args.solvent_padding, unit.angstroms),
                             ionicStrength=unit.Quantity(self.args.salt_concentration, unit.millimolar)
@@ -257,10 +244,6 @@ class OpenMMSimulation(OEMolComputeCube):
         help_text="Step interval for reporting data."
     )
 
-    complex_oeb = parameter.DataSetInputParameter(
-        'complex_oeb',
-        help_text='Prepared complex OEB')
-
     def check_tagdata(self, mol):
         if 'idtag' not in mol.GetData().keys():
             raise RuntimeError('Could not find idtag for molecule')
@@ -318,23 +301,12 @@ class OpenMMSimulation(OEMolComputeCube):
                                                                 self.args.reporter_interval)
         import mdtraj
         traj_reporter = mdtraj.reporters.HDF5Reporter(self.outfname+'.h5', self.args.reporter_interval)
-        dcd_reporter = app.dcdreporter.DCDReporter(self.outfname+'.dcd', self.args.reporter_interval)
-        self.reporters = [progress_reporter, state_reporter, traj_reporter, dcd_reporter, chk_reporter]
+        #dcd_reporter = app.dcdreporter.DCDReporter(self.outfname+'.dcd', self.args.reporter_interval)
+        self.reporters = [progress_reporter, state_reporter, traj_reporter, chk_reporter] #,dcd_reporter]
         return self.reporters
 
     def begin(self):
         pass
-        #oebfname = 'complex.oeb.gz'
-        #complex_mol = oechem.OEMol()
-        # Write the protein to a PDB
-        #self.args.complex_oeb = download_dataset_to_file(self.args.complex_oeb)
-        #with oechem.oemolistream(self.args.complex_oeb) as ifs:
-        #    if not oechem.OEReadMolecule(ifs, complex_mol):
-        #        raise RuntimeError("Error reading complex_oeb")
-        #    with oechem.oemolostream(oebfname) as ofs:
-        #        res = oechem.OEWriteConstMolecule(ofs, complex_mol)
-        #        if res != oechem.OEWriteMolReturnCode_Success:
-        #            raise RuntimeError("Error writing complex_oeb: {}".format(res))
 
     def process(self, complex_mol, port):
         try:
@@ -348,7 +320,6 @@ class OpenMMSimulation(OEMolComputeCube):
             # Initialize Simulation
             integrator = openmm.LangevinIntegrator(self.args.temperature*unit.kelvin, 1/unit.picoseconds, 0.002*unit.picoseconds)
             simulation = app.Simulation(topology, system, integrator)
-            #simulation = app.Simulation(topology, system, self.integrator, openmm.Platform.getPlatformByName('CPU'))
             platform = simulation.context.getPlatform().getName()
             self.log.info('Running OpenMMSimulation on Platform {}'.format(platform))
 

@@ -32,15 +32,19 @@ Ex. `python floes/orion_setup-md.py --ligand input/test_smiles.ism --receptor in
 
 Parameters:
 -----------
-ligand(ifs): .ISM file containing SMILE strings
-receptor: .OEB of a receptor prepared for docking.
-ffxml: The smirff99Frosst.ffxml file.
-protein: prepared PDB file of the receptor
+ligand (file): .ISM file containing SMILE strings
+receptor (file): OEB of a receptor prepared for docking.
+protein (file): PDB file of the prepared receptor
 
-Optional:
---------
-steps: Number of MD steps to equilibrate the complex (default: 50,000)
-
+*Optionals:
+-----------
+pH (float): Solvent pH used to select protein protonation states (default: 7.0)
+solvent_padding (float): Padding around protein for solvent box (default: 10 angstroms)
+salt_concentration (float): Salt concentration (default: 50 millimolar)
+molecule_forcefield (file): Smarty parsable FFXML file containining parameters for the molecule (default: smirff99Frosst.ffxml)
+protein_forcefield (file): XML file containing forcefield parameters for protein (default: amber99sbildn.xml)
+solvent_forcefield (file): XML file containing forcefield parameter for solvent (default: tip3p.xml)
+steps (int): Number of MD steps to equilibrate the complex (default: 50,000)
 
 Outputs:
 --------
@@ -68,17 +72,22 @@ idtag = SetIDTagfromTitle('idtag')
 
 smirff = SMIRFFParameterization('smirff')
 smirff.promote_parameter('molecule_forcefield', promoted_name='ffxml', description="SMIRFF FFXML")
-smirff.set_parameters(molecule_forcefield='smirff99Frosst.ffxml')
 smirff_out = OEBSinkCube('smirff_out')
 smirff_out.set_parameters(suffix='smirff')
 
 complex_setup = OpenMMComplexSetup("complex_setup")
-complex_setup.promote_parameter('protein', promoted_name='protein')
+complex_setup.promote_parameter('protein', promoted_name='protein', description="PDB of protein structure")
+complex_setup.promote_parameter('pH', promoted_name='pH')
+complex_setup.promote_parameter('solvent_padding', promoted_name='solvent_padding')
+complex_setup.promote_parameter('salt_concentration', promoted_name='salt_conc')
+complex_setup.promote_parameter('protein_forcefield', promoted_name='protein_ff')
+complex_setup.promote_parameter('solvent_forcefield', promoted_name='solvent_ff')
 complex_out = OEBSinkCube('complex_out')
 complex_out.set_parameters(suffix='complex')
 
 md = OpenMMSimulation('md')
 md.promote_parameter('steps', promoted_name='steps')
+md.set_parameters(steps=5000)
 ofs = OEBSinkCube('ofs')
 ofs.set_parameters(suffix='simulation')
 

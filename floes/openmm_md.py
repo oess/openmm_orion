@@ -8,22 +8,22 @@ job = WorkFloe("RunOpenMMSimulation")
 job.description = """
 **Run an OpenMM Simulation**
 
-Ex. `python floes/openmm_md.py --complex input/9PC1X-complex.oeb.gz --steps 10000`
+Ex. `data='examples/data'; python floes/openmm_md.py --complex $data/9PC1X-complex.oeb.gz --steps 10000`
 
 Parameters:
 -----------
-complex (ifs): .OEB file of the prepared protein:ligand complex
+complex (file): OEB file of the prepared protein:ligand complex
 
 Optional:
 --------
-steps: Number of MD steps to equilibrate the complex (default: 50,000)
+steps (int): Number of MD steps to equilibrate the complex (default: 50,000)
 
 Outputs:
 --------
 ofs: Outputs to a <idtag>-simulation.oeb.gz file
 """
 
-job.classification = [["Testing", "OpenMM"], ["Testing", "Simulation"]]
+job.classification = [['Simulation']]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = OEMolIStreamCube("ifs")
@@ -34,7 +34,6 @@ md.promote_parameter('steps', promoted_name='steps')
 
 ofs = OEBSinkCube('ofs')
 ofs.set_parameters(suffix='simulation')
-
 
 job.add_cubes(ifs, md, ofs)
 ifs.success.connect(md.intake)

@@ -28,19 +28,22 @@ This floe will do the following in each cube:
       Attach tagged data containing the <idtag>, <Structure>, <System>, <State>, and <logfile>.
   (8) ofs: Write out the OEMOl of the simulated complex to a <idtag>-simulation.oeb.gz
 
-Ex. `python floes/smiles_setup-md.py --ligand input/test_smiles.ism --receptor input/test-receptor.oeb.gz --ffxml input/smirff99Frosst.ffxml --protein input/receptor-fixed.pdb --steps 10000`
+Ex. `python floes/smiles_setup-md.py --ligand examples/data/test_smiles.ism --receptor examples/data/test-receptor.oeb.gz --protein examples/data/receptor-fixed.pdb --steps 10000`
 
 Parameters:
 -----------
-ligand(ifs): .ISM file containing SMILE strings
-receptor: .OEB of a receptor prepared for docking.
-ffxml: The smirff99Frosst.ffxml file.
-protein: prepared PDB file of the receptor
+ligand (file): .ISM file containing SMILE strings
+receptor (file): OEB of a receptor prepared for docking.
+protein (file): PDB of the prepared protein structure.
 
-Optional:
---------
-steps: Number of MD steps to equilibrate the complex (default: 50,000)
-
+*Optionals:
+-----------
+pH (float): Solvent pH used to select protein protonation states (default: 7.0)
+solvent_padding (float): Padding around protein for solvent box (default: 10 angstroms)
+salt_concentration (float): Salt concentration (default: 50 millimolar)
+molecule_forcefield (file): Smarty parsable FFXML file containining parameters for the molecule (default: smirff99Frosst.ffxml)
+protein_forcefield (file): XML file containing forcefield parameters for protein (default: amber99sbildn.xml)
+solvent_forcefield (file): XML file containing forcefield parameter for solvent (default: tip3p.xml)
 
 Outputs:
 --------
@@ -51,7 +54,7 @@ Writes out files at each cube stage:
 ofs: Outputs to a <idtag>-simulation.oeb.gz
 """
 
-job.classification = [["Testing", "Simulation"],["Testing", "OpenMM"], ["Testing", "LigPrep"]]
+job.classification = [["Simulation", "OpenMM", "Testing", "Ligand Preparation", "Complex Setup"]]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = OEMolIStreamCube("ifs")
@@ -72,7 +75,12 @@ smirff_out = OEBSinkCube('smirff_out')
 smirff_out.set_parameters(suffix='smirff')
 
 complex_setup = OpenMMComplexSetup("complex_setup")
-complex_setup.promote_parameter('protein', promoted_name='protein')
+complex_setup.promote_parameter('protein', promoted_name='protein', description="PDB of protein structure")
+complex_setup.promote_parameter('pH', promoted_name='pH')
+complex_setup.promote_parameter('solvent_padding', promoted_name='solvent_padding')
+complex_setup.promote_parameter('salt_concentration', promoted_name='salt_conc')
+complex_setup.promote_parameter('protein_forcefield', promoted_name='protein_ff')
+complex_setup.promote_parameter('solvent_forcefield', promoted_name='solvent_ff')
 complex_out = OEBSinkCube('complex_out')
 complex_out.set_parameters(suffix='complex')
 

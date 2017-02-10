@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-import re
-import ast
-
+import re, ast, os
+from os.path import relpath, join
 from pip.req import parse_requirements
-
 from setuptools import setup, find_packages
 
 
@@ -19,6 +17,13 @@ except TypeError:
     )
 
 
+def find_package_data(data_root, package_root):
+    files = []
+    for root, dirnames, filenames in os.walk(data_root):
+        for fn in filenames:
+            files.append(relpath(join(root, fn), package_root))
+    return files
+
 def get_version():
     _version_re = re.compile(r'__version__\s+=\s+(.*)')
     with open('OpenMMCubes/__init__.py', 'rb') as f:
@@ -26,14 +31,15 @@ def get_version():
         return version
 
 setup(
-    name="OpenMMCubes-floe",
-    version=get_version(),
-    packages=find_packages(exclude=['tests*']),
+    name="OpenMMCubes",
+    version='0.1.2',
+    #version=get_version(),
+    packages=find_packages('examples', exclude=['tests*']),
     include_package_data=True,
-    package_data={ 'input': ['*.gz', '*.ffxml', '*.pdb']},
-    author="Christopher Bayly",
+    package_data={ 'examples' : find_package_data('examples/data', 'examples') },
+    author="Christopher Bayly, Nathan M. Lim, John Chodera",
     author_email="bayly@eyesopen.com",
-    description='Setup complex for MD with OpenMM',
+    description='Prepare complex for MD with OpenMM',
     install_requires=install_reqs,
     license='Other/Proprietary License',
     classifiers=[
