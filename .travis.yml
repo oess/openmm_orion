@@ -20,12 +20,13 @@ before_install:
 
 install:
 - conda create -c omnia -c omnia/label/dev -n openmm_linux python=$TRAVIS_PYTHON_VERSION
-  openmm==7.0.1 openmoltools==0.7.4 ambermini==16.16.0 smarty==0.1.4 parmed==2.7.1
-  pdbfixer-dev
+  openmm==7.1.0rc1 openmoltools==0.7.4 ambermini==16.16.0 smarty==0.1.4 parmed==2.7.1
+  pdbfixer==1.4
 - source activate openmm_linux
 - pip install --extra-index-url https://pypi.anaconda.org/OpenEye/simple
     --extra-index-url https://pypi.anaconda.org/t/$CONDA_TOKEN/OpenEye/label/Orion/simple -r dev_requirements.txt
 
 script:
-- py.test -v OpenMMCubes
 - py.test -v PlatformTestCubes
+- py.test -v LigPrepCubes
+- py.test -v OpenMMCubes
