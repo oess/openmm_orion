@@ -4,5 +4,5 @@
  "conda_channels": ["omnia", "omnia/label/dev"],
  "conda_dependencies": ["openmm", "openmoltools==0.7.4", "ambermini==16.16.0", "smarty==0.1.4", "parmed==2.7.1", "pdbfixer"],
  "name": "OpenMM Bayly test",
- "version": "0.1.1"
+ "version": "0.1.2"
 }
