@@ -34,6 +34,8 @@ def ExtractOpenMMData( mol):
         struct_in = ParmEdStructureInput('struct_in')
         struct_tag = oechem.OEGetTag('structure')
         structure = struct_in.decode(mol.GetData(struct_tag))
+        positions = structure.positions
+        topology = structure.topology
     # Check if mol has State data attached
     if 'state' in mol.GetData().keys():
         mol.GetData(oechem.OEGetTag('state'))
@@ -50,7 +52,13 @@ def ExtractOpenMMData( mol):
     if not any([idtag, system, structure]):
         raise RuntimeError('Missing tagged generic data')
     else:
-        return idtag, structure, system, state, PLmask
+        OpenMMstuff = { 'idtag': idtag,
+                        'system': system,
+                        'topology': topology,
+                        'positions': positions,
+                        'state': state,
+                        'PLmask': PLmask }
+        return OpenMMstuff
 
 class OpenMMmakePLmaskCube(OEMolComputeCube):
     title = "Generate the Protein-Ligand Mask used for MD restraints"
@@ -138,18 +146,16 @@ class OpenMMminimizeCube(OEMolComputeCube):
     def process(self, complex_mol, port):
         try:
 # begin bayly prepMD section
-            idtag, structure, system, state, PLmask = ExtractOpenMMData( complex_mol)
-            topology = structure.topology
-            positions = structure.positions
-            minState = plmd.RestrMin( topology, system, positions, PLmask,
-                                      self.args.restraintWt, self.args.steps)
+            openmmStuff = ExtractOpenMMData( complex_mol)
+            argsDict = vars( self.args)
+            minState = plmd.RestrMin( openmmStuff, argsDict)
 # end   bayly prepMD section
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
             complex_mol.AddData(oechem.OEGetTag('state'), output.encode(minState))
-            outfname = 'output/{}-minimized'.format(idtag)
+            outfname = 'output/{}-minimized'.format(openmmStuff['idtag'])
             with open(outfname+'.pdb', 'w') as minout:
-                app.PDBFile.writeFile( topology, minState.getPositions(), minout)
+                app.PDBFile.writeFile( openmmStuff['topology'], minState.getPositions(), minout)
             self.success.emit(complex_mol)
 
         except Exception as e:
@@ -214,23 +220,17 @@ class OpenMMwarmupNVTCube(OEMolComputeCube):
     def process(self, complex_mol, port):
         try:
 # begin bayly prepMD section
-            idtag, structure, system, state, PLmask = ExtractOpenMMData( complex_mol)
-            topology = structure.topology
-            if state:
-                positions = state.getPositions()
-            else:
-                positions = structure.positions
+            openmmStuff = ExtractOpenMMData( complex_mol)
             argsDict = vars( self.args)
-            argsDict['idtag'] = idtag
-            warmState = plmd.RestrWarmupNVT( topology, system, positions, PLmask, argsDict)
+            warmState = plmd.RestrWarmupNVT( openmmStuff, argsDict)
 # end   bayly prepMD section
 
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
             complex_mol.AddData(oechem.OEGetTag('state'), output.encode(warmState))
-            outfname = 'output/{}-warmup'.format(idtag)
+            outfname = 'output/{}-warmup'.format(openmmStuff['idtag'])
             with open(outfname+'.pdb', 'w') as out:
-                app.PDBFile.writeFile( topology, warmState.getPositions(), out)
+                app.PDBFile.writeFile( openmmStuff['topology'], warmState.getPositions(), out)
             self.success.emit(complex_mol)
 
         except Exception as e:

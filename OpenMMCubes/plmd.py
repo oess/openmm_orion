@@ -171,26 +171,34 @@ def protLigMask(mol, actSiteResNumTag):
 #############################################################################
 # minimize a solvated protein-ligand complex with restraints on non-solvent non-hydrogens
 #############################################################################
-def RestrMin(topology, system, positions, PLMask, restrwt=2.0, steps=100):
+def RestrMin( openmmStuff, options):
     """" Warms up the systems to the secified temp, restraining nonWat nonH.
-           topology: the openmm Topology object for the whole system in the periodic box
-           system: the openmm System object for the whole system in the periodic box
-           PLmask: the protein-ligand mask used to assign restraints
-           restrwt: the weight in kcal/mol/ang^2 to be applied to restrained atoms
-           runTime: the length in picoseconds of the warmup run
-           targetTemp: the target temperature in Kelvin
+
+         input parameters:
+           openmmStuff: dict containing the OpenMM topology, system, state,
+           initial positions, protein-ligand mask for restraints, and an idtag string.
+
+           options: dict containing minimization parameters such as restraint weight
+           and number of minimization steps.
            """
-    print('RestrMin: Minimization for %d steps with %3.1f kcal/mol/ang^2 restraints on all non-water non-Hydrogens'
-          % (steps, restrwt))
     overall_timer = LoggingStopwatch()
     stage_timer = LoggingStopwatch()
 
-    stage_timer.TimeCheck('RestrMin: building system and simulation objects')
+    topology = openmmStuff['topology']
+    system = openmmStuff['system']
+    positions = openmmStuff['positions']
+    PLMask = openmmStuff['PLmask']
+    restrwt = options['restraintWt']
+    steps = options['steps']
+
+    print('RestrMin: Minimization for %d steps with %3.1f kcal/mol/ang^2 restraints on all non-water non-Hydrogens'
+          % (steps, restrwt))
+
     restrMask = MakeAtomMaskNonSolventNonH( PLMask)
     restrStrongNonSolvNonH = MakeOpenMMRestraintForceObj( positions, restrMask, restrwt)
     system.addForce( restrStrongNonSolvNonH)
 
-    integrator = openmm.LangevinIntegrator(296 * unit.kelvin, 1 / unit.picosecond, 0.002 * unit.picoseconds)
+    integrator = openmm.LangevinIntegrator( 300*unit.kelvin, 1/unit.picosecond, 0.002*unit.picoseconds)
     simulation = app.Simulation(topology, system, integrator)
     simulation.context.setPositions(positions)
 
@@ -209,13 +217,25 @@ def RestrMin(topology, system, positions, PLMask, restrwt=2.0, steps=100):
 #############################################################################
 # warm up a solvated protein-ligand complex with restraints on non-solvent non-hydrogens
 #############################################################################
-def RestrWarmupNVT(topology, system, positions, PLMask, options):
+def RestrWarmupNVT( openmmStuff, options):
     """" Warms up the systems to the secified temp, restraining nonWat nonH.
-           topology: the openmm Topology object for the whole system in the periodic box
-           system: the openmm System object for the whole system in the periodic box
-           PLmask: the protein-ligand mask used to assign restraints
-           options: a dictionary of various MD options
+
+         input parameters:
+           openmmStuff: dict containing the OpenMM topology, system, state,
+           initial positions, protein-ligand mask for restraints, and an idtag string.
+
+           options: dict containing minimization parameters such as restraint weight,
+           length of MD run in picoseconds, and target temperature.
            """
+    topology = openmmStuff['topology']
+    system = openmmStuff['system']
+    PLMask = openmmStuff['PLmask']
+    if openmmStuff['state']:
+        state = openmmStuff['state']
+        positions = state.getPositions()
+    else:
+        positions = openmmStuff['positions']
+
     picosec = options['picosec']
     temperature = options['temperature']
     restraintWt = options['restraintWt']
@@ -239,12 +259,15 @@ def RestrWarmupNVT(topology, system, positions, PLMask, options):
 
     # set positions and update the periodic box vectors
     simulation.context.setPositions( positions)
+    if openmmStuff['state']:
+        xvec, yvec, zvec = state.getPeriodicBoxVectors()
+        simulation.context.setPeriodicBoxVectors( xvec, yvec, zvec)
     stage_timer.TimeCheck("RestrWarmupNVT: system and simulation objects created and initialized")
 
     # set up and run dynamics
     print('RestrWarmupNVT: Computations will be done on platform: ' + simulation.context.getPlatform().getName() )
     reportFreq = 100
-    outfname = 'output/'+options['idtag']+'-warmup.log'
+    outfname = 'output/'+openmmStuff['idtag']+'-warmup.log'
     fileReporter = app.StateDataReporter( outfname, reportFreq, step=True,
             time=True, potentialEnergy=True, kineticEnergy=True, totalEnergy=True, temperature=True)
     stdoutReporter = app.StateDataReporter( stdout, reportFreq, step=True,
