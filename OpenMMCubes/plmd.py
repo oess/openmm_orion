@@ -3,6 +3,7 @@
 #############################################################################
 
 import io, os, time, logging, traceback
+from sys import stdout
 from openeye import oechem
 import numpy as np
 from simtk import unit, openmm
@@ -202,6 +203,64 @@ def RestrMin(topology, system, positions, PLMask, restrwt=2.0, steps=100):
     state = simulation.context.getState(getPositions=True, getEnergy=True, enforcePeriodicBox=True)
     stage_timer.TimeCheck('RestrMin: Final energy %.4f kcal/mol'
           % state.getPotentialEnergy().value_in_unit(unit.kilocalories_per_mole))
+
+    return state
+
+#############################################################################
+# warm up a solvated protein-ligand complex with restraints on non-solvent non-hydrogens
+#############################################################################
+def RestrWarmupNVT(topology, system, positions, PLMask, options):
+    """" Warms up the systems to the secified temp, restraining nonWat nonH.
+           topology: the openmm Topology object for the whole system in the periodic box
+           system: the openmm System object for the whole system in the periodic box
+           PLmask: the protein-ligand mask used to assign restraints
+           options: a dictionary of various MD options
+           """
+    picosec = options['picosec']
+    temperature = options['temperature']
+    restraintWt = options['restraintWt']
+
+    print('RestrWarmupNVT: Warm up for %d picoseconds with %3.1f kcal/mol/ang^2 restraints on all non-water non-Hydrogens'
+          % (picosec, restraintWt))
+    overall_timer = LoggingStopwatch()
+    stage_timer = LoggingStopwatch()
+
+    print('RestrWarmupNVT: building system and simulation objects')
+    restrMask = MakeAtomMaskNonSolventNonH( PLMask)
+    restrStrongNonSolvNonH = MakeOpenMMRestraintForceObj( positions, restrMask, restraintWt)
+    system.addForce( restrStrongNonSolvNonH)
+
+    stepLen = 0.002
+    tempFricCoeff= 0.5
+    integrator = openmm.LangevinIntegrator(temperature*unit.kelvin,
+                                           tempFricCoeff/unit.picosecond,
+                                           stepLen*unit.picoseconds)
+    simulation = app.Simulation(topology, system, integrator)
+
+    # set positions and update the periodic box vectors
+    simulation.context.setPositions( positions)
+    stage_timer.TimeCheck("RestrWarmupNVT: system and simulation objects created and initialized")
+
+    # set up and run dynamics
+    print('RestrWarmupNVT: Computations will be done on platform: ' + simulation.context.getPlatform().getName() )
+    reportFreq = 100
+    outfname = 'output/'+options['idtag']+'-warmup.log'
+    fileReporter = app.StateDataReporter( outfname, reportFreq, step=True,
+            time=True, potentialEnergy=True, kineticEnergy=True, totalEnergy=True, temperature=True)
+    stdoutReporter = app.StateDataReporter( stdout, reportFreq, step=True,
+            time=True, potentialEnergy=True, kineticEnergy=True, totalEnergy=True, temperature=True)
+    simulation.reporters.append( fileReporter)
+    simulation.reporters.append( stdoutReporter)
+
+    totalTimeSteps= picosec/stepLen
+    print('RestrWarmupNVT: starting MD for %4.3f picoseconds (%d timesteps)' % (picosec, totalTimeSteps))
+    simulation.step(totalTimeSteps)
+    stage_timer.TimeCheck("RestrWarmupNVT: finishing MD run")
+
+    state= simulation.context.getState( getPositions=True, getEnergy=True,
+                                       getVelocities= True, enforcePeriodicBox= True )
+    print('RestrWarmupNVT: system energy  after MD: %s'
+          % state.getPotentialEnergy().value_in_unit(unit.kilocalories_per_mole)*unit.kilocalories_per_mole)
 
     return state
 

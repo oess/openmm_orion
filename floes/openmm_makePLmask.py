@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube, FileOutputCube, DataSetInputParameter, FileInputCube
 from OpenMMCubes.cubesPrepMD import OpenMMmakePLmaskCube
+from LigPrepCubes.cubes import OEBSinkCube
 
 job = WorkFloe("MakePLmask")
 
@@ -31,8 +32,8 @@ ifs.promote_parameter("data_in", promoted_name="complex", description="OEB of th
 PLmask = OpenMMmakePLmaskCube('PLmask')
 PLmask.promote_parameter("ActSiteResNumSDTag", promoted_name="ActSiteResNumSDTag", description='whitespace delimited list of integers corresponding to residue numbers')
 
-ofs = OEMolOStreamCube('ofs')
-ofs.set_parameters(data_out="complex_PLmask.oeb.gz")
+ofs = OEBSinkCube('ofs')
+ofs.set_parameters(suffix='PLmask')
 
 job.add_cubes(ifs, PLmask, ofs)
 ifs.success.connect(PLmask.intake)

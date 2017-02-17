@@ -9,7 +9,7 @@ job = WorkFloe("PrepMDwarmup")
 job.description = """
 **Warm up an OpenMM-ready solvated complex**
 
-Ex. `data='examples/data'; python floes/openmm_prepMDwarmup.py --complex $data/9PC1X-complex.oeb.gz --steps 1000`
+Ex. `data='examples/data'; python floes/openmm_prepMDwarmup.py --complex $data/9PC1X-complex.oeb.gz --picosec 10`
 
 Parameters:
 -----------
@@ -17,14 +17,14 @@ complex (file): OEB file of the prepared protein:ligand complex
 
 Optional:
 --------
-steps (int): Number of MD steps to equilibrate the complex (default: 50,000)
+picosec (int): Number of picoseconds to warm up the complex (default: 10)
 
 Outputs:
 --------
-ofs: Outputs to a <idtag>-simulation.oeb.gz file
+ofs: Outputs to a <idtag>-warmup.oeb.gz file
 """
 
-job.classification = [['Simulation']]
+job.classification = [['PrepMDwarmup']]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = OEMolIStreamCube("ifs")
@@ -34,7 +34,7 @@ warmup = OpenMMwarmupNVTCube('warmup')
 warmup.promote_parameter('steps', promoted_name='steps')
 
 ofs = OEBSinkCube('ofs')
-ofs.set_parameters(suffix='simulation')
+ofs.set_parameters(suffix='warmup')
 
 job.add_cubes(ifs, warmup, ofs)
 ifs.success.connect(warmup.intake)
