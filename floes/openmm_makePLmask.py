@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube, FileOutputCube, DataSetInputParameter, FileInputCube
 from OpenMMCubes.cubesPrepMD import OpenMMmakePLmaskCube
 
-job = WorkFloe("Make Protein-Ligand Mask")
+job = WorkFloe("MakePLmask")
 
 job.description = """
 **Generate the Protein-Ligand Mask used for MD restraints**
