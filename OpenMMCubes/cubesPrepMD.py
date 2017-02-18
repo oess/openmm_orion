@@ -48,6 +48,15 @@ def ExtractOpenMMData( mol):
         PLmask = json.loads(mol.GetStringData( 'OpenMM_PLmaskDict_json'))
     else:
         PLmask = None
+# begin bayly 2017feb debug section: temporary fix until suspected bug is resolved
+    # Check if mol has velocities data attached
+    if 'velocities' in mol.GetData().keys():
+        mol.GetData(oechem.OEGetTag('velocities'))
+        serialized_state = mol.GetData(oechem.OEGetTag('velocities'))
+        velocities = openmm.XmlSerializer.deserialize( serialized_state )
+    else:
+        velocities = None
+# end   bayly 2017feb debug section: temporary fix until suspected bug is resolved
 
     if not any([idtag, system, structure]):
         raise RuntimeError('Missing tagged generic data')
@@ -56,6 +65,9 @@ def ExtractOpenMMData( mol):
                         'system': system,
                         'topology': topology,
                         'positions': positions,
+# begin bayly 2017feb debug section: temporary fix until suspected bug is resolved
+                        'velocities': velocities,
+# end   bayly 2017feb debug section: temporary fix until suspected bug is resolved
                         'state': state,
                         'PLmask': PLmask }
         return OpenMMstuff
@@ -145,11 +157,9 @@ class OpenMMminimizeCube(OEMolComputeCube):
 
     def process(self, complex_mol, port):
         try:
-# begin bayly prepMD section
             openmmStuff = ExtractOpenMMData( complex_mol)
             argsDict = vars( self.args)
             minState = plmd.RestrMin( openmmStuff, argsDict)
-# end   bayly prepMD section
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
             complex_mol.AddData(oechem.OEGetTag('state'), output.encode(minState))
@@ -176,9 +186,9 @@ class OpenMMwarmupNVTCube(OEMolComputeCube):
     on the protein and ligand.
 
     Input parameters:
-    ActSiteResNumSDTag (string): the SD Tag for the whitespace-delimited protein
-    active site residue numbers (integers). These residue numbers must correspond
-    to residue numbers in the streamed complex.oeb.gz file.
+      picosec (int): Number of picoseconds to warm up the complex.
+      temperature (decimal): target final temperature after warming.
+      restraintWt (decimal): strength in kcal/mol/ang^2 for xyz atom restraints.
     """
     classification = ['MDWarmup']
     tags = [tag for lists in classification for tag in lists]
@@ -202,15 +212,84 @@ class OpenMMwarmupNVTCube(OEMolComputeCube):
         default=2.0,
         help_text="Restraint weight in kcal/mol/ang^2 for xyz atom restraints")
 
-    steps = parameter.IntegerParameter(
-        'steps',
-        default=1000,
-        help_text="Number of MD steps")
+    def begin(self):
+        if not os.path.exists('./output'):
+            os.makedirs('./output')
+        return
 
-    reporter_interval = parameter.IntegerParameter(
-        'reporter_interval',
-        default=1000,
-        help_text="Step interval for reporting data.")
+    def process(self, complex_mol, port):
+        try:
+            openmmStuff = ExtractOpenMMData( complex_mol)
+            argsDict = vars( self.args)
+            warmState = plmd.RestrWarmupNVT( openmmStuff, argsDict)
+# begin bayly 2017feb debug section: temporary fix until suspected bug is resolved
+            positions = warmState.getPositions()
+            velocities = warmState.getVelocities()
+            print( len(velocities))
+            print( velocities[0])
+# end   bayly 2017feb debug section: temporary fix until suspected bug is resolved
+
+            # Attach openmm objects to mol, emit to output
+            output = OpenMMSystemOutput('output')
+            complex_mol.AddData(oechem.OEGetTag('state'), output.encode(warmState))
+# begin bayly 2017feb debug section: temporary fix until suspected bug is resolved
+            #complex_mol.AddData(oechem.OEGetTag('positions'), output.encode(positions))
+            #complex_mol.AddData(oechem.OEGetTag('velocities'), output.encode(velocities))
+# end   bayly 2017feb debug section: temporary fix until suspected bug is resolved
+            outfname = 'output/{}-warmup'.format(openmmStuff['idtag'])
+            with open(outfname+'.pdb', 'w') as out:
+                app.PDBFile.writeFile( openmmStuff['topology'], warmState.getPositions(), out)
+            self.success.emit(complex_mol)
+
+        except Exception as e:
+                # Attach error message to the molecule that failed
+                self.log.error(traceback.format_exc())
+                complex_mol.SetData('error', str(e))
+                # Return failed mol
+                self.failure.emit(complex_mol)
+
+class OpenMMequilCube(OEMolComputeCube):
+    title = 'Equilibratiing with restraints'
+    description = """
+    Equilibrate the warmed up solvated protein:ligand complex.
+
+    This cube will take in the streamed complex.oeb.gz file containing
+    the warmed up solvated protein:ligand complex and equilibrate it at
+    the target temperature leaving all solvent free but with restraints
+    on the protein and ligand.
+
+    Input parameters:
+      picosec (int): Number of picoseconds to warm up the complex.
+      temperature (decimal): target temperature for equilibration.
+      restraintWt (decimal): strength in kcal/mol/ang^2 for xyz atom restraints.
+      snapFreq (int): frequency (in picoseconds) for taking snapshots.
+    """
+    classification = ['MDWarmup']
+    tags = [tag for lists in classification for tag in lists]
+
+    #Define Custom Ports to handle oeb.gz files
+    intake = CustomMoleculeInputPort('intake')
+    success = CustomMoleculeOutputPort('success')
+
+    temperature = parameter.DecimalParameter(
+        'temperature',
+        default= 300,
+        help_text="Temperature (Kelvin)")
+
+    picosec = parameter.DecimalParameter(
+        'picosec',
+        default= 10,
+        help_text="Number of picoseconds of MD")
+
+    restraintWt = parameter.DecimalParameter(
+        'restraintWt',
+        default=2.0,
+        help_text="Restraint weight in kcal/mol/ang^2 for xyz atom restraints")
+
+    snapFreq = parameter.DecimalParameter(
+        'snapFreq',
+        default= 0,
+        help_text="frequency (in picoseconds) for taking snapshots")
 
     def begin(self):
         if not os.path.exists('./output'):
@@ -222,15 +301,15 @@ class OpenMMwarmupNVTCube(OEMolComputeCube):
 # begin bayly prepMD section
             openmmStuff = ExtractOpenMMData( complex_mol)
             argsDict = vars( self.args)
-            warmState = plmd.RestrWarmupNVT( openmmStuff, argsDict)
+            equilState = plmd.Restrequil( openmmStuff, argsDict)
 # end   bayly prepMD section
 
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
-            complex_mol.AddData(oechem.OEGetTag('state'), output.encode(warmState))
-            outfname = 'output/{}-warmup'.format(openmmStuff['idtag'])
+            complex_mol.AddData(oechem.OEGetTag('state'), output.encode(equilState))
+            outfname = 'output/{}-equil'.format(openmmStuff['idtag'])
             with open(outfname+'.pdb', 'w') as out:
-                app.PDBFile.writeFile( openmmStuff['topology'], warmState.getPositions(), out)
+                app.PDBFile.writeFile( openmmStuff['topology'], equilState.getPositions(), out)
             self.success.emit(complex_mol)
 
         except Exception as e:

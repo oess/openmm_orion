@@ -281,7 +281,7 @@ def RestrWarmupNVT( openmmStuff, options):
     stage_timer.TimeCheck("RestrWarmupNVT: finishing MD run")
 
     state= simulation.context.getState( getPositions=True, getEnergy=True,
-                                       getVelocities= True, enforcePeriodicBox= True )
+                                       getVelocities=True, enforcePeriodicBox=True )
     print('RestrWarmupNVT: system energy  after MD: %s'
           % state.getPotentialEnergy().value_in_unit(unit.kilocalories_per_mole)*unit.kilocalories_per_mole)
 

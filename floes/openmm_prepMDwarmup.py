@@ -17,7 +17,9 @@ complex (file): OEB file of the prepared protein:ligand complex
 
 Optional:
 --------
-picosec (int): Number of picoseconds to warm up the complex (default: 10)
+picosec (int): Number of picoseconds to warm up the complex.
+temperature (decimal): target final temperature after warming.
+restraintWt (decimal): strength in kcal/mol/ang^2 for xyz atom restraints.
 
 Outputs:
 --------
@@ -31,7 +33,7 @@ ifs = OEMolIStreamCube("ifs")
 ifs.promote_parameter("data_in", promoted_name="complex", description="OEB of the protein:ligand complex")
 
 warmup = OpenMMwarmupNVTCube('warmup')
-warmup.promote_parameter('steps', promoted_name='steps')
+warmup.promote_parameter('picosec', promoted_name='picosec')
 
 ofs = OEBSinkCube('ofs')
 ofs.set_parameters(suffix='warmup')
