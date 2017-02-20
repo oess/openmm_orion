@@ -304,7 +304,6 @@ def RestrEquil( openmmStuff, options):
     system = openmmStuff['system']
     PLMask = openmmStuff['PLmask']
     state = openmmStuff['state']
-    velocities = openmmStuff['velocities']
 
     picosec = options['picosec']
     temperature = options['temperature']
@@ -331,23 +330,7 @@ def RestrEquil( openmmStuff, options):
     simulation = app.Simulation(topology, system, integrator)
 
     # set the state to the saved state.
-    # NOTE: as of 2017feb, velocities from a deserialized state are lost
     simulation.context.setState( state)
-    # begin extra work to check velocities and restore them from elsewhere
-    stateCheck = simulation.context.getState( getPositions=True, getEnergy=True,
-                                       getVelocities= True, enforcePeriodicBox= True )
-    velCheck = stateCheck.getVelocities()
-    print( 'velCheck: ', len(velCheck))
-    print( 'velCheck: ', velCheck[:3])
-    print( 'velocities: ', len(velocities))
-    print( 'velocities: ', velocities[:3])
-    simulation.context.setVelocities( velocities)
-    stateCheck = simulation.context.getState( getPositions=True, getEnergy=True,
-                                       getVelocities= True, enforcePeriodicBox= True )
-    velCheck = stateCheck.getVelocities()
-    print( 'velCheck: ', len(velCheck))
-    print( 'velCheck: ', velCheck[:3])
-    # end extra work to check velocities and restore them from elsewhere
     stage_timer.TimeCheck("RestrEquil: system and simulation objects created and initialized")
 
     # set up and run dynamics
@@ -360,7 +343,7 @@ def RestrEquil( openmmStuff, options):
         reportFreq= int( snapFreq/stepLen)
         simulation.reporters.append(app.DCDReporter(outfname+'.dcd', reportFreq))
     else:
-        reportFreq = int(0.1/stepLen)
+        reportFreq = int(1.0/stepLen)
     # set reporters
     print( 'reporting frequency is', reportFreq)
     simulation.reporters.append(app.StateDataReporter(outfname+'.log', reportFreq, step=True, time=True,
