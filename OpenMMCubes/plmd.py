@@ -287,6 +287,102 @@ def RestrWarmupNVT( openmmStuff, options):
 
     return state
 
+#############################################################################
+# equilibrate a solvated protein-ligand complex with restraints
+#############################################################################
+def RestrEquil( openmmStuff, options):
+    """" Equilibrates the NPT system at the specified temp, restraining nonWat nonH.
+
+         input parameters:
+           openmmStuff: dict containing the OpenMM topology, system, state,
+           initial positions, protein-ligand mask for restraints, and an idtag string.
+
+           options: dict containing minimization parameters such as restraint weight,
+           length of MD run in picoseconds, and target temperature.
+           """
+    topology = openmmStuff['topology']
+    system = openmmStuff['system']
+    PLMask = openmmStuff['PLmask']
+    state = openmmStuff['state']
+    velocities = openmmStuff['velocities']
+
+    picosec = options['picosec']
+    temperature = options['temperature']
+    restraintWt = options['restraintWt']
+
+    print('RestrEquil: Warm up for %d picoseconds with %3.1f kcal/mol/ang^2 restraints on all non-water non-Hydrogens'
+          % (picosec, restraintWt))
+    overall_timer = LoggingStopwatch()
+    stage_timer = LoggingStopwatch()
+
+    print('RestrEquil: building system and simulation objects')
+    restrMask = MakeAtomMaskNonSolventNonH( PLMask)
+    restrStrongNonSolvNonH = MakeOpenMMRestraintForceObj( state.getPositions(), restrMask, restraintWt)
+    system.addForce( restrStrongNonSolvNonH)
+
+    # make this an NPT (constant pressure) simulation by adding a barostat
+    system.addForce( openmm.MonteCarloBarostat( 1*unit.bar, temperature*unit.kelvin))
+
+    stepLen = 0.002
+    tempFricCoeff= 1.0
+    integrator = openmm.LangevinIntegrator(temperature*unit.kelvin,
+                                           tempFricCoeff/unit.picosecond,
+                                           stepLen*unit.picoseconds)
+    simulation = app.Simulation(topology, system, integrator)
+
+    # set the state to the saved state.
+    # NOTE: as of 2017feb, velocities from a deserialized state are lost
+    simulation.context.setState( state)
+    # begin extra work to check velocities and restore them from elsewhere
+    stateCheck = simulation.context.getState( getPositions=True, getEnergy=True,
+                                       getVelocities= True, enforcePeriodicBox= True )
+    velCheck = stateCheck.getVelocities()
+    print( 'velCheck: ', len(velCheck))
+    print( 'velCheck: ', velCheck[:3])
+    print( 'velocities: ', len(velocities))
+    print( 'velocities: ', velocities[:3])
+    simulation.context.setVelocities( velocities)
+    stateCheck = simulation.context.getState( getPositions=True, getEnergy=True,
+                                       getVelocities= True, enforcePeriodicBox= True )
+    velCheck = stateCheck.getVelocities()
+    print( 'velCheck: ', len(velCheck))
+    print( 'velCheck: ', velCheck[:3])
+    # end extra work to check velocities and restore them from elsewhere
+    stage_timer.TimeCheck("RestrEquil: system and simulation objects created and initialized")
+
+    # set up and run dynamics
+    print('RestrEquil: Computations will be done on platform: ' + simulation.context.getPlatform().getName() )
+    outfname = 'output/'+openmmStuff['idtag']+'-equil'
+    # Determine reporting frequency in steps and optionally snapshot frequency and reporter
+    snapFreq = options['snapFreq']
+    if snapFreq > 0:
+        print( 'requested snapshot frequency in ps is', snapFreq)
+        reportFreq= int( snapFreq/stepLen)
+        simulation.reporters.append(app.DCDReporter(outfname+'.dcd', reportFreq))
+    else:
+        reportFreq = int(0.1/stepLen)
+    # set reporters
+    print( 'reporting frequency is', reportFreq)
+    simulation.reporters.append(app.StateDataReporter(outfname+'.log', reportFreq, step=True, time=True,
+          potentialEnergy=True, kineticEnergy=True, totalEnergy=True,
+          temperature=True, volume=False, density=True ))
+    simulation.reporters.append(app.StateDataReporter(stdout, reportFreq, step=True, time=True,
+          potentialEnergy=True, kineticEnergy=True, totalEnergy=True,
+          temperature=True, volume=False, density=True ))
+
+    totalTimeSteps= int(picosec/stepLen)
+    print( 'totalTimeSteps is', totalTimeSteps)
+    print('RestrEquil: starting MD for %4.3f picoseconds (%d timesteps)' % (picosec, totalTimeSteps))
+    simulation.step(totalTimeSteps)
+    stage_timer.TimeCheck("RestrEquil: finishing MD run")
+
+    state= simulation.context.getState( getPositions=True, getEnergy=True,
+                                       getVelocities= True, enforcePeriodicBox= True )
+    print('RestrEquil: system energy  after MD: %s'
+          % state.getPotentialEnergy().value_in_unit(unit.kilocalories_per_mole)*unit.kilocalories_per_mole)
+
+    return state
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))

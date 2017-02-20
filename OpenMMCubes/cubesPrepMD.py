@@ -45,15 +45,14 @@ def ExtractOpenMMData( mol):
         state = None
     # Check if mol has protein-ligand mask data attached
     if 'OpenMM_PLmaskDict_json' in mol.GetData().keys():
-        PLmask = json.loads(mol.GetStringData( 'OpenMM_PLmaskDict_json'))
+        PLmask = json.loads( mol.GetStringData( 'OpenMM_PLmaskDict_json'))
     else:
         PLmask = None
 # begin bayly 2017feb debug section: temporary fix until suspected bug is resolved
     # Check if mol has velocities data attached
-    if 'velocities' in mol.GetData().keys():
-        mol.GetData(oechem.OEGetTag('velocities'))
-        serialized_state = mol.GetData(oechem.OEGetTag('velocities'))
-        velocities = openmm.XmlSerializer.deserialize( serialized_state )
+    if 'OpenMM_Velocities_json' in mol.GetData().keys():
+        velList = json.loads( mol.GetStringData( 'OpenMM_Velocities_json'))
+        velocities = velList*(unit.nanometer/unit.picosecond)
     else:
         velocities = None
 # end   bayly 2017feb debug section: temporary fix until suspected bug is resolved
@@ -222,19 +221,17 @@ class OpenMMwarmupNVTCube(OEMolComputeCube):
             openmmStuff = ExtractOpenMMData( complex_mol)
             argsDict = vars( self.args)
             warmState = plmd.RestrWarmupNVT( openmmStuff, argsDict)
-# begin bayly 2017feb debug section: temporary fix until suspected bug is resolved
-            positions = warmState.getPositions()
-            velocities = warmState.getVelocities()
-            print( len(velocities))
-            print( velocities[0])
-# end   bayly 2017feb debug section: temporary fix until suspected bug is resolved
 
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
             complex_mol.AddData(oechem.OEGetTag('state'), output.encode(warmState))
 # begin bayly 2017feb debug section: temporary fix until suspected bug is resolved
-            #complex_mol.AddData(oechem.OEGetTag('positions'), output.encode(positions))
-            #complex_mol.AddData(oechem.OEGetTag('velocities'), output.encode(velocities))
+            velocities = warmState.getVelocities()
+            print( velocities[0])
+            velList = velocities.value_in_unit( unit.nanometer/unit.picosecond)
+            print( velList[0])
+            velListJson = json.dumps(velList, ensure_ascii=True)
+            complex_mol.SetStringData( 'OpenMM_Velocities_json', velListJson)
 # end   bayly 2017feb debug section: temporary fix until suspected bug is resolved
             outfname = 'output/{}-warmup'.format(openmmStuff['idtag'])
             with open(outfname+'.pdb', 'w') as out:
@@ -301,7 +298,7 @@ class OpenMMequilCube(OEMolComputeCube):
 # begin bayly prepMD section
             openmmStuff = ExtractOpenMMData( complex_mol)
             argsDict = vars( self.args)
-            equilState = plmd.Restrequil( openmmStuff, argsDict)
+            equilState = plmd.RestrEquil( openmmStuff, argsDict)
 # end   bayly prepMD section
 
             # Attach openmm objects to mol, emit to output
