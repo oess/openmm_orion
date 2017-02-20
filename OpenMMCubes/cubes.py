@@ -158,7 +158,7 @@ class OpenMMComplexSetup(OEMolComputeCube):
             full_topology = tmp.topology
             full_box = tmp.box
             # Remove ligand from protein Structure by AmberMask selection
-            tmp.strip(":MOL")
+            tmp.strip(":LIG")
             tmp.save(outfname+'-nomol.tmp',format='pdb',overwrite=True)
             # Reload PDBFile
             nomol = app.PDBFile(outfname+'-nomol.tmp')
@@ -286,6 +286,7 @@ class OpenMMSimulation(OEMolComputeCube):
 
     def setReporters(self):
         from sys import stdout
+        import mdtraj
         progress_reporter = app.StateDataReporter(stdout, separator="\t",
                                             reportInterval=self.args.reporter_interval,
                                             totalSteps=self.args.steps,
@@ -297,12 +298,9 @@ class OpenMMSimulation(OEMolComputeCube):
                                             step=True,
                                             potentialEnergy=True, totalEnergy=True,
                                             volume=True, temperature=True)
-        chk_reporter = app.checkpointreporter.CheckpointReporter(self.outfname+'.chk',
-                                                                self.args.reporter_interval)
-        import mdtraj
+
         traj_reporter = mdtraj.reporters.HDF5Reporter(self.outfname+'.h5', self.args.reporter_interval)
-        #dcd_reporter = app.dcdreporter.DCDReporter(self.outfname+'.dcd', self.args.reporter_interval)
-        self.reporters = [progress_reporter, state_reporter, traj_reporter, chk_reporter] #,dcd_reporter]
+        self.reporters = [progress_reporter, state_reporter, traj_reporter]
         return self.reporters
 
     def begin(self):
@@ -351,8 +349,10 @@ class OpenMMSimulation(OEMolComputeCube):
 
             # Save serialized State object
             state = simulation.context.getState(getPositions=True,
-                                              getVelocities=True,
-                                              getParameters=True)
+                                                getEnergy=True,
+                                                getParameters=True,
+                                                getVelocities=True,
+                                                enforcePeriodicBox=True)
 
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')

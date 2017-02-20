@@ -80,7 +80,7 @@ class SMIRFFParameterization(OEMolComputeCube):
         try:
             mol_top, mol_sys, mol_pos = create_system_from_molecule(self.mol_ff, mol)
             molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)
-            molecule_structure.residues[0].name = "MOL"
+            molecule_structure.residues[0].name = "LIG"
 
             # Encode System/Structure, Attach to mol
             sys_out = OpenMMSystemOutput('sys_put')
