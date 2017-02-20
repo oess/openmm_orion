@@ -119,6 +119,8 @@ class OEBSinkCube(SinkCube):
     def write(self, mol, port):
         if 'idtag' in mol.GetData().keys():
             idtag = mol.GetData(oechem.OEGetTag('idtag'))
+        else:
+            idtag = mol.GetTitle()
         outfname = '{}/{}-{}.oeb.gz'.format(self.args.directory,
                                            idtag, self.args.suffix)
         with oechem.oemolostream(outfname) as ofs:

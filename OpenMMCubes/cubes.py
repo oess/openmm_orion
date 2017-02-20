@@ -1,5 +1,6 @@
-import io, os, time, traceback, base64, smarty, parmed, pdbfixer
+import io, os, time, traceback, base64, smarty, parmed, pdbfixer, mdtraj, pickle
 from openeye import oechem
+from sys import stdout
 import numpy as np
 from simtk import unit, openmm
 from simtk.openmm import app
@@ -187,16 +188,20 @@ class OpenMMComplexSetup(OEMolComputeCube):
             complex_mol = oechem.OEMol()
             sys_out = OpenMMSystemOutput('sys_out')
             struct_out = ParmEdStructureOutput('struct_out')
+            pdbout = open(outfname+'.pdb', 'rb')
             with oechem.oemolistream(outfname+'.pdb') as ifs:
                 if not oechem.OEReadMolecule(ifs, complex_mol):
                     raise RuntimeError("Error reading {}.pdb".format(outfname))
                 complex_mol.SetData(oechem.OEGetTag('idtag'), idtag)
                 complex_mol.SetData(oechem.OEGetTag('system'), sys_out.encode(system))
                 complex_mol.SetData(oechem.OEGetTag('structure'), struct_out.encode(full_structure))
+                complex_mol.SetData(oechem.OEGetTag('pdb'), pdbout.read())
             self.success.emit(complex_mol)
-            os.remove(self.outfname+'-pl.tmp')
-            os.remove(self.outfname+'-nomol.tmp')
+            pdbout.close()
+            os.remove(outfname+'-pl.tmp')
+            os.remove(outfname+'-nomol.tmp')
             os.remove('protein.pdb')
+            os.remove(outfname+'.pdb')
         except Exception as e:
             # Attach error message to the molecule that failed
             self.log.error(traceback.format_exc())
@@ -285,22 +290,22 @@ class OpenMMSimulation(OEMolComputeCube):
             return True
 
     def setReporters(self):
-        from sys import stdout
-        import mdtraj
         progress_reporter = app.StateDataReporter(stdout, separator="\t",
                                             reportInterval=self.args.reporter_interval,
                                             totalSteps=self.args.steps,
                                             time=True, speed=True, progress=True,
                                             elapsedTime=True, remainingTime=True)
+        #progress_reporter = parmed.openmm.reporters.ProgressReporter(self.outfname+'.prg', totalSteps=self.args.steps, reportInterval=self.args.reporter_interval)
 
-        state_reporter = app.StateDataReporter(self.outfname+'.log', separator="\t",
-                                            reportInterval=self.args.reporter_interval,
-                                            step=True,
-                                            potentialEnergy=True, totalEnergy=True,
-                                            volume=True, temperature=True)
-
+        #state_reporter = app.StateDataReporter(self.outfname+'.log', separator="\t",
+        #                                    reportInterval=self.args.reporter_interval,
+        #                                    step=True,
+        #                                    potentialEnergy=True, totalEnergy=True,
+        #                                    volume=True, temperature=True)
+        state_reporter = parmed.openmm.reporters.StateDataReporter(self.outfname+'.log', reportInterval=self.args.reporter_interval)
         traj_reporter = mdtraj.reporters.HDF5Reporter(self.outfname+'.h5', self.args.reporter_interval)
-        self.reporters = [progress_reporter, state_reporter, traj_reporter]
+        #cdf_reporter = mdtraj.reporters.NetCDFReporter(self.outfname+'.nc', self.args.reporter_interval)
+        self.reporters = [progress_reporter, state_reporter, traj_reporter]#, cdf_reporter]
         return self.reporters
 
     def begin(self):
@@ -308,6 +313,7 @@ class OpenMMSimulation(OEMolComputeCube):
 
     def process(self, complex_mol, port):
         try:
+            outmol = oechem.OEMol()
             if self.check_tagdata(complex_mol):
                 idtag = self.idtag
                 outfname = self.outfname
@@ -328,14 +334,21 @@ class OpenMMSimulation(OEMolComputeCube):
                 # Set initial positions and velocities then minimize
                 simulation.context.setPositions(positions)
                 simulation.context.setVelocitiesToTemperature(self.args.temperature*unit.kelvin)
-                init = simulation.context.getState(getEnergy=True)
-                self.log.info('Initial energy is {}'.format(init.getPotentialEnergy()))
+                #init = simulation.context.getState(getEnergy=True)
+                #self.log.info('Initial energy is {}'.format(init.getPotentialEnergy()))
                 self.log.info('Minimizing {} system...'.format(idtag))
+                #min_reporter = parmed.openmm.reporters.EnergyMinimizerReporter(stdout)
+                #simulation.reporters.append(min_reporter)
                 simulation.minimizeEnergy()
-                st = simulation.context.getState(getPositions=True,getEnergy=True)
-                self.log.info('Minimized energy is {}'.format(st.getPotentialEnergy()))
-                with open('output/{}-minimized.pdb'.format(idtag), 'w') as minout:
-                    app.PDBFile.writeFile(simulation.topology, st.getPositions(), minout)
+                min_state = simulation.context.getState(getPositions=True,getEnergy=True)
+                self.log.info('Minimized energy is {}'.format(min_state.getPotentialEnergy()))
+                minfname = 'output/{}-minimized.pdb'.format(idtag)
+                with open(minfname, 'w') as minout:
+                    app.PDBFile.writeFile(simulation.topology, min_state.getPositions(), minout)
+
+                with open(minfname, 'rb') as minin:
+                    outmol.SetData(oechem.OEGetTag('pdb') , minin.read())
+                os.remove(minfname)
 
             #Append Reporters to simulation
             reporters = self.setReporters()
@@ -349,20 +362,45 @@ class OpenMMSimulation(OEMolComputeCube):
 
             # Save serialized State object
             state = simulation.context.getState(getPositions=True,
-                                                getEnergy=True,
-                                                getParameters=True,
                                                 getVelocities=True,
+                                                getParameters=True,
+                                                getForces=True,
+                                                getParameterDerivatives=True,
+                                                getEnergy=True,
                                                 enforcePeriodicBox=True)
 
-            # Attach openmm objects to mol, emit to output
+            pdbfname = 'output/{}-simulation.pdb'.format(idtag)
+            with open(pdbfname, 'w') as simout:
+                app.PDBFile.writeFile(simulation.topology, state.getPositions(), simout)
+            for rep in reporters:
+                try:
+                    print(rep)
+                    rep.close()
+                except Exception as e:
+                    print(e)
+                    pass
+            h5traj = mdtraj.load(outfname+'.h5')
+            pkl_traj = pickle.dumps(h5traj)
+            b64_traj = base64.b64encode(pkl_traj)
+
+            # Attach openmm objects to newmol, emit to output
+            pdbout = open(pdbfname, 'rb')
             output = OpenMMSystemOutput('output')
-            struct_out = ParmEdStructureOutput('struct_out')
-            complex_mol.SetData(oechem.OEGetTag('system'), output.encode(system))
-            complex_mol.SetData(oechem.OEGetTag('structure'), struct_out.encode(structure))
-            complex_mol.AddData(oechem.OEGetTag('state'), output.encode(state))
-            complex_mol.AddData(oechem.OEGetTag('log'), outlog.read())
-            self.success.emit(complex_mol)
+            with oechem.oemolistream(pdbfname) as ifs:
+                if not oechem.OEReadMolecule(ifs, outmol):
+                    raise RuntimeError("Error reading PDB: {}".format(pdbfname))
+                outmol.SetData(oechem.OEGetTag('idtag'), idtag)
+                outmol.SetData(oechem.OEGetTag('system'), output.encode(system))
+                outmol.SetData(oechem.OEGetTag('state'), output.encode(state))
+                outmol.SetData(oechem.OEGetTag('pdb'), pdbout.read())
+                outmol.SetData(oechem.OEGetTag('traj'), b64_traj)
+                outmol.SetData(oechem.OEGetTag('log'), outlog.read())
+
+            self.success.emit(outmol)
+
             outlog.close()
+            pdbout.close()
+            os.remove(pdbfname)
 
         except Exception as e:
                 # Attach error message to the molecule that failed
