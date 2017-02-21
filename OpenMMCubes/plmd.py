@@ -302,7 +302,7 @@ def RestrWarmupNVT( openmmStuff, options):
 
     # set up and run dynamics
     print('RestrWarmupNVT: Computations will be done on platform: ' + simulation.context.getPlatform().getName() )
-    reportFreq = 100
+    reportFreq = 500
     outfname = 'output/'+openmmStuff['idtag']+'-warmup.log'
     fileReporter = app.StateDataReporter( outfname, reportFreq, step=True,
             time=True, potentialEnergy=True, kineticEnergy=True, totalEnergy=True, temperature=True)
