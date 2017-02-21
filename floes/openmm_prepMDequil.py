@@ -34,8 +34,18 @@ ifs = OEMolIStreamCube("ifs")
 ifs.promote_parameter("data_in", promoted_name="complex", description="OEB of the protein:ligand complex")
 
 equil = OpenMMequilCube('equil')
-equil.promote_parameter('picosec', promoted_name='picosec')
-equil.promote_parameter('restraintType', promoted_name='restraintType')
+equil.promote_parameter('picosec', promoted_name='picosec', default=10.0,
+      description='Length of MD run in picoseconds')
+equil.promote_parameter('snapFreq', promoted_name='snapFreq', default=0,
+      description='frequency (in picoseconds) for taking snapshots')
+equil.promote_parameter('restraintType', promoted_name='restraintType',
+      default='NonSolventNonH', description='Which kinds of atoms get xyz restraints')
+equil.promote_parameter('restraintWt', promoted_name='restraintWt',
+      default=2.0, description='Restraint weight in kcal/mol/ang^2 for xyz atom restraints')
+equil.promote_parameter('temperature', promoted_name='temperature', default=300.0,
+      description='Temperature (Kelvin)')
+equil.promote_parameter('label', promoted_name='label',
+      default='_equil', description='label to add to filenames from this cube')
 
 ofs = OEBSinkCube('ofs')
 ofs.set_parameters(suffix='equil')

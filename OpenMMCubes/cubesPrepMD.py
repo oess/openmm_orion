@@ -249,20 +249,10 @@ class OpenMMequilCube(OEMolComputeCube):
     intake = CustomMoleculeInputPort('intake')
     success = CustomMoleculeOutputPort('success')
 
-    temperature = parameter.DecimalParameter(
-        'temperature',
-        default= 300,
-        help_text="Temperature (Kelvin)")
-
     picosec = parameter.DecimalParameter(
         'picosec',
         default= 10,
         help_text="Number of picoseconds of MD")
-
-    restraintWt = parameter.DecimalParameter(
-        'restraintWt',
-        default=2.0,
-        help_text="Restraint weight in kcal/mol/ang^2 for xyz atom restraints")
 
     snapFreq = parameter.DecimalParameter(
         'snapFreq',
@@ -272,8 +262,23 @@ class OpenMMequilCube(OEMolComputeCube):
     restraintType = parameter.StringParameter(
         'restraintType',
         default='NonSolventNonH',
-        choices=[ 'NonSolventNonH', 'ProteinNonH', 'ProteinCAlpha', 'LigandNonH'],
+        choices=[ 'NonSolventNonH', 'ProteinNonH', 'ProteinCAlpha', 'LigandNonH', 'None'],
         help_text= 'Which kind of atoms get xyz restraints')
+
+    restraintWt = parameter.DecimalParameter(
+        'restraintWt',
+        default=2.0,
+        help_text="Restraint weight in kcal/mol/ang^2 for xyz atom restraints")
+
+    temperature = parameter.DecimalParameter(
+        'temperature',
+        default= 300,
+        help_text="Temperature (Kelvin)")
+
+    label = parameter.StringParameter(
+        'label',
+        default='_equil',
+        help_text= 'label to add to filenames from this cube')
 
     def begin(self):
         if not os.path.exists('./output'):
@@ -289,7 +294,7 @@ class OpenMMequilCube(OEMolComputeCube):
             # Attach openmm objects to mol, emit to output
             output = OpenMMSystemOutput('output')
             complex_mol.SetData(oechem.OEGetTag('state'), output.encode(equilState))
-            outfname = 'output/{}-equil'.format(openmmStuff['idtag'])
+            outfname = 'output/{}'.format(openmmStuff['idtag'])+self.args.label
             with open(outfname+'.pdb', 'w') as out:
                 app.PDBFile.writeFile( openmmStuff['topology'], equilState.getPositions(), out)
             self.success.emit(complex_mol)

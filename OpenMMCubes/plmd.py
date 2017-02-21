@@ -345,6 +345,7 @@ def RestrEquil( openmmStuff, options):
     temperature = options['temperature']
     restraintWt = options['restraintWt']
     maskType = options['restraintType']
+    label = options['label']
 
     print('RestrEquil: Equilibrate for %d picoseconds with %3.1f kcal/mol/ang^2 restraints on all %s'
           % (picosec, restraintWt, maskType))
@@ -362,7 +363,7 @@ def RestrEquil( openmmStuff, options):
         restrMask = MakeAtomMaskLigandNonH( PLMask)
     else:
         restrMask = None
-    if restrMask:
+    if restrMask and restraintWt>0.0:
         restrStrongNonSolvNonH = MakeOpenMMRestraintForceObj( state.getPositions(), restrMask, restraintWt)
         system.addForce( restrStrongNonSolvNonH)
 
@@ -382,7 +383,7 @@ def RestrEquil( openmmStuff, options):
 
     # set up and run dynamics
     print('RestrEquil: Computations will be done on platform: ' + simulation.context.getPlatform().getName() )
-    outfname = 'output/'+openmmStuff['idtag']+'-equil'
+    outfname = 'output/'+openmmStuff['idtag']+label
     # Determine reporting frequency in steps and optionally snapshot frequency and reporter
     snapFreq = options['snapFreq']
     if snapFreq > 0:
