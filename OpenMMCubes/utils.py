@@ -128,12 +128,14 @@ class OEPackMol(object):
         tags = cls.getTags(molecule)
         for tag in tags:
             data = cls.getData(molecule, tag)
-            if 'system' == tag:
+            if 'state' == tag:
                 data = cls.decodeOpenMM(data)
             if 'structure' == tag:
                 data = cls.decodeStruct(data)
             if 'pdb' == tag:
-                data = cls.decodePDB(data)
+                data = cls.decodePDBFile(data)
+            if 'traj' == tag:
+                data = cls.decodeTrajectory(data)
             tag_data[tag] = data
         return tag_data
 

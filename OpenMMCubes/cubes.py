@@ -230,7 +230,7 @@ class OpenMMSimulation(OEMolComputeCube):
             packedmol = utils.OEPackMol.pack(mol, simulation)
             self.success.emit(packedmol)
             tmpfiles = [ gd['idtag']+'-simulation.log', gd['idtag']+'-simulation.nc' ]
-            utils.cleanup( )
+            utils.cleanup(tmpfiles)
 
         except Exception as e:
                 # Attach error message to the molecule that failed
