@@ -26,7 +26,7 @@ except ImportError:
 download_cache = {}
 
 
-class PackageOEMol(object):
+class OEPackMol(object):
     """A class designated to handle the packing/unpacking Python objects to the
     OEMol as generic data."""
 
@@ -59,6 +59,21 @@ class PackageOEMol(object):
         return struct
 
     def getState(simulation):
+
+
+        return state
+
+    def encodeSimData(idtag, simulation):
+        tag_data = {}
+        #Close open files for reporters.
+        for rep in simulation.reporters:
+            try:
+                rep.close()
+            except:
+                pass
+
+        topology = simulation.topology
+        system = simulation.context.getSystem()
         state = simulation.context.getState(getPositions=True,
                                             getVelocities=True,
                                             getParameters=True,
@@ -67,7 +82,19 @@ class PackageOEMol(object):
                                             getEnergy=True,
                                             enforcePeriodicBox=True)
 
-        return state
+        trajfname = idtag+'-simulation.nc'
+        traj = mdtraj.load(trajfname, top=mdtraj.Topology.from_openmm(topology))
+
+        structure = parmed.openmm.load_topology(topology, system,
+                                   xyz=state.getPositions())
+
+        tag_data['state'] = OEPackMol.encodeOpenMM(state)
+        tag_data['pdb'] = OEPackMol.encodePDBFile(state, topology)
+        tag_data['traj'] = OEPackMol.encodeTrajectory(traj)
+        tag_data['log'] = open(idtag+'-simulation.log').read()
+        tag_data['structure'] = OEPackMol.encodeStruct(structure)
+        return tag_data
+
     def encodeTrajectory(trajectory):
         pkl_traj = pickle.dumps(trajectory)
         return base64.b64encode(pkl_traj)
@@ -76,10 +103,9 @@ class PackageOEMol(object):
         decoded_traj = base64.b64decode(data)
         return pickle.loads(decoded_traj)
 
-    def encodePDBFile(simulation):
-        state = simulation.context.getState(getPositions=True, enforcePeriodicBox=True)
+    def encodePDBFile(state, topology):
         f = io.StringIO()
-        app.PDBFile.writeFile(simulation.topology, state.getPositions(), f)
+        app.PDBFile.writeFile(topology, state.getPositions(), f)
         return f.getvalue()
 
     def decodePDBFile(data):
@@ -87,7 +113,7 @@ class PackageOEMol(object):
 
     @staticmethod
     def checkTags(molecule, tags):
-        oetags = PackageOEMol.getTags(molecule)
+        oetags = OEPackMol.getTags(molecule)
         intersect = list( set(tags) & set(oetags) )
         diff = list( set(tags) - set(oetags) )
         if diff:
@@ -113,24 +139,28 @@ class PackageOEMol(object):
 
     @classmethod
     def pack(cls, molecule, data):
-        idtag = molecule.GetTitle()
+        try:
+            idtag = cls.getData(molecule, 'idtag')
+        except Exception as e:
+            print(e)
+            pass
+
         if isinstance(data, parmed.structure.Structure):
             molecule.SetData(oechem.OEGetTag('structure'), cls.encodeStruct(data))
 
         if isinstance(data, openmm.app.simulation.Simulation):
-            state = cls.getState(data)
-            statelog = open(data.reporters[0]._out.name).read()
-
-            top = mdtraj.Topology.from_openmm(data.topology)
-            data.reporters[-1].close()
-            traj = mdtraj.load(idtag+'-simulation.nc', top=top)
-
-            molecule.SetData(oechem.OEGetTag('state'), cls.encodeOpenMM(state))
-            molecule.SetData(oechem.OEGetTag('pdb'), cls.encodePDBFile(data))
-            molecule.SetData(oechem.OEGetTag('traj'), cls.encodeTrajectory(traj))
-            molecule.SetData(oechem.OEGetTag('log'), statelog )
+            tag_data = cls.encodeSimData(idtag, data)
+            for k,v in tag_data.items():
+                molecule.SetData(oechem.OEGetTag(k), v)
 
         return molecule
+
+def cleanup(tmpfiles):
+    for tmp in tmpfiles:
+        try:
+            os.remove(tmp)
+        except Exception as e:
+            pass
 
 def setReporters(reportInterval, totalSteps, outfname):
     progress_reporter = app.StateDataReporter(stdout, separator="\t",
@@ -164,14 +194,16 @@ def genSimFromStruct(structure, temperature):
     return simulation
 
 def minimizeSimulation(simulation):
-        #init = simulation.context.getState(getEnergy=True)
-        #print('Initial energy is {}'.format(init.getPotentialEnergy()))
+        init = simulation.context.getState(getEnergy=True)
+        print('Initial energy is {}'.format(init.getPotentialEnergy()))
         print('Minimizing system...')
-        f = io.StringIO()
-        rep = parmed.openmm.EnergyMinimizerReporter(f, volume=True)
+        #f = io.StringIO()
+        #rep = parmed.openmm.EnergyMinimizerReporter(f, volume=True)
         simulation.minimizeEnergy()
-        rep.report(simulation)
-        print(f.getvalue())
+        #rep.report(simulation)
+        #print(f.getvalue())
+        st = simulation.context.getState(getPositions=True,getEnergy=True)
+        print('Minimized energy is {}'.format(st.getPotentialEnergy()))
         return simulation
 
         #minfname = 'output/{}-minimized.pdb'.format(idtag)

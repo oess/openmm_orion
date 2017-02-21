@@ -86,8 +86,8 @@ class OpenMMComplexSetup(OEMolComputeCube):
     def process(self, mol, port):
         try:
             req_tags = ['idtag', 'structure']
-            if utils.PackageOEMol.checkTags(mol, req_tags):
-                gd = utils.PackageOEMol.unpack(mol)
+            if utils.OEPackMol.checkTags(mol, req_tags):
+                gd = utils.OEPackMol.unpack(mol)
                 outfname = '{}-complex'.format(gd['idtag'])
 
             #Generate protein Structure object
@@ -148,14 +148,12 @@ class OpenMMComplexSetup(OEMolComputeCube):
             self.log.info('Solvated {}-complex {}'.format(gd['idtag'], full_structure))
             self.log.info('\tBox = {}'.format(full_structure.box))
 
-            packedmol = utils.PackageOEMol.pack(mol, full_structure)
+            packedmol = utils.OEPackMol.pack(mol, full_structure)
             self.success.emit(packedmol)
 
             #Cleanup
-            tmpfiles = ['protein.pdb', outfname+'-pl.tmp',
-                       outfname+'-nomol.tmp']#, outfname+'.pdb']
-            for f in tmpfiles:
-                os.remove(f)
+            utils.cleanup(['protein.pdb', outfname+'-pl.tmp',
+                       outfname+'-nomol.tmp'])
 
         except Exception as e:
             # Attach error message to the molecule that failed
@@ -209,8 +207,8 @@ class OpenMMSimulation(OEMolComputeCube):
     def process(self, mol, port):
         try:
             req_tags = ['idtag', 'structure']
-            if utils.PackageOEMol.checkTags(mol, req_tags):
-                gd = utils.PackageOEMol.unpack(mol)
+            if utils.OEPackMol.checkTags(mol, req_tags):
+                gd = utils.OEPackMol.unpack(mol)
                 outfname = '{}-simulation'.format(gd['idtag'])
 
             simulation = utils.genSimFromStruct(gd['structure'], self.args.temperature)
@@ -229,8 +227,10 @@ class OpenMMSimulation(OEMolComputeCube):
             self.log.info('Running {} MD steps at {}K'.format(self.args.steps, self.args.temperature))
             simulation.step(self.args.steps)
 
-            packedmol = utils.PackageOEMol.pack(mol, simulation)
+            packedmol = utils.OEPackMol.pack(mol, simulation)
             self.success.emit(packedmol)
+            tmpfiles = [ gd['idtag']+'-simulation.log', gd['idtag']+'-simulation.nc' ]
+            utils.cleanup( )
 
         except Exception as e:
                 # Attach error message to the molecule that failed
