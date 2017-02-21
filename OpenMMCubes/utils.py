@@ -89,7 +89,7 @@ class OEPackMol(object):
                                    xyz=state.getPositions())
 
         tag_data['state'] = OEPackMol.encodeOpenMM(state)
-        tag_data['pdb'] = OEPackMol.encodePDBFile(state, topology)
+        #tag_data['pdb'] = OEPackMol.encodePDBFile(state, topology)
         tag_data['traj'] = OEPackMol.encodeTrajectory(traj)
         tag_data['log'] = open(idtag+'-simulation.log').read()
         tag_data['structure'] = OEPackMol.encodeStruct(structure)
@@ -132,12 +132,30 @@ class OEPackMol(object):
                 data = cls.decodeOpenMM(data)
             if 'structure' == tag:
                 data = cls.decodeStruct(data)
-            if 'pdb' == tag:
-                data = cls.decodePDBFile(data)
+            #if 'pdb' == tag:
+            #    data = cls.decodePDBFile(data)
             if 'traj' == tag:
                 data = cls.decodeTrajectory(data)
             tag_data[tag] = data
         return tag_data
+
+    @classmethod
+    def dump(cls, molecule, tag_data=None):
+        if tag_data is None:
+            tag_data = cls.unpack(molecule)
+        idtag = tag_data['idtag']
+        for tag, data in tag_data.items():
+            print(tag, type(data), data.__dir__(),'\n')
+
+            if isinstance(data, parmed.structure.Structure):
+                data.save(idtag+'-struct.pdb', overwrite=True)
+            #if isinstance(data, openmm.app.pdbfile.PDBFile):
+            #    data.writeFile( data.topology, data.positions, open(idtag+'-pdbfile.pdb','w'))
+            if isinstance(data, mdtraj.core.trajectory.Trajectory):
+                data.save_netcdf(idtag+'-mdtraj.nc')
+            if isinstance(data, openmm.openmm.State):
+                with open(idtag+'-state.xml', 'w') as f:
+                    f.write(openmm.XmlSerializer.serialize(data))
 
     @classmethod
     def pack(cls, molecule, data):

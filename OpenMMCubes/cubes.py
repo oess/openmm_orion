@@ -210,6 +210,7 @@ class OpenMMSimulation(OEMolComputeCube):
             if utils.OEPackMol.checkTags(mol, req_tags):
                 gd = utils.OEPackMol.unpack(mol)
                 outfname = '{}-simulation'.format(gd['idtag'])
+                print(gd)
 
             simulation = utils.genSimFromStruct(gd['structure'], self.args.temperature)
             # Check if mol has State data attached
