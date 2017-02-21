@@ -9,9 +9,7 @@ from floe.constants import BYTES
 
 from LigPrepCubes.ports import (
     CustomMoleculeInputPort, CustomMoleculeOutputPort)
-from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
-    OpenMMSystemOutput, OpenMMSystemInput )
-
+from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput )
 from smarty.forcefield import ForceField
 from smarty.forcefield_utils import create_system_from_molecule
 from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
@@ -56,7 +54,7 @@ class SMIRFFParameterization(OEMolComputeCube):
     title = "Attach FFXML to OE molecules"
     description = """
     Parameterize the ligand with the smirff99Frosst.ffxml parameters,
-    which is parsed with smarty. Attach the System to the OEMol.
+    which is parsed with smarty. Attach the Structure to the OEMol.
     """
     classification = [["Testing", "Ligand Preparation"]]
     tags = [tag for lists in classification for tag in lists]
@@ -82,10 +80,8 @@ class SMIRFFParameterization(OEMolComputeCube):
             molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)
             molecule_structure.residues[0].name = "LIG"
 
-            # Encode System/Structure, Attach to mol
-            #sys_out = OpenMMSystemOutput('sys_put')
+            # Encode Structure, Attach to mol
             struct_out = ParmEdStructureOutput('struct_out')
-            #mol.SetData(oechem.OEGetTag('system'), sys_out.encode(mol_sys))
             mol.SetData(oechem.OEGetTag('structure'), struct_out.encode(molecule_structure))
             self.success.emit(mol)
 

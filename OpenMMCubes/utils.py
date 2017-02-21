@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import os
-
+import io, os, parmed, mdtraj
+from sys import stdout
 from tempfile import NamedTemporaryFile
 
 from openeye.oechem import(
@@ -13,9 +13,15 @@ from floe.api.orion import in_orion, StreamingDataset
 from simtk.openmm.app import Topology
 from simtk.openmm.app.element import Element
 from simtk import unit, openmm
+from simtk.openmm import app
 from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
 from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
     OpenMMSystemOutput, OpenMMSystemInput )
+import io, base64, parmed
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 # Prevents repeated downloads of the same Dataset
 download_cache = {}
 
@@ -34,13 +40,50 @@ class PackageOEMol(object):
     def getData(molecule, tag):
         return molecule.GetData(oechem.OEGetTag(str(tag)))
 
-    def decodeOpenMM(data):
-        mm_in = OpenMMSystemInput('mm_in')
-        return mm_in.decode(data)
+    def encodeOpenMM(mm_obj):
+        #Supports State, System, Integrator, Forcefield
+        return openmm.XmlSerializer.serialize(mm_obj).encode()
 
-    def decodeParmEd(data):
-        struct_in = ParmEdStructureInput('struct_in')
-        return struct_in.decode(data)
+    def decodeOpenMM(data):
+        return openmm.XmlSerializer.deserialize(data)
+
+    def encodeStruct(structure):
+        pkl_dict = pickle.dumps(structure.__getstate__())
+        return base64.b64encode(pkl_dict)
+
+    def decodeStruct(data):
+        decoded_structure = base64.b64decode(data)
+        struct_dict = pickle.loads(decoded_structure)
+        struct = parmed.structure.Structure()
+        struct.__setstate__(struct_dict)
+        return struct
+
+    def getState(simulation):
+        state = simulation.context.getState(getPositions=True,
+                                            getVelocities=True,
+                                            getParameters=True,
+                                            getForces=True,
+                                            getParameterDerivatives=True,
+                                            getEnergy=True,
+                                            enforcePeriodicBox=True)
+
+        return state
+    def encodeTrajectory(trajectory):
+        pkl_traj = pickle.dumps(trajectory)
+        return base64.b64encode(pkl_traj)
+
+    def decodeTrajectory(data):
+        decoded_traj = base64.b64decode(data)
+        return pickle.loads(decoded_traj)
+
+    def encodePDBFile(simulation):
+        state = simulation.context.getState(getPositions=True, enforcePeriodicBox=True)
+        f = io.StringIO()
+        app.PDBFile.writeFile(simulation.topology, state.getPositions(), f)
+        return f.getvalue()
+
+    def decodePDBFile(data):
+        return app.PDBFile(io.StringIO(data))
 
     @staticmethod
     def checkTags(molecule, tags):
@@ -62,9 +105,83 @@ class PackageOEMol(object):
             if 'system' == tag:
                 data = cls.decodeOpenMM(data)
             if 'structure' == tag:
-                data = cls.decodeParmEd(data)
+                data = cls.decodeStruct(data)
+            if 'pdb' == tag:
+                data = cls.decodePDB(data)
             tag_data[tag] = data
         return tag_data
+
+    @classmethod
+    def pack(cls, molecule, data):
+        idtag = molecule.GetTitle()
+        if isinstance(data, parmed.structure.Structure):
+            molecule.SetData(oechem.OEGetTag('structure'), cls.encodeStruct(data))
+
+        if isinstance(data, openmm.app.simulation.Simulation):
+            state = cls.getState(data)
+            statelog = open(data.reporters[0]._out.name).read()
+
+            top = mdtraj.Topology.from_openmm(data.topology)
+            data.reporters[-1].close()
+            traj = mdtraj.load(idtag+'-simulation.nc', top=top)
+
+            molecule.SetData(oechem.OEGetTag('state'), cls.encodeOpenMM(state))
+            molecule.SetData(oechem.OEGetTag('pdb'), cls.encodePDBFile(data))
+            molecule.SetData(oechem.OEGetTag('traj'), cls.encodeTrajectory(traj))
+            molecule.SetData(oechem.OEGetTag('log'), statelog )
+
+        return molecule
+
+def setReporters(reportInterval, totalSteps, outfname):
+    progress_reporter = app.StateDataReporter(stdout, separator="\t",
+                                        reportInterval=reportInterval, totalSteps=totalSteps,
+                                        time=True, speed=True, progress=True,
+                                        elapsedTime=True, remainingTime=True)
+
+    state_reporter = app.StateDataReporter(outfname+'.log', separator="\t",
+                                        reportInterval=reportInterval,
+                                        step=True,
+                                        potentialEnergy=True, totalEnergy=True,
+                                        volume=True, temperature=True)
+
+    #traj_reporter = mdtraj.reporters.HDF5Reporter(self.outfname+'.h5', self.args.reporter_interval)
+    traj_reporter = mdtraj.reporters.NetCDFReporter(outfname+'.nc', reportInterval)
+    ##dcd_reporter = app.dcdreporter.DCDReporter(self.outfname+'.dcd', self.args.reporter_interval)
+    reporters = [state_reporter, progress_reporter, traj_reporter]
+    return reporters
+
+def genSimFromStruct(structure, temperature):
+    system = structure.createSystem(nonbondedMethod=app.PME,
+                                    nonbondedCutoff=10.0*unit.angstroms,
+                                    constraints=app.HBonds)
+
+    integrator = openmm.LangevinIntegrator(temperature*unit.kelvin, 1/unit.picoseconds, 0.002*unit.picoseconds)
+    simulation = app.Simulation(structure.topology, system, integrator)
+    simulation.context.setPositions(structure.positions)
+    simulation.context.setVelocitiesToTemperature(temperature*unit.kelvin)
+    platform = simulation.context.getPlatform().getName()
+    print('Running OpenMMSimulation on Platform {}'.format(platform))
+    return simulation
+
+def minimizeSimulation(simulation):
+        #init = simulation.context.getState(getEnergy=True)
+        #print('Initial energy is {}'.format(init.getPotentialEnergy()))
+        print('Minimizing system...')
+        f = io.StringIO()
+        rep = parmed.openmm.EnergyMinimizerReporter(f, volume=True)
+        simulation.minimizeEnergy()
+        rep.report(simulation)
+        print(f.getvalue())
+        return simulation
+
+        #minfname = 'output/{}-minimized.pdb'.format(idtag)
+        #with open(minfname, 'w') as minout:
+        #    app.PDBFile.writeFile(simulation.topology, min_state.getPositions(), minout)
+
+        #with open(minfname, 'rb') as minin:
+        #    outmol.SetData(oechem.OEGetTag('pdb') , minin.read())
+        #os.remove(minfname)
+
 
 def get_data_filename(relative_path):
     """Get the full path to one of the reference files in testsystems.
