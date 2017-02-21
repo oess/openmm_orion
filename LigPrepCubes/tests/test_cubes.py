@@ -119,15 +119,6 @@ class SMIRFFTester(unittest.TestCase):
         # Get the output molecule
         outmol = self.runner.outputs["success"].get()
 
-        # Check for the OpenMM System
-        serialized_system = outmol.GetData(oechem.OEGetTag('system'))
-        # System should be encoded to str on output
-        self.assertIsInstance(serialized_system, str)
-        # Check it can regenerate System
-        system = openmm.XmlSerializer.deserialize(serialized_system)
-        self.assertIsInstance(system, openmm.System)
-        self.assertEqual(system.getNumParticles(),mol.NumAtoms())
-
         # Check for the ParmEd Structure
         encoded_structure = outmol.GetData(oechem.OEGetTag('structure'))
         self.assertIsInstance(encoded_structure, str)

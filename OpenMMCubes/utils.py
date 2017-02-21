@@ -15,8 +15,8 @@ from simtk.openmm.app.element import Element
 from simtk import unit, openmm
 from simtk.openmm import app
 from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
-from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
-    OpenMMSystemOutput, OpenMMSystemInput )
+#from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
+#    OpenMMSystemOutput, OpenMMSystemInput )
 import io, base64, parmed
 try:
     import cPickle as pickle
@@ -58,11 +58,6 @@ class OEPackMol(object):
         struct.__setstate__(struct_dict)
         return struct
 
-    def getState(simulation):
-
-
-        return state
-
     def encodeSimData(idtag, simulation):
         tag_data = {}
         #Close open files for reporters.
@@ -89,7 +84,6 @@ class OEPackMol(object):
                                    xyz=state.getPositions())
 
         tag_data['state'] = OEPackMol.encodeOpenMM(state)
-        #tag_data['pdb'] = OEPackMol.encodePDBFile(state, topology)
         tag_data['traj'] = OEPackMol.encodeTrajectory(traj)
         tag_data['log'] = open(idtag+'-simulation.log').read()
         tag_data['structure'] = OEPackMol.encodeStruct(structure)
@@ -123,39 +117,55 @@ class OEPackMol(object):
             return True
 
     @classmethod
-    def unpack(cls, molecule):
+    def unpack(cls, molecule, tags=None):
         tag_data = {}
-        tags = cls.getTags(molecule)
+        if tags is None:
+            tags = cls.getTags(molecule)
         for tag in tags:
             data = cls.getData(molecule, tag)
             if 'state' == tag:
                 data = cls.decodeOpenMM(data)
             if 'structure' == tag:
                 data = cls.decodeStruct(data)
-            #if 'pdb' == tag:
-            #    data = cls.decodePDBFile(data)
             if 'traj' == tag:
                 data = cls.decodeTrajectory(data)
+            if 'log' == tag:
+                data = io.StringIO(data)
             tag_data[tag] = data
         return tag_data
 
     @classmethod
-    def dump(cls, molecule, tag_data=None):
-        if tag_data is None:
+    def dump(cls, molecule, tags=None):
+        tag_data = {}
+        if tags is None:
             tag_data = cls.unpack(molecule)
+        else:
+            tag_data = cls.unpack(molecule, tags=tags)
+
         idtag = tag_data['idtag']
         for tag, data in tag_data.items():
-            print(tag, type(data), data.__dir__(),'\n')
 
             if isinstance(data, parmed.structure.Structure):
-                data.save(idtag+'-struct.pdb', overwrite=True)
-            #if isinstance(data, openmm.app.pdbfile.PDBFile):
-            #    data.writeFile( data.topology, data.positions, open(idtag+'-pdbfile.pdb','w'))
+                pdbfname = idtag+'-struct.pdb'
+                print("Saving Structure to", pdbfname)
+                data.save(pdbfname, overwrite=True)
+
             if isinstance(data, mdtraj.core.trajectory.Trajectory):
-                data.save_netcdf(idtag+'-mdtraj.nc')
+                trajfname = idtag+'-mdtraj.nc'
+                print("Saving Trajectory to", trajfname)
+                data.save_netcdf(trajfname)
+
             if isinstance(data, openmm.openmm.State):
-                with open(idtag+'-state.xml', 'w') as f:
+                statefname = idtag+'-state.xml'
+                print('Saving State to', statefname)
+                with open(statefname, 'w') as f:
                     f.write(openmm.XmlSerializer.serialize(data))
+
+            if isinstance(data, io.StringIO):
+                enelog = idtag+'-ene.log'
+                print('Saving Log to', enelog)
+                with open(enelog, 'w') as f:
+                    f.write(data.getvalue())
 
     @classmethod
     def pack(cls, molecule, data):

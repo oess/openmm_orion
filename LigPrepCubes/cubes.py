@@ -9,10 +9,12 @@ from floe.constants import BYTES
 
 from LigPrepCubes.ports import (
     CustomMoleculeInputPort, CustomMoleculeOutputPort)
-from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput )
+#from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput )
 from smarty.forcefield import ForceField
 from smarty.forcefield_utils import create_system_from_molecule
+import OpenMMCubes.utils as utils
 from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
+
 
 def _generateRandomID(size=5, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -40,7 +42,7 @@ class SetIDTagfromTitle(OEMolComputeCube):
             # Set AtomTypes
             oechem.OETriposAtomNames(mol)
             oechem.OETriposAtomTypeNames(mol)
-            mol.AddData(oechem.OEGetTag('idtag'), mol.GetTitle())
+            mol.SetData(oechem.OEGetTag('idtag'), mol.GetTitle())
             self.success.emit(mol)
         except Exception as e:
             # Attach error message to the molecule that failed
@@ -73,24 +75,20 @@ class SMIRFFParameterization(OEMolComputeCube):
             raise RuntimeError('Error opening {}'.format(dfname))
 
     def process(self, mol, port):
-        # Create a copy incase of error
-        init_mol = oechem.OEMol(mol)
         try:
             mol_top, mol_sys, mol_pos = create_system_from_molecule(self.mol_ff, mol)
             molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)
             molecule_structure.residues[0].name = "LIG"
 
-            # Encode Structure, Attach to mol
-            struct_out = ParmEdStructureOutput('struct_out')
-            mol.SetData(oechem.OEGetTag('structure'), struct_out.encode(molecule_structure))
-            self.success.emit(mol)
+            packedmol = utils.OEPackMol.pack(mol, molecule_structure)
+            self.success.emit(packedmol)
 
         except Exception as e:
             # Attach error message to the molecule that failed
             self.log.error(traceback.format_exc())
-            init_mol.SetData('error', str(e))
+            mol.SetData('error', str(e))
             # Return failed molecule
-            self.failure.emit(init_mol)
+            self.failure.emit(mol)
 
 
 class OEBSinkCube(SinkCube):

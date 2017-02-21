@@ -11,8 +11,8 @@ from floe.constants import BYTES
 
 from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
 import OpenMMCubes.utils as utils
-from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
-    OpenMMSystemOutput, OpenMMSystemInput )
+#from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
+#    OpenMMSystemOutput, OpenMMSystemInput )
 from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
 
 
@@ -188,8 +188,8 @@ class OpenMMSimulation(OEMolComputeCube):
     temperature = parameter.DecimalParameter(
         'temperature',
         default=300,
-        help_text="Temperature (Kelvin)"
-    )
+        help_text="Temperature (Kelvin)")
+
     steps = parameter.IntegerParameter(
         'steps',
         default=50000,
@@ -198,8 +198,7 @@ class OpenMMSimulation(OEMolComputeCube):
     reporter_interval = parameter.IntegerParameter(
         'reporter_interval',
         default=1000,
-        help_text="Step interval for reporting data."
-    )
+        help_text="Step interval for reporting data.")
 
     def begin(self):
         pass
@@ -210,18 +209,17 @@ class OpenMMSimulation(OEMolComputeCube):
             if utils.OEPackMol.checkTags(mol, req_tags):
                 gd = utils.OEPackMol.unpack(mol)
                 outfname = '{}-simulation'.format(gd['idtag'])
-                print(gd)
 
             simulation = utils.genSimFromStruct(gd['structure'], self.args.temperature)
             # Check if mol has State data attached
             if 'state' in gd.keys():
+                self.log.info('Restarting from saved state...')
                 simulation.context.setState(gd['state'])
             else:
                 simulation = utils.minimizeSimulation(simulation)
 
             reporters = utils.setReporters(self.args.reporter_interval, self.args.steps,
                                            outfname)
-            #Append Reporters to simulation
             for rep in reporters:
                 simulation.reporters.append(rep)
 
@@ -230,9 +228,10 @@ class OpenMMSimulation(OEMolComputeCube):
 
             packedmol = utils.OEPackMol.pack(mol, simulation)
             self.success.emit(packedmol)
+            
             tmpfiles = [ gd['idtag']+'-simulation.log', gd['idtag']+'-simulation.nc' ]
             utils.cleanup(tmpfiles)
-
+            #utils.OEPackMol.dump(packedmol)
         except Exception as e:
                 # Attach error message to the molecule that failed
                 self.log.error(traceback.format_exc())

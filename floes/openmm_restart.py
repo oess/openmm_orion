@@ -33,7 +33,7 @@ md = OpenMMSimulation('md')
 md.promote_parameter('steps', promoted_name='steps')
 
 ofs = OEBSinkCube('ofs')
-ofs.set_parameters(suffix="restart")
+ofs.promote_parameter('suffix', promoted_name='osuffix')
 
 job.add_cubes(ifs, md, ofs)
 ifs.success.connect(md.intake)

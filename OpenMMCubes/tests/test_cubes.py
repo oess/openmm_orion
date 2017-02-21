@@ -23,7 +23,7 @@ class SetupCubeTester(unittest.TestCase):
         print('Testing cube:', self.cube.name)
         # Read a molecule
         mol = oechem.OEMol()
-        ifs = oechem.oemolistream(get_data_filename('9PC1X-smirff.oeb.gz'))
+        ifs = oechem.oemolistream(get_data_filename('X7ILL-smirff.oeb.gz'))
         if not oechem.OEReadMolecule(ifs, mol):
             raise Exception('Cannot read molecule')
         ifs.close()
@@ -87,7 +87,7 @@ class SimulationCubeTester(unittest.TestCase):
     def test_success(self):
         print('Testing cube:', self.cube.name)
         mol = oechem.OEMol()
-        fname = get_data_filename('9PC1X-complex.oeb.gz')
+        fname = get_data_filename('X7ILL-complex.oeb.gz')
         ifs = oechem.oemolistream(fname)
         if not oechem.OEReadMolecule(ifs, mol):
             raise Exception('Cannot read complex from %s' % fname)
