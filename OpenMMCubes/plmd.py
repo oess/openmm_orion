@@ -347,8 +347,8 @@ def RestrEquil( openmmStuff, options):
     maskType = options['restraintType']
     label = options['label']
 
-    print('RestrEquil: Equilibrate for %d picoseconds with %3.1f kcal/mol/ang^2 restraints on all %s'
-          % (picosec, restraintWt, maskType))
+    print('RestrEquil: NPT Equilibration for %0.3f picoseconds at %.1f Kelvin'
+          % (picosec, temperature))
     overall_timer = LoggingStopwatch()
     stage_timer = LoggingStopwatch()
 
@@ -363,9 +363,13 @@ def RestrEquil( openmmStuff, options):
         restrMask = MakeAtomMaskLigandNonH( PLMask)
     else:
         restrMask = None
+        print('RestrEquil: using %3.1f kcal/mol/ang^2 restraints on all %s'
+               % (restraintWt, maskType))
     if restrMask and restraintWt>0.0:
         restrStrongNonSolvNonH = MakeOpenMMRestraintForceObj( state.getPositions(), restrMask, restraintWt)
         system.addForce( restrStrongNonSolvNonH)
+        print('RestrEquil: using %3.1f kcal/mol/ang^2 restraints on all %s'
+               % (picosec, temperature))
 
     # make this an NPT (constant pressure) simulation by adding a barostat
     system.addForce( openmm.MonteCarloBarostat( 1*unit.bar, temperature*unit.kelvin))
