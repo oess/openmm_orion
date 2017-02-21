@@ -83,42 +83,12 @@ class OpenMMComplexSetup(OEMolComputeCube):
         # Read the PDB file into an OpenMM PDBFile object
         self.proteinpdb = app.PDBFile(pdbfilename)
 
-    def check_tagdata(self, mol):
-        # Ensure tagged generic data is retained across cubes
-        if 'idtag' not in mol.GetData().keys():
-            raise RuntimeError('Could not find idtag for molecule')
-        else:
-            idtag =  mol.GetData(oechem.OEGetTag('idtag'))
-            if not os.path.exists('./output'):
-                os.makedirs('./output')
-            self.outfname = 'output/{}-complex'.format(idtag)
-            self.idtag = idtag
-        if 'system' not in mol.GetData().keys():
-            raise RuntimeError("Could not find system for molecule")
-        else:
-            sys_in = OpenMMSystemInput('sys_in')
-            sys_tag = oechem.OEGetTag('system')
-            system = sys_in.decode(mol.GetData(sys_tag))
-            self.system = system
-        if 'structure' not in mol.GetData().keys():
-            raise RuntimeError('Could not find structure for molecule')
-        else:
-            struct_in = ParmEdStructureInput('struct_in')
-            struct_tag = oechem.OEGetTag('structure')
-            structure = struct_in.decode(mol.GetData(struct_tag))
-            self.structure = structure
-        if not any([self.idtag, self.system, self.structure]):
-            raise RuntimeError('Missing tagged generic data')
-        else:
-            return True
-
     def process(self, mol, port):
         try:
-            if self.check_tagdata(mol):
-                idtag = self.idtag
-                outfname = self.outfname
-                system = self.system
-                molecule_structure = self.structure
+            if utils.PackageOEMol.checkTags(mol, ['idtag', 'structure']):
+                data = utils.PackageOEMol.unpack(mol)
+                outfname = '{}-complex'.format(data['idtag'])
+
             #Generate protein Structure object
             forcefield = app.ForceField(self.args.protein_forcefield, self.args.solvent_forcefield)
             protein_system = forcefield.createSystem( self.proteinpdb.topology )
@@ -127,16 +97,16 @@ class OpenMMComplexSetup(OEMolComputeCube):
                                                              xyz=self.proteinpdb.positions )
 
             # Merge structures to prevent adding solvent in pocket
-            pl_structure = protein_structure + molecule_structure
-            self.log.info('{}-complex: {}'.format(idtag, pl_structure))
+            pl_structure = protein_structure + data['structure']
+            self.log.info('{}-complex: {}'.format(data['idtag'], pl_structure))
 
             # Retain positions and save
             pl_structure.positions = utils.combinePostions(protein_structure.positions,
-                                            molecule_structure.positions)
+                                            data['structure'].positions)
             pl_structure.save(outfname+'-pl.tmp',format='pdb',overwrite=True)
 
             # Solvate with PDBFixer
-            self.log.info('PDBFixer solvating {}-complex:'.format(idtag))
+            self.log.info('PDBFixer solvating {}-complex:'.format(data['idtag']))
             self.log.info('\tpH = {}'.format(self.args.pH))
             self.log.info('\tpadding = {}'.format(unit.Quantity(self.args.solvent_padding, unit.angstroms)))
             self.log.info('\tionicStrength = {}'.format(unit.Quantity(self.args.salt_concentration, unit.millimolar)))
@@ -171,12 +141,12 @@ class OpenMMComplexSetup(OEMolComputeCube):
                                                         box=full_box)
 
             # Remerge with ligand structure
-            full_structure = solv_structure + molecule_structure
+            full_structure = solv_structure + data['structure']
             # Restore box dimensions
             full_structure.box = full_box
             # Save full structure
             full_structure.save(outfname+'.pdb', overwrite=True)
-            self.log.info('Solvated {}-complex {}'.format(idtag, full_structure))
+            self.log.info('Solvated {}-complex {}'.format(data['idtag'], full_structure))
             self.log.info('\tBox = {}'.format(full_structure.box))
 
             # Regenerate OpenMM system with parmed
@@ -188,27 +158,30 @@ class OpenMMComplexSetup(OEMolComputeCube):
             complex_mol = oechem.OEMol()
             sys_out = OpenMMSystemOutput('sys_out')
             struct_out = ParmEdStructureOutput('struct_out')
+
             pdbout = open(outfname+'.pdb', 'rb')
             with oechem.oemolistream(outfname+'.pdb') as ifs:
                 if not oechem.OEReadMolecule(ifs, complex_mol):
                     raise RuntimeError("Error reading {}.pdb".format(outfname))
-                complex_mol.SetData(oechem.OEGetTag('idtag'), idtag)
+                complex_mol.SetData(oechem.OEGetTag('idtag'), data['idtag'])
                 complex_mol.SetData(oechem.OEGetTag('system'), sys_out.encode(system))
                 complex_mol.SetData(oechem.OEGetTag('structure'), struct_out.encode(full_structure))
                 complex_mol.SetData(oechem.OEGetTag('pdb'), pdbout.read())
             self.success.emit(complex_mol)
             pdbout.close()
-            os.remove(outfname+'-pl.tmp')
-            os.remove(outfname+'-nomol.tmp')
-            os.remove('protein.pdb')
-            os.remove(outfname+'.pdb')
+
+            #Cleanup
+            tmpfiles = ['protein.pdb', outfname+'-pl.tmp',
+                       outfname+'-nomol.tmp', outfname+'.pdb']
+            for f in tmpfiles:
+                os.remove(f)
+
         except Exception as e:
             # Attach error message to the molecule that failed
             self.log.error(traceback.format_exc())
             mol.SetData('error', str(e))
             # Return failed molecule
             self.failure.emit(mol)
-
 
 class OpenMMSimulation(OEMolComputeCube):
     title = "Run simulation in OpenMM"
@@ -295,7 +268,7 @@ class OpenMMSimulation(OEMolComputeCube):
                                             totalSteps=self.args.steps,
                                             time=True, speed=True, progress=True,
                                             elapsedTime=True, remainingTime=True)
-        #progress_reporter = parmed.openmm.reporters.ProgressReporter(self.outfname+'.prg', totalSteps=self.args.steps, reportInterval=self.args.reporter_interval)
+        #progress_reporter = parmed.openmm.reporters.ProgressReporter(stdout, totalSteps=self.args.steps, reportInterval=self.args.reporter_interval)
 
         #state_reporter = app.StateDataReporter(self.outfname+'.log', separator="\t",
         #                                    reportInterval=self.args.reporter_interval,
@@ -337,8 +310,8 @@ class OpenMMSimulation(OEMolComputeCube):
                 #init = simulation.context.getState(getEnergy=True)
                 #self.log.info('Initial energy is {}'.format(init.getPotentialEnergy()))
                 self.log.info('Minimizing {} system...'.format(idtag))
-                #min_reporter = parmed.openmm.reporters.EnergyMinimizerReporter(stdout)
-                #simulation.reporters.append(min_reporter)
+                min_reporter = parmed.openmm.reporters.EnergyMinimizerReporter(stdout)
+                simulation.reporters.append(min_reporter)
                 simulation.minimizeEnergy()
                 min_state = simulation.context.getState(getPositions=True,getEnergy=True)
                 self.log.info('Minimized energy is {}'.format(min_state.getPotentialEnergy()))

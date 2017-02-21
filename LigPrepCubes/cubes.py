@@ -83,9 +83,9 @@ class SMIRFFParameterization(OEMolComputeCube):
             molecule_structure.residues[0].name = "LIG"
 
             # Encode System/Structure, Attach to mol
-            sys_out = OpenMMSystemOutput('sys_put')
+            #sys_out = OpenMMSystemOutput('sys_put')
             struct_out = ParmEdStructureOutput('struct_out')
-            mol.SetData(oechem.OEGetTag('system'), sys_out.encode(mol_sys))
+            #mol.SetData(oechem.OEGetTag('system'), sys_out.encode(mol_sys))
             mol.SetData(oechem.OEGetTag('structure'), struct_out.encode(molecule_structure))
             self.success.emit(mol)
 

@@ -13,8 +13,58 @@ from floe.api.orion import in_orion, StreamingDataset
 from simtk.openmm.app import Topology
 from simtk.openmm.app.element import Element
 from simtk import unit, openmm
+from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
+from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
+    OpenMMSystemOutput, OpenMMSystemInput )
 # Prevents repeated downloads of the same Dataset
 download_cache = {}
+
+
+class PackageOEMol(object):
+    """A class designated to handle the packing/unpacking Python objects to the
+    OEMol as generic data."""
+
+    #def __init__(self, molecule):
+    #    self.molecule = molecule
+        #self.tag_data = dict()
+
+    def getTags(molecule):
+        return list(molecule.GetData().keys())
+
+    def getData(molecule, tag):
+        return molecule.GetData(oechem.OEGetTag(str(tag)))
+
+    def decodeOpenMM(data):
+        mm_in = OpenMMSystemInput('mm_in')
+        return mm_in.decode(data)
+
+    def decodeParmEd(data):
+        struct_in = ParmEdStructureInput('struct_in')
+        return struct_in.decode(data)
+
+    @staticmethod
+    def checkTags(molecule, tags):
+        oetags = PackageOEMol.getTags(molecule)
+        intersect = list( set(tags) & set(oetags) )
+        diff = list( set(tags) - set(oetags) )
+        if diff:
+            raise RuntimeError('Missing {} in tagged data'.format(diff))
+        else:
+            #print('Found tags: {}'.format(intersect))
+            return True
+
+    @classmethod
+    def unpack(cls, molecule):
+        tag_data = {}
+        tags = cls.getTags(molecule)
+        for tag in tags:
+            data = cls.getData(molecule, tag)
+            if 'system' == tag:
+                data = cls.decodeOpenMM(data)
+            if 'structure' == tag:
+                data = cls.decodeParmEd(data)
+            tag_data[tag] = data
+        return tag_data
 
 def get_data_filename(relative_path):
     """Get the full path to one of the reference files in testsystems.
