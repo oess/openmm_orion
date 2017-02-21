@@ -35,6 +35,7 @@ ifs.promote_parameter("data_in", promoted_name="complex", description="OEB of th
 
 equil = OpenMMequilCube('equil')
 equil.promote_parameter('picosec', promoted_name='picosec')
+equil.promote_parameter('restraintType', promoted_name='restraintType')
 
 ofs = OEBSinkCube('ofs')
 ofs.set_parameters(suffix='equil')

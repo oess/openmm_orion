@@ -269,6 +269,12 @@ class OpenMMequilCube(OEMolComputeCube):
         default= 0,
         help_text="frequency (in picoseconds) for taking snapshots")
 
+    restraintType = parameter.StringParameter(
+        'restraintType',
+        default='NonSolventNonH',
+        choices=[ 'NonSolventNonH', 'ProteinNonH', 'ProteinCAlpha', 'LigandNonH'],
+        help_text= 'Which kind of atoms get xyz restraints')
+
     def begin(self):
         if not os.path.exists('./output'):
             os.makedirs('./output')

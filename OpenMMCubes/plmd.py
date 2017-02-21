@@ -57,24 +57,6 @@ def MakeOpenMMRestraintForceObj( particlePositions, AtomMask, restWt=0.5 ):
     return force_restr
 
 
-def MakeAtomMaskLigNonH( plMask ):
-    """return an integer list the size of plMask, making >0 only the ligand nonH.
-       plMask: a dictionary of three one-per-atom lists: ['PLMask'], where each atom is
-          designated "Protein", "Water", or "Other; ['AtNum'] and ['AtName'], which are
-          the atom's atomic number and pdb atom name, respectively."""
-    # loop over all atoms (particles), zipping the mask list with the atoms
-    atomMask = []
-    for i, (atype, atnum, atname, asite) in enumerate(
-            zip(plMask['PLMask'], plMask['AtNum'], plMask['AtName'], plMask['ActSite'])):
-    # add the restraint if the atom is non-Water and nonH
-        if atype == "Other" and atnum > 1:
-            atomMask.append(1)
-        # otherwise, no restraint
-        else:
-            atomMask.append(0)
-    return atomMask
-
-
 def MakeAtomMaskNonSolventNonH( plMask ):
     """return an integer list the size of plMask, making >0 only non-Solvent nonH.
        plMask: a dictionary of three one-per-atom lists: ['PLMask'], where each atom is
@@ -93,7 +75,61 @@ def MakeAtomMaskNonSolventNonH( plMask ):
     return atomMask
 
 
-def MakeAtomMaskLigKeyCA( plMask ):
+def MakeAtomMaskProteinNonH( plMask ):
+    """return an integer list the size of plMask, making >0 only the protein nonH.
+       plMask: a dictionary of three one-per-atom lists: ['PLMask'], where each atom is
+          designated "Protein", "Water", or "Other; ['AtNum'] and ['AtName'], which are
+          the atom's atomic number and pdb atom name, respectively."""
+    # loop over all atoms (particles), zipping the mask list with the atoms
+    atomMask = []
+    for i, (atype, atnum, atname, asite) in enumerate(
+            zip(plMask['PLMask'], plMask['AtNum'], plMask['AtName'], plMask['ActSite'])):
+    # add the restraint if the atom is Protein and nonH
+        if atype == "Protein" and atnum > 1:
+            atomMask.append(1)
+        # otherwise, no restraint
+        else:
+            atomMask.append(0)
+    return atomMask
+
+
+def MakeAtomMaskProteinCAlpha( plMask ):
+    """return an integer list the size of plMask, making >0 only the protein alpha carbons.
+       plMask: a dictionary of three one-per-atom lists: ['PLMask'], where each atom is
+          designated "Protein", "Water", or "Other; ['AtNum'] and ['AtName'], which are
+          the atom's atomic number and pdb atom name, respectively."""
+    # loop over all atoms (particles), zipping the mask list with the atoms
+    atomMask = []
+    for i, (atype, atnum, atname, asite) in enumerate(
+            zip(plMask['PLMask'], plMask['AtNum'], plMask['AtName'], plMask['ActSite'])):
+    # add the restraint if the atom is protein and atom name is CA
+        if atype == "Protein" and atname == "CA":
+            atomMask.append(1)
+        # otherwise, no restraint
+        else:
+            atomMask.append(0)
+    return atomMask
+
+
+def MakeAtomMaskLigandNonH( plMask ):
+    """return an integer list the size of plMask, making >0 only the ligand nonH.
+       plMask: a dictionary of three one-per-atom lists: ['PLMask'], where each atom is
+          designated "Protein", "Water", or "Other; ['AtNum'] and ['AtName'], which are
+          the atom's atomic number and pdb atom name, respectively."""
+    # loop over all atoms (particles), zipping the mask list with the atoms
+    atomMask = []
+    for i, (atype, atnum, atname, asite) in enumerate(
+            zip(plMask['PLMask'], plMask['AtNum'], plMask['AtName'], plMask['ActSite'])):
+    # add the restraint if the atom is Other and nonH
+        if atype == "Other" and atnum > 1:
+            atomMask.append(1)
+        # otherwise, no restraint
+        else:
+            atomMask.append(0)
+    return atomMask
+
+
+def MakeAtomMaskLigandKeyCA( plMask ):
     """return an integer list the size of plMask, making >0
        only the ligand nonH and specified (in the plMask) alpha-carbons in the protein.
        plMask: a dictionary of three one-per-atom lists: ['PLMask'], where each atom is
@@ -308,16 +344,27 @@ def RestrEquil( openmmStuff, options):
     picosec = options['picosec']
     temperature = options['temperature']
     restraintWt = options['restraintWt']
+    maskType = options['restraintType']
 
-    print('RestrEquil: Warm up for %d picoseconds with %3.1f kcal/mol/ang^2 restraints on all non-water non-Hydrogens'
-          % (picosec, restraintWt))
+    print('RestrEquil: Equilibrate for %d picoseconds with %3.1f kcal/mol/ang^2 restraints on all %s'
+          % (picosec, restraintWt, maskType))
     overall_timer = LoggingStopwatch()
     stage_timer = LoggingStopwatch()
 
     print('RestrEquil: building system and simulation objects')
-    restrMask = MakeAtomMaskNonSolventNonH( PLMask)
-    restrStrongNonSolvNonH = MakeOpenMMRestraintForceObj( state.getPositions(), restrMask, restraintWt)
-    system.addForce( restrStrongNonSolvNonH)
+    if maskType=='NonSolventNonH':
+        restrMask = MakeAtomMaskNonSolventNonH( PLMask)
+    if maskType=='ProteinNonH':
+        restrMask = MakeAtomMaskProteinNonH( PLMask)
+    if maskType=='ProteinCAlpha':
+        restrMask = MakeAtomMaskProteinCAlpha( PLMask)
+    if maskType=='LigandNonH':
+        restrMask = MakeAtomMaskLigandNonH( PLMask)
+    else:
+        restrMask = None
+    if restrMask:
+        restrStrongNonSolvNonH = MakeOpenMMRestraintForceObj( state.getPositions(), restrMask, restraintWt)
+        system.addForce( restrStrongNonSolvNonH)
 
     # make this an NPT (constant pressure) simulation by adding a barostat
     system.addForce( openmm.MonteCarloBarostat( 1*unit.bar, temperature*unit.kelvin))
