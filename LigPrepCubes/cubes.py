@@ -6,10 +6,7 @@ from floe.api import (
 )
 from floe.api.orion import in_orion, StreamingDataset
 from floe.constants import BYTES
-
-from LigPrepCubes.ports import (
-    CustomMoleculeInputPort, CustomMoleculeOutputPort)
-#from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput )
+from LigPrepCubes.ports import (CustomMoleculeInputPort, CustomMoleculeOutputPort)
 from smarty.forcefield import ForceField
 from smarty.forcefield_utils import create_system_from_molecule
 import OpenMMCubes.utils as utils
@@ -53,7 +50,7 @@ class SetIDTagfromTitle(OEMolComputeCube):
 
 
 class SMIRFFParameterization(OEMolComputeCube):
-    title = "Attach FFXML to OE molecules"
+    title = "SMIRFFParameterization"
     description = """
     Parameterize the ligand with the smirff99Frosst.ffxml parameters,
     which is parsed with smarty. Attach the Structure to the OEMol.
@@ -92,11 +89,10 @@ class SMIRFFParameterization(OEMolComputeCube):
 
 
 class OEBSinkCube(SinkCube):
+    title = "OEBSinkCube"
     """
     A custom sink cube that writes molecules to a oeb.gz
     """
-    #classification = [["Testing", "Output"]]
-    title = "OEBSinkCube"
     #Define Custom Ports to handle oeb.gz files
     intake = CustomMoleculeInputPort('intake')
 

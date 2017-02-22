@@ -2,7 +2,8 @@
  "requirements": "requirements.txt",
  "python_version": "3.5",
  "conda_channels": ["omnia", "omnia/label/dev"],
- "conda_dependencies": ["openmm==7.1.0rc1", "openmoltools==0.7.4", "ambermini==16.16.0", "smarty==0.1.4", "parmed==2.7.1", "pdbfixer==1.4", "alchemy==1.2.3"],
+ "conda_dependencies": ["openmm==7.1.0rc1", "openmoltools==0.7.4", "ambermini==16.16.0",
+     "smarty==0.1.4", "parmed==2.7.1", "pdbfixer==1.4", "alchemy==1.2.3", "mdtraj==1.8.0"],
  "name": "OpenMMCubes test package",
  "version": "0.1.2"
 }

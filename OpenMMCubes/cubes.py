@@ -60,11 +60,24 @@ class OpenMMComplexSetup(OEMolComputeCube):
         help_text='Forcefield parameters for solvent')
 
     def begin(self):
+        pdbfilename = 'protein.pdb'
+        protein = oechem.OEMol()
         self.args.protein = utils.download_dataset_to_file(self.args.protein)
+        with oechem.oemolistream(self.args.protein) as ifs:
+            if not oechem.OEReadMolecule(ifs, protein):
+                raise RuntimeError("Error reading protein")
+        with oechem.oemolostream(pdbfilename) as ofs:
+            res = oechem.OEWriteConstMolecule(ofs, protein)
+            if res != oechem.OEWriteMolReturnCode_Success:
+                raise RuntimeError("Error writing protein: {}".format(res))
+
         # Read the PDB file into an OpenMM PDBFile object
-        self.proteinpdb = app.PDBFile(self.args.protein)
+        self.proteinpdb = app.PDBFile(pdbfilename)
+        if self.proteinpdb:
+            utils.cleanup(['protein.pdb'])
         self.opt = vars(self.args)
         self.opt['logger'] = self.log
+
     def process(self, mol, port):
         try:
             # Check for generic data.

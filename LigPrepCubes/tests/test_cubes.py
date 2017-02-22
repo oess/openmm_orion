@@ -5,8 +5,6 @@ from LigPrepCubes.oedock import FREDDocking
 from LigPrepCubes.cubes import SMIRFFParameterization, SetIDTagfromTitle, OEBSinkCube
 from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
-from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
-    OpenMMSystemOutput, OpenMMSystemInput )
 from simtk import openmm, unit
 from floe.test import CubeTestRunner
 from openeye import oechem, oedocking
