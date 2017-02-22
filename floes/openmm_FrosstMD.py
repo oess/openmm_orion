@@ -98,7 +98,7 @@ equil3.promote_parameter('picosec', promoted_name='equil3_psec', default=60.0,
 equil3.promote_parameter('snapFreq', promoted_name='snapFreq', default=2.0,
       description='frequency (in picoseconds) for taking snapshots')
 equil3.promote_parameter('restraintType', promoted_name='equil3_restrType',
-      default='LigandNonH', description='Which kinds of atoms get xyz restraints')
+      default='CAlphaLigandNonH', description='Which kinds of atoms get xyz restraints')
 equil3.promote_parameter('restraintWt', promoted_name='equil3_restrWeight',
       default=0.1, description='Restraint weight in kcal/mol/ang^2 for xyz atom restraints')
 equil3.promote_parameter('label', promoted_name='equil3_label',
@@ -115,7 +115,7 @@ prod.promote_parameter('label', promoted_name='label',
       default='_prod', description='label to add to filenames from this cube')
 
 ofs = OEBSinkCube('ofs')
-ofs.set_parameters(suffix='complex')
+ofs.set_parameters(suffix='prod')
 
 job.add_cubes(ifs, idtag, smirff, complex_setup, PLmask,
               minComplex, warmup, equil1, equil2, equil3, prod, ofs)

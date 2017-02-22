@@ -262,7 +262,8 @@ class OpenMMequilCube(OEMolComputeCube):
     restraintType = parameter.StringParameter(
         'restraintType',
         default='NonSolventNonH',
-        choices=[ 'NonSolventNonH', 'ProteinNonH', 'ProteinCAlpha', 'LigandNonH', 'None'],
+        choices=[ 'NonSolventNonH', 'ProteinNonH', 'ProteinCAlpha', 'LigandNonH',
+                  'CAlphaLigandNonH', 'None'],
         help_text= 'Which kind of atoms get xyz restraints')
 
     restraintWt = parameter.DecimalParameter(

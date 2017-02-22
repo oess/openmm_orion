@@ -129,6 +129,28 @@ def MakeAtomMaskLigandNonH( plMask ):
     return atomMask
 
 
+def MakeAtomMaskCAlphaLigandNonH( plMask ):
+    """return an integer list the size of plMask, making >0
+       only the ligand nonH and specified (in the plMask) alpha-carbons in the protein.
+       plMask: a dictionary of three one-per-atom lists: ['PLMask'], where each atom is
+          designated "Protein", "Water", or "Other; ['AtNum'] and ['AtName'], which are
+          the atom's atomic number and pdb atom name, respectively."""
+    # loop over all atoms (particles), zipping the mask list with the atoms
+    atomMask = []
+    for i, (atype, atnum, atname, asite) in enumerate(
+            zip(plMask['PLMask'], plMask['AtNum'], plMask['AtName'], plMask['ActSite'])):
+    # add the restraint if the atom is named CA or is Other and nonH
+        if atype == "Other" and atnum > 1:
+            atomMask.append(1)
+        # add the restraint if the atom is an active-site CA
+        elif atname == "CA":
+            atomMask.append(1)
+        # otherwise, no restraint
+        else:
+            atomMask.append(0)
+    return atomMask
+
+
 def MakeAtomMaskLigandKeyCA( plMask ):
     """return an integer list the size of plMask, making >0
        only the ligand nonH and specified (in the plMask) alpha-carbons in the protein.
@@ -359,6 +381,8 @@ def RestrEquil( openmmStuff, options):
         restrMask = MakeAtomMaskProteinNonH( PLMask)
     if maskType=='ProteinCAlpha':
         restrMask = MakeAtomMaskProteinCAlpha( PLMask)
+    if maskType=='CAlphaLigandNonH':
+        restrMask = MakeAtomMaskCAlphaLigandNonH( PLMask)
     if maskType=='LigandNonH':
         restrMask = MakeAtomMaskLigandNonH( PLMask)
     else:
@@ -383,7 +407,7 @@ def RestrEquil( openmmStuff, options):
 
     # set the state to the saved state.
     simulation.context.setState( state)
-    stage_timer.TimeCheck("RestrEquil: system and simulation objects created and initialized")
+    stage_timer.TimeCheck("RestrEquil: System and simulation objects created and initialized")
 
     # set up and run dynamics
     print('RestrEquil: Computations will be done on platform: ' + simulation.context.getPlatform().getName() )
@@ -391,13 +415,13 @@ def RestrEquil( openmmStuff, options):
     # Determine reporting frequency in steps and optionally snapshot frequency and reporter
     snapFreq = options['snapFreq']
     if snapFreq > 0:
-        print( 'requested snapshot frequency in ps is', snapFreq)
+        print( 'RestrEquil: Taking snapshots every ps', snapFreq, 'ps')
         reportFreq= int( snapFreq/stepLen)
         simulation.reporters.append(app.DCDReporter(outfname+'.dcd', reportFreq))
     else:
         reportFreq = int(1.0/stepLen)
     # set reporters
-    print( 'reporting frequency is', reportFreq)
+    #print( 'reporting frequency is', reportFreq)
     simulation.reporters.append(app.StateDataReporter(outfname+'.log', reportFreq, step=True, time=True,
           potentialEnergy=True, kineticEnergy=True, totalEnergy=True,
           temperature=True, volume=False, density=True ))
@@ -406,7 +430,6 @@ def RestrEquil( openmmStuff, options):
           temperature=True, volume=False, density=True ))
 
     totalTimeSteps= int(picosec/stepLen)
-    print( 'totalTimeSteps is', totalTimeSteps)
     print('RestrEquil: starting MD for %4.3f picoseconds (%d timesteps)' % (picosec, totalTimeSteps))
     simulation.step(totalTimeSteps)
     stage_timer.TimeCheck("RestrEquil: finishing MD run")
