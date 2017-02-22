@@ -40,7 +40,7 @@ class OpenMMComplexSetup(OEMolComputeCube):
 
     pH = parameter.DecimalParameter(
         'pH',
-        default=7.0,
+        default=7.4,
         help_text="Solvent pH used to select appropriate protein protonation state.",
     )
 
@@ -52,7 +52,7 @@ class OpenMMComplexSetup(OEMolComputeCube):
 
     salt_concentration = parameter.DecimalParameter(
         'salt_concentration',
-        default=50,
+        default=100,
         help_text="Salt concentration (millimolar)",
     )
 
@@ -69,91 +69,37 @@ class OpenMMComplexSetup(OEMolComputeCube):
     )
 
     def begin(self):
-        pdbfilename = 'protein.pdb'
-        protein = oechem.OEMol()
         self.args.protein = download_dataset_to_file(self.args.protein)
-        with oechem.oemolistream(self.args.protein) as ifs:
-            if not oechem.OEReadMolecule(ifs, protein):
-                raise RuntimeError("Error reading protein")
-        with oechem.oemolostream(pdbfilename) as ofs:
-            res = oechem.OEWriteConstMolecule(ofs, protein)
-            if res != oechem.OEWriteMolReturnCode_Success:
-                raise RuntimeError("Error writing protein: {}".format(res))
 
         # Read the PDB file into an OpenMM PDBFile object
-        self.proteinpdb = app.PDBFile(pdbfilename)
-
+        self.proteinpdb = app.PDBFile(self.args.protein)
+        self.opt = vars(self.args)
     def process(self, mol, port):
         try:
             req_tags = ['idtag', 'structure']
             if utils.OEPackMol.checkTags(mol, req_tags):
                 gd = utils.OEPackMol.unpack(mol)
-                outfname = '{}-complex'.format(gd['idtag'])
+                self.opt['outfname'] = '{}-complex'.format(gd['idtag'])
 
-            #Generate protein Structure object
-            forcefield = app.ForceField(self.args.protein_forcefield, self.args.solvent_forcefield)
-            protein_system = forcefield.createSystem( self.proteinpdb.topology )
-            protein_structure = parmed.openmm.load_topology( self.proteinpdb.topology,
-                                                             protein_system,
-                                                             xyz=self.proteinpdb.positions )
+            protein_structure = utils.genProteinStructure(self.proteinpdb,**self.opt)
 
             # Merge structures to prevent adding solvent in pocket
             pl_structure = protein_structure + gd['structure']
-            self.log.info('{}-complex: {}'.format(gd['idtag'], pl_structure))
-
-            # Retain positions and save
-            pl_structure.positions = utils.combinePostions(protein_structure.positions,
-                                            gd['structure'].positions)
-            pl_structure.save(outfname+'-pl.tmp',format='pdb',overwrite=True)
-
-            # Solvate with PDBFixer
-            self.log.info('PDBFixer solvating {}-complex:'.format(gd['idtag']))
-            self.log.info('\tpH = {}'.format(self.args.pH))
-            self.log.info('\tpadding = {}'.format(unit.Quantity(self.args.solvent_padding, unit.angstroms)))
-            self.log.info('\tionicStrength = {}'.format(unit.Quantity(self.args.salt_concentration, unit.millimolar)))
-            fixer = pdbfixer.PDBFixer(outfname+'-pl.tmp')
-            fixer.findMissingResidues()
-            fixer.findNonstandardResidues()
-            fixer.findMissingAtoms()
-            fixer.replaceNonstandardResidues()
-            #fixer.removeHeterogens(False)
-            fixer.addMissingAtoms()
-            fixer.addMissingHydrogens(self.args.pH)
-            fixer.addSolvent(padding=unit.Quantity(self.args.solvent_padding, unit.angstroms),
-                            ionicStrength=unit.Quantity(self.args.salt_concentration, unit.millimolar)
-                            )
-
-            # Load PDBFixer object back to Structure
-            tmp = parmed.openmm.load_topology(fixer.topology, xyz=fixer.positions)
-            #Store positions, topology, and box vectors for solvated system
-            full_positions = tmp.positions
-            full_topology = tmp.topology
-            full_box = tmp.box
-            # Remove ligand from protein Structure by AmberMask selection
-            tmp.strip(":LIG")
-            tmp.save(outfname+'-nomol.tmp',format='pdb',overwrite=True)
-            # Reload PDBFile
-            nomol = app.PDBFile(outfname+'-nomol.tmp')
-            nomol_system = forcefield.createSystem(nomol.topology, rigidWater=False)
-            # Regenerate parameterized solvated protein structure
-            solv_structure = parmed.openmm.load_topology(nomol.topology,
-                                                        nomol_system,
-                                                        xyz=nomol.positions,
-                                                        box=full_box)
+            self.log.info('{}: {}'.format(self.opt['outfname'], pl_structure))
+            solv_structure = utils.solvateComplexStructure(pl_structure, **self.opt)
 
             # Remerge with ligand structure
             full_structure = solv_structure + gd['structure']
+            self.log.info('Solvated {} {}'.format(self.opt['outfname'], full_structure))
             # Restore box dimensions
-            full_structure.box = full_box
-            self.log.info('Solvated {}-complex {}'.format(gd['idtag'], full_structure))
+            full_structure.box = solv_structure.box
             self.log.info('\tBox = {}'.format(full_structure.box))
 
             packedmol = utils.OEPackMol.pack(mol, full_structure)
             self.success.emit(packedmol)
 
             #Cleanup
-            utils.cleanup(['protein.pdb', outfname+'-pl.tmp',
-                       outfname+'-nomol.tmp'])
+            utils.cleanup(['protein.pdb'])
 
         except Exception as e:
             # Attach error message to the molecule that failed
@@ -228,7 +174,7 @@ class OpenMMSimulation(OEMolComputeCube):
 
             packedmol = utils.OEPackMol.pack(mol, simulation)
             self.success.emit(packedmol)
-            
+
             tmpfiles = [ gd['idtag']+'-simulation.log', gd['idtag']+'-simulation.nc' ]
             utils.cleanup(tmpfiles)
             #utils.OEPackMol.dump(packedmol)

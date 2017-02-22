@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import io, os, parmed, mdtraj
+import io, os, parmed, mdtraj, pdbfixer
 from sys import stdout
 from tempfile import NamedTemporaryFile
 
@@ -209,6 +209,73 @@ def setReporters(reportInterval, totalSteps, outfname):
     ##dcd_reporter = app.dcdreporter.DCDReporter(self.outfname+'.dcd', self.args.reporter_interval)
     reporters = [state_reporter, progress_reporter, traj_reporter]
     return reporters
+
+def genProteinStructure(proteinpdb, **opt):
+    #Generate protein Structure object
+    forcefield = app.ForceField(opt['protein_forcefield'], opt['solvent_forcefield'])
+    protein_system = forcefield.createSystem( proteinpdb.topology )
+    protein_structure = parmed.openmm.load_topology(proteinpdb.topology,
+                                                    protein_system,
+                                                    xyz=proteinpdb.positions)
+    return protein_structure
+def solvateComplexStructure(structure, **opt):
+    tmpfile = opt['outfname']+'-pl.tmp'
+    structure.save(tmpfile,format='pdb',overwrite=True)
+
+    seqres = False
+    with open(tmpfile, 'r') as infile:
+        for line in infile:
+            if 'SEQRES' in line:
+                seqres = True
+                break
+    if not seqres:
+        print('WARNING: Did not find SEQRES in PDB. PDBFixer will not find missing Residues.')
+
+    # Solvate with PDBFixer
+    print('PDBFixer solvating {}'.format(opt['outfname']))
+    print('\tpH = {}'.format(opt['pH']))
+    print('\tpadding = {}'.format(unit.Quantity(opt['solvent_padding'], unit.angstroms)))
+    print('\tionicStrength = {}'.format(unit.Quantity(opt['salt_concentration'], unit.millimolar)))
+    fixer = pdbfixer.PDBFixer(tmpfile)
+    fixer.findMissingResidues()
+    fixer.findNonstandardResidues()
+    fixer.findMissingAtoms()
+
+    if fixer.missingAtoms:
+        print('Found missing Atoms:', fixer.missingAtoms)
+    if fixer.missingTerminals:
+        print('Found missing Terminals:', fixer.missingTerminals)
+    if fixer.nonstandardResidues:
+        print('Found nonstandard Residues:', fixer.nonstandardResidues)
+
+    fixer.replaceNonstandardResidues()
+    #fixer.removeHeterogens(False)
+    fixer.addMissingAtoms()
+    fixer.addMissingHydrogens(opt['pH'])
+    fixer.addSolvent(padding=unit.Quantity(opt['solvent_padding'], unit.angstroms),
+                ionicStrength=unit.Quantity(opt['salt_concentration'], unit.millimolar))
+
+    # Load PDBFixer object back to Structure
+    tmp = parmed.openmm.load_topology(fixer.topology, xyz=fixer.positions)
+
+    # Remove ligand from protein Structure by AmberMask selection
+    tmp.strip(":LIG")
+    tmp.save(opt['outfname']+'-nomol.tmp',format='pdb',overwrite=True)
+    # Reload PDBFile
+    nomol = app.PDBFile(opt['outfname']+'-nomol.tmp')
+    forcefield = app.ForceField(opt['protein_forcefield'], opt['solvent_forcefield'])
+    nomol_system = forcefield.createSystem(nomol.topology, rigidWater=False)
+    # Regenerate parameterized solvated protein structure
+    solv_structure = parmed.openmm.load_topology(nomol.topology,
+                                                nomol_system,
+                                                xyz=nomol.positions)
+    # Restore box vectors
+    solv_structure.box = tmp.box
+
+    tmpfiles = [ opt['outfname']+'-pl.tmp', opt['outfname']+'-nomol.tmp' ]
+    cleanup(tmpfiles)
+
+    return solv_structure
 
 def genSimFromStruct(structure, temperature):
     system = structure.createSystem(nonbondedMethod=app.PME,
