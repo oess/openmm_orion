@@ -34,7 +34,7 @@ class SetIDTagfromTitle(OEMolComputeCube):
         #Check for OEMol title for ID labeling
         if not mol.GetTitle():
             idtag = _generateRandomID()
-            oechem.OEThrow.Warning('No title found, setting to {}'.format(idtag))
+            self.log.warn('Mol title not found, setting to {}'.format(idtag))
             mol.SetTitle(idtag)
         else:
             idtag = mol.GetTitle()

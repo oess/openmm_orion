@@ -4,15 +4,13 @@ from sys import stdout
 import numpy as np
 from simtk import unit, openmm
 from simtk.openmm import app
-
 from floe.api import OEMolComputeCube, parameter, MoleculeInputPort, BinaryMoleculeInputPort, BinaryOutputPort, OutputPort, ParallelOEMolComputeCube
 from floe.api.orion import in_orion, StreamingDataset
 from floe.constants import BYTES
-
 from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
-import OpenMMCubes.utils as utils
-from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
 
+import OpenMMCubes.utils as utils
+import OpenMMCubes.simtools as simtools
 
 class OpenMMComplexSetup(OEMolComputeCube):
     title = "OpenMMComplexSetup"
@@ -39,65 +37,61 @@ class OpenMMComplexSetup(OEMolComputeCube):
     pH = parameter.DecimalParameter(
         'pH',
         default=7.4,
-        help_text="Solvent pH used to select appropriate protein protonation state.",
-    )
+        help_text="Solvent pH used to select appropriate protein protonation state.")
 
     solvent_padding = parameter.DecimalParameter(
         'solvent_padding',
         default=10,
-        help_text="Padding around protein for solvent box (angstroms)",
-    )
+        help_text="Padding around protein for solvent box (angstroms)")
 
     salt_concentration = parameter.DecimalParameter(
         'salt_concentration',
         default=100,
-        help_text="Salt concentration (millimolar)",
-    )
+        help_text="Salt concentration (millimolar)")
 
     protein_forcefield = parameter.DataSetInputParameter(
         'protein_forcefield',
         default='amber99sbildn.xml',
-        help_text='Forcefield parameters for protein'
-    )
+        help_text='Forcefield parameters for protein')
 
     solvent_forcefield = parameter.DataSetInputParameter(
         'solvent_forcefield',
         default='tip3p.xml',
-        help_text='Forcefield parameters for solvent'
-    )
+        help_text='Forcefield parameters for solvent')
 
     def begin(self):
-        self.args.protein = download_dataset_to_file(self.args.protein)
-
+        self.args.protein = utils.download_dataset_to_file(self.args.protein)
         # Read the PDB file into an OpenMM PDBFile object
         self.proteinpdb = app.PDBFile(self.args.protein)
         self.opt = vars(self.args)
+        self.opt['logger'] = self.log
     def process(self, mol, port):
         try:
+            # Check for generic data.
             req_tags = ['idtag', 'structure']
             if utils.PackageOEMol.checkTags(mol, req_tags):
                 gd = utils.PackageOEMol.unpack(mol)
                 self.opt['outfname'] = '{}-complex'.format(gd['idtag'])
 
-            protein_structure = utils.genProteinStructure(self.proteinpdb,**self.opt)
+            # Generate parameterized protein Structure
+            protein_structure = simtools.genProteinStructure(self.proteinpdb,**self.opt)
 
             # Merge structures to prevent adding solvent in pocket
-            pl_structure = protein_structure + gd['structure']
+            # Ligand must be in docked position
+            pl_structure = simtools.mergeStructure(protein_structure, gd['structure'] )
             self.log.info('{}: {}'.format(self.opt['outfname'], pl_structure))
-            solv_structure = utils.solvateComplexStructure(pl_structure, **self.opt)
+
+            # Returns solvated system w/o ligand.
+            solv_structure = simtools.solvateComplexStructure(pl_structure, **self.opt)
 
             # Remerge with ligand structure
-            full_structure = solv_structure + gd['structure']
-            self.log.info('Solvated {} {}'.format(self.opt['outfname'], full_structure))
-            # Restore box dimensions
-            full_structure.box = solv_structure.box
+            full_structure = simtools.mergeStructure(solv_structure, gd['structure'])
+            self.log.info('Solvated {}: {}'.format(self.opt['outfname'], full_structure))
             self.log.info('\tBox = {}'.format(full_structure.box))
 
+            # Emit OEMol with attached Structure
             packedmol = utils.PackageOEMol.pack(mol, full_structure)
             self.success.emit(packedmol)
-
-            #Cleanup
-            utils.cleanup(['protein.pdb'])
 
         except Exception as e:
             # Attach error message to the molecule that failed
@@ -107,7 +101,7 @@ class OpenMMComplexSetup(OEMolComputeCube):
             self.failure.emit(mol)
 
 class OpenMMSimulation(OEMolComputeCube):
-    title = "Run simulation in OpenMM"
+    title = "OpenMMSimulation"
     description = """
     Run simulation with OpenMM for protein:ligand complex.
 
@@ -144,38 +138,63 @@ class OpenMMSimulation(OEMolComputeCube):
         default=1000,
         help_text="Step interval for reporting data.")
 
-    def begin(self):
-        pass
+    trajectory_filetype = parameter.StringParameter(
+        'trajectory_filetype',
+        default='HDF5',
+        help_text="NetCDF, DCD, HDF5. Filetype to write trajectory files")
 
+    nonbondedMethod = parameter.StringParameter(
+        'nonbondedMethod',
+        default='PME',
+        help_text="NoCutoff, CutoffNonPeriodic, CutoffPeriodic, PME, or Ewald.")
+
+    nonbondedCutoff = parameter.DecimalParameter(
+        'nonbondedCutoff',
+        default=10,
+        help_text="""The nonbonded cutoff in angstroms.
+        This is ignored if nonbondedMethod is NoCutoff.""")
+
+    constraints = parameter.StringParameter(
+        'constraints',
+        default='HBonds',
+        help_text="""None, HBonds, HAngles, or AllBonds
+        Which type of constraints to add to the system (e.g., SHAKE).
+        None means no bonds are constrained.
+        HBonds means bonds with hydrogen are constrained""")
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['logger'] = self.log
     def process(self, mol, port):
         try:
+            # Check for generic data.
             req_tags = ['idtag', 'structure']
             if utils.PackageOEMol.checkTags(mol, req_tags):
                 gd = utils.PackageOEMol.unpack(mol)
-                outfname = '{}-simulation'.format(gd['idtag'])
+                self.opt['outfname'] = '{}-simulation'.format(gd['idtag'])
 
-            simulation = utils.genSimFromStruct(gd['structure'], self.args.temperature)
+            # Generate Simulation from Structure
+            simulation = simtools.genSimFromStruct(gd['structure'], **self.opt)
+            platform = simulation.context.getPlatform().getName()
+            self.log.info('Running OpenMMSimulation on Platform {}'.format(platform))
+
             # Check if mol has State data attached
             if 'state' in gd.keys():
                 self.log.info('Restarting from saved state...')
                 simulation.context.setState(gd['state'])
             else:
-                simulation = utils.minimizeSimulation(simulation)
+                self.log.info('Minimizing system...')
+                simulation = simtools.minimizeSimulation(simulation, **self.opt)
 
-            reporters = utils.setReporters(self.args.reporter_interval, self.args.steps,
-                                           outfname)
-            for rep in reporters:
+            for rep in simtools.getReporters(**self.opt):
                 simulation.reporters.append(rep)
 
-            self.log.info('Running {} MD steps at {}K'.format(self.args.steps, self.args.temperature))
+            self.log.info('Running {steps} MD steps at {temperature}K'.format(**self.opt))
             simulation.step(self.args.steps)
 
-            packedmol = utils.PackageOEMol.pack(mol, simulation)
+            packedmol = utils.PackageOEMol.pack(mol, simulation, **self.opt)
             self.success.emit(packedmol)
 
-            tmpfiles = [ gd['idtag']+'-simulation.log', gd['idtag']+'-simulation.nc' ]
-            utils.cleanup(tmpfiles)
-            #utils.PackageOEMol.dump(packedmol)
         except Exception as e:
                 # Attach error message to the molecule that failed
                 self.log.error(traceback.format_exc())

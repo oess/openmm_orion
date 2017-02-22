@@ -1,23 +1,12 @@
-# -*- coding: utf-8 -*-
-import io, os, parmed, mdtraj, pdbfixer
+import io, os, base64, parmed, mdtraj, pdbfixer, glob
+import numpy as np
 from sys import stdout
 from tempfile import NamedTemporaryFile
-
-from openeye.oechem import(
-    oemolostream, OEWriteConstMolecule
-)
 from openeye import oechem
-from openeye.oedocking import OEWriteReceptorFile
-import numpy as np
 from floe.api.orion import in_orion, StreamingDataset
-from simtk.openmm.app import Topology
-from simtk.openmm.app.element import Element
 from simtk import unit, openmm
 from simtk.openmm import app
 from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
-#from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
-#    OpenMMSystemOutput, OpenMMSystemInput )
-import io, base64, parmed
 try:
     import cPickle as pickle
 except ImportError:
@@ -43,18 +32,24 @@ class PackageOEMol(object):
     def decodeOpenMM(data):
         return openmm.XmlSerializer.deserialize(data)
 
+    def encodePyObj(py_obj):
+        pkl_obj = pickle.dumps(py_obj)
+        return base64.b64encode(pkl_obj)
+
+    def decodePyObj(data):
+        decoded_obj = base64.b64decode(data)
+        return pickle.loads(decoded_obj)
+
     def encodeStruct(structure):
-        pkl_dict = pickle.dumps(structure.__getstate__())
-        return base64.b64encode(pkl_dict)
+        struct_dict = structure.__getstate__()
+        return PackageOEMol.encodePyObj(struct_dict)
 
     def decodeStruct(data):
-        decoded_structure = base64.b64decode(data)
-        struct_dict = pickle.loads(decoded_structure)
         struct = parmed.structure.Structure()
-        struct.__setstate__(struct_dict)
+        struct.__setstate__(PackageOEMol.decodePyObj(data))
         return struct
 
-    def encodeSimData(idtag, simulation):
+    def encodeSimData(simulation, **opt):
         tag_data = {}
         #Close open files for reporters.
         for rep in simulation.reporters:
@@ -73,33 +68,18 @@ class PackageOEMol(object):
                                             getEnergy=True,
                                             enforcePeriodicBox=True)
 
-        trajfname = idtag+'-simulation.nc'
-        traj = mdtraj.load(trajfname, top=mdtraj.Topology.from_openmm(topology))
-
+        traj = mdtraj.load(opt['outfname']+'.h5')
         structure = parmed.openmm.load_topology(topology, system,
                                    xyz=state.getPositions())
 
         tag_data['state'] = PackageOEMol.encodeOpenMM(state)
-        tag_data['traj'] = PackageOEMol.encodeTrajectory(traj)
-        tag_data['log'] = open(idtag+'-simulation.log').read()
+        tag_data['traj'] = PackageOEMol.encodePyObj(traj)
+        tag_data['log'] = open(opt['outfname']+'.log').read()
         tag_data['structure'] = PackageOEMol.encodeStruct(structure)
+
+        tmpfiles = [ opt['outfname']+'.log', opt['outfname']+'.h5' ]
+        cleanup(tmpfiles)
         return tag_data
-
-    def encodeTrajectory(trajectory):
-        pkl_traj = pickle.dumps(trajectory)
-        return base64.b64encode(pkl_traj)
-
-    def decodeTrajectory(data):
-        decoded_traj = base64.b64decode(data)
-        return pickle.loads(decoded_traj)
-
-    def encodePDBFile(state, topology):
-        f = io.StringIO()
-        app.PDBFile.writeFile(topology, state.getPositions(), f)
-        return f.getvalue()
-
-    def decodePDBFile(data):
-        return app.PDBFile(io.StringIO(data))
 
     @staticmethod
     def checkTags(molecule, tags):
@@ -124,60 +104,64 @@ class PackageOEMol(object):
             if 'structure' == tag:
                 data = cls.decodeStruct(data)
             if 'traj' == tag:
-                data = cls.decodeTrajectory(data)
+                data = cls.decodePyObj(data)
             if 'log' == tag:
                 data = io.StringIO(data)
             tag_data[tag] = data
         return tag_data
 
     @classmethod
-    def dump(cls, molecule, tags=None):
+    def dump(cls, molecule, tags=None, **opt):
         tag_data = {}
+        log = opt['logger']
+        traj = { 'HDF5' : opt['outfname']+'.h5',
+                 'DCD' : opt['outfname']+'.dcd',
+                 'NetCDF' : opt['outfname']+'.nc' }
+
         if tags is None:
             tag_data = cls.unpack(molecule)
         else:
             tag_data = cls.unpack(molecule, tags=tags)
 
-        idtag = tag_data['idtag']
+        log.info('Dumping %s data...' % opt['outfname'])
         for tag, data in tag_data.items():
-
             if isinstance(data, parmed.structure.Structure):
-                pdbfname = idtag+'-struct.pdb'
-                print("Saving Structure to", pdbfname)
+                pdbfname = opt['outfname']+'.pdb'
+                log.info("\tStructure to %s" % pdbfname)
                 data.save(pdbfname, overwrite=True)
 
             if isinstance(data, mdtraj.core.trajectory.Trajectory):
-                trajfname = idtag+'-mdtraj.nc'
-                print("Saving Trajectory to", trajfname)
-                data.save_netcdf(trajfname)
+                trajfname = traj.get(opt['trajectory_filetype'])
+                log.info("\tTrajectory to %s" % trajfname)
+                data.save(trajfname)
 
             if isinstance(data, openmm.openmm.State):
-                statefname = idtag+'-state.xml'
-                print('Saving State to', statefname)
+                statefname = opt['outfname']+'-state.xml'
+                log.info('\tState to %s' % statefname)
                 with open(statefname, 'w') as f:
                     f.write(openmm.XmlSerializer.serialize(data))
 
             if isinstance(data, io.StringIO):
-                enelog = idtag+'-ene.log'
-                print('Saving Log to', enelog)
+                enelog = opt['outfname']+'.log'
+                log.info('\tLog to %s' % enelog)
                 with open(enelog, 'w') as f:
                     f.write(data.getvalue())
 
     @classmethod
-    def pack(cls, molecule, data):
-        try:
-            idtag = cls.getData(molecule, 'idtag')
-        except Exception as e:
-            print(e)
-            pass
-
+    def pack(cls, molecule, data, tags=None, dump=False, **opt):
         if isinstance(data, parmed.structure.Structure):
             molecule.SetData(oechem.OEGetTag('structure'), cls.encodeStruct(data))
 
         if isinstance(data, openmm.app.simulation.Simulation):
-            tag_data = cls.encodeSimData(idtag, data)
+            tag_data = cls.encodeSimData(data,**opt)
             for k,v in tag_data.items():
                 molecule.SetData(oechem.OEGetTag(k), v)
+
+        if dump:
+            if tags:
+                cls.dump(molecule, tags, **opt)
+            else:
+                cls.dump(molecule, **opt)
 
         return molecule
 
@@ -188,125 +172,13 @@ def cleanup(tmpfiles):
         except Exception as e:
             pass
 
-def setReporters(reportInterval, totalSteps, outfname):
-    progress_reporter = app.StateDataReporter(stdout, separator="\t",
-                                        reportInterval=reportInterval, totalSteps=totalSteps,
-                                        time=True, speed=True, progress=True,
-                                        elapsedTime=True, remainingTime=True)
-
-    state_reporter = app.StateDataReporter(outfname+'.log', separator="\t",
-                                        reportInterval=reportInterval,
-                                        step=True,
-                                        potentialEnergy=True, totalEnergy=True,
-                                        volume=True, temperature=True)
-
-    #traj_reporter = mdtraj.reporters.HDF5Reporter(self.outfname+'.h5', self.args.reporter_interval)
-    traj_reporter = mdtraj.reporters.NetCDFReporter(outfname+'.nc', reportInterval)
-    ##dcd_reporter = app.dcdreporter.DCDReporter(self.outfname+'.dcd', self.args.reporter_interval)
-    reporters = [state_reporter, progress_reporter, traj_reporter]
-    return reporters
-
-def genProteinStructure(proteinpdb, **opt):
-    #Generate protein Structure object
-    forcefield = app.ForceField(opt['protein_forcefield'], opt['solvent_forcefield'])
-    protein_system = forcefield.createSystem( proteinpdb.topology )
-    protein_structure = parmed.openmm.load_topology(proteinpdb.topology,
-                                                    protein_system,
-                                                    xyz=proteinpdb.positions)
-    return protein_structure
-def solvateComplexStructure(structure, **opt):
-    tmpfile = opt['outfname']+'-pl.tmp'
-    structure.save(tmpfile,format='pdb',overwrite=True)
-
-    seqres = False
-    with open(tmpfile, 'r') as infile:
-        for line in infile:
-            if 'SEQRES' in line:
-                seqres = True
-                break
-    if not seqres:
-        print('WARNING: Did not find SEQRES in PDB. PDBFixer will not find missing Residues.')
-
-    # Solvate with PDBFixer
-    print('PDBFixer solvating {}'.format(opt['outfname']))
-    print('\tpH = {}'.format(opt['pH']))
-    print('\tpadding = {}'.format(unit.Quantity(opt['solvent_padding'], unit.angstroms)))
-    print('\tionicStrength = {}'.format(unit.Quantity(opt['salt_concentration'], unit.millimolar)))
-    fixer = pdbfixer.PDBFixer(tmpfile)
-    fixer.findMissingResidues()
-    fixer.findNonstandardResidues()
-    fixer.findMissingAtoms()
-
-    if fixer.missingAtoms:
-        print('Found missing Atoms:', fixer.missingAtoms)
-    if fixer.missingTerminals:
-        print('Found missing Terminals:', fixer.missingTerminals)
-    if fixer.nonstandardResidues:
-        print('Found nonstandard Residues:', fixer.nonstandardResidues)
-
-    fixer.replaceNonstandardResidues()
-    #fixer.removeHeterogens(False)
-    fixer.addMissingAtoms()
-    fixer.addMissingHydrogens(opt['pH'])
-    fixer.addSolvent(padding=unit.Quantity(opt['solvent_padding'], unit.angstroms),
-                ionicStrength=unit.Quantity(opt['salt_concentration'], unit.millimolar))
-
-    # Load PDBFixer object back to Structure
-    tmp = parmed.openmm.load_topology(fixer.topology, xyz=fixer.positions)
-
-    # Remove ligand from protein Structure by AmberMask selection
-    tmp.strip(":LIG")
-    tmp.save(opt['outfname']+'-nomol.tmp',format='pdb',overwrite=True)
-    # Reload PDBFile
-    nomol = app.PDBFile(opt['outfname']+'-nomol.tmp')
-    forcefield = app.ForceField(opt['protein_forcefield'], opt['solvent_forcefield'])
-    nomol_system = forcefield.createSystem(nomol.topology, rigidWater=False)
-    # Regenerate parameterized solvated protein structure
-    solv_structure = parmed.openmm.load_topology(nomol.topology,
-                                                nomol_system,
-                                                xyz=nomol.positions)
-    # Restore box vectors
-    solv_structure.box = tmp.box
-
-    tmpfiles = [ opt['outfname']+'-pl.tmp', opt['outfname']+'-nomol.tmp' ]
-    cleanup(tmpfiles)
-
-    return solv_structure
-
-def genSimFromStruct(structure, temperature):
-    system = structure.createSystem(nonbondedMethod=app.PME,
-                                    nonbondedCutoff=10.0*unit.angstroms,
-                                    constraints=app.HBonds)
-
-    integrator = openmm.LangevinIntegrator(temperature*unit.kelvin, 1/unit.picoseconds, 0.002*unit.picoseconds)
-    simulation = app.Simulation(structure.topology, system, integrator)
-    simulation.context.setPositions(structure.positions)
-    simulation.context.setVelocitiesToTemperature(temperature*unit.kelvin)
-    platform = simulation.context.getPlatform().getName()
-    print('Running OpenMMSimulation on Platform {}'.format(platform))
-    return simulation
-
-def minimizeSimulation(simulation):
-        init = simulation.context.getState(getEnergy=True)
-        print('Initial energy is {}'.format(init.getPotentialEnergy()))
-        print('Minimizing system...')
-        #f = io.StringIO()
-        #rep = parmed.openmm.EnergyMinimizerReporter(f, volume=True)
-        simulation.minimizeEnergy()
-        #rep.report(simulation)
-        #print(f.getvalue())
-        st = simulation.context.getState(getPositions=True,getEnergy=True)
-        print('Minimized energy is {}'.format(st.getPotentialEnergy()))
-        return simulation
-
-        #minfname = 'output/{}-minimized.pdb'.format(idtag)
-        #with open(minfname, 'w') as minout:
-        #    app.PDBFile.writeFile(simulation.topology, min_state.getPositions(), minout)
-
-        #with open(minfname, 'rb') as minin:
-        #    outmol.SetData(oechem.OEGetTag('pdb') , minin.read())
-        #os.remove(minfname)
-
+def getPositionsFromOEMol(molecule):
+    positions = unit.Quantity(
+        np.zeros([molecule.NumAtoms(), 3], np.float32), unit.angstroms)
+    coords = molecule.GetCoords()
+    for index in range(molecule.NumAtoms()):
+        positions[index, :] = unit.Quantity(coords[index], unit.angstroms)
+    return positions
 
 def get_data_filename(relative_path):
     """Get the full path to one of the reference files in testsystems.
@@ -324,31 +196,6 @@ def get_data_filename(relative_path):
     if not os.path.exists(fn):
         raise ValueError("Sorry! %s does not exist. If you just added it, you'll have to re-install" % fn)
     return fn
-
-def getPositionsFromOEMol(molecule):
-    positions = unit.Quantity(
-        np.zeros([molecule.NumAtoms(), 3], np.float32), unit.angstroms)
-    coords = molecule.GetCoords()
-    for index in range(molecule.NumAtoms()):
-        positions[index, :] = unit.Quantity(coords[index], unit.angstroms)
-    return positions
-
-def combinePostions(proteinPositions, molPositions):
-    # Concatenate positions arrays (ensures same units)
-    positions_unit = unit.angstroms
-    positions0_dimensionless = np.array(proteinPositions / positions_unit)
-    positions1_dimensionless = np.array(molPositions / positions_unit)
-    coordinates = np.vstack(
-        (positions0_dimensionless, positions1_dimensionless))
-    natoms = len(coordinates)
-    positions = np.zeros([natoms, 3], np.float32)
-    for index in range(natoms):
-            (x, y, z) = coordinates[index]
-            positions[index, 0] = x
-            positions[index, 1] = y
-            positions[index, 2] = z
-    positions = unit.Quantity(positions, positions_unit)
-    return positions
 
 def download_dataset_to_file(dataset_id):
     """
