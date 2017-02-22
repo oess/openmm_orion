@@ -5,8 +5,6 @@ from LigPrepCubes.oedock import FREDDocking
 from LigPrepCubes.cubes import SMIRFFParameterization, SetIDTagfromTitle, OEBSinkCube
 from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
-from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
-    OpenMMSystemOutput, OpenMMSystemInput )
 from simtk import openmm, unit
 from floe.test import CubeTestRunner
 from openeye import oechem, oedocking
@@ -118,15 +116,6 @@ class SMIRFFTester(unittest.TestCase):
 
         # Get the output molecule
         outmol = self.runner.outputs["success"].get()
-
-        # Check for the OpenMM System
-        serialized_system = outmol.GetData(oechem.OEGetTag('system'))
-        # System should be encoded to str on output
-        self.assertIsInstance(serialized_system, str)
-        # Check it can regenerate System
-        system = openmm.XmlSerializer.deserialize(serialized_system)
-        self.assertIsInstance(system, openmm.System)
-        self.assertEqual(system.getNumParticles(),mol.NumAtoms())
 
         # Check for the ParmEd Structure
         encoded_structure = outmol.GetData(oechem.OEGetTag('structure'))
