@@ -80,7 +80,7 @@ class SMIRFFParameterization(OEMolComputeCube):
             molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)
             molecule_structure.residues[0].name = "LIG"
 
-            packedmol = utils.OEPackMol.pack(mol, molecule_structure)
+            packedmol = utils.PackageOEMol.pack(mol, molecule_structure)
             self.success.emit(packedmol)
 
         except Exception as e:

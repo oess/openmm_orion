@@ -11,8 +11,6 @@ from floe.constants import BYTES
 
 from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
 import OpenMMCubes.utils as utils
-#from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
-#    OpenMMSystemOutput, OpenMMSystemInput )
 from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
 
 
@@ -77,8 +75,8 @@ class OpenMMComplexSetup(OEMolComputeCube):
     def process(self, mol, port):
         try:
             req_tags = ['idtag', 'structure']
-            if utils.OEPackMol.checkTags(mol, req_tags):
-                gd = utils.OEPackMol.unpack(mol)
+            if utils.PackageOEMol.checkTags(mol, req_tags):
+                gd = utils.PackageOEMol.unpack(mol)
                 self.opt['outfname'] = '{}-complex'.format(gd['idtag'])
 
             protein_structure = utils.genProteinStructure(self.proteinpdb,**self.opt)
@@ -95,7 +93,7 @@ class OpenMMComplexSetup(OEMolComputeCube):
             full_structure.box = solv_structure.box
             self.log.info('\tBox = {}'.format(full_structure.box))
 
-            packedmol = utils.OEPackMol.pack(mol, full_structure)
+            packedmol = utils.PackageOEMol.pack(mol, full_structure)
             self.success.emit(packedmol)
 
             #Cleanup
@@ -152,8 +150,8 @@ class OpenMMSimulation(OEMolComputeCube):
     def process(self, mol, port):
         try:
             req_tags = ['idtag', 'structure']
-            if utils.OEPackMol.checkTags(mol, req_tags):
-                gd = utils.OEPackMol.unpack(mol)
+            if utils.PackageOEMol.checkTags(mol, req_tags):
+                gd = utils.PackageOEMol.unpack(mol)
                 outfname = '{}-simulation'.format(gd['idtag'])
 
             simulation = utils.genSimFromStruct(gd['structure'], self.args.temperature)
@@ -172,12 +170,12 @@ class OpenMMSimulation(OEMolComputeCube):
             self.log.info('Running {} MD steps at {}K'.format(self.args.steps, self.args.temperature))
             simulation.step(self.args.steps)
 
-            packedmol = utils.OEPackMol.pack(mol, simulation)
+            packedmol = utils.PackageOEMol.pack(mol, simulation)
             self.success.emit(packedmol)
 
             tmpfiles = [ gd['idtag']+'-simulation.log', gd['idtag']+'-simulation.nc' ]
             utils.cleanup(tmpfiles)
-            #utils.OEPackMol.dump(packedmol)
+            #utils.PackageOEMol.dump(packedmol)
         except Exception as e:
                 # Attach error message to the molecule that failed
                 self.log.error(traceback.format_exc())

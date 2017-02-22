@@ -26,13 +26,9 @@ except ImportError:
 download_cache = {}
 
 
-class OEPackMol(object):
+class PackageOEMol(object):
     """A class designated to handle the packing/unpacking Python objects to the
     OEMol as generic data."""
-
-    #def __init__(self, molecule):
-    #    self.molecule = molecule
-        #self.tag_data = dict()
 
     def getTags(molecule):
         return list(molecule.GetData().keys())
@@ -83,10 +79,10 @@ class OEPackMol(object):
         structure = parmed.openmm.load_topology(topology, system,
                                    xyz=state.getPositions())
 
-        tag_data['state'] = OEPackMol.encodeOpenMM(state)
-        tag_data['traj'] = OEPackMol.encodeTrajectory(traj)
+        tag_data['state'] = PackageOEMol.encodeOpenMM(state)
+        tag_data['traj'] = PackageOEMol.encodeTrajectory(traj)
         tag_data['log'] = open(idtag+'-simulation.log').read()
-        tag_data['structure'] = OEPackMol.encodeStruct(structure)
+        tag_data['structure'] = PackageOEMol.encodeStruct(structure)
         return tag_data
 
     def encodeTrajectory(trajectory):
@@ -107,7 +103,7 @@ class OEPackMol(object):
 
     @staticmethod
     def checkTags(molecule, tags):
-        oetags = OEPackMol.getTags(molecule)
+        oetags = PackageOEMol.getTags(molecule)
         intersect = list( set(tags) & set(oetags) )
         diff = list( set(tags) - set(oetags) )
         if diff:
