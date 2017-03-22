@@ -1,39 +1,16 @@
 from __future__ import unicode_literals
-from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube, FileOutputCube, DataSetInputParameter, FileInputCube
-from LigPrepCubes.omega import OEOmegaConfGen
-from LigPrepCubes.oedock import FREDDocking
-from LigPrepCubes.cubes import SMIRFFParameterization, SetIDTagfromTitle, OEBSinkCube
-
+from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
+from LigPrepCubes.cubes import ChargeMCMol, LigandParameterization, FREDDocking
 
 job = WorkFloe("SmilesLigPrep")
 
 job.description = """
-This floe will do the following in each cube:
-  (1) ifs: Read in the SMILES from file (test_smiles.ism)
-  (2) omega: Generate multiconformer molecules
-  (3) fred: Dock the MCMol to a prepared receptor (test-receptor.oeb.gz)
-        Emit top scoring pose and attach score as SDData.
-  (4) idtag: Add an idtag from the molecule's title or use a random 6 character string.
-  (5) smirff: Parameterize the molecule with the ffxml file (smirff99Frosst.ffxml)
-        Generate the ParmEd Structure and attach it to the OEMol.
-  (6) ofs: Write out the OEMOl of the complex to a <idtag>-complex.oeb.gz
+**Prepare a molecule dataset from SMILES strings**
 
-Ex. `python floes/smiles_ligprep.py --ligand examples/data/test_smiles.ism --receptor examples/data/test-receptor.oeb.gz`
-
-Parameters:
------------
-ligand (file): .ISM file containing SMILE strings
-receptor (file): OEB of a receptor prepared for docking.
-
-*Optionals:
------------
-molecule_forcefield (file): Smarty parsable FFXML file containining parameters for the molecule (default: smirff99Frosst.ffxml)
-
-Outputs:
---------
-ofs: Outputs a <idtag>-smirff.oeb.gz file containing: <idtag>, <Structure> and <System>.
-attached to the OEMol of the ligand as generic data.
+Parse SMILES, generate multiconformer OEMolecules, assign partial charges, dock using
+the FRED docking engine and parameterize the ligand with the supported forcefield parameters
+(GAFF/GAFF2/SMIRNOFF).
 """
 
 job.classification = [["Ligand Preparation"]]
@@ -42,25 +19,25 @@ job.tags = [tag for lists in job.classification for tag in lists]
 ifs = OEMolIStreamCube("ifs")
 ifs.promote_parameter("data_in", promoted_name="ligand", description="File containing SMILES")
 
-omega = OEOmegaConfGen('omega')
+charge = ChargeMCMol('charge')
 
 fred = FREDDocking('fred')
 fred.promote_parameter('receptor', promoted_name='receptor', description='Receptor OEB')
 
-idtag = SetIDTagfromTitle('idtag')
+lig_param = LigandParameterization('lig_param')
+lig_param.promote_parameter('molecule_forcefield', promoted_name='molecule_forcefield', description='Forcefield for molecule')
 
-smirff = SMIRFFParameterization('smirff')
-smirff.promote_parameter('molecule_forcefield', promoted_name='ffxml', description="SMIRFF FFXML")
+ofs = OEMolOStreamCube('ofs', title='OFS-Success')
+ofs.set_parameters(backend='s3')
+fail = OEMolOStreamCube('fail', title='OFS-Failure')
+fail.set_parameters(backend='s3')
 
-ofs = OEBSinkCube('ofs')
-ofs.set_parameters(suffix='smirff')
-
-job.add_cubes(ifs, omega, fred, idtag, smirff, ofs)
-ifs.success.connect(omega.intake)
-omega.success.connect(fred.intake)
-fred.success.connect(idtag.intake)
-idtag.success.connect(smirff.intake)
-smirff.success.connect(ofs.intake)
+job.add_cubes(ifs, charge, fred, lig_param, ofs, fail)
+ifs.success.connect(charge.intake)
+charge.success.connect(fred.intake)
+fred.success.connect(lig_param.intake)
+lig_param.success.connect(ofs.intake)
+lig_param.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()

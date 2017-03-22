@@ -1,12 +1,10 @@
 import unittest, os, parmed
 from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
 from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
-from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
-    OpenMMSystemOutput, OpenMMSystemInput )
 from simtk import openmm, unit
 from floe.test import CubeTestRunner
 from openeye import oechem
-
+import OpenMMCubes.utils as utils
 
 class SetupCubeTester(unittest.TestCase):
     """
@@ -15,7 +13,9 @@ class SetupCubeTester(unittest.TestCase):
     """
     def setUp(self):
         self.cube = OpenMMComplexSetup("complex_setup")
-        self.cube.args.protein = get_data_filename('T4-protein.pdb')
+        self.cube.args.protein = utils.get_data_filename('examples', 'data/epox_hydrolase_apo-protein.pdb')
+        self.cube.args.solvent_padding = 1
+        self.cube.args.salt_concentration = 10
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
 
@@ -23,7 +23,7 @@ class SetupCubeTester(unittest.TestCase):
         print('Testing cube:', self.cube.name)
         # Read a molecule
         mol = oechem.OEMol()
-        ifs = oechem.oemolistream(get_data_filename('9PC1X-smirff.oeb.gz'))
+        ifs = oechem.oemolistream(utils.get_data_filename('examples','data/JF6_1-smirff.oeb.gz'))
         if not oechem.OEReadMolecule(ifs, mol):
             raise Exception('Cannot read molecule')
         ifs.close()
@@ -35,35 +35,15 @@ class SetupCubeTester(unittest.TestCase):
         # Assert that zero molecules were emitted on the failure port
         self.assertEqual(self.runner.outputs['failure'].qsize(), 0)
 
+        # Check for ParmEd Structure
         outmol = self.runner.outputs["success"].get()
-        self.assertGreater(outmol.NumAtoms(), mol.NumAtoms())
-        self.assertTrue(outmol.HasData(oechem.OEGetTag('structure')))
-        self.assertTrue(outmol.HasData(oechem.OEGetTag('system')))
+        self.assertTrue(outmol.HasData(oechem.OEGetTag('Structure')))
+        # Check structure is for protein:ligand complex, not molecule
+        gd = utils.PackageOEMol.unpack(mol)
+        self.assertGreater(len(gd['Structure'].atoms), mol.NumAtoms())
 
     def test_failure(self):
         pass
-
-    def test_ports(self):
-        mol = oechem.OEMol()
-        system = openmm.System()
-        structure = parmed.structure.Structure()
-        sys_out = OpenMMSystemOutput("sys_out")
-        struct_out = ParmEdStructureOutput('struct_out')
-        with oechem.oemolostream('empty-mol.oeb.gz') as ofs:
-            mol.SetData(oechem.OEGetTag('system'), sys_out.encode(system))
-            mol.SetData(oechem.OEGetTag('structure'), struct_out.encode(structure))
-            oechem.OEWriteConstMolecule(ofs, mol)
-
-        sys_in = OpenMMSystemInput('sys_in')
-        struct_in = ParmEdStructureInput('struct_in')
-        newmol = oechem.OEMol()
-        with oechem.oemolistream('empty-mol.oeb.gz') as ifs:
-            oechem.OEReadMolecule(ifs,newmol)
-            newstruct = struct_in.decode(newmol.GetData(oechem.OEGetTag('structure')))
-            newsys = sys_in.decode(newmol.GetData(oechem.OEGetTag('system')))
-            self.assertEqual(newsys.getNumParticles(), 0)
-            self.assertEqual(len(newstruct.atoms), 0)
-        os.remove('empty-mol.oeb.gz')
 
     def tearDown(self):
         self.runner.finalize()
@@ -77,7 +57,9 @@ class SimulationCubeTester(unittest.TestCase):
     def setUp(self):
         self.cube = OpenMMSimulation("md")
         self.runner = CubeTestRunner(self.cube)
-        self.cube.args.steps = 1000
+        self.cube.args.steps = 3
+        self.cube.args.reporter_interval = 1
+        self.cube.args.tarxz = False
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
 
@@ -87,7 +69,7 @@ class SimulationCubeTester(unittest.TestCase):
     def test_success(self):
         print('Testing cube:', self.cube.name)
         mol = oechem.OEMol()
-        fname = get_data_filename('9PC1X-complex.oeb.gz')
+        fname = get_data_filename('examples','data/JF6_1-complex.oeb.gz')
         ifs = oechem.oemolistream(fname)
         if not oechem.OEReadMolecule(ifs, mol):
             raise Exception('Cannot read complex from %s' % fname)
@@ -101,10 +83,9 @@ class SimulationCubeTester(unittest.TestCase):
         self.assertEqual(self.runner.outputs['failure'].qsize(), 0)
 
         outmol = self.runner.outputs["success"].get()
-        self.assertTrue(outmol.HasData(oechem.OEGetTag('structure')))
-        self.assertTrue(outmol.HasData(oechem.OEGetTag('system')))
-        self.assertTrue(outmol.HasData(oechem.OEGetTag('state')))
-        self.assertTrue(outmol.HasData(oechem.OEGetTag('log')))
+        self.assertTrue(outmol.HasData(oechem.OEGetTag('Structure')))
+        self.assertTrue(outmol.HasData(oechem.OEGetTag('State')))
+        self.assertTrue(outmol.HasData(oechem.OEGetTag('Log')))
 
     def test_failure(self):
         pass

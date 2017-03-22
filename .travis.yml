@@ -4,6 +4,9 @@ language: python
 python:
 - 3.5
 
+branches:
+    only:
+        - master
 env:
 - secure: TKZkv0KOQ53fffSqY/9DsmtQXKiHF3zRUJAnISH1czbT/vAApQf6dZV6Ijso57dbCl4+4tPI5kD8QBfNxskoilmm0Na7s+yqAS0YPlphk/fdiHgXtgut9vXX3rurdgCB5aqQj1z4MrUZZlN0NKGhIr7E1XwgXxuBEE+6R9RpiL9CTQbM5usZi2QuEbgmKwhA2oCjoUKTuF/hIqST8W+J8KlYk2Ho6g42r1JJaIYpcdKThOuISCF4TaTQl+NjVU/4B5n3D/ucTcgbCmelJxaWRzU08I3qKANS8tevv4zJYG7FgSgxavOEVWv6RlY3MtGBEisC6Vj0FmtVL3g8uMLfGieX5e4uRzfGFqLDYkr8c0wLqQiw11dWLaFKR3NPGNfPDZtL3ZvBLKRlYqRPq6DS3yWD7kxs01YvtQV+xE5xgZoFgEX84V3L5hDJCCJlWfjSMW1P/DS07k3IqPGjm13dGUFwmWeuX25+Sw10BKpzvjGqrlgRI4KNlTjk7UK9OTSSCobbX07eSmO5apLf/oHBpO/gDXJvpG0imy8etkE6zGgdId7xwBCzWmp/DxkNX4Wn1lbCoUm0GpRpVIdup9mBPPwrH1a34duEMtGh2PynMKoVg17bCRGO1nUoOtYw3cpXYeWyMMdg99WpDCbZIxSHjqG5QxTS6QKFIZ/y/FEyFtA=
 
@@ -19,14 +22,17 @@ before_install:
 - conda info -a
 
 install:
-- conda create -c omnia -c omnia/label/dev -n openmm_linux python=$TRAVIS_PYTHON_VERSION
-  openmm==7.1.0rc1 openmoltools==0.7.4 ambermini==16.16.0 smarty==0.1.4 parmed==2.7.1
-  pdbfixer==1.4
+- pip install --extra-index-url https://pypi.anaconda.org/t/$CONDA_TOKEN/OpenEye/label/Orion/simple OpenEye-floe-pkg-tools
+- floe_env --no-pip openmm_linux
 - source activate openmm_linux
 - pip install --extra-index-url https://pypi.anaconda.org/OpenEye/simple
     --extra-index-url https://pypi.anaconda.org/t/$CONDA_TOKEN/OpenEye/label/Orion/simple -r dev_requirements.txt
 
 script:
-- py.test -v PlatformTestCubes
-- py.test -v LigPrepCubes
-- py.test -v OpenMMCubes
+# Test cubes
+- py.test -v -s PlatformTestCubes
+- py.test -v -s LigPrepCubes
+- py.test -v -s OpenMMCubes
+- py.test -v -s YankCubes
+# Test floes
+#- py.test -v -s floes/floe_tests/
