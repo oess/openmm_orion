@@ -348,7 +348,7 @@ def RestrWarmupNVT( openmmStuff, options):
 #############################################################################
 # equilibrate a solvated protein-ligand complex with restraints
 #############################################################################
-def RestrEquil( openmmStuff, options):
+def RestrEquil( openmmStuff, **options):
     """" Equilibrates the NPT system at the specified temp, restraining nonWat nonH.
 
          input parameters:
@@ -358,10 +358,11 @@ def RestrEquil( openmmStuff, options):
            options: dict containing minimization parameters such as restraint weight,
            length of MD run in picoseconds, and target temperature.
            """
-    topology = openmmStuff['topology']
-    system = openmmStuff['system']
+    #topology = openmmStuff['topology']
+    topology = openmmStuff['Structure'].topology
+    system = openmmStuff['System']
     PLMask = openmmStuff['PLmask']
-    state = openmmStuff['state']
+    state = openmmStuff['State']
 
     picosec = options['picosec']
     temperature = options['temperature']
@@ -439,7 +440,8 @@ def RestrEquil( openmmStuff, options):
     print('RestrEquil: system energy  after MD: %s'
           % state.getPotentialEnergy().value_in_unit(unit.kilocalories_per_mole)*unit.kilocalories_per_mole)
 
-    return state
+    #return state
+    return simulation
 
 
 if __name__ == "__main__":

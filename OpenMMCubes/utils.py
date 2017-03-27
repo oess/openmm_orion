@@ -90,6 +90,7 @@ class PackageOEMol(object):
         # Return dictionary with encoded data
         tag_data['State'] = PackageOEMol.encodeOpenMM(state)
         tag_data['Structure'] = PackageOEMol.encodeStruct(structure)
+        #tag_data['System'] = PackageOEMol.encodeStruct(system)
         with open(logfname) as log:
             tag_data['Log'] = log.read()
         return tag_data

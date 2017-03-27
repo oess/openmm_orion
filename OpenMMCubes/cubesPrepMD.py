@@ -277,22 +277,23 @@ class OpenMMequilCube(OEMolComputeCube):
         help_text= 'label to add to filenames from this cube')
 
     def begin(self):
-        if not os.path.exists('./output'):
-            os.makedirs('./output')
+        self.argsDict = vars( self.args)
         return
 
     def process(self, complex_mol, port):
         try:
-            openmmStuff = ExtractOpenMMData( complex_mol)
-            argsDict = vars( self.args)
-            equilState = plmd.RestrEquil( openmmStuff, argsDict)
+            #openmmStuff = ExtractOpenMMData( complex_mol)
+            openmmStuff = utils.PackageOEMol.unpack( complex_mol)
+            self.argsDict['outfname'] = '{}'.format(openmmStuff['IDTag'])+self.args.label
+            equilSimuln = plmd.RestrEquil( openmmStuff, **self.argsDict)
 
             # Attach openmm objects to mol, emit to output
-            output = OpenMMSystemOutput('output')
-            complex_mol.SetData(oechem.OEGetTag('state'), output.encode(equilState))
-            outfname = 'output/{}'.format(openmmStuff['idtag'])+self.args.label
-            with open(outfname+'.pdb', 'w') as out:
-                app.PDBFile.writeFile( openmmStuff['topology'], equilState.getPositions(), out)
+            #output = OpenMMSystemOutput('output')
+            #complex_mol.SetData(oechem.OEGetTag('state'), output.encode(equilState))
+            packedmol = utils.PackageOEMol.pack(complex_mol, simulation)
+            packedmol.SetData(oechem.OEGetTag( 'outfname'), self.argsDict['outfname'])
+            utils.PackageOEMol.dump(
+                    packedmol, outfname=self.argsDict['outfname'], tarxz=True )
             self.success.emit(complex_mol)
 
         except Exception as e:

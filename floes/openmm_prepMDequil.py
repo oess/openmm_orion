@@ -47,11 +47,11 @@ equil.promote_parameter('label', promoted_name='label',
       default='_equil', description='label to add to filenames from this cube')
 
 ofs = OEMolOStreamCube('ofs', title='OFS-Success')
-#ofs.set_parameters(backend='s3')
+ofs.set_parameters(backend='s3')
 fail = OEMolOStreamCube('fail', title='OFS-Failure')
-#fail.set_parameters(backend='s3')
+fail.set_parameters(backend='s3')
 
-job.add_cubes(ifs, equil, ofs)
+job.add_cubes(ifs, equil, ofs, fail)
 ifs.success.connect(equil.intake)
 equil.success.connect(ofs.intake)
 equil.failure.connect(fail.intake)
