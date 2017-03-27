@@ -17,7 +17,7 @@ class ChargeMCMolTester(unittest.TestCase):
 
     def test_success(self):
         print('Testing cube:', self.cube.name)
-        ligand = utils.get_data_filename('examples','data/JF6_1.ism')
+        ligand = utils.get_data_filename('examples','data/TOL.ism')
 
         # Read a molecule
         mol = oechem.OEMol()
@@ -62,7 +62,7 @@ class LigandParamTester(unittest.TestCase):
     def test_success_gaff(self):
         print('Testing cube:', self.cube.name)
         self.cube.args.molecule_forcefield = 'GAFF'
-        self.cube.args.ligand = utils.get_data_filename('examples','data/JF6_1-chgdmc.oeb.gz')
+        self.cube.args.ligand = utils.get_data_filename('examples','data/TOL-chgdmc.oeb.gz')
         # Read a molecule
         mol = oechem.OEMol()
         ifs = oechem.oemolistream(self.cube.args.ligand)
@@ -99,7 +99,7 @@ class LigandParamTester(unittest.TestCase):
     def test_success_smirnoff(self):
         print('Testing cube:', self.cube.name)
         self.cube.args.molecule_forcefield = 'SMIRNOFF'
-        self.cube.args.ligand = utils.get_data_filename('examples','data/JF6_1-chgdmc.oeb.gz')
+        self.cube.args.ligand = utils.get_data_filename('examples','data/TOL-chgdmc.oeb.gz')
         # Read a molecule
         mol = oechem.OEMol()
         ifs = oechem.oemolistream(self.cube.args.ligand)
@@ -147,7 +147,7 @@ class FREDTester(unittest.TestCase):
     """
     def setUp(self):
         self.cube = FREDDocking('fred')
-        self.cube.args.receptor = utils.get_data_filename('examples','data/epox_hydrolase_receptor.oeb.gz')
+        self.cube.args.receptor = utils.get_data_filename('examples','data/T4-receptor.oeb.gz')
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
 
@@ -155,7 +155,7 @@ class FREDTester(unittest.TestCase):
         print('Testing cube:', self.cube.name)
         # Read a molecule
         mol = oechem.OEMol()
-        ifs = oechem.oemolistream(utils.get_data_filename('examples', 'data/JF6_1-smirff.oeb.gz'))
+        ifs = oechem.oemolistream(utils.get_data_filename('examples', 'data/TOL-smnf.oeb.gz'))
         if not oechem.OEReadMolecule(ifs, mol):
             raise Exception('Cannot read molecule')
         ifs.close()

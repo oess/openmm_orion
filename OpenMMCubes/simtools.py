@@ -1,4 +1,4 @@
-import io, os, base64, parmed, mdtraj, pdbfixer
+import io, os, sys, base64, parmed, mdtraj, pdbfixer
 import numpy as np
 from sys import stdout
 from openeye import oechem
@@ -125,6 +125,11 @@ def solvateComplexStructure(structure, **opt):
     solv_structure : parmed.structure.Structure
         The parameterized Structure of the protein with solvent molecules. (No ligand).
     """
+    if opt['Logger'] is None:
+        printfile = sys.stdout
+    else:
+        printfile = opt['Logger'].file
+
     tmpfile = opt['outfname']+'-pl.tmp'
     structure.save(tmpfile,format='pdb')
 
@@ -135,24 +140,24 @@ def solvateComplexStructure(structure, **opt):
                 seqres = True
                 break
     if not seqres:
-        print('Did not find SEQRES in PDB. PDBFixer will not find missing Residues.')
+        print('Did not find SEQRES in PDB. PDBFixer will not find missing Residues.', file=printfile)
 
     # Solvate with PDBFixer
-    print('PDBFixer settings for {}'.format(opt['outfname']))
-    print('\tpH = {}'.format(opt['pH']))
-    print('\tpadding = {}'.format(unit.Quantity(opt['solvent_padding'], unit.angstroms)))
-    print('\tsalt conc. = {}'.format(unit.Quantity(opt['salt_concentration'], unit.millimolar)))
+    print('PDBFixer settings for {}'.format(opt['outfname']), file=printfile)
+    print('\tpH = {}'.format(opt['pH']), file=printfile)
+    print('\tpadding = {}'.format(unit.Quantity(opt['solvent_padding'], unit.angstroms)), file=printfile)
+    print('\tsalt conc. = {}'.format(unit.Quantity(opt['salt_concentration'], unit.millimolar)), file=printfile)
     fixer = pdbfixer.PDBFixer(tmpfile)
     fixer.findMissingResidues()
     fixer.findNonstandardResidues()
     fixer.findMissingAtoms()
 
     if fixer.missingAtoms:
-        print('Found missing Atoms:', fixer.missingAtoms)
+        print('Found missing Atoms:', fixer.missingAtoms, file=printfile)
     if fixer.missingTerminals:
-        print('Found missing Terminals:', fixer.missingTerminals)
+        print('Found missing Terminals:', fixer.missingTerminals, file=printfile)
     if fixer.nonstandardResidues:
-        print('Found nonstandard Residues:', fixer.nonstandardResidues)
+        print('Found nonstandard Residues:', fixer.nonstandardResidues, file=printfile)
 
     fixer.replaceNonstandardResidues()
     #fixer.removeHeterogens(False)
@@ -210,16 +215,34 @@ def genSimFromStruct(structure, platform=None, **opt):
                                     nonbondedCutoff=opt['nonbondedCutoff']*unit.angstroms,
                                     constraints=eval("app.%s" % opt['constraints']))
     integrator = openmm.LangevinIntegrator(opt['temperature']*unit.kelvin, 1/unit.picoseconds, 0.002*unit.picoseconds)
+
+    if opt['Logger'] is None:
+        printfile = sys.stdout
+    else:
+        printfile = opt['Logger'].file
+
     if platform is None:
         #Use the fastest available platform
         simulation = app.Simulation(structure.topology, system, integrator)
     else:
-        platform=openmm.Platform.getPlatformByName(platform)
-        simulation = app.Simulation(structure.topology, system, integrator, platform)
+        platform = openmm.Platform.getPlatformByName(platform)
+        #prop = dict(DeviceIndex='2')
+        simulation = app.Simulation(structure.topology, system, integrator, platform, prop)
 
+    # OpenMM platform information
     mmver = openmm.version.version
-    platform = simulation.context.getPlatform().getName()
-    print('OpenMM({}) simulation generated for {} platform'.format(mmver, platform))
+    mmplat = simulation.context.getPlatform()
+    if opt['verbose']:
+        # Host information
+        from platform import uname
+        for k,v in uname()._asdict().items():
+            print(k, ':', v, file=printfile)
+        # Platform properties
+        for prop in mmplat.getPropertyNames():
+            val = mmplat.getPropertyValue(simulation.context, prop)
+            print(prop, ':', val, file=printfile)
+
+    print('OpenMM({}) simulation generated for {} platform'.format(mmver, mmplat.getName()), file=printfile)
     integrator = openmm.LangevinIntegrator(opt['temperature']*unit.kelvin, 1/unit.picoseconds, 0.002*unit.picoseconds)
     simulation = app.Simulation(structure.topology, system, integrator)
     # Set initial positions/velocities
@@ -228,7 +251,7 @@ def genSimFromStruct(structure, platform=None, **opt):
     simulation.context.setVelocitiesToTemperature(opt['temperature']*unit.kelvin)
     return simulation
 
-def minimizeSimulation(simulation):
+def minimizeSimulation(simulation, **opt):
     """
     Minimizes the OpenMM Simulations.
 
@@ -242,11 +265,16 @@ def minimizeSimulation(simulation):
     simulation : openmm.app.simulation.Simulation
         The OpenMM Simulation after minimization.
     """
+    if opt['Logger'] is None:
+        printfile = sys.stdout
+    else:
+        printfile = opt['Logger'].file
+
     init = simulation.context.getState(getEnergy=True)
-    print('Initial energy = {}'.format(init.getPotentialEnergy()))
+    print('Initial energy = {}'.format(init.getPotentialEnergy()), file=printfile)
     simulation.minimizeEnergy()
     minene = simulation.context.getState(getPositions=True,getEnergy=True).getPotentialEnergy()
-    print('Minimized energy = {}'.format(minene))
+    print('Minimized energy = {}'.format(minene), file=printfile)
     return minene, simulation
 
 def getReporters(totalSteps=None, outfname=None, **opt):
@@ -289,7 +317,7 @@ def getReporters(totalSteps=None, outfname=None, **opt):
     #traj_reporter = mdtraj.reporters.HDF5Reporter(outfname+'.h5', opt['reporter_interval'])
 
     # Default to NetCDF since VMD compatible.
-    traj_reporter = mdtraj.reporters.NetCDFReporter(outfname+'.nc', opt['reporter_interval'])
+    traj_reporter = mdtraj.reporters.NetCDFReporter(outfname+'.nc', opt['trajectory_interval'])
 
     reporters = [state_reporter, progress_reporter, traj_reporter]
     return reporters
@@ -316,6 +344,11 @@ def mdTrajConvert(simulation=None, outfname=None, trajectory_selection=None, tra
         Specifies the filename prefix for the trajectory files.
 
     """
+    if opt['Logger'] is None:
+        printfile = sys.stdout
+    else:
+        printfile = opt['Logger'].file
+
     atom_indices = None
     traj_dict = { 'HDF5' : outfname +'.h5',
                   'DCD' : outfname +'.dcd',
@@ -332,6 +365,6 @@ def mdTrajConvert(simulation=None, outfname=None, trajectory_selection=None, tra
     top = mdtraj.Topology.from_openmm(simulation.topology)
     outfile = traj_dict.get(trajectory_filetype)
     traj = mdtraj.load(trajfname, atom_indices=atom_indices, top=top)
-    print("\tTrajectory subset: '{}'\n\t{}".format(trajectory_selection, traj))
-    print("\tConverted trajectory to %s" % (outfile) )
+    print("\tTrajectory subset: '{}'\n\t{}".format(trajectory_selection, traj), file=printfile)
+    print("\tConverted trajectory to %s" % (outfile), file=printfile)
     traj.save(outfile)

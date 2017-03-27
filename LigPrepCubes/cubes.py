@@ -68,7 +68,7 @@ class ChargeMCMol(OEMolComputeCube):
 
 class LigandParameterization(OEMolComputeCube):
     title = "Ligand Parameterization"
-    version = "0.0.1"
+    version = "0.0.2"
     classification = [ ["Ligand Preparation", "SMARTY", "Forcefield Assignment"],
     ["Ligand Preparation", "AMBER", "Forcefield Assignment"]]
     tags = ['Openmoltools', 'ParmEd', 'SMARTY', 'SMIRNOFF', 'GAFF']
@@ -94,6 +94,10 @@ class LigandParameterization(OEMolComputeCube):
         default='GAFF2',
         choices=['GAFF', 'GAFF2', 'SMIRNOFF'],
         help_text='Forcefield to parameterize the molecule')
+
+    def begin(self):
+        if self.args.molecule_forcefield in ['GAFF', 'GAFF2']:
+            ff_utils.ParamLigStructure(oechem.OEMol(), self.args.molecule_forcefield).checkTleap
 
     def process(self, mol, port):
         try:

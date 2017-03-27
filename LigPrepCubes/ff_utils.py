@@ -112,6 +112,7 @@ class ParamLigStructure(object):
             self.forcefield = str(forcefield).strip()
             self.structure = None
 
+    @staticmethod
     def checkTleap(self):
         #Try to check if tleap is going to fail
         with open('tleap_commands', 'w') as cmd:
@@ -160,7 +161,6 @@ class ParamLigStructure(object):
             forcefield = self.forcefield
 
         #Try to check if tleap is going to fail
-        self.checkTleap()
         self.checkCharges(molecule)
 
         # Determine formal charge (antechamber needs as argument)

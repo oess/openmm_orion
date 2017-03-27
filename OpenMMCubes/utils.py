@@ -27,20 +27,6 @@ class PackageOEMol(object):
     def getData(molecule, tag):
         return molecule.GetData(oechem.OEGetTag(str(tag)))
 
-    def updateSimIdx(molecule):
-        """Place a counter on the OEMol to track the number of restarts"""
-        if molecule.HasData(oechem.OEGetTag('SimIdx')):
-            idx = molecule.GetData(oechem.OEGetTag('SimIdx'))
-            ndx = int(idx)+1
-            if  ndx <= 9:
-                simidx = '0%s' % ndx
-            else:
-                simidx = str(ndx)
-        else:
-            simidx = '01'
-        molecule.SetData(oechem.OEGetTag('SimIdx'), simidx)
-        return molecule
-
     def encodeOpenMM(mm_obj):
         """Serialize the OpenMM Objects to BYTES.
         Supports State, System, Integrator, Forcefield objects.
@@ -204,8 +190,9 @@ class PackageOEMol(object):
                 tar.add(name)
             tar.close()
 
-            #### MUST upload tar file directly back to Orion or they disappear.
-            upload_file(tarname, tarname, tags=['TAR'])
+            if in_orion():
+                #### MUST upload tar file directly back to Orion or they disappear.
+                upload_file(tarname, tarname, tags=['TAR'])
             # Clean up files that have been added to tar.
             cleanup(totar)
 

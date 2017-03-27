@@ -136,7 +136,7 @@ class OpenMMComplexSetup(ParallelOEMolComputeCube):
 
 class OpenMMSimulation(ParallelOEMolComputeCube):
     title = "OpenMM MD Simulation"
-    version = "0.0.1"
+    version = "0.0.2"
     classification = [["Simulation", "OpenMM", "Minimization"],
     ["Simulation", "OpenMM", "Molecular Dynamics"]]
     tags = ['OpenMM', 'MDTraj', 'Parallel Cube']
@@ -220,12 +220,28 @@ class OpenMMSimulation(ParallelOEMolComputeCube):
     trajectory_selection = parameter.StringParameter(
         'trajectory_selection',
         default=None,
+        choices=[None, 'protein or resname LIG', 'protein', 'resname LIG'],
         help_text='atoms subset to write in trajectory')
+
+    trajectory_interval = parameter.IntegerParameter(
+        'trajectory_interval',
+        default=1000,
+        help_text="Step interval for trajetory snapshots.")
+
+    outfname = parameter.StringParameter(
+        'outfname',
+        default='md',
+        help_text='Filename suffix for output simulation files. Formatted: <title>-<outfname>')
 
     tarxz = parameter.BooleanParameter(
         'tarxz',
         default=True,
         description='Create a tar.xz file of the attached data')
+
+    verbose = parameter.BooleanParameter(
+        'verbose',
+        default=True,
+        description='Increase log file verbosity.')
 
     def begin(self):
         self.opt = vars(self.args)
@@ -242,21 +258,18 @@ class OpenMMSimulation(ParallelOEMolComputeCube):
             # Check for generic data.
             if utils.PackageOEMol.checkTags(mol, ['Structure']):
                 gd = utils.PackageOEMol.unpack(mol)
+                self.opt['outfname'] = '{}-{}'.format(gd['IDTag'], self.opt['outfname'])
 
             # Generate Simulation from Structure
             simulation = simtools.genSimFromStruct(gd['Structure'], **self.opt)
 
             # Check if mol has State data attached
             if 'State' in gd.keys():
-                mol = utils.PackageOEMol.updateSimIdx(mol)
-                simidx = mol.GetData(oechem.OEGetTag('SimIdx'))
-                self.opt['outfname'] = '{}-md_{}'.format(gd['IDTag'], simidx)
                 self.log.info('%s RESTARTING from saved State' % gd['IDTag'])
                 simulation.context.setState(gd['State'])
             else:
-                self.opt['outfname'] = '{}-md'.format(gd['IDTag'])
                 self.log.info('%s MINIMIZING System' % gd['IDTag'])
-                minene, simulation = simtools.minimizeSimulation(simulation)
+                minene, simulation = simtools.minimizeSimulation(simulation, **self.opt)
                 oechem.OESetSDData(mol, 'Minimized Energy', str(minene))
 
             for rep in simtools.getReporters(**self.opt):

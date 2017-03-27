@@ -58,8 +58,10 @@ py.test -v -s YankCubes
 
 ```bash
 # Launch from the command line
-python floes/smiles_ligprep.py --ligand examples/data/JF6_1.ism --receptor examples/data/epox_hydrolase_receptor.oeb.gz --molecule_forcefield GAFF2 \
---ofs-data_out JF6_1-gaff2.oeb.gz --fail-data_out fail.oeb.gz
+python floes/smiles_ligprep.py --ligand examples/data/TOL.ism \
+--molecule_forcefield SMIRNOFF \
+--receptor examples/data/T4-receptor.oeb.gz \
+--ofs-data_out TOL-smnf.oeb.gz --fail-data_out fail.oeb.gz
 ```
 
 This floe intended to run on CPU-Orion as it does not make use of any GPUs.
@@ -72,7 +74,7 @@ The first cube uses OpenEye's native `OEMolIStreamCube` to parse a file containi
 #### [Cube] `ChargeMCMol`
 In the `ChargeMCMol` cube, it will call functions from the package [openmoltools](https://github.com/choderalab/openmoltools/blob/master/openmoltools/openeye.py) in order to check aromaticity, add explicit hydrogens, and obtain the IUPAC name of the molecule. Then, the cube generates multiple conformers with OMEGA and assign charges using the new `oequacpac.OEAssignCharges` function. By default, the charging engine used is set to `OEAM1BCCCharges`. Before emitting, the IUPAC name and molecule title are stored as SDData using the tags `IUPAC` and `IDTag`, respectively.
 
-###### Note: The IDTag/molecule title is obtained from the text next to the SMILES string from the input file, (i.e. `c1ccc(cc1)c2c(non2)N JF6_1`) or it is randomly generated if not present.
+###### Note: The IDTag/molecule title is obtained from the text next to the SMILES string from the input file, (i.e. `Cc1ccccc1 TOL`) or it is randomly generated if not present.
 
 #### [Cube] `FREDDocking`
 *Requires the `--receptor` argument which should be a prepared receptor file using the OpenEye Toolkits. (See [docs](https://docs.eyesopen.com/toolkits/python/dockingtk/receptor.html#creating-a-receptor))*
@@ -90,8 +92,9 @@ Molecules (with the `parmed.Structure` attached) are then passed to OpenEye's `O
 ![ComplexMin Floe](examples/imgs/minimizecomplex_floe.png)
 ```bash
 # Launch from command line
-python floes/openmm_complex_min.py --ligand JF6_1-gaff2.oeb.gz --protein examples/data/epox_hydrolase_apo-protein.pdb \
---ofs-data_out JF6_1-min.oeb.gz --fail-data_out fail.oeb.gz
+python floes/openmm_complex_min.py --ligand TOL-smnf.oeb.gz --protein examples/data/T4-protein.pdb \
+--complex_setup-pH 6.8 --complex_setup-salt_concentration 200 \
+--ofs-data_out TOL-min.oeb.gz --fail-data_out fail.oeb.gz
 ```
 
 This floe is intended to run on GPU-Orion. Now that we have our molecules parameterized, we're going to generate our entire OpenMM system in this floe. That is, we will be generating a parameterized TIP3P solvated protein:ligand complex, minimize it and then run a 1ps MD simulation. Here we'll be making use of GPUs and parallel cubes to speed things along. Cubes references in this floe are nested under `OpenMMCubes.cubes`.
@@ -125,7 +128,7 @@ After the simulation, the molecules are passed to the dataset writer cube and wr
 ### [FLOE] RunOpenMMSimulation: Restart/Extend the MD Simulation.
 Now, the dataset from the previous floe can just be passed to any floe which uses the simulation cube. It will restart the simulation from the saved State that is attached as generic data. For example:
 ```bash
-python floes/openmm_md.py --complex examples/data/JF6_1-complex.oeb.gz --steps 10000
+python floes/openmm_md.py --complex examples/data/TOL-min.oeb.gz --steps 10000
 ```
 
 ## Other Floe Examples:
