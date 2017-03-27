@@ -1,21 +1,16 @@
 import io, os, time, traceback
-from openeye import oechem
 import numpy as np
+import json
+from openeye import oechem
+
 from simtk import unit, openmm
 from simtk.openmm import app
 
-from floe.api import OEMolComputeCube, parameter, MoleculeInputPort, BinaryMoleculeInputPort, BinaryOutputPort, OutputPort, ParallelOEMolComputeCube
-from floe.api.orion import in_orion, StreamingDataset
-from floe.constants import BYTES
-
-from LigPrepCubes.ports import CustomMoleculeInputPort, CustomMoleculeOutputPort
+import OpenMMCubes.simtools as simtools
 import OpenMMCubes.utils as utils
-from OpenMMCubes.ports import ( ParmEdStructureInput, ParmEdStructureOutput,
-    OpenMMSystemOutput, OpenMMSystemInput )
-from OpenMMCubes.utils import download_dataset_to_file, get_data_filename
-
-import json
 from OpenMMCubes import plmd
+
+from floe.api import OEMolComputeCube, parameter, ParallelOEMolComputeCube
 
 def ExtractOpenMMData( mol):
     if 'idtag' not in mol.GetData().keys():
@@ -80,8 +75,8 @@ class OpenMMmakePLmaskCube(OEMolComputeCube):
     tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
-    intake = CustomMoleculeInputPort('intake')
-    success = CustomMoleculeOutputPort('success')
+    #intake = CustomMoleculeInputPort('intake')
+    #success = CustomMoleculeOutputPort('success')
 
     ActSiteResNumSDTag = parameter.StringParameter(
         'ActSiteResNumSDTag',
@@ -125,8 +120,8 @@ class OpenMMminimizeCube(OEMolComputeCube):
     tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
-    intake = CustomMoleculeInputPort('intake')
-    success = CustomMoleculeOutputPort('success')
+    #intake = CustomMoleculeInputPort('intake')
+    #success = CustomMoleculeOutputPort('success')
 
     steps = parameter.IntegerParameter(
         'steps',
@@ -182,8 +177,8 @@ class OpenMMwarmupNVTCube(OEMolComputeCube):
     tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
-    intake = CustomMoleculeInputPort('intake')
-    success = CustomMoleculeOutputPort('success')
+    #intake = CustomMoleculeInputPort('intake')
+    #success = CustomMoleculeOutputPort('success')
 
     temperature = parameter.DecimalParameter(
         'temperature',
@@ -246,8 +241,8 @@ class OpenMMequilCube(OEMolComputeCube):
     tags = [tag for lists in classification for tag in lists]
 
     #Define Custom Ports to handle oeb.gz files
-    intake = CustomMoleculeInputPort('intake')
-    success = CustomMoleculeOutputPort('success')
+    #intake = CustomMoleculeInputPort('intake')
+    #success = CustomMoleculeOutputPort('success')
 
     picosec = parameter.DecimalParameter(
         'picosec',

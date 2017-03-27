@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
-from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube, FileOutputCube, DataSetInputParameter, FileInputCube
-from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
+from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube
+from OpenMMCubes.cubes import OpenMMComplexSetup
 from OpenMMCubes.cubesPrepMD import OpenMMequilCube
-from LigPrepCubes.cubes import OEBSinkCube
 
 job = WorkFloe("PrepMDequilibrate")
 
@@ -47,12 +46,15 @@ equil.promote_parameter('temperature', promoted_name='temperature', default=300.
 equil.promote_parameter('label', promoted_name='label',
       default='_equil', description='label to add to filenames from this cube')
 
-ofs = OEBSinkCube('ofs')
-ofs.set_parameters(suffix='equil')
+ofs = OEMolOStreamCube('ofs', title='OFS-Success')
+#ofs.set_parameters(backend='s3')
+fail = OEMolOStreamCube('fail', title='OFS-Failure')
+#fail.set_parameters(backend='s3')
 
 job.add_cubes(ifs, equil, ofs)
 ifs.success.connect(equil.intake)
 equil.success.connect(ofs.intake)
+equil.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()
