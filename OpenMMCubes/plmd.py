@@ -229,12 +229,12 @@ def protLigMask(mol, actSiteResNumTag):
 #############################################################################
 # minimize a solvated protein-ligand complex with restraints on non-solvent non-hydrogens
 #############################################################################
-def RestrMin( openmmStuff, options):
+def RestrMin( mdStuff, options):
     """" Warms up the systems to the secified temp, restraining nonWat nonH.
 
          input parameters:
-           openmmStuff: dict containing the OpenMM topology, system, state,
-           initial positions, protein-ligand mask for restraints, and an idtag string.
+           mdStuff: dict containing the parmed structure, the OpenMM state,
+           the protein-ligand mask for restraints, and an IDTag string.
 
            options: dict containing minimization parameters such as restraint weight
            and number of minimization steps.
@@ -242,15 +242,20 @@ def RestrMin( openmmStuff, options):
     overall_timer = LoggingStopwatch()
     stage_timer = LoggingStopwatch()
 
-    topology = openmmStuff['topology']
-    system = openmmStuff['system']
-    positions = openmmStuff['positions']
-    PLMask = openmmStuff['PLmask']
+    structure = mdStuff['Structure']
+    topology = structure.topology
+    positions = structure.positions
+    PLMask = mdStuff['PLmask']
     restrwt = options['restraintWt']
     steps = options['steps']
 
     print('RestrMin: Minimization for %d steps with %3.1f kcal/mol/ang^2 restraints on all non-water non-Hydrogens'
           % (steps, restrwt))
+
+    # generate system from parmed structure
+    system = structure.createSystem(nonbondedMethod=app.PME,
+                                    nonbondedCutoff=9.0*unit.angstroms,
+                                    constraints=app.HBonds)
 
     restrMask = MakeAtomMaskNonSolventNonH( PLMask)
     restrStrongNonSolvNonH = MakeOpenMMRestraintForceObj( positions, restrMask, restrwt)
@@ -270,38 +275,47 @@ def RestrMin( openmmStuff, options):
     stage_timer.TimeCheck('RestrMin: Final energy %.4f kcal/mol'
           % state.getPotentialEnergy().value_in_unit(unit.kilocalories_per_mole))
 
-    return state
+    #return state
+    return simulation
 
 #############################################################################
 # warm up a solvated protein-ligand complex with restraints on non-solvent non-hydrogens
 #############################################################################
-def RestrWarmupNVT( openmmStuff, options):
+def RestrWarmupNVT( mdStuff, options):
     """" Warms up the systems to the secified temp, restraining nonWat nonH.
 
          input parameters:
-           openmmStuff: dict containing the OpenMM topology, system, state,
-           initial positions, protein-ligand mask for restraints, and an idtag string.
+           mdStuff: dict containing the parmed structure, the OpenMM state,
+           the protein-ligand mask for restraints, and an IDTag string.
 
            options: dict containing minimization parameters such as restraint weight,
            length of MD run in picoseconds, and target temperature.
            """
-    topology = openmmStuff['topology']
-    system = openmmStuff['system']
-    PLMask = openmmStuff['PLmask']
-    if openmmStuff['state']:
-        state = openmmStuff['state']
+    overall_timer = LoggingStopwatch()
+    stage_timer = LoggingStopwatch()
+
+    structure = mdStuff['Structure']
+    topology = structure.topology
+    positions = structure.positions
+    PLMask = mdStuff['PLmask']
+    if mdStuff['State']:
+        state = mdStuff['State']
         positions = state.getPositions()
     else:
-        positions = openmmStuff['positions']
+        positions = mdStuff['positions']
 
     picosec = options['picosec']
     temperature = options['temperature']
     restraintWt = options['restraintWt']
+    outfname = options['outfname']
 
     print('RestrWarmupNVT: Warm up for %d picoseconds with %3.1f kcal/mol/ang^2 restraints on all non-water non-Hydrogens'
           % (picosec, restraintWt))
-    overall_timer = LoggingStopwatch()
-    stage_timer = LoggingStopwatch()
+
+    # generate system from parmed structure
+    system = structure.createSystem(nonbondedMethod=app.PME,
+                                    nonbondedCutoff=9.0*unit.angstroms,
+                                    constraints=app.HBonds)
 
     print('RestrWarmupNVT: building system and simulation objects')
     restrMask = MakeAtomMaskNonSolventNonH( PLMask)
@@ -317,7 +331,7 @@ def RestrWarmupNVT( openmmStuff, options):
 
     # set positions and update the periodic box vectors
     simulation.context.setPositions( positions)
-    if openmmStuff['state']:
+    if mdStuff['State']:
         xvec, yvec, zvec = state.getPeriodicBoxVectors()
         simulation.context.setPeriodicBoxVectors( xvec, yvec, zvec)
     stage_timer.TimeCheck("RestrWarmupNVT: system and simulation objects created and initialized")
@@ -325,8 +339,7 @@ def RestrWarmupNVT( openmmStuff, options):
     # set up and run dynamics
     print('RestrWarmupNVT: Computations will be done on platform: ' + simulation.context.getPlatform().getName() )
     reportFreq = 500
-    outfname = 'output/'+openmmStuff['idtag']+'-warmup.log'
-    fileReporter = app.StateDataReporter( outfname, reportFreq, step=True,
+    fileReporter = app.StateDataReporter( outfname+'.log', reportFreq, step=True,
             time=True, potentialEnergy=True, kineticEnergy=True, totalEnergy=True, temperature=True)
     stdoutReporter = app.StateDataReporter( stdout, reportFreq, step=True,
             time=True, potentialEnergy=True, kineticEnergy=True, totalEnergy=True, temperature=True)
@@ -343,37 +356,44 @@ def RestrWarmupNVT( openmmStuff, options):
     print('RestrWarmupNVT: system energy  after MD: %s'
           % state.getPotentialEnergy().value_in_unit(unit.kilocalories_per_mole)*unit.kilocalories_per_mole)
 
-    return state
+    #return state
+    return simulation
 
 #############################################################################
 # equilibrate a solvated protein-ligand complex with restraints
 #############################################################################
-def RestrEquil( openmmStuff, **options):
+def RestrEquil( mdStuff, options):
     """" Equilibrates the NPT system at the specified temp, restraining nonWat nonH.
 
          input parameters:
-           openmmStuff: dict containing the OpenMM topology, system, state,
-           initial positions, protein-ligand mask for restraints, and an idtag string.
+           mdStuff: dict containing the parmed structure, the OpenMM state,
+           the protein-ligand mask for restraints, and an IDTag string.
 
            options: dict containing minimization parameters such as restraint weight,
            length of MD run in picoseconds, and target temperature.
            """
-    #topology = openmmStuff['topology']
-    topology = openmmStuff['Structure'].topology
-    system = openmmStuff['System']
-    PLMask = openmmStuff['PLmask']
-    state = openmmStuff['State']
+    overall_timer = LoggingStopwatch()
+    stage_timer = LoggingStopwatch()
+
+    structure = mdStuff['Structure']
+    topology = structure.topology
+    positions = structure.positions
+    PLMask = mdStuff['PLmask']
+    state = mdStuff['State']
 
     picosec = options['picosec']
     temperature = options['temperature']
     restraintWt = options['restraintWt']
     maskType = options['restraintType']
-    label = options['label']
+    outfname = options['outfname']
 
     print('RestrEquil: NPT Equilibration for %0.3f picoseconds at %.1f Kelvin'
           % (picosec, temperature))
-    overall_timer = LoggingStopwatch()
-    stage_timer = LoggingStopwatch()
+
+    # generate system from parmed structure
+    system = structure.createSystem(nonbondedMethod=app.PME,
+                                    nonbondedCutoff=9.0*unit.angstroms,
+                                    constraints=app.HBonds)
 
     print('RestrEquil: building system and simulation objects')
     if maskType=='NonSolventNonH':
@@ -412,7 +432,6 @@ def RestrEquil( openmmStuff, **options):
 
     # set up and run dynamics
     print('RestrEquil: Computations will be done on platform: ' + simulation.context.getPlatform().getName() )
-    outfname = 'output/'+openmmStuff['idtag']+label
     # Determine reporting frequency in steps and optionally snapshot frequency and reporter
     snapFreq = options['snapFreq']
     if snapFreq > 0:

@@ -39,8 +39,8 @@ def ExtractOpenMMData( mol):
     else:
         state = None
     # Check if mol has protein-ligand mask data attached
-    if 'OpenMM_PLmaskDict_json' in mol.GetData().keys():
-        PLmask = json.loads( mol.GetStringData( 'OpenMM_PLmaskDict_json'))
+    if 'Atom_ProtLigSolvmaskDict_json' in mol.GetData().keys():
+        PLmask = json.loads( mol.GetStringData( 'Atom_ProtLigSolvmaskDict_json'))
     else:
         PLmask = None
 
@@ -74,10 +74,6 @@ class OpenMMmakePLmaskCube(OEMolComputeCube):
     classification = ['MDPrep']
     tags = [tag for lists in classification for tag in lists]
 
-    #Define Custom Ports to handle oeb.gz files
-    #intake = CustomMoleculeInputPort('intake')
-    #success = CustomMoleculeOutputPort('success')
-
     ActSiteResNumSDTag = parameter.StringParameter(
         'ActSiteResNumSDTag',
         default='ActiveSiteResNums',
@@ -88,7 +84,7 @@ class OpenMMmakePLmaskCube(OEMolComputeCube):
             # generate the protein-ligand mask (a python dict)
             atomPLmask = plmd.protLigMask(complex_mol, self.args.ActSiteResNumSDTag)
             # package the mask as a json object then attach to the molecule; emit
-            dataTagForOpenMM_PLmask = 'OpenMM_PLmaskDict_json'
+            dataTagForOpenMM_PLmask = 'Atom_ProtLigSolvmaskDict_json'
             jsonPLmask = json.dumps(atomPLmask, ensure_ascii=True)
             # attach the json object to the molecule; emit
             complex_mol.SetStringData( dataTagForOpenMM_PLmask, jsonPLmask)
@@ -119,10 +115,6 @@ class OpenMMminimizeCube(OEMolComputeCube):
     classification = ['PrepMDminimize']
     tags = [tag for lists in classification for tag in lists]
 
-    #Define Custom Ports to handle oeb.gz files
-    #intake = CustomMoleculeInputPort('intake')
-    #success = CustomMoleculeOutputPort('success')
-
     steps = parameter.IntegerParameter(
         'steps',
         default=100,
@@ -134,22 +126,27 @@ class OpenMMminimizeCube(OEMolComputeCube):
         help_text="Restraint weight for xyz atom restraints")
 
     def begin(self):
-        if not os.path.exists('./output'):
-            os.makedirs('./output')
+        self.argsDict = vars( self.args)
         return
 
     def process(self, complex_mol, port):
         try:
-            openmmStuff = ExtractOpenMMData( complex_mol)
-            argsDict = vars( self.args)
-            minState = plmd.RestrMin( openmmStuff, argsDict)
+            #openmmStuff = ExtractOpenMMData( complex_mol)
+            openmmStuff = utils.PackageOEMol.unpack( complex_mol)
+            # Check if mol has protein-ligand mask data attached
+            if 'Atom_ProtLigSolvmaskDict_json' in complex_mol.GetData().keys():
+                openmmStuff['PLmask'] = json.loads(
+                            complex_mol.GetStringData( 'Atom_ProtLigSolvmaskDict_json'))
+            else:
+                PLmask = None
+            self.argsDict['outfname'] = '{}_min'.format(openmmStuff['IDTag'])
+            minSimul = plmd.RestrMin( openmmStuff, self.argsDict)
             # Attach openmm objects to mol, emit to output
-            output = OpenMMSystemOutput('output')
-            complex_mol.SetData(oechem.OEGetTag('state'), output.encode(minState))
-            outfname = 'output/{}-minimized'.format(openmmStuff['idtag'])
-            with open(outfname+'.pdb', 'w') as minout:
-                app.PDBFile.writeFile( openmmStuff['topology'], minState.getPositions(), minout)
-            self.success.emit(complex_mol)
+            packedmol = utils.PackageOEMol.pack(complex_mol, minSimul)
+            packedmol.SetData(oechem.OEGetTag( 'outfname'), self.argsDict['outfname'])
+            utils.PackageOEMol.dump(
+                    packedmol, outfname=self.argsDict['outfname'], tarxz=True )
+            self.success.emit(packedmol)
 
         except Exception as e:
                 # Attach error message to the molecule that failed
@@ -176,10 +173,6 @@ class OpenMMwarmupNVTCube(OEMolComputeCube):
     classification = ['MDWarmup']
     tags = [tag for lists in classification for tag in lists]
 
-    #Define Custom Ports to handle oeb.gz files
-    #intake = CustomMoleculeInputPort('intake')
-    #success = CustomMoleculeOutputPort('success')
-
     temperature = parameter.DecimalParameter(
         'temperature',
         default= 300,
@@ -196,23 +189,28 @@ class OpenMMwarmupNVTCube(OEMolComputeCube):
         help_text="Restraint weight in kcal/mol/ang^2 for xyz atom restraints")
 
     def begin(self):
-        if not os.path.exists('./output'):
-            os.makedirs('./output')
+        self.argsDict = vars( self.args)
         return
 
     def process(self, complex_mol, port):
         try:
-            openmmStuff = ExtractOpenMMData( complex_mol)
-            argsDict = vars( self.args)
-            warmState = plmd.RestrWarmupNVT( openmmStuff, argsDict)
+            #openmmStuff = ExtractOpenMMData( complex_mol)
+            openmmStuff = utils.PackageOEMol.unpack( complex_mol)
+            # Check if mol has protein-ligand mask data attached
+            if 'Atom_ProtLigSolvmaskDict_json' in complex_mol.GetData().keys():
+                openmmStuff['PLmask'] = json.loads(
+                            complex_mol.GetStringData( 'Atom_ProtLigSolvmaskDict_json'))
+            else:
+                PLmask = None
+            self.argsDict['outfname'] = '{}_warm_'.format(openmmStuff['IDTag'])+self.name
+            warmSimul = plmd.RestrWarmupNVT( openmmStuff, self.argsDict)
 
             # Attach openmm objects to mol, emit to output
-            output = OpenMMSystemOutput('output')
-            complex_mol.SetData(oechem.OEGetTag('state'), output.encode(warmState))
-            outfname = 'output/{}-warmup'.format(openmmStuff['idtag'])
-            with open(outfname+'.pdb', 'w') as out:
-                app.PDBFile.writeFile( openmmStuff['topology'], warmState.getPositions(), out)
-            self.success.emit(complex_mol)
+            packedmol = utils.PackageOEMol.pack(complex_mol, warmSimul)
+            packedmol.SetData(oechem.OEGetTag( 'outfname'), self.argsDict['outfname'])
+            utils.PackageOEMol.dump(
+                    packedmol, outfname=self.argsDict['outfname'], tarxz=True )
+            self.success.emit(packedmol)
 
         except Exception as e:
                 # Attach error message to the molecule that failed
@@ -222,7 +220,7 @@ class OpenMMwarmupNVTCube(OEMolComputeCube):
                 self.failure.emit(complex_mol)
 
 class OpenMMequilCube(OEMolComputeCube):
-    title = 'Equilibratiing with restraints'
+    title = 'Equilibrating with restraints'
     description = """
     Equilibrate the warmed up solvated protein:ligand complex.
 
@@ -239,10 +237,6 @@ class OpenMMequilCube(OEMolComputeCube):
     """
     classification = ['MDWarmup']
     tags = [tag for lists in classification for tag in lists]
-
-    #Define Custom Ports to handle oeb.gz files
-    #intake = CustomMoleculeInputPort('intake')
-    #success = CustomMoleculeOutputPort('success')
 
     picosec = parameter.DecimalParameter(
         'picosec',
@@ -284,17 +278,23 @@ class OpenMMequilCube(OEMolComputeCube):
         try:
             #openmmStuff = ExtractOpenMMData( complex_mol)
             openmmStuff = utils.PackageOEMol.unpack( complex_mol)
+            # Check if mol has protein-ligand mask data attached
+            if 'Atom_ProtLigSolvmaskDict_json' in complex_mol.GetData().keys():
+                openmmStuff['PLmask'] = json.loads(
+                            complex_mol.GetStringData( 'Atom_ProtLigSolvmaskDict_json'))
+            else:
+                PLmask = None
             self.argsDict['outfname'] = '{}'.format(openmmStuff['IDTag'])+self.args.label
-            equilSimuln = plmd.RestrEquil( openmmStuff, **self.argsDict)
+            equilSimuln = plmd.RestrEquil( openmmStuff, self.argsDict)
 
             # Attach openmm objects to mol, emit to output
             #output = OpenMMSystemOutput('output')
             #complex_mol.SetData(oechem.OEGetTag('state'), output.encode(equilState))
-            packedmol = utils.PackageOEMol.pack(complex_mol, simulation)
+            packedmol = utils.PackageOEMol.pack(complex_mol, equilSimuln)
             packedmol.SetData(oechem.OEGetTag( 'outfname'), self.argsDict['outfname'])
             utils.PackageOEMol.dump(
                     packedmol, outfname=self.argsDict['outfname'], tarxz=True )
-            self.success.emit(complex_mol)
+            self.success.emit(packedmol)
 
         except Exception as e:
                 # Attach error message to the molecule that failed
