@@ -50,6 +50,7 @@ ofs = OEMolOStreamCube('ofs', title='OFS-Success')
 ofs.set_parameters(backend='s3')
 fail = OEMolOStreamCube('fail', title='OFS-Failure')
 fail.set_parameters(backend='s3')
+fail.set_parameters(data_out='fail.oeb.gz')
 
 job.add_cubes(ifs, equil, ofs, fail)
 ifs.success.connect(equil.intake)

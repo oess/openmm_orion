@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
-from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube, FileOutputCube, DataSetInputParameter, FileInputCube
-from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
+from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube
 from OpenMMCubes.cubesPrepMD import OpenMMwarmupNVTCube
-from LigPrepCubes.cubes import OEBSinkCube
 
 job = WorkFloe("PrepMDwarmup")
 
@@ -35,12 +33,16 @@ ifs.promote_parameter("data_in", promoted_name="complex", description="OEB of th
 warmup = OpenMMwarmupNVTCube('warmup')
 warmup.promote_parameter('picosec', promoted_name='picosec')
 
-ofs = OEBSinkCube('ofs')
-ofs.set_parameters(suffix='warmup')
+ofs = OEMolOStreamCube('ofs', title='OFS-Success')
+ofs.set_parameters(backend='s3')
+fail = OEMolOStreamCube('fail', title='OFS-Failure')
+fail.set_parameters(backend='s3')
+fail.set_parameters(data_out='fail.oeb.gz')
 
-job.add_cubes(ifs, warmup, ofs)
+job.add_cubes(ifs, warmup, ofs, fail)
 ifs.success.connect(warmup.intake)
 warmup.success.connect(ofs.intake)
+warmup.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()

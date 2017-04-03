@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
-from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube, FileOutputCube, DataSetInputParameter, FileInputCube
-from OpenMMCubes.cubes import OpenMMComplexSetup, OpenMMSimulation
+from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube
 from OpenMMCubes.cubesPrepMD import OpenMMminimizeCube
-from LigPrepCubes.cubes import OEBSinkCube
 
 job = WorkFloe("PrepMDminimize")
 
@@ -33,12 +31,16 @@ ifs.promote_parameter("data_in", promoted_name="complex", description="OEB of th
 minComplex = OpenMMminimizeCube('minComplex')
 minComplex.promote_parameter('steps', promoted_name='steps')
 
-ofs = OEBSinkCube('ofs')
-ofs.set_parameters(suffix='minimized')
+ofs = OEMolOStreamCube('ofs', title='OFS-Success')
+ofs.set_parameters(backend='s3')
+fail = OEMolOStreamCube('fail', title='OFS-Failure')
+fail.set_parameters(backend='s3')
+fail.set_parameters(data_out='fail.oeb.gz')
 
-job.add_cubes(ifs, minComplex, ofs)
+job.add_cubes(ifs, minComplex, ofs, fail)
 ifs.success.connect(minComplex.intake)
 minComplex.success.connect(ofs.intake)
+minComplex.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()
