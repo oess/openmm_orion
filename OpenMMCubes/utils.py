@@ -76,6 +76,7 @@ class PackageOEMol(object):
                                             enforcePeriodicBox=True)
 
         # Get the proper log file name from the reporters, not stdout
+        logfname = None
         for rep in simulation.reporters:
             if isinstance(rep, app.statedatareporter.StateDataReporter):
                 if rep._out is stdout:
@@ -90,9 +91,9 @@ class PackageOEMol(object):
         # Return dictionary with encoded data
         tag_data['State'] = PackageOEMol.encodeOpenMM(state)
         tag_data['Structure'] = PackageOEMol.encodeStruct(structure)
-        #tag_data['System'] = PackageOEMol.encodeStruct(system)
-        with open(logfname) as log:
-            tag_data['Log'] = log.read()
+        if logfname!=None:
+            with open(logfname) as log:
+                tag_data['Log'] = log.read()
         return tag_data
 
     def checkSDData(molecule):
@@ -253,7 +254,7 @@ def getPositionsFromOEMol(molecule):
         positions[index, :] = unit.Quantity(coords[index], unit.angstroms)
     return positions
 
-def combinePostions(proteinPositions, molPositions):
+def combinePositions(proteinPositions, molPositions):
     # Concatenate positions arrays (ensures same units)
     positions_unit = unit.angstroms
     positions0_dimensionless = np.array(proteinPositions / positions_unit)
