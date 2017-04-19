@@ -1,4 +1,5 @@
 import io, os, base64, parmed, mdtraj, pdbfixer, glob, tarfile
+import logging
 import numpy as np
 from sys import stdout
 from tempfile import NamedTemporaryFile
@@ -128,6 +129,8 @@ class PackageOEMol(object):
                 data = cls.decodeOpenMM(data)
             if 'Structure' == tag:
                 data = cls.decodeStruct(data)
+            if 'OEMDDataRefPositions' == tag:
+                data = cls.decodePyObj(data)
             if 'Log' == tag:
                 data = io.StringIO(data)
             tag_data[tag] = data
@@ -197,7 +200,7 @@ class PackageOEMol(object):
                 upload_file(tarname, tarname, tags=['TAR'])
             # Clean up files that have been added to tar.
             cleanup(totar)
-
+            
     @classmethod
     def pack(cls, molecule, data):
         """ Encodes the ParmEd Structure or if provided the OpenMM Simulation object,
@@ -216,6 +219,7 @@ class PackageOEMol(object):
                 molecule.SetData(oechem.OEGetTag(k), v)
         return molecule
 
+    
 def cleanup(tmpfiles):
     for tmp in tmpfiles:
         try:
@@ -302,3 +306,107 @@ def dump_query(prefix, name, qmol, receptor):
         receptor_file = "{0}.receptor.oeb.gz".format(tag)
         OEWriteReceptorFile(receptor, receptor_file)
     return tag, query_file
+
+
+def GetMDData(mol):
+    """
+    Given an OEMol() molecule with an attached Parmed structure
+    the function is creating a dictionary with MD data 
+    
+    Parameters
+    ----------
+    mol : OEMol() OpenEye Molecule object
+        the moleculur system
+    
+    Returns
+    -------
+    md_data : Python dictionary with the following keywords:
+        structure : Parmed structure
+        positions : If present system atom positions 
+        topology : Parmed topology
+        box : If present box vectors otherwise None
+        parameters : Parmed force field parameters
+        velocities : If present system atom velocities
+        ref_positions : System reference atom positions
+    """
+
+    # Empty MD dictionary
+    md_data = {}
+
+    # Try to extract the Parmed structure
+    try:
+        dic = PackageOEMol.unpack(mol, tags=['Structure'])
+        parmed_structure = dic['Structure']
+    except Exception as e:
+        raise RuntimeError('The molecular system does not have a parmed structure attached: {}'.format(e))
+
+    # Fill out the MD dictionary
+    md_data['structure'] = parmed_structure
+    md_data['positions'] = parmed_structure.positions
+    md_data['topology'] = parmed_structure.topology
+    md_data['velocities'] = parmed_structure.velocities
+    md_data['box'] = parmed_structure.box
+    md_data['parameters'] = parmed.ParameterSet.from_structure(parmed_structure)
+
+    # Try to extract the Reference Positions
+    try:
+        dic = PackageOEMol.unpack(mol, tags=['OEMDDataRefPositions'])
+        # Reference Positions are a list of OpenMM Quantity objects
+        md_data['ref_positions'] = dic['OEMDDataRefPositions']
+    except:
+        logging.warning('The molecular system does not have any Reference Positions attached')
+
+
+    # Check Topology
+    if not md_data['topology'].getNumAtoms():
+        raise RuntimeError('The OpenMM topology is empty')
+        
+   
+    # Check Atom positions
+    if md_data['positions'] is None:
+        raise RuntimeError('Atom positions are not defined')
+
+    return md_data
+
+
+def SetMDData(mol, md_data):
+    """
+    Given an OEMol() molecule and and md_data dictionary
+    this function is changing in place the molecule adding 
+    a new parmed structure and if present new reference 
+    positions
+    
+    Parameters
+    ----------
+    mol : OEMol() OpenEye Molecule object
+        the molecular system
+    
+    md_data : Python dictionary with the following keywords:
+        structure : Parmed structure
+        positions : If present system atom positions 
+        topology : Parmed topology
+        box : If present box vectors otherwise None
+        parameters : Parmed force field parameters
+        velocities : If present system atom velocities
+        ref_positions : System reference atom positions
+    
+    Returns
+    -------
+    success : bool
+        True if the MD data setting is succesful
+    """
+
+    success = False
+    
+    try:
+        # The molecule is changed in place
+        mol = PackageOEMol.pack(mol, md_data['structure'])
+        if 'ref_positions' in md_data:
+            #PackageOEMol.pack(mol, md_data['reference'], struct_nm='Reference')
+            packedpos = PackageOEMol.encodePyObj(md_data['ref_positions'])
+            mol.SetData(oechem.OEGetTag('OEMDDataRefPositions'), packedpos)
+        success = True
+    except Exception as e:
+        logging.warning('It was not possible to set the molecular system MD data {}'.format(e))
+
+    return success
