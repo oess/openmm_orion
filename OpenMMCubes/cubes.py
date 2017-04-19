@@ -11,7 +11,7 @@ from floe.api import ParallelOEMolComputeCube, parameter
 
 class OpenMMComplexSetup(ParallelOEMolComputeCube):
     title = "OpenMM Complex Setup"
-    version = "0.0.1"
+    version = "0.0.2"
     classification = [["Protein Preparation", "OpenMM", "Forcefield Assignment"],
     ["Protein Preparation", "PDBFixer", "Solvate"],
     ["Protein Preparation", "PDBFixer", "Add Missing Atoms"],
@@ -73,7 +73,6 @@ class OpenMMComplexSetup(ParallelOEMolComputeCube):
         help_text='Forcefield parameters for solvent')
 
     def begin(self):
-        #pdbfilename = 'protein.pdb'
         protein = oechem.OEMol()
         self.args.protein = utils.download_dataset_to_file(self.args.protein)
         # Read the PDB file into an OEMol
