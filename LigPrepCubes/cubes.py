@@ -45,7 +45,7 @@ class ChargeMCMol(OEMolComputeCube):
 
             #Generate the charged molecule, keeping the first conf.
             charged_mol = ff_utils.assignCharges(mol, max_confs=800, strictStereo=True,
-                                      normalize=True, keep_confs=-1)
+                                                 normalize=True, keep_confs=None)
             # Store the IUPAC name from normalize_molecule
             iupac = [ charged_mol.GetTitle().strip() ]
             # Pack as list incase of commas in IUPUC

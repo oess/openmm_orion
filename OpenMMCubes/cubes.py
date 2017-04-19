@@ -119,6 +119,12 @@ class OpenMMComplexSetup(ParallelOEMolComputeCube):
             packedmol = utils.PackageOEMol.pack(mol, full_structure)
             packedmol.SetData(oechem.OEGetTag(
                 'outfname'), self.opt['outfname'])
+
+            # Save the reference positions in OEMol
+            ref_positions = full_structure.positions
+            packedpos = utils.PackageOEMol.encodePyObj(ref_positions)
+            packedmol.SetData(oechem.OEGetTag('OEMDDataRefPositions'), packedpos)
+            
             self.success.emit(packedmol)
 
         except Exception as e:
