@@ -20,6 +20,8 @@ ifs = OEMolIStreamCube("ifs")
 ifs.promote_parameter("data_in", promoted_name="ligand", description="File containing SMILES")
 
 charge = ChargeMCMol('charge')
+charge.promote_parameter('max_conformers', promoted_name='max_confs', description='Max number of conformers from OMEGA')
+charge.promote_parameter('keep_conformers', promoted_name='keep_confs', description='Select the number of conformers to keep')
 
 fred = FREDDocking('fred')
 fred.promote_parameter('receptor', promoted_name='receptor', description='Receptor OEB')

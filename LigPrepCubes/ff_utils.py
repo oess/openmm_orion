@@ -1,9 +1,22 @@
-import io, os, traceback, string, random, subprocess, tempfile, parmed
-from openeye import oechem, oequacpac
+import io
+import logging
+import os
+import random
+import string
+import subprocess
+import tempfile
+import traceback
+
+import openforcefield.utils as openff_utils
 import openmoltools
-from openmoltools.openeye import *
+import parmed
+from openeye import oechem, oequacpac
 from OpenMMCubes.utils import get_data_filename
-import logging 
+from openmoltools.openeye import *
+
+FORMAT = "%(levelname)s: %(module)s.%(funcName)s() %(message)s"
+logging.basicConfig(format=FORMAT)
+
 
 def assignCharges(molecule, max_confs=800, strictStereo=True, normalize=True, keep_confs=None):
     """Generate charges for an OpenEye OEMol molecule.
@@ -46,49 +59,75 @@ def assignCharges(molecule, max_confs=800, strictStereo=True, normalize=True, ke
         keep_confs = 1
 
     oechem = import_("openeye.oechem")
-    if not oechem.OEChemIsLicensed(): raise(ImportError("Need License for OEChem!"))
+    if not oechem.OEChemIsLicensed():
+        raise(ImportError("Need License for OEChem!"))
     oequacpac = import_("openeye.oequacpac")
-    if not oequacpac.OEQuacPacIsLicensed(): raise(ImportError("Need License for oequacpac!"))
+    if not oequacpac.OEQuacPacIsLicensed():
+        raise(ImportError("Need License for oequacpac!"))
 
     if normalize:
         molecule = normalize_molecule(molecule)
     else:
         molecule = oechem.OEMol(molecule)
 
-    charged_copy = generate_conformers(molecule, max_confs=max_confs, strictStereo=strictStereo)  # Generate up to max_confs conformers
+    # Generate up to max_confs conformers
+    charged_copy = generate_conformers(
+        molecule, max_confs=max_confs, strictStereo=strictStereo)
 
     # 2017.2.1 Release new charging function
-    status = oequacpac.OEAssignCharges(charged_copy, oequacpac.OEAM1BCCCharges())
+    status = oequacpac.OEAssignCharges(
+        charged_copy, oequacpac.OEAM1BCCCharges())
 
     if not status:
         raise(RuntimeError("OEAssignCharges returned error code %d" % status))
 
-    #Determine conformations to return
+    # Determine conformations to return
     if keep_confs == None:
-        #If returning original conformation
+        logging.warning(
+            "keep_conformers was set to None. Returned molecules will not be charged.")
+
+        # If returning original conformation
         original = molecule.GetCoords()
-        #Delete conformers over 1
-        for k, conf in enumerate( charged_copy.GetConfs() ):
+        # Delete conformers over 1
+        for k, conf in enumerate(charged_copy.GetConfs()):
             if k > 0:
                 charged_copy.DeleteConf(conf)
-        #Copy coordinates to single conformer
-        charged_copy.SetCoords( original )
+        # Copy coordinates to single conformer
+        charged_copy.SetCoords(original)
+
     elif keep_confs > 0:
-        
-        logging.warning("Keep_conformers is set to: None. Docking may be required")
-        
-        #Otherwise if a number is provided, return this many confs if available
-        for k, conf in enumerate( charged_copy.GetConfs() ):
+        logging.warning(
+            "keep_conformers was set to %s. Molecule positions will be reset. Docking may be required." % keep_confs)
+
+        # Otherwise if a number is provided, return this many confs if
+        # available
+        for k, conf in enumerate(charged_copy.GetConfs()):
             if k > keep_confs - 1:
                 charged_copy.DeleteConf(conf)
     elif keep_confs == -1:
-        #If we want all conformations, continue
+        # If we want all conformations, continue
         pass
     else:
-        #Not a valid option to keep_confs
+        # Not a valid option to keep_confs
         raise(ValueError('Not a valid option to keep_confs in get_charges.'))
 
     return charged_copy
+
+
+def checkTleap(forcefield):
+    # Try to check if tleap is going to fail
+    with open('tleap_commands', 'w') as cmd:
+        cmd.write("source leaprc.%s; quit" % forcefield.lower())
+    tmp = subprocess.getoutput('tleap -f tleap_commands')
+    elements = tmp.split('\n')
+    for elem in elements:
+        if 'Could not open file' in elem:
+            raise RuntimeError(
+                'Error encountered trying to load %s in tleap.' % forcefield)
+        if 'command not found' in elem:
+            raise RuntimeError('Error: requires tleap.')
+    return True
+
 
 class ParamLigStructure(object):
     """
@@ -109,67 +148,22 @@ class ParamLigStructure(object):
 
     def __init__(self, molecule, forcefield):
         if not forcefield in ['SMIRNOFF', 'GAFF', 'GAFF2']:
-            raise RuntimeError('Selected forcefield %s is not GAFF/GAFF2/SMIRNOFF' % forcefield)
+            raise RuntimeError(
+                'Selected forcefield %s is not GAFF/GAFF2/SMIRNOFF' % forcefield)
         else:
             self.molecule = molecule
             self.forcefield = str(forcefield).strip()
             self.structure = None
 
-    @staticmethod
-    def checkTleap(self):
-        #Try to check if tleap is going to fail
-        with open('tleap_commands', 'w') as cmd:
-            cmd.write( "source leaprc.%s; quit" % self.forcefield.lower() )
-        tmp = subprocess.getoutput('tleap -f tleap_commands')
-        elements = tmp.split('\n')
-        for elem in elements:
-            if 'Could not open file' in elem:
-                raise RuntimeError('Error encountered trying to load %s in tleap.'% self.forcefield)
-            if 'command not found' in elem:
-                raise RuntimeError('Error: requires tleap.')
-        return True
-
-    def checkCharges(self, molecule):
-        # Check that molecule is charged.
-        is_charged = False
-        for atom in molecule.GetAtoms():
-            if atom.GetPartialCharge() != 0.0:
-                is_charged = True
-        if not is_charged:
-            raise Exception('Molecule %s has no charges; input molecules must be charged.' % molecule.GetTitle())
-
-    def getSmirnoffStructure(self, molecule=None):
-        from smarty.forcefield import ForceField
-        from smarty.forcefield_utils import create_system_from_molecule
-        if not molecule:
-            molecule = self.molecule
-
-        try:
-            ff = get_data_filename('smirff99Frosst','smirff99Frosst.ffxml')
-            with open(ff) as ffxml:
-                mol_ff = ForceField(ffxml)
-        except:
-            raise RuntimeError('Error opening {}'.format(ff))
-
-        self.checkCharges(molecule)
-        mol_top, mol_sys, mol_pos = create_system_from_molecule(mol_ff, molecule)
-        molecule_structure = parmed.openmm.load_topology(mol_top, mol_sys, xyz=mol_pos)
-
-        return molecule_structure
-
-    def getGaffStructure(self, molecule=None, forcefield=None):
-        if not molecule:
-            molecule = self.molecule
-        if not forcefield:
-            forcefield = self.forcefield
-
-        #Try to check if tleap is going to fail
-        self.checkCharges(molecule)
+    def generateGAFFStructure(self, molecule, forcefield):
+        if not openff_utils.checkCharges(molecule):
+            logging.warning(
+                "Molecule %s has no charges; input molecules must be charged." % molecule.GetTitle())
 
         # Determine formal charge (antechamber needs as argument)
         chg = 0
         for atom in molecule.GetAtoms():
-            chg+=atom.GetFormalCharge()
+            chg += atom.GetFormalCharge()
 
         # Write out mol to a mol2 file to process via AmberTools
         mol2file = tempfile.NamedTemporaryFile(suffix='.mol2')
@@ -177,28 +171,32 @@ class ParamLigStructure(object):
         with oechem.oemolostream(mol2filename) as ofs:
             res = oechem.OEWriteConstMolecule(ofs, molecule)
             if res != oechem.OEWriteMolReturnCode_Success:
-                raise RuntimeError("Error writing molecule %s to mol2." % molecule.GetTitle())
+                raise RuntimeError(
+                    "Error writing molecule %s to mol2." % molecule.GetTitle())
 
         # Run antechamber to type and parmchk for frcmod
-        # requires openmoltools 0.7.5 or later, which should be conda-installable via omnia
-        gaff_mol2_filename, frcmod_filename = openmoltools.amber.run_antechamber('ligand', mol2filename,
+        # requires openmoltools 0.7.5 or later, which should be
+        # conda-installable via omnia
+        gaff_mol2_filename, frcmod_filename = openmoltools.amber.run_antechamber('ligand',
+                                                                                 mol2filename,
                                                                                  gaff_version=forcefield.lower(),
                                                                                  charge_method=None)
 
         # Run tleap using specified forcefield
         prmtop, inpcrd = openmoltools.amber.run_tleap('ligand', gaff_mol2_filename,
                                                       frcmod_filename,
-                                                      leaprc = 'leaprc.%s' % forcefield.lower())
+                                                      leaprc='leaprc.%s' % forcefield.lower())
 
         # Load via ParmEd
-        molecule_structure = parmed.amber.AmberParm( prmtop, inpcrd )
+        molecule_structure = parmed.amber.AmberParm(prmtop, inpcrd)
 
         return molecule_structure
 
     def parameterize(self):
         if self.forcefield == 'SMIRNOFF':
-            structure = self.getSmirnoffStructure()
+            structure = openff_utils.generateSMIRNOFFStructure(self.molecule)
         elif self.forcefield in ['GAFF', 'GAFF2']:
-            structure = self.getGaffStructure()
+            structure = self.generateGAFFStructure(
+                self.molecule, self.forcefield)
         self.structure = structure
-        return self.structure
+        return structure

@@ -35,21 +35,23 @@ git clone git@github.com:openeye-private/openmm_orion.git
 cd openmm_orion
 
 #Create a new local conda environment and install dependencies
-conda create -c omnia -c omnia/label/dev -c mobleylab -n dev python=3.5 openmm==7.1.0rc1 openmoltools==0.7.5 ambermini==16.16.0 smarty==0.1.4 parmed==2.7.1 alchemy==1.2.3 pdbfixer==1.4 smirff99frosst==1.0.5 yank==0.15.2
+conda env create -f .environment.yml -n dev
 source activate dev
 
-#Install the OpenEye-floe package and toolkits
+#Install latest OpenEye-toolkits
 pip install -i https://pypi.anaconda.org/OpenEye/simple OpenEye-toolkits
-pip install OpenEye-floe-0.2.141.tar.gz
 
-#Install the main OpenMM Orion Floes
-python setup.py develop
+#Download the latest floe package and place into the openmm_orion directory
+# Latest package as of April, 28th
+cp OpenEye-floe-0.2.148.tar.gz openmm_orion/
+pip install OpenEye-floe-0.2.148.tar.gz
+
+pip install -r dev_requirements.txt
 
 # Run the tests.
 py.test -v -s PlatformTestCubes
 py.test -v -s LigPrepCubes
 py.test -v -s OpenMMCubes
-py.test -v -s YankCubes
 ```
 ## Walkthrough from SMILES to Simulation
 

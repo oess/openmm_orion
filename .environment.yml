@@ -1,0 +1,26 @@
+name: openmm_linux
+channels:
+    - omnia
+    - omnia/label/dev
+    - mobleylab
+dependencies:
+    - python=3.5
+    - openmm=7.1.0
+    #- openmoltools=0.7.5
+    - ambermini=16.16.0
+    - alchemy=1.2.3
+    - pdbfixer=1.4
+    #- openforcefield=0.0.1
+    - smirnoff99frosst=1.0.5
+    - yank=0.15.2
+    - numpy
+    - mdtraj
+    - parmed
+    - pytest
+    - networkx
+    - lxml
+    - pip
+    #- pip:
+    #    - "--index-url=https://pypi.anaconda.org/OpenEye/simple"
+    #    - "OpenEye-toolkits"
+    #    - "OpenEye-floe-0.2.148.tar.gz"

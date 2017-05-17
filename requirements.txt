@@ -1,7 +1,3 @@
 # OE Stack
 openeye-toolkits
 openeye-floe
-
-# Dev Stack
-invoke
-pytest

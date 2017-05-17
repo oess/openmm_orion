@@ -34,23 +34,26 @@ class ChargeMCMol(OEMolComputeCube):
         - Generic Tags: { IDTag: str }
     """
 
-    
-    max_conformers = parameter.IntegerParameter(
-        'max_conformers',
+
+    max_conf = parameter.IntegerParameter(
+        'max_conf',
         default=800,
         help_text="Max number of conformers")
 
 
-    keep_conformers = parameter.IntegerParameter(
+    keep_conf = parameter.IntegerParameter(
         'keep_conformers',
         default=None,
         help_text="Select the number of conformers to keep")
 
-    
+    legacy = parameter.BooleanParameter(
+        'legacy',
+        default=True,
+        help_text="(Default=True) Use legacy charging engine OEAssignPartialCharges. False to use OEAssignCharges (Requires: OEToolkits 2017.2.1).")
+
     def begin(self):
         self.opt = vars(self.args)
 
-    
     def process(self, mol, port):
         try:
             if not mol.GetTitle():
@@ -59,10 +62,18 @@ class ChargeMCMol(OEMolComputeCube):
             else:
                 # Store the IDTag from the SMILES file.
                 idtag = mol.GetTitle()
-
+            import openmoltools
+            charged_mol = openmoltools.openeye.get_charges(mol,
+                            max_confs=self.opt['max_conf'],
+                            strictStereo=True, normalize=True,
+                            keep_confs=self.opt['keep_conf'],
+                            legacy=False)
             #Generate the charged molecule, keeping the first conf.
-            charged_mol = ff_utils.assignCharges(mol, max_confs=self.opt['max_conformers'], strictStereo=True,
-                                                 normalize=True, keep_confs=self.opt['keep_conformers'])
+            #charged_mol = ff_utils.assignCharges(mol,
+            #                max_confs=self.opt['max_conformers'],
+            #                strictStereo=True, normalize=True,
+            #                keep_confs=self.opt['keep_conformers'])
+
             # Store the IUPAC name from normalize_molecule
             iupac = [ charged_mol.GetTitle().strip() ]
             # Pack as list incase of commas in IUPUC
@@ -85,7 +96,7 @@ class ChargeMCMol(OEMolComputeCube):
 
 class LigandParameterization(OEMolComputeCube):
     title = "Ligand Parameterization"
-    version = "0.0.2"
+    version = "0.0.3"
     classification = [ ["Ligand Preparation", "SMARTY", "Forcefield Assignment"],
     ["Ligand Preparation", "AMBER", "Forcefield Assignment"]]
     tags = ['Openmoltools', 'ParmEd', 'SMARTY', 'SMIRNOFF', 'GAFF']
@@ -114,7 +125,7 @@ class LigandParameterization(OEMolComputeCube):
 
     def begin(self):
         if self.args.molecule_forcefield in ['GAFF', 'GAFF2']:
-            ff_utils.ParamLigStructure(oechem.OEMol(), self.args.molecule_forcefield).checkTleap
+            ff_utils.checkTleap(self.args.molecule_forcefield)
 
     def process(self, mol, port):
         try:
@@ -141,7 +152,7 @@ class LigandParameterization(OEMolComputeCube):
 
 class FREDDocking(OEMolComputeCube):
     title = "FRED Docking"
-    version = "0.0.1"
+    version = "0.0.2"
     classification = [ ["Ligand Preparation", "OEDock", "FRED"],
     ["Ligand Preparation", "OEDock", "ChemGauss4"]]
     tags = ['OEDock', 'FRED']
@@ -192,6 +203,7 @@ class FREDDocking(OEMolComputeCube):
         try:
             dockedMol = oechem.OEMol()
             res = self.dock.DockMultiConformerMolecule(dockedMol, mcmol)
+
             if res == oedocking.OEDockingReturnCode_Success:
                 oedocking.OESetSDScore(dockedMol, self.dock, self.sdtag)
                 self.dock.AnnotatePose(dockedMol)
@@ -200,6 +212,8 @@ class FREDDocking(OEMolComputeCube):
                 oechem.OESetSDData(dockedMol, self.sdtag, "{}".format(score))
                 self.clean(dockedMol)
                 self.success.emit(dockedMol)
+            else:
+                self.log.error('{} - {}'.format(res, oedocking.OEDockingReturnCodeGetName(res)) )
 
         except Exception as e:
             # Attach error message to the molecule that failed
