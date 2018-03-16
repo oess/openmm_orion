@@ -14,7 +14,9 @@ The following `OEField` objects are defined for the storage of simulation data:
 * `topology_field = OEField('topology', Types.OEMol)` : an `OEMol` object describing the chemical matter contained in this system, and may contain multiple molecules (such as protein and solvent)
 * `structure_field = OEField('structure', parmed.Structure)`: a ParmEd structure describing the positions of all atoms, box vectors, and forcefield parameters for a corresponding topology
 * `logdata_field = OEField('logdata', Types.TextFile)` : text log data
-* `stage_name_field = OEField('stage_name', Types.Text)` : text
+* `stage_name_field = OEField('stage_name', Types.Text)` : a text field describing the current stage of preparation or simulation
+
+**QUESTION:** Do we want to standardize the potential naming scheme for stages?
 
 ## Records (`OERecord`)
 
