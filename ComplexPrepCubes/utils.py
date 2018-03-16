@@ -412,22 +412,22 @@ def hydrate(system, opt):
         at1 = bond[1]
         try:
             wat_ion_top.addBond(fixer_atom_to_wat_ion_atom[at0],
-                                fixer_atom_to_wat_ion_atom[at1], type=None, order=1)
+                                fixer_atom_to_wat_ion_atom[at1], type="Single", order=1)
         except:
             pass
 
     wat_ion_pos = fixer.positions[len(omm_pos):]
 
-    oe_mol = oeommutils.openmmTop_to_oemol(wat_ion_top, wat_ion_pos)
+    oe_wat_ions = oeommutils.openmmTop_to_oemol(wat_ion_top, wat_ion_pos)
+
+    oechem.OEAddMols(sol_system, oe_wat_ions)
 
     # Setting the box vectors
     omm_box_vectors = fixer.topology.getPeriodicBoxVectors()
     box_vectors = utils.PackageOEMol.encodePyObj(omm_box_vectors)
-    oe_mol.SetData(oechem.OEGetTag('box_vectors'), box_vectors)
+    sol_system.SetData(oechem.OEGetTag('box_vectors'), box_vectors)
 
-    oechem.OEAddMols(oe_mol, sol_system)
-
-    return oe_mol
+    return sol_system
 
 
 def order_check(mol, fname):

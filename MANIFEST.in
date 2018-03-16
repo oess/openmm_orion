@@ -8,3 +8,4 @@ recursive-include OpenMMCubes *.py
 recursive-include LigPrepCubes *.py
 recursive-include YankCubes *.py
 recursive-include ComplexPrepCubes *
+recursive-incluse TrjAnalysis *

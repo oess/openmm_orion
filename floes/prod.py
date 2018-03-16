@@ -35,7 +35,7 @@ ifs.promote_parameter("data_in", promoted_name="system", title='System Input Fil
                       description="System input file")
 
 npt = OpenMMnptSetCube('npt')
-npt.promote_parameter('time', promoted_name='picosec', default=10.0,
+npt.promote_parameter('time', promoted_name='picosec', default=200.0,
                       description='Length of MD run in picoseconds')
 npt.promote_parameter('temperature', promoted_name='temperature', default=300.0,
                       description='Selected temperature in K')
@@ -43,31 +43,27 @@ npt.promote_parameter('pressure', promoted_name='pressure', default=1.0,
                       description='Selected pressure in atm')
 
 # Restraints
-npt.promote_parameter('restraints', promoted_name='restraints', default="ca_protein or (noh ligand)",
+npt.promote_parameter('restraints', promoted_name='restraints', default="noh ligand",
                       description='Select mask to apply restraints')
-npt.promote_parameter('restraintWt', promoted_name='restraintWt', default=5.0, description='Restraint weight')
+npt.promote_parameter('restraintWt', promoted_name='restraintWt', default=1.0, description='Restraint weight')
 
 # Trajectory and logging info frequency intervals
 npt.promote_parameter('trajectory_interval', promoted_name='trajectory_interval', default=0.5,
                       description='Trajectory saving interval in ps')
 npt.promote_parameter('reporter_interval', promoted_name='reporter_interval', default=1.0,
                       description='Reporter saving interval in ps')
-npt.promote_parameter('outfname', promoted_name='suffix', default='npt',
+npt.promote_parameter('outfname', promoted_name='suffix', default='prod',
                       description='Equilibration suffix name')
 
-npt.promote_parameter('tar', promoted_name='tar', default=True)
+npt.promote_parameter('tar', promoted_name='tar', default=False)
 
 
-# ofs = DataSetWriterCubeStripCustom('ofs', title='OFS-Success')
 ofs = DataSetWriterCube('ofs', title='OFS-Success')
 
-fail = DataSetWriterCube('fail', title='OFS-Failure')
-fail.set_parameters(data_out='fail.oeb.gz')
-
-job.add_cubes(ifs, npt, ofs, fail)
+job.add_cubes(ifs, npt, ofs)
 ifs.success.connect(npt.intake)
 npt.success.connect(ofs.intake)
-npt.failure.connect(fail.intake)
+
 
 if __name__ == "__main__":
     job.run()

@@ -1,8 +1,11 @@
 from __future__ import unicode_literals
-from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube
-from OpenMMCubes.cubes import OpenMMnvtCube
+from floe.api import WorkFloe
+from OpenMMCubes.cubes import OpenMMnvtSetCube
+from cuberecord import DataSetReaderCube, DataSetWriterCube
 
-job = WorkFloe("NVT Run")
+from LigPrepCubes.ports import DataSetWriterCubeStripCustom
+
+job = WorkFloe("NVT Simulation")
 
 job.description = """
 NVT simulation of an OpenMM-ready System
@@ -26,11 +29,11 @@ ofs: Outputs the constant temperature and volume system
 job.classification = [['NVT']]
 job.tags = [tag for lists in job.classification for tag in lists]
 
-ifs = OEMolIStreamCube("SystemReader", title="System Reader")
+ifs = DataSetReaderCube("SystemReader", title="System Reader")
 ifs.promote_parameter("data_in", promoted_name="system", title='System Input File',
                       description="System input file")
 
-nvt = OpenMMnvtCube('nvt')
+nvt = OpenMMnvtSetCube('nvt')
 nvt.promote_parameter('time', promoted_name='picosec', default=10.0)
 nvt.promote_parameter('temperature', promoted_name='temperature', default=300.0,
                       description='Selected temperature in K')
@@ -39,19 +42,19 @@ nvt.promote_parameter('restraints', promoted_name='restraints', default='noh (li
 nvt.promote_parameter('restraintWt', promoted_name='restraintWt', default=5.0, description='Restraint weight')
 
 # Trajectory and logging info frequency intervals
-nvt.promote_parameter('trajectory_interval', promoted_name='trajectory_interval', default=100,
-                      description='Trajectory saving interval')
-nvt.promote_parameter('reporter_interval', promoted_name='reporter_interval', default=1000,
-                      description='Reporter saving interval')
+nvt.promote_parameter('trajectory_interval', promoted_name='trajectory_interval', default=0.5,
+                      description='Trajectory saving interval in ps')
+nvt.promote_parameter('reporter_interval', promoted_name='reporter_interval', default=1.0,
+                      description='Reporter saving interval in ps')
 
 nvt.promote_parameter('outfname', promoted_name='suffix', default='nvt',
                       description='Equilibration suffix name')
 nvt.promote_parameter('tar', promoted_name='tar', default=True)
 
-ofs = OEMolOStreamCube('ofs', title='OFS-Success')
-ofs.set_parameters(backend='s3')
-fail = OEMolOStreamCube('fail', title='OFS-Failure')
-fail.set_parameters(backend='s3')
+# ofs = DataSetWriterCubeStripCustom('ofs', title='OFS-Success')
+ofs = DataSetWriterCube('ofs', title='OFS-Success')
+
+fail = DataSetWriterCube('fail', title='OFS-Failure')
 fail.set_parameters(data_out='fail.oeb.gz')
 
 job.add_cubes(ifs, nvt, ofs, fail)

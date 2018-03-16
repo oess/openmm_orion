@@ -46,7 +46,7 @@
  
 ## Local Installation
 ```bash
-git clone git@github.com:oess/openmm_orion.git
+git clone https://github.com/oess/openmm_orion.git
 cd openmm_orion
 
 #Create a new local conda environment and install dependencies

@@ -4,6 +4,10 @@ import openmoltools
 from openmoltools.openeye import *
 
 
+from big_storage import LargeFile
+from floe.api.orion import in_orion
+
+
 def assignELF10charges(molecule, max_confs=800, strictStereo=True):
     """
      This function computes atomic partial charges for an OEMol by
@@ -159,3 +163,24 @@ class ParamLigStructure(object):
             structure = self.getGaffStructure()
         self.structure = structure
         return self.structure
+
+
+def upload(filename):
+
+    file_id = filename
+
+    if in_orion():
+        file_id = LargeFile(filename)
+
+    return file_id
+
+
+def download(file_id):
+
+    filename = file_id
+
+    if in_orion():
+        filename = file_id.retrieve()
+        file_id.delete()
+
+    return filename

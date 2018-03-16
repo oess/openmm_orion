@@ -1,11 +1,15 @@
 import traceback
 import OpenMMCubes.simtools as simtools
 import OpenMMCubes.utils as utils
-from floe.api import ParallelOEMolComputeCube, parameter
+from floe.api import ParallelMixin, parameter
 from openeye import oechem
 
+from cuberecord import OERecordComputeCube, OEField
+from cuberecord.constants import DEFAULT_MOL_NAME
+from datarecord import Types, Meta, ColumnMeta
 
-class OpenMMminimizeCube(ParallelOEMolComputeCube):
+
+class OpenMMminimizeSetCube(ParallelMixin, OERecordComputeCube):
     title = 'Minimization Cube'
 
     version = "0.0.0"
@@ -22,9 +26,13 @@ class OpenMMminimizeCube(ParallelOEMolComputeCube):
     steps (integer): the number of steps of minimization to apply. If 0
     the minimization will proceed until convergence is reached
     """
-    
+
     # Override defaults for some parameters
     parameter_overrides = {
+        "gpu_count": {"default": 1},
+        "memory_mb": {"default": 6000},
+        "instance_tags": {"default": "cuda8"},
+        "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_timeout": {"default": 43200},  # Default 12 hour limit (units are seconds)
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -33,16 +41,16 @@ class OpenMMminimizeCube(ParallelOEMolComputeCube):
     steps = parameter.IntegerParameter(
         'steps',
         default=0,
-        help_text="""Number of minimization steps. 
-                  If 0 the minimization will continue 
+        help_text="""Number of minimization steps.
+                  If 0 the minimization will continue
                   until convergence""")
 
     restraints = parameter.StringParameter(
         'restraints',
         default='',
         help_text="""Mask selection to apply restraints. Possible keywords are:
-                  ligand, protein, water, ions, ca_protein, cofactors. 
-                  The selection can be refined by using logical tokens: 
+                  ligand, protein, water, ions, ca_protein, cofactors.
+                  The selection can be refined by using logical tokens:
                   not, noh, and, or, diff, around""")
 
     restraintWt = parameter.DecimalParameter(
@@ -53,8 +61,8 @@ class OpenMMminimizeCube(ParallelOEMolComputeCube):
     freeze = parameter.StringParameter(
         'freeze',
         default='',
-        help_text="""Mask selection to freeze atoms along the MD 
-                  simulation. Possible keywords are: ligand, protein, water, 
+        help_text="""Mask selection to freeze atoms along the MD
+                  simulation. Possible keywords are: ligand, protein, water,
                   ions, ca_protein, cofactors. The selection can be refined by
                   using logical tokens: not, noh, and, or, diff, around""")
 
@@ -102,7 +110,7 @@ class OpenMMminimizeCube(ParallelOEMolComputeCube):
 
     platform = parameter.StringParameter(
         'platform',
-        default='Auto', 
+        default='Auto',
         choices=['Auto', 'Reference', 'CPU', 'CUDA', 'OpenCL'],
         help_text='Select which platform to use to run the simulation')
 
@@ -112,6 +120,11 @@ class OpenMMminimizeCube(ParallelOEMolComputeCube):
         choices=['single', 'mixed', 'double'],
         help_text='Select the CUDA or OpenCL precision')
 
+    hmr = parameter.BooleanParameter(
+        'hmr',
+        default=False,
+        description='Enable/Disable Hydrogen Mass Repartitioning')
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -119,15 +132,41 @@ class OpenMMminimizeCube(ParallelOEMolComputeCube):
 
         return
 
-    def process(self, mol, port):
+    def process(self, record, port):
         try:
             # The copy of the dictionary option as local variable
             # is necessary to avoid filename collisions due to
             # the parallel cube processes
             opt = dict(self.opt)
 
+            field_system = OEField(DEFAULT_MOL_NAME, Types.Chem.Mol,
+                                   meta=ColumnMeta().set_option(Meta.Hints.Chem.PrimaryMol))
+
+            if not record.has_value(field_system):
+                self.log.warn("Missing molecule '{}' field".format(field_system.get_name()))
+                self.failure.emit(record)
+                return
+
+            system = record.get_value(field_system)
+
+            field_system_id = OEField("ID", Types.String)
+
+            if not record.has_value(field_system_id):
+                self.log.warn("Missing molecule ID '{}' column".format(field_system_id.get_name()))
+                system_id = system.GetTitle()
+            else:
+                system_id = record.get_value(field_system_id)
+
+            field_parmed = OEField("Parmed", utils.ParmedData)
+
+            if not record.has_value(field_parmed):
+                self.log.warn("Missing molecule '{}' field".format(field_parmed.get_name()))
+                self.failure.emit(record)
+
+            parmed_structure = record.get_value(field_parmed)
+
             # Update cube simulation parameters with the eventually molecule SD tags
-            new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(mol) if dp.GetTag() in
+            new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(system) if dp.GetTag() in
                         ["temperature"]}
             if new_args:
                 for k in new_args:
@@ -135,35 +174,32 @@ class OpenMMminimizeCube(ParallelOEMolComputeCube):
                         new_args[k] = float(new_args[k])
                     except:
                         pass
-                self.log.info("Updating parameters for molecule: {}\n{}".format(mol.GetTitle(), new_args))
+                self.log.info("Updating parameters for molecule: {}\n{}".format(system.GetTitle(), new_args))
                 opt.update(new_args)
 
-            if utils.PackageOEMol.checkTags(mol, ['Structure']):
-                gd = utils.PackageOEMol.unpack(mol)
-                opt['outfname'] = '{}-{}'.format(gd['IDTag'], self.opt['outfname'])
+            opt['outfname'] = '{}-{}'.format(system_id, self.opt['outfname'])
 
-            mdData = utils.MDData(mol)
+            mdData = utils.MDData(parmed_structure)
 
-            opt['molecule'] = mol
+            opt['molecule'] = system
 
-            self.log.info('MINIMIZING System: %s' % gd['IDTag'])
+            self.log.info('MINIMIZING System: %s' % system_id)
             simtools.simulation(mdData, **opt)
 
-            packedmol = mdData.packMDData(mol)
+            record.set_value(field_system, system)
+            record.set_value(field_parmed, parmed_structure)
 
-            self.success.emit(packedmol)
+            self.success.emit(record)
 
-        except Exception as e:
-            # Attach error message to the molecule that failed
+        except:
             self.log.error(traceback.format_exc())
-            mol.SetData('error', str(e))
             # Return failed mol
-            self.failure.emit(mol)
-   
+            self.failure.emit(record)
+
         return
 
-            
-class OpenMMnvtCube(ParallelOEMolComputeCube):
+
+class OpenMMnvtSetCube(ParallelMixin, OERecordComputeCube):
     title = 'NVT Cube'
     version = "0.0.0"
     classification = [["Simulation", "OpenMM", "NVT"]]
@@ -183,11 +219,15 @@ class OpenMMnvtCube(ParallelOEMolComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
+        "gpu_count": {"default": 1},
+        "memory_mb": {"default": 6000},
+        "instance_tags": {"default": "cuda8"},
+        "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_timeout": {"default": 43200},  # Default 12 hour limit (units are seconds)
         "item_count": {"default": 1}  # 1 molecule at a time
     }
-    
+
     temperature = parameter.DecimalParameter(
         'temperature',
         default=300.0,
@@ -201,9 +241,9 @@ class OpenMMnvtCube(ParallelOEMolComputeCube):
     restraints = parameter.StringParameter(
         'restraints',
         default='',
-        help_text=""""Mask selection to apply restraints. Possible keywords are: 
-                  ligand, protein, water, ions, ca_protein, cofactors. 
-                  The selection can be refined by using logical tokens: 
+        help_text=""""Mask selection to apply restraints. Possible keywords are:
+                  ligand, protein, water, ions, ca_protein, cofactors.
+                  The selection can be refined by using logical tokens:
                   not, noh, and, or, diff, around""")
 
     restraintWt = parameter.DecimalParameter(
@@ -214,8 +254,8 @@ class OpenMMnvtCube(ParallelOEMolComputeCube):
     freeze = parameter.StringParameter(
         'freeze',
         default='',
-        help_text="""Mask selection to freeze atoms along the MD 
-                  simulation. Possible keywords are: ligand, protein, water, 
+        help_text="""Mask selection to freeze atoms along the MD
+                  simulation. Possible keywords are: ligand, protein, water,
                   ions, ca_protein, cofactors. The selection can be refined by
                   using logical tokens: not, noh, and, or, diff, around""")
 
@@ -247,16 +287,16 @@ class OpenMMnvtCube(ParallelOEMolComputeCube):
         choices=['DCD', 'NetCDF', 'HDF5'],
         help_text="NetCDF, DCD, HDF5. File type to write trajectory files")
 
-    trajectory_interval = parameter.IntegerParameter(
+    trajectory_interval = parameter.DecimalParameter(
         'trajectory_interval',
-        default=0,
-        help_text="Step interval for trajectory snapshots. If 0 the trajectory"
+        default=0.0,
+        help_text="time interval for trajectory snapshots in ps. If 0 the trajectory"
                   "file will not be generated")
 
-    reporter_interval = parameter.IntegerParameter(
+    reporter_interval = parameter.DecimalParameter(
         'reporter_interval',
-        default=0,
-        help_text="Step interval for reporting data. If 0 the reporter file"
+        default=0.0,
+        help_text="Time interval for reporting data in ps. If 0 the reporter file"
                   "will not be generated")
 
     outfname = parameter.StringParameter(
@@ -291,6 +331,11 @@ class OpenMMnvtCube(ParallelOEMolComputeCube):
         choices=['single', 'mixed', 'double'],
         help_text='Select the CUDA or OpenCL precision')
 
+    hmr = parameter.BooleanParameter(
+        'hmr',
+        default=False,
+        description='Enable/Disable Hydrogen Mass Repartitioning')
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -298,15 +343,41 @@ class OpenMMnvtCube(ParallelOEMolComputeCube):
 
         return
 
-    def process(self, mol, port):
+    def process(self, record, port):
         try:
             # The copy of the dictionary option as local variable
             # is necessary to avoid filename collisions due to
             # the parallel cube processes
             opt = dict(self.opt)
 
+            field_system = OEField(DEFAULT_MOL_NAME, Types.Chem.Mol,
+                                   meta=ColumnMeta().set_option(Meta.Hints.Chem.PrimaryMol))
+
+            if not record.has_value(field_system):
+                self.log.warn("Missing molecule '{}' field".format(field_system.get_name()))
+                self.failure.emit(record)
+                return
+
+            system = record.get_value(field_system)
+
+            field_system_id = OEField("ID", Types.String)
+
+            if not record.has_value(field_system_id):
+                self.log.warn("Missing molecule ID '{}' field".format(field_system_id.get_name()))
+                system_id = system.GetTitle()
+            else:
+                system_id = record.get_value(field_system_id)
+
+            field_parmed = OEField("Parmed", utils.ParmedData)
+
+            if not record.has_value(field_parmed):
+                self.log.warn("Missing molecule '{}' field".format(field_parmed.get_name()))
+                self.failure.emit(record)
+
+            parmed_structure = record.get_value(field_parmed)
+
             # Update cube simulation parameters with the eventually molecule SD tags
-            new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(mol) if dp.GetTag() in
+            new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(system) if dp.GetTag() in
                         ["temperature"]}
             if new_args:
                 for k in new_args:
@@ -314,36 +385,33 @@ class OpenMMnvtCube(ParallelOEMolComputeCube):
                         new_args[k] = float(new_args[k])
                     except:
                         pass
-                self.log.info("Updating parameters for molecule: {}\n{}".format(mol.GetTitle(), new_args))
+                self.log.info("Updating parameters for molecule: {}\n{}".format(system.GetTitle(), new_args))
                 opt.update(new_args)
 
-            if utils.PackageOEMol.checkTags(mol, ['Structure']):
-                gd = utils.PackageOEMol.unpack(mol)
-                opt['outfname'] = '{}-{}'.format(gd['IDTag'], self.opt['outfname'])
+            opt['outfname'] = '{}-{}'.format(system_id, self.opt['outfname'])
 
-            mdData = utils.MDData(mol)
+            mdData = utils.MDData(parmed_structure)
 
-            opt['molecule'] = mol
+            opt['molecule'] = system
 
-            self.log.info('START NVT SIMULATION: %s' % gd['IDTag'])
+            self.log.info('START NVT SIMULATION: %s' % system_id)
 
             simtools.simulation(mdData, **opt)
-                
-            packedmol = mdData.packMDData(mol)
 
-            self.success.emit(packedmol)
+            record.set_value(field_system, system)
+            record.set_value(field_parmed, parmed_structure)
 
-        except Exception as e:
-            # Attach error message to the molecule that failed
+            self.success.emit(record)
+
+        except:
             self.log.error(traceback.format_exc())
-            mol.SetData('error', str(e))
             # Return failed mol
-            self.failure.emit(mol)
-         
+            self.failure.emit(record)
+
         return
 
-    
-class OpenMMnptCube(ParallelOEMolComputeCube):
+
+class OpenMMnptSetCube(ParallelMixin, OERecordComputeCube):
     title = 'NPT Cube'
     version = "0.0.0"
     classification = [["Simulation", "OpenMM", "NPT"]]
@@ -361,10 +429,14 @@ class OpenMMnptCube(ParallelOEMolComputeCube):
       temperature (decimal): target temperature
       pressure (decimal): target pressure
     """
-    
+
     # Override defaults for some parameters
     parameter_overrides = {
-        "prefetch_count": {"default": 1}, # 1 molecule at a time
+        "gpu_count": {"default": 1},
+        "memory_mb": {"default": 6000},
+        "instance_tags": {"default": "cuda8"},
+        "spot_policy": {"default": "Allowed"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_timeout": {"default": 43200},  # Default 12 hour limit (units are seconds)
         "item_count": {"default": 1}  # 1 molecule at a time
     }
@@ -387,9 +459,9 @@ class OpenMMnptCube(ParallelOEMolComputeCube):
     restraints = parameter.StringParameter(
         'restraints',
         default='',
-        help_text=""""Mask selection to apply restraints. Possible keywords are: 
-                  ligand, protein, water, ions, ca_protein, cofactors. 
-                  The selection can be refined by using logical tokens: 
+        help_text=""""Mask selection to apply restraints. Possible keywords are:
+                  ligand, protein, water, ions, ca_protein, cofactors.
+                  The selection can be refined by using logical tokens:
                   not, noh, and, or, diff, around""")
 
     restraintWt = parameter.DecimalParameter(
@@ -400,9 +472,9 @@ class OpenMMnptCube(ParallelOEMolComputeCube):
     freeze = parameter.StringParameter(
         'freeze',
         default='',
-        help_text="""Mask selection to freeze atoms along the MD simulation. 
-                  Possible keywords are: ligand, protein, water, ions, ca_protein, 
-                  cofactors. The selection can be refined by using logical tokens: 
+        help_text="""Mask selection to freeze atoms along the MD simulation.
+                  Possible keywords are: ligand, protein, water, ions, ca_protein,
+                  cofactors. The selection can be refined by using logical tokens:
                   not, noh, and, or, diff, around""")
 
     nonbondedMethod = parameter.StringParameter(
@@ -433,16 +505,16 @@ class OpenMMnptCube(ParallelOEMolComputeCube):
         choices=['DCD', 'NetCDF', 'HDF5'],
         help_text="NetCDF, DCD, HDF5. File type to write trajectory files")
 
-    trajectory_interval = parameter.IntegerParameter(
+    trajectory_interval = parameter.DecimalParameter(
         'trajectory_interval',
-        default=0,
-        help_text="Step interval for trajectory snapshots. If 0 the trajectory"
+        default=0.0,
+        help_text="time interval for trajectory snapshots in ps. If 0 the trajectory"
                   "file will not be generated")
 
-    reporter_interval = parameter.IntegerParameter(
+    reporter_interval = parameter.DecimalParameter(
         'reporter_interval',
-        default=0,
-        help_text="Step interval for reporting data. If 0 the reporter file"
+        default=0.0,
+        help_text="Time interval for reporting data in ps. If 0 the reporter file"
                   "will not be generated")
 
     outfname = parameter.StringParameter(
@@ -467,7 +539,7 @@ class OpenMMnptCube(ParallelOEMolComputeCube):
 
     platform = parameter.StringParameter(
         'platform',
-        default='Auto', 
+        default='Auto',
         choices=['Auto', 'Reference', 'CPU', 'CUDA', 'OpenCL'],
         help_text='Select which platform to use to run the simulation')
 
@@ -477,6 +549,11 @@ class OpenMMnptCube(ParallelOEMolComputeCube):
         choices=['single', 'mixed', 'double'],
         help_text='Select the CUDA or OpenCL precision')
 
+    hmr = parameter.BooleanParameter(
+        'hmr',
+        default=False,
+        description='Enable/Disable Hydrogen Mass Repartitioning')
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -484,15 +561,41 @@ class OpenMMnptCube(ParallelOEMolComputeCube):
 
         return
 
-    def process(self, mol, port):
+    def process(self, record, port):
         try:
             # The copy of the dictionary option as local variable
             # is necessary to avoid filename collisions due to
             # the parallel cube processes
             opt = dict(self.opt)
 
+            field_system = OEField(DEFAULT_MOL_NAME, Types.Chem.Mol,
+                                   meta=ColumnMeta().set_option(Meta.Hints.Chem.PrimaryMol))
+
+            if not record.has_value(field_system):
+                self.log.warn("Missing molecule '{}' field".format(field_system.get_name()))
+                self.failure.emit(record)
+                return
+
+            system = record.get_value(field_system)
+
+            field_system_id = OEField("ID", Types.String)
+
+            if not record.has_value(field_system_id):
+                self.log.warn("Missing molecule ID '{}' field".format(field_system_id.get_name()))
+                system_id = system.GetTitle()
+            else:
+                system_id = record.get_value(field_system_id)
+
+            field_parmed = OEField("Parmed", utils.ParmedData)
+
+            if not record.has_value(field_parmed):
+                self.log.warn("Missing molecule '{}' field".format(field_parmed.get_name()))
+                self.failure.emit(record)
+
+            parmed_structure = record.get_value(field_parmed)
+
             # Update cube simulation parameters with the eventually molecule SD tags
-            new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(mol) if dp.GetTag() in
+            new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(system) if dp.GetTag() in
                         ["temperature", "pressure"]}
 
             if new_args:
@@ -501,30 +604,27 @@ class OpenMMnptCube(ParallelOEMolComputeCube):
                         new_args[k] = float(new_args[k])
                     except:
                         pass
-                self.log.info("Updating parameters for molecule: {}\n{}".format(mol.GetTitle(), new_args))
+                self.log.info("Updating parameters for molecule: {}\n{}".format(system.GetTitle(), new_args))
 
                 opt.update(new_args)
 
-            if utils.PackageOEMol.checkTags(mol, ['Structure']):
-                gd = utils.PackageOEMol.unpack(mol)
-                opt['outfname'] = '{}-{}'.format(gd['IDTag'], self.opt['outfname'])
+            opt['outfname'] = '{}-{}'.format(system_id, self.opt['outfname'])
 
-            mdData = utils.MDData(mol)
+            mdData = utils.MDData(parmed_structure)
 
-            opt['molecule'] = mol
+            opt['molecule'] = system
 
-            self.log.info('START NPT SIMULATION %s' % gd['IDTag'])
+            self.log.info('START NPT SIMULATION %s' % system_id)
             simtools.simulation(mdData, **opt)
-                
-            packedmol = mdData.packMDData(mol)
 
-            self.success.emit(packedmol)
+            record.set_value(field_system, system)
+            record.set_value(field_parmed, parmed_structure)
 
-        except Exception as e:
-            # Attach error message to the molecule that failed
+            self.success.emit(record)
+
+        except:
             self.log.error(traceback.format_exc())
-            mol.SetData('error', str(e))
             # Return failed mol
-            self.failure.emit(mol)
+            self.failure.emit(record)
 
         return
