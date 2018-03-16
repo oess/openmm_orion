@@ -35,7 +35,13 @@ def simulation(mdData, **opt):
     box = mdData.box
 
     # Time step in ps
-    stepLen = 0.002 * unit.picoseconds
+    if opt['hmr']:
+        stepLen = 0.004 * unit.picoseconds
+        opt['Logger'].info("Hydrogen Mass reduction is On")
+    else:
+        stepLen = 0.002 * unit.picoseconds
+
+    opt['timestep'] = stepLen
 
     # Centering the system to the OpenMM Unit Cell
     if opt['center'] and box is not None:
@@ -59,15 +65,15 @@ def simulation(mdData, **opt):
         system = structure.createSystem(nonbondedMethod=eval("app.%s" % opt['nonbondedMethod']),
                                         nonbondedCutoff=opt['nonbondedCutoff']*unit.angstroms,
                                         constraints=eval("app.%s" % opt['constraints']),
-                                        removeCMMotion=False)
+                                        removeCMMotion=False, hydrogenMass=4.0*unit.amu if opt['hmr'] else None)
     else:  # Vacuum
         system = structure.createSystem(nonbondedMethod=app.NoCutoff,
                                         constraints=eval("app.%s" % opt['constraints']),
-                                        removeCMMotion=False)
+                                        removeCMMotion=False, hydrogenMass=4.0*unit.amu if opt['hmr'] else None)
 
     # OpenMM Integrator
     integrator = openmm.LangevinIntegrator(opt['temperature']*unit.kelvin, 1/unit.picoseconds, stepLen)
-    
+
     if opt['SimType'] == 'npt':
         if box is None:
             oechem.OEThrow.Fatal("NPT simulation without box vector")
@@ -111,9 +117,38 @@ def simulation(mdData, **opt):
             if idx in freeze_atom_set:
                 system.setParticleMass(idx, 0.0)
 
+    # Platform Selection
     if opt['platform'] == 'Auto':
-        simulation = app.Simulation(topology, system, integrator)
-    else:
+        # simulation = app.Simulation(topology, system, integrator)
+        # Select the platform
+        for plt_name in ['CUDA', 'OpenCL', 'CPU', 'Reference']:
+            try:
+                platform = openmm.Platform_getPlatformByName(plt_name)
+                break
+            except:
+                if plt_name == 'Reference':
+                    oechem.OEThrow.Fatal('It was not possible to select any OpenMM Platform')
+                else:
+                    pass
+        if platform.getName() in ['CUDA', 'OpenCL']:
+            for precision in ['mixed', 'single', 'double']:
+                try:
+                    # Set platform precision for CUDA or OpenCL
+                    properties = {'Precision': precision}
+
+                    simulation = app.Simulation(topology, system, integrator,
+                                                platform=platform,
+                                                platformProperties=properties)
+                    break
+                except:
+                    if precision == 'double':
+                        oechem.OEThrow.Fatal('It was not possible to select any Precision '
+                                             'for the selected Platform: {}'.format(platform.getName()))
+                    else:
+                        pass
+        else:  # CPU or Reference
+            simulation = app.Simulation(topology, system, integrator, platform=platform)
+    else:  # Not Auto Platform selection
         try:
             platform = openmm.Platform.getPlatformByName(opt['platform'])
         except Exception as e:
@@ -130,7 +165,7 @@ def simulation(mdData, **opt):
             except Exception:
                 oechem.OEThrow.Fatal('It was not possible to set the {} precision for the {} platform'
                                      .format(opt['cuda_opencl_precision'], opt['platform']))
-        else:
+        else:  # CPU or Reference Platform
             simulation = app.Simulation(topology, system, integrator, platform=platform)
 
     # Set starting positions and velocities
@@ -205,18 +240,37 @@ def simulation(mdData, **opt):
                                                 getEnergy=True, enforcePeriodicBox=False)
         
     elif opt['SimType'] == 'min':
-        # Start Simulation
+        
+        # Run a first minimization on the Reference platform
+        platform_reference = openmm.Platform.getPlatformByName('Reference')
+        integrator_reference = openmm.LangevinIntegrator(opt['temperature'] * unit.kelvin,
+                                                         1 / unit.picoseconds, stepLen)
+        simulation_reference = app.Simulation(topology, system, integrator_reference, platform=platform_reference)
+        # Set starting positions and velocities
+        simulation_reference.context.setPositions(positions)
+
+        state_reference_start = simulation_reference.context.getState(getEnergy=True)
+
+        # Set Box dimensions
+        if box is not None:
+            simulation_reference.context.setPeriodicBoxVectors(box[0], box[1], box[2])
+
+        simulation_reference.minimizeEnergy(tolerance=1e5*unit.kilojoule_per_mole)
+
+        state_reference_end = simulation_reference.context.getState(getPositions=True)
+
+        # Start minimization on the selected platform
         opt['Logger'].info('Minimization steps: {steps}'.format(**opt))
 
-        state = simulation.context.getState(getEnergy=True)
-
-        print('Initial energy = {}'.format(state.getPotentialEnergy().in_units_of(unit.kilocalorie_per_mole)),
-              file=printfile)
+        # Set positions after minimization on the Reference Platform
+        simulation.context.setPositions(state_reference_end.getPositions())
 
         simulation.minimizeEnergy(maxIterations=opt['steps'])
 
         state = simulation.context.getState(getPositions=True, getEnergy=True)
-        print('Minimized energy = {}'.format(state.getPotentialEnergy().in_units_of(unit.kilocalorie_per_mole)),
+        print('Initial Energy = {}\nMinimized energy = {}'.format(
+            state_reference_start.getPotentialEnergy().in_units_of(unit.kilocalorie_per_mole),
+            state.getPotentialEnergy().in_units_of(unit.kilocalorie_per_mole)),
               file=printfile)
 
     # OpenMM Quantity object
@@ -226,7 +280,7 @@ def simulation(mdData, **opt):
         structure.box_vectors = state.getPeriodicBoxVectors()
 
     if opt['SimType'] in ['nvt', 'npt']:
-        # numpy array in units of angstrom/picosecond
+        # numpy array in units of angstrom/picoseconds
         structure.velocities = state.getVelocities(asNumpy=False)
 
         # If required uploading files to Orion
@@ -340,8 +394,12 @@ def getReporters(totalSteps=None, outfname=None, **opt):
     reporters = []
 
     if opt['reporter_interval']:
+
+        reporter_steps = int(round(opt['reporter_interval']/(
+                opt['timestep'].in_units_of(unit.picoseconds)/unit.picoseconds)))
+
         state_reporter = app.StateDataReporter(outfname+'.log', separator="\t",
-                                               reportInterval=opt['reporter_interval'],
+                                               reportInterval=reporter_steps,
                                                step=True,
                                                potentialEnergy=True, totalEnergy=True,
                                                volume=True, density=True, temperature=True)
@@ -349,7 +407,7 @@ def getReporters(totalSteps=None, outfname=None, **opt):
         reporters.append(state_reporter)
 
         progress_reporter = app.StateDataReporter(stdout, separator="\t",
-                                                  reportInterval=opt['reporter_interval'],
+                                                  reportInterval=reporter_steps,
                                                   step=True, totalSteps=totalSteps,
                                                   time=True, speed=True, progress=True,
                                                   elapsedTime=True, remainingTime=True)
@@ -358,17 +416,20 @@ def getReporters(totalSteps=None, outfname=None, **opt):
 
     if opt['trajectory_interval']:
 
+        trajectory_steps = int(round(opt['trajectory_interval'] / (
+                opt['timestep'].in_units_of(unit.picoseconds) / unit.picoseconds)))
+
         trj_fname = outfname
         # Trajectory file format selection
         if opt['trajectory_filetype'] == 'NetCDF':
             trj_fname += '.nc'
-            traj_reporter = mdtraj.reporters.NetCDFReporter(trj_fname, opt['trajectory_interval'])
+            traj_reporter = mdtraj.reporters.NetCDFReporter(trj_fname, trajectory_steps)
         elif opt['trajectory_filetype'] == 'DCD':
             trj_fname += '.dcd'
-            traj_reporter = app.DCDReporter(trj_fname, opt['trajectory_interval'])
+            traj_reporter = app.DCDReporter(trj_fname, trajectory_steps)
         elif opt['trajectory_filetype'] == 'HDF5':
             trj_fname += '.hdf5'
-            mdtraj.reporters.HDF5Reporter(trj_fname, opt['trajectory_interval'])
+            mdtraj.reporters.HDF5Reporter(trj_fname, trajectory_steps)
         else:
             oechem.OEThrow.Fatal("The selected trajectory file format is not supported: {}"
                                  .format(opt['trajectory_filetype']))

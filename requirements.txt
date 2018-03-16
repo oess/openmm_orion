@@ -1,6 +1,10 @@
 # OE Stack
-openeye-toolkits
-openeye-floe==0.2.181
+openeye-toolkits==2017.10.1
+OpenEye-floe>=18.2.1b0
+OpenEye-datarecord==0.5.0
+OpenEye-cuberecord==0.3.32
+OpenEye-Big-Storage==0.0.5
+OpenEye-orionclient==0.0.4
 
 # Dev Stack
 invoke

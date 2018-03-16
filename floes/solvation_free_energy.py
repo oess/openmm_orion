@@ -1,12 +1,13 @@
 from __future__ import unicode_literals
-from floe.api import WorkFloe, OEMolOStreamCube
-from ComplexPrepCubes.cubes import SolvationCube, ForceFieldPrep
-from LigPrepCubes.cubes import LigChargeCube
-from LigPrepCubes.ports import LigandReader
+from floe.api import WorkFloe
+from cuberecord import DataSetWriterCube
+from ComplexPrepCubes.cubes import SolvationSetCube, ForceFieldSetCube
+from LigPrepCubes.cubes import LigandSetChargeCube
+from LigPrepCubes.ports import LigandSetReaderCube, DataSetWriterCubeStripCustom
 from YankCubes.cubes import YankSolvationFECube
-from OpenMMCubes.cubes import OpenMMminimizeCube, OpenMMnvtCube, OpenMMnptCube
+from OpenMMCubes.cubes import OpenMMminimizeSetCube, OpenMMnvtSetCube, OpenMMnptSetCube
 
-job = WorkFloe("SolvationFreeEnergy")
+job = WorkFloe("Solvation Free Energy")
 
 job.description = """
 Solvation Free Energy Calculation of small molecules
@@ -23,18 +24,29 @@ Outputs:
 ofs: Output file
 """
 
-job.classification = [['Simulation']]
+# *************USER SETTING**************
+yank_iteration_per_chunk = 500
+chunks = 2
+# ***************************************
+
+cube_list = []
+
+job.classification = [['Solvation Free Energy']]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
-iligs = LigandReader("Ligands", title="Ligand Reader")
+iligs = LigandSetReaderCube("Ligands", title="Ligand Reader")
 iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input File", description="Ligand file name")
+job.add_cube(iligs)
+cube_list.append(iligs)
 
-chargelig = LigChargeCube("LigCharge")
+chargelig = LigandSetChargeCube("LigCharge")
 chargelig.promote_parameter('max_conformers', promoted_name='max_conformers',
                             description="Set the max number of conformers per ligand", default=800)
+job.add_cube(chargelig)
+cube_list.append(chargelig)
 
-solvate = SolvationCube("Solvation")
+solvate = SolvationSetCube("Solvation")
 solvate.promote_parameter("density", promoted_name="density", title="Solution density in g/ml", default=1.0,
                           description="Solution Density in g/ml")
 solvate.promote_parameter("solvents", promoted_name="solvents", title="Solvent components",
@@ -49,72 +61,99 @@ solvate.promote_parameter("padding_distance", promoted_name="padding_distance", 
                           description="The largest dimension (in A) of the solute (along the x, y, or z axis) "
                                       "is determined, and a cubic box of size "
                                       "(largest dimension)+2*padding is used")
+job.add_cube(solvate)
+cube_list.append(solvate)
 
-
-
-ff = ForceFieldPrep("ForceField")
-# ff.promote_parameter('ligand_forcefield', promoted_name='ligand_forcefield', default='SMIRNOFF')
+ff = ForceFieldSetCube("ForceField")
+job.add_cube(ff)
+cube_list.append(ff)
 
 # Minimization
-minimize = OpenMMminimizeCube("Minimize")
+minimize = OpenMMminimizeSetCube("Minimize")
 minimize.promote_parameter('restraints', promoted_name='m_restraints', default="noh ligand",
                            description='Select mask to apply restarints')
 minimize.promote_parameter('restraintWt', promoted_name='m_restraintWt', default=5.0,
                            description='Restraint weight in kcal/(mol A^2')
+minimize.promote_parameter('hmr', promoted_name='hmr', default=False,
+                           description='Hydrogen Mass Repartitioning')
+job.add_cube(minimize)
+cube_list.append(minimize)
 
 # NVT Warm-up
-warmup = OpenMMnvtCube('warmup', title='warmup')
+warmup = OpenMMnvtSetCube('warmup', title='warmup')
 warmup.promote_parameter('time', promoted_name='warm_psec', default=20.0,
                          description='Length of MD run in picoseconds')
 warmup.promote_parameter('restraints', promoted_name='w_restraints', default="noh ligand",
                          description='Select mask to apply restarints')
 warmup.promote_parameter('restraintWt', promoted_name='w_restraintWt', default=2.0,
                          description='Restraint weight in kcal/(mol A^2')
-warmup.promote_parameter('trajectory_interval', promoted_name='w_trajectory_interval', default=0,
-                         description='Trajectory saving interval')
-warmup.promote_parameter('reporter_interval', promoted_name='w_reporter_interval', default=0,
-                         description='Reporter saving interval')
+warmup.promote_parameter('trajectory_interval', promoted_name='w_trajectory_interval', default=0.0,
+                         description='Trajectory saving interval in ps')
+warmup.promote_parameter('reporter_interval', promoted_name='w_reporter_interval', default=0.0,
+                         description='Reporter saving interval in ps')
 warmup.promote_parameter('outfname', promoted_name='w_outfname', default='warmup',
                          description='Equilibration suffix name')
 warmup.promote_parameter('center', promoted_name='center', default=True)
+warmup.promote_parameter('hmr', promoted_name='hmr', default=False,
+                         description='Hydrogen Mass Repartitioning')
+job.add_cube(warmup)
+cube_list.append(warmup)
 
 # NPT Equilibration stage
-equil = OpenMMnptCube('equil', title='equil')
+equil = OpenMMnptSetCube('equil', title='equil')
 equil.promote_parameter('time', promoted_name='eq_psec', default=20.0,
                         description='Length of MD run in picoseconds')
 equil.promote_parameter('restraints', promoted_name='eq_restraints', default="noh ligand",
                         description='Select mask to apply restraints')
 equil.promote_parameter('restraintWt', promoted_name='eq_restraintWt', default=0.1,
                         description='Restraint weight in kcal/(mol A^2')
-equil.promote_parameter('trajectory_interval', promoted_name='eq_trajectory_interval', default=0,
-                        description='Trajectory saving interval')
-equil.promote_parameter('reporter_interval', promoted_name='eq_reporter_interval', default=0,
-                        description='Reporter saving interval')
+equil.promote_parameter('trajectory_interval', promoted_name='eq_trajectory_interval', default=0.0,
+                        description='Trajectory saving interval in ps')
+equil.promote_parameter('reporter_interval', promoted_name='eq_reporter_interval', default=0.0,
+                        description='Reporter saving interval in ps')
 equil.promote_parameter('outfname', promoted_name='eq_outfname', default='equil',
                         description='Equilibration suffix name')
+equil.promote_parameter('hmr', promoted_name='hmr', default=False,
+                        description='Hydrogen Mass Repartitioning')
+job.add_cube(equil)
+cube_list.append(equil)
 
-solvationfe = YankSolvationFECube("SovationFE")
-solvationfe.promote_parameter('iterations', promoted_name='iterations', default=1000)
-solvationfe.promote_parameter('nonbondedCutoff', promoted_name='nonbondedCutoff', default=10.0)
+for i in range(0, chunks):
+    solvationfe = YankSolvationFECube("SovationFE"+str(i))
+    solvationfe.promote_parameter('iterations', promoted_name='iterations'+str(i),
+                                  default=yank_iteration_per_chunk*(i+1))
+    solvationfe.promote_parameter('nonbondedCutoff', promoted_name='nonbondedCutoff'+str(i), default=10.0)
 
-ofs = OEMolOStreamCube('ofs', title='OFS-Success')
-ofs.set_parameters(backend='s3')
+    solvationfe.promote_parameter('hmr', promoted_name='hmr'+str(i), default=False,
+                                  description='Hydrogen Mass Repartitioning')
 
-fail = OEMolOStreamCube('fail', title='OFS-Failure')
-fail.set_parameters(backend='s3')
+    if i == 0:
+        solvationfe.promote_parameter('rerun', promoted_name='rerun' + str(i), default=False)
+    else:
+        solvationfe.promote_parameter('rerun', promoted_name='rerun' + str(i), default=True)
+
+    if i == (chunks - 1):
+        solvationfe.promote_parameter('analyze', promoted_name='analyze' + str(i), default=True)
+
+    job.add_cube(solvationfe)
+    cube_list.append(solvationfe)
+
+# ofs = DataSetWriterCubeStripCustom('ofs', title='OFS-Success')
+ofs = DataSetWriterCube('ofs', title='OFS-Success')
+job.add_cube(ofs)
+cube_list.append(ofs)
+
+fail = DataSetWriterCube('fail', title='OFS-Failure')
 fail.set_parameters(data_out='fail.oeb.gz')
+job.add_cube(fail)
+cube_list.append(fail)
 
-job.add_cubes(iligs, chargelig, solvate, ff, minimize, warmup, equil, solvationfe, ofs, fail)
+for i in range(0, len(cube_list)-2):
+    print(i)
+    cube_list[i].success.connect(cube_list[i + 1].intake)
+    if i == len(cube_list) - 3:
+        cube_list[i].failure.connect(cube_list[i+2].intake)
 
-iligs.success.connect(chargelig.intake)
-chargelig.success.connect(solvate.intake)
-solvate.success.connect(ff.intake)
-ff.success.connect(minimize.intake)
-minimize.success.connect(warmup.intake)
-warmup.success.connect(equil.intake)
-equil.success.connect(solvationfe.intake)
-solvationfe.success.connect(ofs.intake)
-solvationfe.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()

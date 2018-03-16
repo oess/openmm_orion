@@ -31,14 +31,14 @@ def get_version():
         return version
 
 setup(
-    name="OpenMMCubes",
-    version='0.2.2',
+    name="OpenMMOrion",
+    version='0.3.7',
     packages=find_packages(include=['examples'], exclude=['tests*']),
     include_package_data=True,
-    package_data={ 'examples' : find_package_data('examples/data', 'examples')},
+    package_data={'examples': find_package_data('examples/data', 'examples')},
     author="Christopher Bayly, Gaetano Calabro, Nathan M. Lim, John Chodera, ",
     author_email="bayly@eyesopen.com",
-    description='Prepare complex for MD with OpenMM',
+    description='Orion cubes to perform MD and MD analysis by using OpenMM',
     install_requires=install_reqs,
     license='Other/Proprietary License',
     classifiers=[

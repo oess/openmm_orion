@@ -6,6 +6,10 @@ from openeye import oechem
 from floe.api.orion import in_orion, StreamingDataset, upload_file
 from simtk import unit, openmm
 from simtk.openmm import app
+
+from datarecord.types import ObjDataType
+from datarecord import Types
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -313,8 +317,7 @@ def dump_query(prefix, name, qmol, receptor):
 class MDData(object):
     """
     This class is used to handle the MDData recovered
-    from the Parmed structure attached to the OEMol()
-    passed between cubes. The class is designed to
+    from the Parmed structure.The class is designed to
     track changes in the pointed Parmed structure
     
     Notes
@@ -326,46 +329,30 @@ class MDData(object):
         box : If present box vectors otherwise None
         parameters : Parmed force field parameters
         velocities : If present system atom velocities otherwise None
-        ref_positions : If available System reference atom positions otherwise None
-    
+
     Examples
     --------
-        mdData = MDData(oe_mol)
+        mdData = MDData(parmed_structure)
         pos = mdData.positions
         vel = mdData.velocities
     """
 
-    def __init__(self, mol):
+    def __init__(self, parmed_structure):
         """
         Initialization function
 
         Parameters
         ----------
-        mol : OEMol() OpenEye Molecule object
-            the moleculur system
+        parmed_structure : Parmed Structure object
+            the parmed structure object
         """
-        # Initialization Reference positions
-        self.ref_positions = None
-        
-        # Try to extract the Parmed structure 
-        try:
-            dic = PackageOEMol.unpack(mol, tags=['Structure'])
-            self.__parmed_structure__ = dic['Structure']
-        except Exception as e:
-            raise RuntimeError('The molecular system does not have a parmed structure attached: {}'.format(e))
+
+        self.__parmed_structure__ = parmed_structure
 
         # Check atom positions
         if not self.__parmed_structure__.positions:
             raise RuntimeError('Atom positions are not defined')
-        
-        # Try to extract the Reference Positions
-        try:
-            dic = PackageOEMol.unpack(mol, tags=['OEMDDataRefPositions'])
-            # Reference Positions are a list of OpenMM Quantity objects
-            self.ref_positions = dic['OEMDDataRefPositions']
-        except:
-            RuntimeWarning('The molecular system does not have any Reference Positions attached')
-            
+
     def __getattr__(self, attrname):
         if attrname == "structure":
             return self.__parmed_structure__
@@ -386,29 +373,33 @@ class MDData(object):
         else:
             raise AttributeError('The required attribute is not defined: {}'.format(attrname))
    
-    def packMDData(self, mol):
-        """
-        This method attached the Parmed structure to the passed OEMol()
 
-        Parameters
-        ----------
-        mol : OEMol() OpenEye Molecule object
-            the molecular system
+class ParmedData(ObjDataType):
 
-        Returns
-        -------
-        mol : OeMol() 
-            the changed in place molecule
-        """
-        try:
-            # Try to attach the Parmed structure to the molecule. The molecule is changed in place
-            mol = PackageOEMol.pack(mol, self.__parmed_structure__)
-        except Exception as e:
-            raise RuntimeError('It was not possible to attached '
-                               'the parmed structure to the molecule {}'.format(e))
-            
-        if self.ref_positions:
-            packedpos = PackageOEMol.encodePyObj(self.ref_positions)
-            mol.SetData(oechem.OEGetTag('OEMDDataRefPositions'), packedpos)
-        
-        return mol
+    @staticmethod
+    def serialize(structure, fmt='oeb'):
+        struct_dict = structure.__getstate__()
+        pkl_obj = pickle.dumps(struct_dict)
+        return bytearray(pkl_obj)
+
+    @staticmethod
+    def deserialize(data, fmt='oeb'):
+        new_structure = parmed.structure.Structure()
+        new_structure.__setstate__(pickle.loads(bytearray(data)))
+        return new_structure
+
+    @staticmethod
+    def validate(value):
+        return isinstance(value, parmed.structure.Structure)
+
+    @staticmethod
+    def get_id():
+        return Types.Custom
+
+    @staticmethod
+    def copy(value):
+        return parmed.structure.copy(value)
+
+    @staticmethod
+    def get_name():
+        return 'Parmed'

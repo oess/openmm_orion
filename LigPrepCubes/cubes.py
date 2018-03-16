@@ -1,30 +1,44 @@
 import traceback
-from openeye import oechem, oedocking
-import OpenMMCubes.utils as utils
 from LigPrepCubes import ff_utils
-from floe.api import OEMolComputeCube, ParallelOEMolComputeCube, parameter
+from floe.api import ParallelMixin, parameter
+
+from cuberecord import OERecordComputeCube, OEField
+from datarecord import Types, Meta, ColumnMeta
 from oeommtools import utils as oeommutils
+from cuberecord.constants import DEFAULT_MOL_NAME
+
+from tempfile import TemporaryDirectory
+import os
+import random
+import string
+import tarfile
+from LigPrepCubes.ff_utils import upload, download
+from floe.api.orion import in_orion, upload_file
+from big_storage import LargeFileDataType
+from OpenMMCubes.utils import ParmedData
 
 
-class LigChargeCube(ParallelOEMolComputeCube):
+class LigandSetChargeCube(ParallelMixin, OERecordComputeCube):
     title = "Ligand Charge Cube"
     version = "0.0.0"
     classification = [["Ligand Preparation", "OEChem", "Ligand preparation"]]
     tags = ['OEChem', 'Quacpac']
     description = """
-           This cube charges the Ligand by using the ELF10 charge method
+    This cube charges the Ligand by using the ELF10 charge method
 
-           Input:
-           -------
-           oechem.OEMCMol - Streamed-in of the ligand molecules
+    Input:
+    -------
+    oechem.OEMCMol - Streamed-in of the ligand molecules
 
-           Output:
-           -------
-           oechem.OEMCMol - Emits the charged ligands
-           """
+    Output:
+    -------
+    oechem.OEMCMol - Emits the charged ligands
+    """
 
     # Override defaults for some parameters
     parameter_overrides = {
+        "memory_mb": {"default": 2000},
+        "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_timeout": {"default": 3600},  # Default 1 hour limit (units are seconds)
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -44,15 +58,22 @@ class LigChargeCube(ParallelOEMolComputeCube):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
 
-    def process(self, ligand, port):
-
+    def process(self, record, port):
         try:
+            field_mol = OEField(DEFAULT_MOL_NAME, Types.Chem.Mol)
+
+            if not record.has_value(field_mol):
+                self.log.warn("Missing '{}' field".format(field_mol.get_name()))
+                self.failure.emit(record)
+                return
+
+            ligand = record.get_value(field_mol)
+
             # Ligand sanitation
             ligand = oeommutils.sanitizeOEMolecule(ligand)
 
             # Charge the ligand
             if self.opt['charge_ligands']:
-                self.log.info("ELF10 Charges applied to the ligand")
                 charged_ligand = ff_utils.assignELF10charges(ligand,
                                                              self.opt['max_conformers'],
                                                              strictStereo=False)
@@ -62,87 +83,14 @@ class LigChargeCube(ParallelOEMolComputeCube):
                 map_charges = {at.GetIdx(): at.GetPartialCharge() for at in charged_ligand.GetAtoms()}
                 for at in ligand.GetAtoms():
                     at.SetPartialCharge(map_charges[at.GetIdx()])
+                self.log.info("ELF10 charge method applied to the ligand: {}".format(ligand.GetTitle()))
 
-            self.success.emit(ligand)
+            record.set_value(field_mol, ligand)
 
-        except Exception as e:
-            # Attach error message to the molecule that failed
+            self.success.emit(record)
+
+        except:
             self.log.error(traceback.format_exc())
-            ligand.SetData('error', str(e))
-            # Return failed mol
-            self.failure.emit(ligand)
-
-        return
-
-
-class FREDDocking(OEMolComputeCube):
-    title = "FRED Docking"
-    version = "0.0.1"
-    classification = [ ["Ligand Preparation", "OEDock", "FRED"],
-    ["Ligand Preparation", "OEDock", "ChemGauss4"]]
-    tags = ['OEDock', 'FRED']
-    description = """
-    Dock molecules using the FRED docking engine against a prepared receptor file.
-    Return the top scoring pose.
-
-    Input:
-    -------
-    receptor - Requires a prepared receptor (oeb.gz) file of the protein to dock molecules against.
-    oechem.OEMCMol - Expects a charged multi-conformer molecule on input port.
-
-    Output:
-    -------
-    oechem.OEMol - Emits the top scoring pose of the molecule with attachments:
-        - SDData Tags: { ChemGauss4 : pose score }
-    """
-
-    receptor = parameter.DataSetInputParameter(
-        'receptor',
-        required=True,
-        help_text='Receptor OEB File')
-
-    def begin(self):
-        receptor = oechem.OEGraphMol()
-        self.args.receptor = utils.download_dataset_to_file(self.args.receptor)
-        if not oedocking.OEReadReceptorFile(receptor, str(self.args.receptor)):
-            raise Exception("Unable to read receptor from {0}".format(self.args.receptor))
-
-        # Initialize Docking
-        dock_method = oedocking.OEDockMethod_Hybrid
-        if not oedocking.OEReceptorHasBoundLigand(receptor):
-            oechem.OEThrow.Warning("No bound ligand, switching OEDockMethod to ChemGauss4.")
-            dock_method = oedocking.OEDockMethod_Chemgauss4
-        dock_resolution = oedocking.OESearchResolution_Default
-        self.sdtag = oedocking.OEDockMethodGetName(dock_method)
-        self.dock = oedocking.OEDock(dock_method, dock_resolution)
-        if not self.dock.Initialize(receptor):
-            raise Exception("Unable to initialize Docking with {0}".format(self.args.receptor))
-
-    def clean(self, mol):
-        mol.DeleteData('CLASH')
-        mol.DeleteData('CLASHTYPE')
-        mol.GetActive().DeleteData('CLASH')
-        mol.GetActive().DeleteData('CLASHTYPE')
-
-    def process(self, mcmol, port):
-        try:
-            dockedMol = oechem.OEMol()
-            res = self.dock.DockMultiConformerMolecule(dockedMol, mcmol)
-            if res == oedocking.OEDockingReturnCode_Success:
-                oedocking.OESetSDScore(dockedMol, self.dock, self.sdtag)
-                self.dock.AnnotatePose(dockedMol)
-                score = self.dock.ScoreLigand(dockedMol)
-                self.log.info("{} {} score = {:.4f}".format(self.sdtag, dockedMol.GetTitle(), score))
-                oechem.OESetSDData(dockedMol, self.sdtag, "{}".format(score))
-                self.clean(dockedMol)
-                self.success.emit(dockedMol)
-
-        except Exception as e:
-            # Attach error message to the molecule that failed
-            self.log.error(traceback.format_exc())
-            mcmol.SetData('error', str(e))
-            # Return failed molecule
-            self.failure.emit(mcmol)
-
-    def end(self):
-        pass
+            self.log.warn("Failed to assign ELF10 charges on molecule {}".format(ligand.GetTitle()))
+            # Return failed record
+            self.failure.emit(record)

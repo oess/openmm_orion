@@ -1,12 +1,13 @@
 {
  "requirements": "requirements.txt",
  "python_version": "3.5",
-    "conda_channels": ["omnia", "omnia/label/dev", "mobleylab", "OpenEye/label/Orion", "conda-forge"],
+    "conda_channels": ["omnia", "omnia/label/dev", "mobleylab", "OpenEye/label/Orion", "conda-forge", "solvationtools"],
     "conda_dependencies": ["openmm==7.1.1", "openmoltools==0.8.1", "ambermini==16.16.0",
                            "parmed==2.7.3", "pdbfixer==1.4", "openforcefield==0.0.2",
                            "smirnoff99frosst=1.0.5", "pyparsing==2.1.1",
-                           "alchemy==1.2.3", "yank==0.18.0", "oeommtools",
-			   "pymbar==3.0.3", "packmol=*17.221", "networkx==1.11"],
+                           "alchemy==1.2.3", "yank==0.20.0", "oeommtools",
+			   "pymbar==3.0.3", "packmol=*17.221", "networkx==1.11", "cerberus==1.1", "sstmap==1.1.0"],
+  "build_requirements": {"gpu": 1, "instance_tags": ["cuda8"]},
  "name": "Orion OpenMM package",
- "version": "0.2.2"
+ "version": "0.3.7"
 }
