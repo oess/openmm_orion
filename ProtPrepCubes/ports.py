@@ -43,7 +43,7 @@ class ProteinReaderCube(OERecordSourceCube):
                                      help_text='The protein prefix name used to identify the protein')
 
     def __init__(self, name, **kwargs):
-        super(ProteinReaderCube, self).__init__(name, kwargs)
+        super().__init__(name, **kwargs)
         self._begin_time = None
         self._count = None
         self._record_ids = None
