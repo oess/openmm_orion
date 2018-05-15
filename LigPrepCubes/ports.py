@@ -55,7 +55,7 @@ from Standards import Fields
 #                                    level=ADVANCED)
 #
 #     def __init__(self, name, **kwargs):
-#         super(LigandReaderCube, self).__init__(name, kwargs)
+#         super().__init__(name, **kwargs)
 #         self._begin_time = None
 #         self._count = None
 #         self._record_ids = None
