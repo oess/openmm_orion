@@ -1,6 +1,6 @@
 import os
 import traceback
-
+import re
 
 
 from floe.api import (ParallelMixin,
@@ -101,9 +101,12 @@ _clus_floe_report_template = """
 
 def _trim_svg(svg):
     # svg = svg.decode('utf-8')
+    # insert a call to init.. sigh
+    run_init = "\nif (init != null) { try {init() } catch(error) {  true; } };\n" 
+    svg = re.sub('(<script[^>]*> *<!\[CDATA\[)', '\\1' + run_init, svg)
+
     idx = svg.find('<svg')
     return svg[idx:]
-
 
 def CheckAndGetValueFull( record, field, rType):
     if not record.has_value(OEField(field,rType)):
@@ -235,7 +238,8 @@ class MDTrajAnalysisClusterReport(OERecordComputeCube):
             self.success.emit(record)
 
         except:
-            self.log.error(traceback.format_exc())
+            print(traceback.format_exc())
+            #self.log.error(traceback.format_exc())
             # Return failed mol
             self.failure.emit(record)
 
