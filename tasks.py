@@ -64,7 +64,7 @@ def test_floes(ctx, test="all"):
 
 
 @task
-def test_orion(ctx, profile="", test="all"):
+def test_orion(ctx, profile="", test="orion"):
     """
     run tests
     """
