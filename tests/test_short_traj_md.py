@@ -296,7 +296,7 @@ class TestMDOrionFloes(FloeTestCase):
     @pytest.mark.orion
     def test_omm_STMD_Analysis_large_sys_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
-            os.path.join(FLOES_DEV_DIR, "ShortTrajMDWithAnalysis.py"),
+            os.path.join(FLOES_DIR, "ShortTrajMDWithAnalysis.py"),
             run_timeout=43200,
             queue_timeout=2000
         )
@@ -376,9 +376,9 @@ class TestMDOrionFloes(FloeTestCase):
 
     @pytest.mark.multi
     @pytest.mark.orion
-    def test_omm__multi_ligs_floe(self):
+    def test_omm_multi_ligs_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
-            os.path.join(FLOES_DEV_DIR, "ShortTrajMDWithAnalysis.py"),
+            os.path.join(FLOES_DIR, "ShortTrajMDWithAnalysis.py"),
             run_timeout=43200,
             queue_timeout=2000
         )
@@ -711,7 +711,7 @@ class TestMDOrionFloes(FloeTestCase):
     @pytest.mark.local
     def test_gmx_STMD_Analysis_large_sys_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
-            os.path.join(FLOES_DEV_DIR, "ShortTrajMDWithAnalysis.py"),
+            os.path.join(FLOES_DIR, "ShortTrajMDWithAnalysis.py"),
             run_timeout=43200,
             queue_timeout=2000
         )
@@ -795,7 +795,7 @@ class TestMDOrionFloes(FloeTestCase):
     @pytest.mark.orion
     def test_gmx_STMD_Analysis_multi_ligs_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
-            os.path.join(FLOES_DEV_DIR, "ShortTrajMDWithAnalysis.py"),
+            os.path.join(FLOES_DIR, "ShortTrajMDWithAnalysis.py"),
             run_timeout=43200,
             queue_timeout=2000
         )
