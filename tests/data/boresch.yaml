@@ -1,0 +1,62 @@
+options:
+  resume_setup: no
+  resume_simulation: no
+  setup_dir: setup
+  experiments_dir: experiments
+  verbose: yes
+  minimize: yes 
+  number_of_iterations: 1000 
+  temperature: 300*kelvin
+  pressure: 1*atmosphere
+  output_dir: boresch
+
+molecules:
+  T4:
+    filepath: input/4w53_apo_pmd_oe.pdb
+  itoluene:
+    filepath: input/toluene_oe.mol2
+    antechamber:
+      charge_method: bcc
+
+common_PME: &common_PME
+  nonbonded_method: PME
+  clearance: 12*angstroms
+  nonbonded_cutoff: 11*angstroms
+  switch_distance: 10*angstroms
+  ewald_error_tolerance: 1.0e-4
+  positive_ion: Na+
+  negative_ion: Cl-
+  ionic_strength: 50*millimolar
+
+solvents:
+  pme:
+    <<: *common_PME
+    solvent_model: tip3p
+    leap:
+      parameters: [leaprc.protein.ff14SB, leaprc.water.tip3p]
+
+systems:
+  explicit:
+    receptor: T4
+    ligand: itoluene
+    solvent: pme
+    leap:
+      parameters: [leaprc.protein.ff14SB, leaprc.gaff2, leaprc.water.tip3p]
+
+protocols:
+  absolute-binding:
+    complex:
+      alchemical_path:
+        lambda_electrostatics: [1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 0.90, 0.78, 0.64, 0.51, 0.35, 0.20, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
+        lambda_sterics:        [1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 0.95, 0.90, 0.80, 0.70, 0.60, 0.50, 0.40, 0.35, 0.30, 0.25, 0.20, 0.15, 0.10, 0.05, 0.00]
+        lambda_restraints:     [0.00, 0.025, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.75, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00]
+    solvent:
+      alchemical_path:
+        lambda_electrostatics: [1.00, 0.90, 0.78, 0.64, 0.51, 0.35, 0.20, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
+        lambda_sterics:        [1.00, 1.00, 1.00, 1.00, 1.00, 0.95, 0.90, 0.80, 0.70, 0.60, 0.50, 0.40, 0.35, 0.30, 0.25, 0.20, 0.15, 0.10, 0.05, 0.00]
+
+experiments:
+  system: explicit
+  protocol: absolute-binding
+  restraint:
+    type: Boresch
