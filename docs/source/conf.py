@@ -39,8 +39,7 @@ html_show_sourcelink = False
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-]
+extensions = ['sphinx.ext.mathjax', 'sphinxcontrib.bibtex']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -140,7 +139,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'mdorion', 'MDOrion Documentation',
+    (master_doc, 'mdorion.tex', 'MDOrion Documentation',
      [author], 1)
 ]
 

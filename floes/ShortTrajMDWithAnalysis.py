@@ -86,7 +86,7 @@ out (.oedb file): file of the Analysis results for all ligands.
 # Locally the floe can be invoked by running the terminal command:
 # python floes/ShortTrajMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
 
-job.classification = [['Complex Setup', 'FrosstMD', 'MD Traj Analysis']]
+job.classification = [['Molecular Dynamics']]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting

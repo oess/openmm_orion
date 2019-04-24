@@ -82,7 +82,7 @@ Outputs:
 * floe report : An analysis of the results for each ligand
 """
 
-job.classification = [['BindingFreeEnergy', 'Yank']]
+job.classification = [['Binding Free Energy']]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting

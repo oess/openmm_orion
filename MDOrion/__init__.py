@@ -17,7 +17,7 @@
 
 __version__ = '0.8.4b2'
 
-from MDOrion import ComplexPrep
+# from MDOrion import ComplexPrep
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
