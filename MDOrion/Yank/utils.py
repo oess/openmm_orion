@@ -181,7 +181,7 @@ def yank_binding_initialize(sim):
                         file_id = opt['user_yank_yaml_file']['file']
                         session = OrionSession()
                         resource = session.get_resource(File, file_id)
-                        fn = os.path.join(opt['output_directory'], "user_yank_orion.yaml")
+                        fn = os.path.join(opt['out_directory'], "user_yank_orion.yaml")
                         resource.download_to_file(fn)
                 else:
                     fn = opt['user_yank_yaml_file']
