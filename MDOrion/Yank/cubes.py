@@ -816,8 +816,6 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
 
             if current_iterations != 0:
 
-                mdrecord.get_stage_trajectory(stg_name='last')
-
                 # Disable minimization if restart is enabled
                 opt['minimize'] = False
                 # Enable Yank Restarting

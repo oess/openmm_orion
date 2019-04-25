@@ -628,8 +628,9 @@ class MDDataRecord(object):
             traj_fn = glob.glob(os.path.join(traj_dir, '*.h5'))[0]
         elif md_engine == MDEngines.Gromacs:
             traj_fn = glob.glob(os.path.join(traj_dir, '*.xtc'))[0]
-        else:  # Yank trajectory
-            traj_fn = os.path.join(traj_dir, "experiments/solvent1.nc")
+        else:  # TODO Yank trajectory - just take one of the .nc files for now
+            exp_dir = os.path.join(traj_dir, "experiments")
+            traj_fn = glob.glob(os.path.join(exp_dir, '*.nc'))[0]
 
         exists = os.path.isfile(traj_fn)
 

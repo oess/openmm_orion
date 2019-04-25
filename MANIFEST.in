@@ -2,6 +2,7 @@ include manifest.json
 include README.md
 include requirements_dev.txt
 include env.yaml
+include tasks.py
 
 graft floes
 graft MDOrion/ForceField
