@@ -149,9 +149,15 @@ class TestYankSolvationOrionFloes(FloeTestCase):
                 {
                     "promoted": {
                         "ligands": ligand_file.identifier,
-                        "iterations": 10,
+                        "iterations": 13,
                         "out": output_file.identifier,
                         "fail": fail_output_file.identifier
+                    },
+
+                    "cube": {
+                        "Solvation": {
+                            "checkpoint_interval": 10
+                        }
                     }
                 }
             )
@@ -160,9 +166,15 @@ class TestYankSolvationOrionFloes(FloeTestCase):
                 {
                     "promoted": {
                         "ligands": ligand_file.identifier,
-                        "iterations": 10,
+                        "iterations": 13,
                         "out": output_file.identifier,
                         "fail": fail_output_file.identifier
+                    },
+
+                    "cube": {
+                        "Solvation": {
+                            "checkpoint_interval": 10
+                        }
                     },
 
                     "mp": num_proc

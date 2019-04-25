@@ -53,11 +53,17 @@ def ProtLigInteractionEFromParmedOETraj( pmed, ligOETraj, protOETraj):
     if not ligand_check:
         raise ValueError("The ligand cannot be found")
 
-    proteinPmed = parmed.Structure()
+    # proteinPmed = parmed.Structure()
+    #
+    # # Parmed Protein structure
+    # for idx in range(0, lig_idx):
+    #     proteinPmed += pmd_split[idx][0]
 
-    # Parmed Protein structure
+    atom_count = 0
     for idx in range(0, lig_idx):
-        proteinPmed += pmd_split[idx][0]
+        atom_count += len(pmd_split[idx][0].atoms) * len(pmd_split[idx][1])
+
+    proteinPmed = pmed[[i for i in range(0, atom_count)]]
 
     # Checking Parmed Protein topology vs OE Protein topology
     if len(proteinPmed.atoms) == protOETraj.NumAtoms():

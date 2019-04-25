@@ -50,7 +50,7 @@ def get_version():
 
 
 setup(
-    name="OpenEye MD Floes",
+    name="OpenEye-MD-Floes",
     version=get_version(),
     packages=find_packages(exclude=['tests*']),
     include_package_data=True,
