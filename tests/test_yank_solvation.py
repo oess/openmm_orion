@@ -155,7 +155,7 @@ class TestYankSolvationOrionFloes(FloeTestCase):
                     },
 
                     "cube": {
-                        "Solvation": {
+                        "SolvationFE": {
                             "checkpoint_interval": 10
                         }
                     }
@@ -172,7 +172,7 @@ class TestYankSolvationOrionFloes(FloeTestCase):
                     },
 
                     "cube": {
-                        "Solvation": {
+                        "SolvationFE": {
                             "checkpoint_interval": 10
                         }
                     },

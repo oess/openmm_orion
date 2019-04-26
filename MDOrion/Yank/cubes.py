@@ -244,7 +244,8 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
                 opt['alchemical_pme_treatment'] = 'direct-space'
 
             if fchg_lig != 0:
-                raise ValueError("The ligand is not neutral: formal charge = {}".format(fchg_lig))
+                raise ValueError("The ligand is not neutral: formal charge = {}. "
+                                 "Charged ligands are not currently supported".format(fchg_lig))
 
             # Update cube simulation parameters with the eventually molecule SD tags
             new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(system) if dp.GetTag() in
