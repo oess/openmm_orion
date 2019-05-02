@@ -218,6 +218,114 @@ class MDDataRecord(object):
         return True
 
     @property
+    def get_sys_id(self):
+        """
+        This method returns the identification field SYSTEM ID present on the record
+
+        Return:
+        -------
+            : Int
+            The record SYSTEM ID
+        """
+
+        if not self.rec.has_field(Fields.sysid):
+            raise ValueError("The SYSTEM ID Field has not been found on the record")
+
+        return self.rec.get_value(Fields.sysid)
+
+    @property
+    def has_sys_id(self):
+        """
+        This method checks if the identification field SYSTEM ID is present on the record
+
+        Return:
+        -------
+            : Bool
+            True if the SYSTEM ID field is resent on the record otherwise False
+        """
+
+        if not self.rec.has_field(Fields.sysid):
+            return False
+        else:
+            return True
+
+    def set_sys_id(self, sys_id):
+        """
+        This method sets the identification field SYSTEM ID on the record
+
+        Parameters:
+        -----------
+        sys_id: Int
+            An identification integer for the record
+
+        Return:
+        -------
+            : Bool
+            True if the SYSTEM ID has been set on the record
+        """
+
+        if not isinstance(sys_id, int):
+            raise ValueError("The system id must be an integer: {}".format(sys_id))
+
+        self.rec.set_value(Fields.sysid, sys_id)
+
+        return True
+
+    @property
+    def get_conf_id(self):
+        """
+        This method returns the identification field CONF ID present on the record
+
+        Return:
+        -------
+            : Int
+            The record CONF ID
+        """
+
+        if not self.rec.has_field(Fields.confid):
+            raise ValueError("The CONF ID Field has not been found on the record")
+
+        return self.rec.get_value(Fields.confid)
+
+    @property
+    def has_conf_id(self):
+        """
+        This method checks if the identification field CONF ID is present on the record
+
+        Return:
+        -------
+            : Bool
+            True if the CONF ID field is resent on the record otherwise False
+        """
+
+        if not self.rec.has_field(Fields.confid):
+            return False
+        else:
+            return True
+
+    def set_conf_id(self, conf_id):
+        """
+        This method sets the identification field CONF ID on the record
+
+        Parameters:
+        -----------
+        sys_id: Int
+            An identification integer for the record
+
+        Return:
+        -------
+            : Bool
+            True if the CONF ID has been set on the record
+        """
+
+        if not isinstance(conf_id, int):
+            raise ValueError("The conf id must be an integer: {}".format(conf_id))
+
+        self.rec.set_value(Fields.confid, conf_id)
+
+        return True
+
+    @property
     def get_title(self):
         """
         This method returns the system title present on the record
@@ -225,7 +333,7 @@ class MDDataRecord(object):
         Return:
         -------
             : String
-            The system title tring
+            The system title string
         """
 
         if not self.rec.has_field(Fields.title):

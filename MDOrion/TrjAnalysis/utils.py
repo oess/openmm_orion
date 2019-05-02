@@ -97,7 +97,7 @@ def ExtractAlignedProtLigTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
         pdb_fn = glob.glob(os.path.join(traj_dir, '*.pdb'))[0]
         topologyTraj = md.load_xtc(traj_filename, top=pdb_fn, frame=1)
     else:
-        raise ValueError("Trajectory file format {} not recognized in the trajecotry {}".format(traj_ext, traj_filename))
+        raise ValueError("Trajectory file format {} not recognized in the trajectory {}".format(traj_ext, traj_filename))
 
     # Put the reference mol xyz into the 1-frame topologyTraj to use as a reference in the fit
     molXyz = oechem.OEDoubleArray(3*mol.GetMaxAtomIdx())

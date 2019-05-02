@@ -1019,6 +1019,84 @@ class MDTrajAnalysisClusterReport(ParallelMixin, OERecordComputeCube):
         return
 
 
+class ConformerGatheringData(OERecordComputeCube):
+
+    title = "MD Conformer Gathering Data"
+    version = "0.1.0"
+    classification = [["Analysis"]]
+    tags = ['Ligand', 'Protein']
+
+    description = """
+    This cube gathers together conformers related to the same ligand and their information
+    in a new record containing the multi conformer ligand and each conformer record info
+
+
+    Input:
+    -------
+    Data record Stream - Streamed-in of systems records
+
+    Output:
+    -------
+    Data Record Stream - Streamed-out of records for each ligand with related conformers info
+    """
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 2000},
+        "spot_policy": {"default": "Prohibited"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+
+        # This dictionary stores for each ligand all its conformers in a list
+        self.lig_sys_ids = dict()
+
+    def process(self, record, port):
+        try:
+            mdrecord = MDDataRecord(record)
+
+            sys_id = mdrecord.get_sys_id
+
+            if sys_id not in self.lig_sys_ids.keys():
+                self.lig_sys_ids[sys_id] = [record]
+            else:
+                self.lig_sys_ids[sys_id].append(record)
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
+
+        return
+
+    def end(self):
+
+        for sys_id, list_conf_rec in self.lig_sys_ids.items():
+
+            # Conformers for each ligand are sorted based on their confid in each ligand record
+            list_conf_rec.sort(key=lambda x: x.get_value(Fields.confid))
+
+            for rec in list_conf_rec:
+
+                if rec.get_value(Fields.confid) == 0:
+                    lig_multi_conf = oechem.OEMol(rec.get_value(Fields.ligand))
+                else:
+                    lig_multi_conf.NewConf(rec.get_value(Fields.ligand))
+
+            new_rec = OERecord()
+
+            new_rec.set_value(Fields.ligand, lig_multi_conf)
+            new_rec.set_value(Fields.ligand_name, list_conf_rec[0].get_value(Fields.ligand_name))
+            new_rec.set_value(OEField("Lig_Conf_Data", Types.RecordVec), list_conf_rec)
+
+            self.success.emit(new_rec)
+
 # import traceback
 #
 # from floe.api import ParallelMixin, parameter

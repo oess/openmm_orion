@@ -87,6 +87,40 @@ class MDRecordTests(unittest.TestCase):
 
     @pytest.mark.travis
     @pytest.mark.local
+    def test_get_sys_id(self):
+        id = self.mdrecord.get_value(Fields.sysid)
+        self.assertEqual(id, 0)
+
+    @pytest.mark.travis
+    @pytest.mark.local
+    def test_has_sys_id(self):
+        self.assertTrue(self.mdrecord.has_sys_id)
+
+    @pytest.mark.travis
+    @pytest.mark.local
+    def test_set_sys_id(self):
+        self.mdrecord.set_sys_id(5)
+        self.assertEqual(self.mdrecord.get_sys_id, 5)
+
+    @pytest.mark.travis
+    @pytest.mark.local
+    def test_get_conf_id(self):
+        id = self.mdrecord.get_value(Fields.confid)
+        self.assertEqual(id, 0)
+
+    @pytest.mark.travis
+    @pytest.mark.local
+    def test_has_conf_id(self):
+        self.assertTrue(self.mdrecord.has_conf_id)
+
+    @pytest.mark.travis
+    @pytest.mark.local
+    def test_set_conf_id(self):
+        self.mdrecord.set_conf_id(5)
+        self.assertEqual(self.mdrecord.get_conf_id, 5)
+
+    @pytest.mark.travis
+    @pytest.mark.local
     def test_get_title(self):
         title = self.mdrecord.get_value(Fields.title)
         self.assertEqual(title, 'pPRT_ltoluene')
