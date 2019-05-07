@@ -84,7 +84,7 @@ gen_temp    = {temperature:f} ; reference temperature in K
 #
 # ; Run parameters
 # integrator	= sd		; leap-frog integrator
-# nsteps		= {nsteps:d}		; number od md steps
+# nsteps		= {nsteps:d}		; number of md steps
 # dt		    = {timestep:f}		; md timestep
 #
 # ; Output control

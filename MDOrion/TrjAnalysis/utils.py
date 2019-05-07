@@ -253,24 +253,26 @@ def PoseInteractionsSVG(ligand, proteinOrig, width=400, height=300):
 
     svgString = svgBytes.decode("utf-8")
 
-    # TODO BUG TEMPORARY FIX FOR TOOLKIT VERSION 2018.10.1 JIRA CASE https://openeye.atlassian.net/browse/TOOLKS-624
+    # # TODO BUG TEMPORARY FIX FOR TOOLKIT VERSION 2018.10.1 JIRA CASE https://openeye.atlassian.net/browse/TOOLKS-624
+    #
+    # lines = svgString.splitlines(True)
+    #
+    # new_str = """.oedepict-visible {
+    #  visibility: visible;
+    # }"""
+    #
+    # for idx in range(0, len(lines)):
+    #     if lines[idx] == ' visibility: hidden;\n':
+    #         lines.insert(idx + 2, new_str)
+    #         break
+    #
+    # svg_out = " ".join(lines)
+    #
+    # # TODO END
+    #
+    # return svg_out
 
-    lines = svgString.splitlines(True)
-
-    new_str = """.oedepict-visible {
-     visibility: visible;
-    }"""
-
-    for idx in range(0, len(lines)):
-        if lines[idx] == ' visibility: hidden;\n':
-            lines.insert(idx + 2, new_str)
-            break
-
-    svg_out = " ".join(lines)
-
-    # TODO END
-
-    return svg_out
+    return svgString
 
 
 def ligand_to_svg_stmd(ligand, ligand_name):
