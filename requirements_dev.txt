@@ -7,9 +7,9 @@ six==1.11.0
 wcwidth==0.1.7
 
 # OE Stack
-OpenEye-Artemis==0.3.2
+OpenEye-Artemis==0.3.3
 OpenEye-ensemble2img==0.1.1
-OpenEye-floe-pkg-tools==0.7.5
+OpenEye-floe-pkg-tools==0.6.0
 OpenEye-floereport==0.1.2
 OpenEye_oetrajanalysis==0.1.4.3
 OpenEye-orionplatform==0.1.15
