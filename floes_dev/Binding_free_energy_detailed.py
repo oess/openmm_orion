@@ -164,17 +164,17 @@ abfe.promote_parameter('iterations', promoted_name='iterations',
 #                        description='Pressure (atm)')
 abfe.promote_parameter('hmr', promoted_name='hmr', default=False,
                        description='Hydrogen Mass Repartitioning')
-abfe.promote_parameter('restraints', promoted_name='restraints',
-                       default='boresch',
-                       description='Select the restraint types to apply to the ligand during the '
-                                   'alchemical decoupling. Choices: harmonic, boresch')
+# abfe.promote_parameter('restraints', promoted_name='restraints',
+#                        default='boresch',
+#                        description='Select the restraint types to apply to the ligand during the '
+#                                    'alchemical decoupling. Choices: harmonic, boresch')
 abfe.set_parameters(lig_res_name='LIG')
 abfe.promote_parameter('verbose', promoted_name='verbose', default=False, description="Yank verbose mode on/off")
 abfe.promote_parameter('user_yank_yaml_file', promoted_name='yaml', default=None)
 abfe.set_parameters(sampler='repex')
-abfe.promote_parameter('protocol_repex', promoted_name='protocol_repex', default='auto_protocol',
-                       description="Select the Repex window schedule protocol")
-job.add_cube(abfe)
+# abfe.promote_parameter('protocol_repex', promoted_name='protocol_repex', default='auto_protocol',
+#                        description="Select the Repex window schedule protocol")
+# job.add_cube(abfe)
 
 # Minimization
 minComplex = MDMinimizeCube('minComplex', title='Complex Minimization')
