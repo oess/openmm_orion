@@ -174,7 +174,7 @@ abfe.promote_parameter('user_yank_yaml_file', promoted_name='yaml', default=None
 abfe.set_parameters(sampler='repex')
 # abfe.promote_parameter('protocol_repex', promoted_name='protocol_repex', default='auto_protocol',
 #                        description="Select the Repex window schedule protocol")
-# job.add_cube(abfe)
+job.add_cube(abfe)
 
 # Minimization
 minComplex = MDMinimizeCube('minComplex', title='Complex Minimization')
