@@ -13,4 +13,5 @@ OpenEye-floe-pkg-tools==0.7.5
 OpenEye-floereport==0.1.2
 OpenEye_oetrajanalysis==0.1.4.3
 OpenEye-orionplatform==0.1.18
+# Openeye-spruce==0.12.0b9
 Openeye-toolkits==2019.4.2
