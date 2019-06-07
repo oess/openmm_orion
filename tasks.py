@@ -119,13 +119,18 @@ def release(ctx):
 
     # clean(ctx)
 
-    # Remove Artemis test package dependence
+    # Un-wanted Package list
+    pkg_un = ['OpenEye-Artemis', 'OpenEye-floe-pkg-tools']
+
     with open(os.path.join(PACKAGE_DIR, "requirements_dev.txt"), "r") as f:
         requirements_lines = f.readlines()
 
     original_requirements = copy.deepcopy(requirements_lines)
 
-    requirements_lines = ["# " + line if 'OpenEye-Artemis' in line else line for line in requirements_lines]
+    for idx in range(0, len(requirements_lines)):
+        for pkg in pkg_un:
+            if pkg in requirements_lines[idx]:
+                requirements_lines[idx] = "# " + requirements_lines[idx]
 
     with open("requirements_dev.txt", "w") as f:
         f.writelines(requirements_lines)
