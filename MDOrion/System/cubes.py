@@ -17,21 +17,20 @@
 
 import traceback
 
-from cuberecord import OERecordComputeCube
-
 from MDOrion.Standards import Fields
 
 from openeye import oechem
 
+from orionplatform.mixins import RecordPortsMixin
+
 from floe.api import (ParallelMixin,
-                      parameter)
+                      parameter,
+                      ComputeCube)
 
 from oeommtools import packmol
 
 
 from orionclient.types import ShardCollection
-
-from MDOrion.Standards.mdrecord import MDDataRecord
 
 from orionclient.session import (in_orion,
                                  APISession)
@@ -39,7 +38,7 @@ from orionclient.session import (in_orion,
 from os import environ
 
 
-class IDSettingCube(OERecordComputeCube):
+class IDSettingCube(RecordPortsMixin, ComputeCube):
     title = "System ID Setting"
     version = "0.1.0"
     classification = [["System Preparation"]]
@@ -126,13 +125,13 @@ class IDSettingCube(OERecordComputeCube):
         return
 
 
-class CollectionSetting(OERecordComputeCube):
+class CollectionSetting(RecordPortsMixin, ComputeCube):
     title = "Collection Setting"
     version = "0.1.0"
     classification = [["System Preparation"]]
     tags = ['System', 'Complex', 'Protein', 'Ligand']
     description = """
-    This cube set a record collection state in open or closed for safety by 
+    This cube set a record collection state in open or closed for safety by
     using the cube bool parameter open. A True value will open the record
     collection enabling the shard writing and deleting. If on the record
     the collection field is not present one will be created.
@@ -216,94 +215,23 @@ class CollectionSetting(OERecordComputeCube):
                 if self.collection is not None:
                     self.collection.close()
 
-# class HydrationCube(ParallelMixin, OERecordComputeCube):
-#     title = "Hydration Cube"
-#     version = "0.0.0"
-#     classification = [["Complex Preparation", "OEChem", "Complex preparation"]]
-#     tags = ['OEChem', 'OpenMM', 'PDBFixer']
-#     description = """
-#     This cube solvate the molecular system in water
-#
-#     Input:
-#     -------
-#     oechem.OEDataRecord - Streamed-in of the molecular system
-#
-#     Output:
-#     -------
-#     oechem.OEDataRecord - Emits the solvated system
-#     """
-#
-#     # Override defaults for some parameters
-#     parameter_overrides = {
-#         "memory_mb": {"default": 6000},
-#         "spot_policy": {"default": "Allowed"},
-#         "prefetch_count": {"default": 1},  # 1 molecule at a time
-#         "item_count": {"default": 1}  # 1 molecule at a time
-#     }
-#
-#     solvent_padding = parameter.DecimalParameter(
-#         'solvent_padding',
-#         default=10.0,
-#         help_text="Padding around protein for solvent box (angstroms)")
-#
-#     salt_concentration = parameter.DecimalParameter(
-#         'salt_concentration',
-#         default=50.0,
-#         help_text="Salt concentration (millimolar)")
-#
-#     def begin(self):
-#         self.opt = vars(self.args)
-#         self.opt['Logger'] = self.log
-#
-#     def process(self, record, port):
-#         try:
-#             opt = self.opt
-#
-#             if not record.has_value(Fields.primary_molecule):
-#                 raise ValueError("Missing the Primary Molecule field")
-#
-#             system = record.get_value(Fields.primary_molecule)
-#
-#             if not record.has_value(Fields.title):
-#                 self.log.warn("Missing record Title field")
-#                 system_title = system.GetTitle()[0:12]
-#             else:
-#                 system_title = record.get_value(Fields.title)
-#
-#             # Solvate the system. Note that the solvated system is translated to the
-#             # OpenMM cube cell
-#             sol_system = utils.hydrate(system, opt)
-#             sol_system.SetTitle(system_title)
-#
-#             record.set_value(Fields.primary_molecule, sol_system)
-#             record.set_value(Fields.title, system_title)
-#
-#             self.success.emit(record)
-#
-#         except:
-#             self.log.error(traceback.format_exc())
-#             # Return failed record
-#             self.failure.emit(record)
-#
-#         return
 
-
-class SolvationCube(ParallelMixin, OERecordComputeCube):
+class SolvationCube(RecordPortsMixin, ComputeCube):
     title = "Solvation Packmol"
     version = "0.1.0"
     classification = [["System Preparation"]]
     tags = ['Complex', 'Protein', 'Ligand', 'Solvation']
     description = """
-    The solvation cube solvates a given solute input system in a 
-    selected mixture of solvents. The solvents can be specified by 
-    comma separated smiles strings of each solvent component or 
-    selected keywords like tip3p for tip3p water geometry. For each 
-    component the user needs to specify its molar fractions as well. 
-    The solution can be neutralized by adding counter-ions. In addition, 
-    the ionic solution strength can be set adding salt. The cube 
-    requires a record as input with a solute molecule to solvate 
+    The solvation cube solvates a given solute input system in a
+    selected mixture of solvents. The solvents can be specified by
+    comma separated smiles strings of each solvent component or
+    selected keywords like tip3p for tip3p water geometry. For each
+    component the user needs to specify its molar fractions as well.
+    The solution can be neutralized by adding counter-ions. In addition,
+    the ionic solution strength can be set adding salt. The cube
+    requires a record as input with a solute molecule to solvate
     and produces an output record with the solvated solute.
-  
+
 
      Input:
     -------
@@ -311,7 +239,7 @@ class SolvationCube(ParallelMixin, OERecordComputeCube):
 
     Output:
     -------
-    Data Record Stream - Streamed-out of records each with the solvated 
+    Data Record Stream - Streamed-out of records each with the solvated
     solute
     """
 
@@ -438,3 +366,8 @@ class SolvationCube(ParallelMixin, OERecordComputeCube):
             self.failure.emit(record)
 
         return
+
+
+class ParallelSolvationCube(ParallelMixin, SolvationCube):
+    title = "Parallel " + SolvationCube.title
+    description = "(Parallel) " + SolvationCube.description

@@ -18,8 +18,10 @@
 # or its use.
 
 from floe.api import WorkFloe
-from MDOrion.MDEngines.cubes import MDNvtCube
-from cuberecord import DatasetReaderCube, DatasetWriterCube
+
+from MDOrion.MDEngines.cubes import ParallelMDNvtCube
+
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
 job = WorkFloe("NVT Simulation",
                title="NVT Simulation")
@@ -50,7 +52,7 @@ ifs = DatasetReaderCube("SystemReader", title="System Reader")
 ifs.promote_parameter("data_in", promoted_name="system", title='System Input File',
                       description="System input file")
 
-nvt = MDNvtCube('nvt', title='NVT simulation')
+nvt = ParallelMDNvtCube('nvt', title='NVT simulation')
 nvt.promote_parameter('time', promoted_name='nanoseconds', default=0.01)
 nvt.promote_parameter('temperature', promoted_name='temperature', default=300.0,
                       description='Selected temperature in K')

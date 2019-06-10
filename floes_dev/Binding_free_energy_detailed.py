@@ -19,30 +19,29 @@
 
 from floe.api import WorkFloe
 
-from MDOrion.MDEngines.cubes import (MDMinimizeCube,
-                                     MDNvtCube,
-                                     MDNptCube)
+from MDOrion.MDEngines.cubes import (ParallelMDMinimizeCube,
+                                     ParallelMDNvtCube,
+                                     ParallelMDNptCube)
 
 from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
-from MDOrion.System.cubes import SolvationCube
+from MDOrion.System.cubes import ParallelSolvationCube
 
 from MDOrion.ProtPrep.cubes import ProteinSetting
 
-from MDOrion.ForceField.cubes import ForceFieldCube
+from MDOrion.ForceField.cubes import ParallelForceFieldCube
 
-from MDOrion.LigPrep.cubes import (LigandChargeCube,
+from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
 
 from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting)
 
 from MDOrion.Yank.cubes import (SyncBindingFECube,
-                                YankBindingFECube,
+                                ParallelYankBindingFECube,
                                 YankProxyCube)
 
-from cuberecord import (DatasetWriterCube,
-                        DatasetReaderCube)
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
 from MDOrion.TrjAnalysis.cubes import MDFloeReportCube
 
@@ -90,7 +89,7 @@ iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
 iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input File", description="Ligand file name")
 job.add_cube(iligs)
 
-chargelig = LigandChargeCube("LigCharge", title="Ligand Charge")
+chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")
 chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
                             description="Calculate ligand partial charges", default=True)
 job.add_cube(chargelig)
@@ -128,7 +127,7 @@ complx.set_parameters(lig_res_name='LIG')
 job.add_cube(complx)
 
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
-solvateComplex = SolvationCube("HydrationComplex", title="Complex Hydration")
+solvateComplex = ParallelSolvationCube("HydrationComplex", title="Complex Hydration")
 # solvateComplex.promote_parameter('density', promoted_name='density', default=1.03,
 #                                  description="Solution density in g/ml")
 # solvateComplex.promote_parameter('salt_concentration', promoted_name='salt_concentration', default=50.0,
@@ -139,7 +138,7 @@ solvateComplex.set_parameters(close_solvent=True)
 job.add_cube(solvateComplex)
 
 # Complex Force Field Application
-ffComplex = ForceFieldCube("ForceFieldComplex", title="Complex Parametrization")
+ffComplex = ParallelForceFieldCube("ForceFieldComplex", title="Complex Parametrization")
 ffComplex.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
 ffComplex.promote_parameter('ligand_forcefield', promoted_name='ligand_forcefield', default='Gaff2')
 ffComplex.promote_parameter('other_forcefield', promoted_name='other_forcefield', default='Gaff2')
@@ -154,7 +153,7 @@ yank_proxy.promote_parameter('iterations', promoted_name='iterations',
 job.add_cube(yank_proxy)
 
 # First Yank Cube used to build the UI interface
-abfe = YankBindingFECube("YankABFE", title="Yank ABFE")
+abfe = ParallelYankBindingFECube("YankABFE", title="Yank ABFE")
 abfe.promote_parameter('iterations', promoted_name='iterations',
                        description="Total Number of Yank iterations for the entire floe. "
                                    "A Yank iteration is 500 MD steps")
@@ -177,7 +176,7 @@ abfe.set_parameters(sampler='repex')
 job.add_cube(abfe)
 
 # Minimization
-minComplex = MDMinimizeCube('minComplex', title='Complex Minimization')
+minComplex = ParallelMDMinimizeCube('minComplex', title='Complex Minimization')
 minComplex.promote_parameter('hmr', promoted_name='hmr')
 minComplex.set_parameters(restraints="noh (ligand or protein)")
 minComplex.set_parameters(restraintWt=5.0)
@@ -186,7 +185,7 @@ minComplex.set_parameters(center=True)
 job.add_cube(minComplex)
 
 # NVT simulation. Here the assembled system is warmed up to the final selected temperature
-warmupComplex = MDNvtCube('warmupComplex', title='Complex Warm Up')
+warmupComplex = ParallelMDNvtCube('warmupComplex', title='Complex Warm Up')
 warmupComplex.set_parameters(time=0.02)
 # warmupComplex.promote_parameter('temperature', promoted_name='temperature')
 warmupComplex.promote_parameter('hmr', promoted_name='hmr')
@@ -203,7 +202,7 @@ job.add_cube(warmupComplex)
 # is applied in the first stage while a relatively small one is applied in the latter
 
 # NPT Equilibration stage 1
-equil1Complex = MDNptCube('equil1Complex', title='Complex Equilibration I')
+equil1Complex = ParallelMDNptCube('equil1Complex', title='Complex Equilibration I')
 equil1Complex.set_parameters(time=0.02)
 # equil1Complex.promote_parameter('temperature', promoted_name='temperature')
 # equil1Complex.promote_parameter('pressure', promoted_name='pressure')
@@ -216,7 +215,7 @@ equil1Complex.set_parameters(suffix='equil1')
 job.add_cube(equil1Complex)
 
 # NPT Equilibration stage 2
-equil2Complex = MDNptCube('equil2Complex', title='Complex Equilibration II')
+equil2Complex = ParallelMDNptCube('equil2Complex', title='Complex Equilibration II')
 equil2Complex.set_parameters(time=0.02)
 # equil2Complex.promote_parameter('temperature', promoted_name='temperature')
 # equil2Complex.promote_parameter('pressure', promoted_name='pressure')
@@ -229,7 +228,7 @@ equil2Complex.set_parameters(suffix='equil2')
 job.add_cube(equil2Complex)
 
 # NPT Equilibration stage 3
-equil3Complex = MDNptCube('equil3Complex', title='Complex Equilibration III')
+equil3Complex = ParallelMDNptCube('equil3Complex', title='Complex Equilibration III')
 equil3Complex.set_parameters(time=0.02)
 # equil3Complex.promote_parameter('temperature', promoted_name='temperature')
 # equil3Complex.promote_parameter('pressure', promoted_name='pressure')
@@ -244,18 +243,18 @@ job.add_cube(equil3Complex)
 # LIGAND SETTING
 
 # Solvate Ligands
-solvateLigand = SolvationCube("HydrationLigand", title="Unbound Ligand Hydration")
+solvateLigand = ParallelSolvationCube("HydrationLigand", title="Unbound Ligand Hydration")
 solvateLigand.set_parameters(close_solvent=True)
 job.add_cube(solvateLigand)
 
 # Ligand Force Field Application
-ffLigand = ForceFieldCube("ForceFieldLigand", title="Unbound Ligand Parametrization")
+ffLigand = ParallelForceFieldCube("ForceFieldLigand", title="Unbound Ligand Parametrization")
 ffLigand.promote_parameter('ligand_forcefield', promoted_name='ligand_forcefield')
 ffLigand.promote_parameter('other_forcefield', promoted_name='other_forcefield')
 job.add_cube(ffLigand)
 
 # Ligand Minimization
-minimizeLigand = MDMinimizeCube("MinimizeLigand", title="Unbound Ligand Minimization")
+minimizeLigand = ParallelMDMinimizeCube("MinimizeLigand", title="Unbound Ligand Minimization")
 minimizeLigand.set_parameters(restraints='noh ligand')
 minimizeLigand.promote_parameter('hmr', promoted_name='hmr')
 minimizeLigand.set_parameters(restraintWt=5.0)
@@ -263,7 +262,7 @@ minimizeLigand.set_parameters(center=True)
 job.add_cube(minimizeLigand)
 
 # Ligand NVT Warm-up
-warmupLigand = MDNvtCube('warmupLigand', title='Unbound Ligand Warm Up')
+warmupLigand = ParallelMDNvtCube('warmupLigand', title='Unbound Ligand Warm Up')
 warmupLigand.set_parameters(time=0.02)
 # warmupLigand.promote_parameter('temperature', promoted_name='temperature')
 warmupLigand.promote_parameter('hmr', promoted_name='hmr')
@@ -275,7 +274,7 @@ warmupLigand.set_parameters(suffix='warmup_ligand')
 job.add_cube(warmupLigand)
 
 # Ligand NPT Equilibration stage
-equilLigand = MDNptCube('equilLigand', title='Unbound Ligand Equilibration')
+equilLigand = ParallelMDNptCube('equilLigand', title='Unbound Ligand Equilibration')
 equilLigand.set_parameters(time=0.02)
 # equilLigand.promote_parameter('temperature', promoted_name='temperature')
 # equilLigand.promote_parameter('pressure', promoted_name='pressure')

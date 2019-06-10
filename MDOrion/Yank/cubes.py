@@ -17,11 +17,12 @@
 
 import traceback
 from floe.api import (ParallelMixin,
+                      ComputeCube,
                       parameter)
 
-from cuberecord import OERecordComputeCube
+from orionplatform.mixins import RecordPortsMixin
 
-from cuberecord.ports import RecordInputPort, RecordOutputPort
+from orionplatform.ports import RecordInputPort, RecordOutputPort
 
 from datarecord import (Types,
                         OEField,
@@ -64,7 +65,7 @@ from os import environ
 from MDOrion.Standards.mdrecord import MDDataRecord
 
 
-class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
+class YankSolvationFECube(RecordPortsMixin, ComputeCube):
     version = "0.0.0"
     title = "YankSolvationFECube"
     description = """
@@ -433,7 +434,7 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
         return
 
 
-class SyncBindingFECube(OERecordComputeCube):
+class SyncBindingFECube(RecordPortsMixin, ComputeCube):
     version = "0.1.0"
     title = "SyncSolvationFECube"
     description = """
@@ -537,7 +538,7 @@ class SyncBindingFECube(OERecordComputeCube):
         return
 
 
-class YankBindingFECube(ParallelMixin, OERecordComputeCube):
+class YankBindingFECube(RecordPortsMixin, ComputeCube):
     version = "0.0.0"
     title = "YankBindingFECube"
     description = """
@@ -973,7 +974,7 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
         return
 
 
-class YankProxyCube(OERecordComputeCube):
+class YankProxyCube(RecordPortsMixin, ComputeCube):
     version = "0.0.0"
     title = "YankProxyCube"
     description = """
@@ -1057,3 +1058,13 @@ class YankProxyCube(OERecordComputeCube):
             self.failure.emit(record)
 
         return
+
+
+class ParallelYankSolvationFECube(ParallelMixin, YankSolvationFECube):
+    title = "Parallel " + YankSolvationFECube.title
+    description = "(Parallel) " + YankSolvationFECube.description
+
+
+class ParallelYankBindingFECube(ParallelMixin, YankBindingFECube):
+    title = "Parallel " + YankBindingFECube.title
+    description = "(Parallel) " + YankBindingFECube.description

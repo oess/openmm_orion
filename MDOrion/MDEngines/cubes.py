@@ -18,10 +18,11 @@
 
 import traceback
 
-from floe.api import (ParallelMixin,
-                      parameter)
+from orionplatform.mixins import RecordPortsMixin
 
-from cuberecord import OERecordComputeCube
+from floe.api import (ParallelMixin,
+                      parameter,
+                      ComputeCube)
 
 from MDOrion.Standards import (MDStageTypes,
                                MDEngines)
@@ -37,7 +38,7 @@ import textwrap
 import os
 
 
-class MDMinimizeCube(ParallelMixin, OERecordComputeCube):
+class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     title = 'Minimization Cube'
 
     version = "0.1.0"
@@ -264,7 +265,7 @@ class MDMinimizeCube(ParallelMixin, OERecordComputeCube):
         return
 
 
-class MDNvtCube(ParallelMixin, OERecordComputeCube):
+class MDNvtCube(RecordPortsMixin, ComputeCube):
     title = 'NVT Cube'
     version = "0.1.0"
     classification = [["MD Simulations"]]
@@ -526,7 +527,7 @@ class MDNvtCube(ParallelMixin, OERecordComputeCube):
         return
 
 
-class MDNptCube(ParallelMixin, OERecordComputeCube):
+class MDNptCube(RecordPortsMixin, ComputeCube):
     title = 'NPT Cube'
     version = "0.1.0"
     classification = [['MD Simulations']]
@@ -787,3 +788,18 @@ class MDNptCube(ParallelMixin, OERecordComputeCube):
             self.failure.emit(record)
 
         return
+
+
+class ParallelMDMinimizeCube(ParallelMixin, MDMinimizeCube):
+    title = "Parallel " + MDMinimizeCube.title
+    description = "(Parallel) " + MDMinimizeCube.description
+
+
+class ParallelMDNvtCube(ParallelMixin,  MDNvtCube):
+    title = "Parallel " + MDNvtCube.title
+    description = "(Parallel) " + MDNvtCube.description
+
+
+class ParallelMDNptCube(ParallelMixin,  MDNptCube):
+    title = "Parallel " + MDNptCube.title
+    description = "(Parallel) " + MDNptCube.description

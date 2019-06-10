@@ -18,8 +18,10 @@
 # or its use.
 
 from floe.api import WorkFloe
-from MDOrion.MDEngines.cubes import MDNptCube
-from cuberecord import DatasetReaderCube, DatasetWriterCube
+
+from MDOrion.MDEngines.cubes import ParallelMDNptCube
+
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
 job = WorkFloe("NPT Simulation",
                title="NPT Simulation")
@@ -51,7 +53,7 @@ ifs = DatasetReaderCube("SystemReader", title="System Reader")
 ifs.promote_parameter("data_in", promoted_name="system", title='System Input File',
                       description="System input file")
 
-npt = MDNptCube('npt', title='NPT Simulation')
+npt = ParallelMDNptCube('npt', title='NPT Simulation')
 npt.promote_parameter('time', promoted_name='nanoseconds', default=0.01,
                       description='Length of MD run in nanoseconds')
 npt.promote_parameter('temperature', promoted_name='temperature', default=300.0,

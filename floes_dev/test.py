@@ -22,6 +22,7 @@ from floe.api import WorkFloe
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
 from MDOrion.LigPrep.cubes import LigandSetting
+
 from MDOrion.LigPrep.cubes import ParallelLigandChargeCube
 
 from MDOrion.System.cubes import IDSettingCube
@@ -34,10 +35,8 @@ from MDOrion.System.cubes import ParallelSolvationCube
 
 from MDOrion.ForceField.cubes import ParallelForceFieldCube
 
-from MDOrion.MDEngines.cubes import ParallelMDMinimizeCube
-
-job = WorkFloe("Complex Preparation with Minimization",
-               title="Complex Preparation with Minimization")
+job = WorkFloe("Complex Preparation",
+               title="Complex Preparation")
 
 job.description = """
 Complex Preparation Workflow
@@ -95,12 +94,6 @@ ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Ga
 ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
 ff.set_parameters(lig_res_name='LIG')
 
-# Minimization
-minimize = ParallelMDMinimizeCube('minComplex', title="System Minimization")
-minimize.promote_parameter('steps', promoted_name='steps', default=0)
-minimize.promote_parameter('md_engine', promoted_name='md_engine', default='OpenMM',
-                           description='Select the MD Engine')
-
 ofs = DatasetWriterCube('ofs', title='Out')
 ofs.promote_parameter("data_out", promoted_name="out")
 
@@ -108,8 +101,7 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
 job.add_cubes(iligs, chargelig, ligset, ligid,
-              iprot, protset, complx, solvate,
-              ff, minimize, ofs, fail)
+              iprot, protset, complx, solvate, ff, ofs, fail)
 
 iligs.success.connect(chargelig.intake)
 chargelig.success.connect(ligset.intake)
@@ -119,9 +111,8 @@ iprot.success.connect(protset.intake)
 protset.success.connect(complx.protein_port)
 complx.success.connect(solvate.intake)
 solvate.success.connect(ff.intake)
-ff.success.connect(minimize.intake)
-minimize.success.connect(ofs.intake)
-minimize.failure.connect(fail.intake)
+ff.success.connect(ofs.intake)
+ff.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()

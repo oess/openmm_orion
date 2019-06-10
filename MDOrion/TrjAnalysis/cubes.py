@@ -1,10 +1,12 @@
-from cuberecord import OERecordComputeCube
+from orionplatform.mixins import RecordPortsMixin
+
+from floe.api import (ParallelMixin,
+                      parameter,
+                      ComputeCube)
 
 from MDOrion.Standards import Fields
 
 from floereport import FloeReport, LocalFloeReport
-
-from floe.api import parameter
 
 from orionclient.session import in_orion, OrionSession
 
@@ -22,7 +24,6 @@ import ensemble2img
 
 from tempfile import TemporaryDirectory
 
-
 import numpy as np
 
 from openeye import oechem
@@ -32,9 +33,8 @@ import oetrajanalysis.Clustering_utils as clusutl
 from openeye import oedepict
 
 import os
-import traceback
 
-from floe.api import (ParallelMixin)
+import traceback
 
 from datarecord import (Types,
                         Meta,
@@ -54,7 +54,7 @@ from MDOrion.TrjAnalysis.TrajAnFloeReport_utils import (_clus_floe_report_header
                                                         MakeClusterInfoText)
 
 
-class MDFloeReportCube(OERecordComputeCube):
+class MDFloeReportCube(RecordPortsMixin, ComputeCube):
     version = "0.1.0"
     title = "MDFloeReportCube"
     description = """
@@ -227,7 +227,7 @@ class MDFloeReportCube(OERecordComputeCube):
         return
 
 
-class TrajToOEMolCube(ParallelMixin, OERecordComputeCube):
+class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
     title = 'Traj to OEMol Cube'
 
     version = "0.1.0"
@@ -366,7 +366,7 @@ class TrajToOEMolCube(ParallelMixin, OERecordComputeCube):
         return
 
 
-class TrajPBSACube(ParallelMixin, OERecordComputeCube):
+class TrajPBSACube(RecordPortsMixin, ComputeCube):
     title = "Trajectory Poisson-Boltzmann and Surface Area Energies"
     version = "0.0.0"
     classification = [["Analysis"]]
@@ -518,7 +518,7 @@ class TrajPBSACube(ParallelMixin, OERecordComputeCube):
         return
 
 
-class TrajInteractionEnergyCube(ParallelMixin, OERecordComputeCube):
+class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
     title = "Trajectory Interaction Energies"
     version = "0.0.0"
     classification = [["Analysis"]]
@@ -641,7 +641,7 @@ class TrajInteractionEnergyCube(ParallelMixin, OERecordComputeCube):
         return
 
 
-class ClusterOETrajCube(ParallelMixin, OERecordComputeCube):
+class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
     title = 'Cluster Protein-Ligand Traj OEMols'
 
     version = "0.1.0"
@@ -807,7 +807,7 @@ class ClusterOETrajCube(ParallelMixin, OERecordComputeCube):
         return
 
 
-class MDTrajAnalysisClusterReport(ParallelMixin, OERecordComputeCube):
+class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
     title = 'Extract relevant outputs of MD Traj Cluster  Analysis'
 
     version = "0.1.0"
@@ -1019,7 +1019,7 @@ class MDTrajAnalysisClusterReport(ParallelMixin, OERecordComputeCube):
         return
 
 
-class ConformerGatheringData(OERecordComputeCube):
+class ConformerGatheringData(RecordPortsMixin, ComputeCube):
 
     title = "MD Conformer Gathering Data"
     version = "0.1.0"
@@ -1096,6 +1096,32 @@ class ConformerGatheringData(OERecordComputeCube):
             new_rec.set_value(OEField("Lig_Conf_Data", Types.RecordVec), list_conf_rec)
 
             self.success.emit(new_rec)
+
+
+class ParallelTrajToOEMolCube(ParallelMixin, TrajToOEMolCube):
+    title = "Parallel " + TrajToOEMolCube.title
+    description = "(Parallel) " + TrajToOEMolCube.description
+
+
+class ParallelTrajInteractionEnergyCube(ParallelMixin, TrajInteractionEnergyCube):
+    title = "Parallel " + TrajInteractionEnergyCube.title
+    description = "(Parallel) " + TrajInteractionEnergyCube.description
+
+
+class ParallelTrajPBSACube(ParallelMixin, TrajPBSACube):
+    title = "Parallel " + TrajPBSACube.title
+    description = "(Parallel) " + TrajPBSACube.description
+
+
+class ParallelClusterOETrajCube(ParallelMixin, ClusterOETrajCube):
+    title = "Parallel " + ClusterOETrajCube.title
+    description = "(Parallel) " + ClusterOETrajCube.description
+
+
+class ParallelMDTrajAnalysisClusterReport(ParallelMixin,  MDTrajAnalysisClusterReport):
+    title = "Parallel " + MDTrajAnalysisClusterReport.title
+    description = "(Parallel) " + MDTrajAnalysisClusterReport.description
+
 
 # import traceback
 #
