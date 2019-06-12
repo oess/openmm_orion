@@ -18,7 +18,7 @@ from datarecord import OERecord
 
 import unittest
 
-from MDOrion.LigPrep.cubes import LigandChargeCube
+from MDOrion.LigPrep.cubes import ParallelLigandChargeCube
 
 from floe.test import CubeTestRunner
 
@@ -41,7 +41,7 @@ class LigChargeTester(unittest.TestCase):
     Test ELF10 charge cube
     """
     def setUp(self):
-        self.cube = LigandChargeCube('elf10charge')
+        self.cube = ParallelLigandChargeCube('elf10charge')
         self.cube.args.max_conforms = 800
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()

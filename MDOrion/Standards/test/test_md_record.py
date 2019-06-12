@@ -6,8 +6,7 @@ import os
 
 from openeye import oechem
 
-from datarecord import (read_mol_record,
-                        OERecord,
+from datarecord import (OERecord,
                         OEField,
                         Types)
 
@@ -23,10 +22,13 @@ import tarfile
 
 import pickle
 
-PACKAGE_DIR = os.path.dirname(os.path.dirname(MDOrion.__file__))
-FILE_DIR = os.path.join(PACKAGE_DIR, "tests", "data")
 
 from MDOrion.Standards.mdrecord import MDDataRecord
+
+from datarecord import read_records
+
+PACKAGE_DIR = os.path.dirname(os.path.dirname(MDOrion.__file__))
+FILE_DIR = os.path.join(PACKAGE_DIR, "tests", "data")
 
 
 class MDRecordTests(unittest.TestCase):
@@ -38,13 +40,8 @@ class MDRecordTests(unittest.TestCase):
         ifs = oechem.oeifstream(fname)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
+        for record in read_records(ifs):
             records.append(record)
-
-        ifs.close()
 
         self.assertEqual(len(records), 1)
 
