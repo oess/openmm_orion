@@ -20,10 +20,9 @@
 
 from floe.api import WorkFloe
 
-from cuberecord import (DatasetWriterCube,
-                        DatasetReaderCube)
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import TrajToOEMolCube
+from MDOrion.TrjAnalysis.cubes import ParallelTrajToOEMolCube
 
 job = WorkFloe("Testing TrajToOEMol")
 
@@ -41,20 +40,20 @@ Outputs:
 --------
 ofs (.oedb file): file of the MD results with Traj OEMols
 """
-#
+
 ifs = DatasetReaderCube("ifs")
-#
+
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")
-#
-trajCube = TrajToOEMolCube("TrajToOEMolCube")
-#
+
+trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
+
 ofs = DatasetWriterCube('ofs', title='OFS-Success')
 ofs.promote_parameter("data_out", promoted_name="out", title="System Output OERecord", description="OERecord file name")
-#
+
 job.add_cubes(ifs, trajCube, ofs)
-#
+
 ifs.success.connect(trajCube.intake)
 trajCube.success.connect(ofs.intake)
-#
+
 if __name__ == "__main__":
     job.run()

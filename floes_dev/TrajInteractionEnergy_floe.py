@@ -1,7 +1,10 @@
 #!/usr/bin/env python
+
 from floe.api import WorkFloe
-from cuberecord import DatasetWriterCube, DatasetReaderCube
-from MDOrion.TrjAnalysis.cubes import TrajInteractionEnergyCube
+
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
+
+from MDOrion.TrjAnalysis.cubes import ParallelTrajInteractionEnergyCube
 
 job = WorkFloe("Testing Traj Protein-Ligand Interaction Energies")
 
@@ -24,7 +27,7 @@ ifs = DatasetReaderCube("ifs")
 
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")
 
-scube = TrajInteractionEnergyCube("TrajInteractionEnergyCube")
+scube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
 
 ofs = DatasetWriterCube('ofs', title='OFS-Success')
 ofs.promote_parameter("data_out", promoted_name="out", title="System Output OERecord", description="OERecord file name")

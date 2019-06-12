@@ -41,7 +41,6 @@ num_proc = 5
 PACKAGE_DIR = os.path.dirname(os.path.dirname(MDOrion.__file__))
 
 FILE_DIR = os.path.join(PACKAGE_DIR, "tests", "data")
-FLOES_DIR = os.path.join(PACKAGE_DIR, "floes")
 FLOES_DEV_DIR = os.path.join(PACKAGE_DIR, "floes_dev")
 
 os.chdir(FILE_DIR)
@@ -434,10 +433,9 @@ class TestYankBindingFloes(FloeTestCase):
         self.assertEqual(count, 5)
 
     @pytest.mark.local
-    @pytest.mark.orion
     def test_yank_binding_yaml_user_file(self):
         workfloe = WorkFloeWrapper.get_workfloe(
-            os.path.join(FLOES_DIR, "Binding_free_energy_detailed.py"),
+            os.path.join(FLOES_DEV_DIR, "Binding_free_energy_detailed.py"),
             run_timeout=43200,
             queue_timeout=2000
         )

@@ -16,10 +16,12 @@
 # or its use.
 
 import traceback
-from floe.api import (ParallelMixin,
-                      parameter)
 
-from cuberecord import OERecordComputeCube
+from orionplatform.mixins import RecordPortsMixin
+
+from floe.api import (ParallelMixin,
+                      parameter,
+                      ComputeCube)
 
 from oeommtools import utils as oeommutils
 
@@ -44,7 +46,7 @@ from simtk import unit
 import os
 
 
-class ForceFieldCube(ParallelMixin, OERecordComputeCube):
+class ForceFieldCube(RecordPortsMixin, ComputeCube):
     title = "Force Field Application"
     version = "0.1.0"
     classification = [["Force Field"]]
@@ -280,3 +282,8 @@ class ForceFieldCube(ParallelMixin, OERecordComputeCube):
             self.failure.emit(record)
 
         return
+
+
+class ParallelForceFieldCube(ParallelMixin, ForceFieldCube):
+    title = "Parallel " + ForceFieldCube.title
+    description = "(Parallel) " + ForceFieldCube.description

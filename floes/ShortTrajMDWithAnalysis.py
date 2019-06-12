@@ -19,33 +19,32 @@
 
 from floe.api import WorkFloe
 
-from cuberecord import (DatasetWriterCube,
-                        DatasetReaderCube)
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.MDEngines.cubes import (MDMinimizeCube,
-                                     MDNvtCube,
-                                     MDNptCube)
+from MDOrion.MDEngines.cubes import (ParallelMDMinimizeCube,
+                                     ParallelMDNvtCube,
+                                     ParallelMDNptCube)
 
 from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
-from MDOrion.System.cubes import SolvationCube
+from MDOrion.System.cubes import ParallelSolvationCube
 
-from MDOrion.ForceField.cubes import ForceFieldCube
+from MDOrion.ForceField.cubes import ParallelForceFieldCube
 
 from MDOrion.ProtPrep.cubes import ProteinSetting
 
-from MDOrion.LigPrep.cubes import (LigandChargeCube,
+from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
 
 from MDOrion.System.cubes import IDSettingCube
 
 from MDOrion.System.cubes import CollectionSetting
 
-from MDOrion.TrjAnalysis.cubes import (TrajToOEMolCube,
-                                       TrajInteractionEnergyCube,
-                                       TrajPBSACube,
-                                       ClusterOETrajCube,
-                                       MDTrajAnalysisClusterReport,
+from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
+                                       ParallelTrajInteractionEnergyCube,
+                                       ParallelTrajPBSACube,
+                                       ParallelClusterOETrajCube,
+                                       ParallelMDTrajAnalysisClusterReport,
                                        MDFloeReportCube)
 
 job = WorkFloe('Short Trajectory MD with Analysis',
@@ -93,7 +92,7 @@ job.tags = [tag for lists in job.classification for tag in lists]
 iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
 iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input File", description="Ligand file name")
 
-chargelig = LigandChargeCube("LigCharge", title="Ligand Charge")
+chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")
 chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
                             description="Charge the ligand or not", default=True)
 
@@ -118,7 +117,7 @@ complx.set_parameters(lig_res_name='LIG')
 
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
 
-solvate = SolvationCube("Hydration", title="System Hydration")
+solvate = ParallelSolvationCube("Hydration", title="System Hydration")
 # solvate.promote_parameter('density', promoted_name='density', default=1.03,
 #                           description="Solution density in g/ml")
 # solvate.promote_parameter('salt_concentration', promoted_name='salt_concentration', default=50.0,
@@ -132,13 +131,13 @@ coll_open = CollectionSetting("OpenCollection")
 coll_open.set_parameters(open=True)
 
 # Force Field Application
-ff = ForceFieldCube("ForceField", title="System Parametrization")
+ff = ParallelForceFieldCube("ForceField", title="System Parametrization")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
 ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
 ff.set_parameters(lig_res_name='LIG')
 
-prod = MDNptCube("Production", title="Production")
+prod = ParallelMDNptCube("Production", title="Production")
 prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
                        description='Length of MD run in nanoseconds')
 # prod.promote_parameter('temperature', promoted_name='temperature', default=300.0,
@@ -155,7 +154,7 @@ prod.set_parameters(suffix='prod')
 
 
 # Minimization
-minComplex = MDMinimizeCube('minComplex', title='System Minimization')
+minComplex = ParallelMDMinimizeCube('minComplex', title='System Minimization')
 minComplex.set_parameters(restraints="noh (ligand or protein)")
 minComplex.set_parameters(restraintWt=5.0)
 minComplex.set_parameters(steps=0)
@@ -166,7 +165,7 @@ minComplex.promote_parameter("md_engine", promoted_name="md_engine")
 
 
 # NVT simulation. Here the assembled system is warmed up to the final selected temperature
-warmup = MDNvtCube('warmup', title='System Warm Up')
+warmup = ParallelMDNvtCube('warmup', title='System Warm Up')
 warmup.set_parameters(time=0.01)
 # warmup.promote_parameter("temperature", promoted_name="temperature")
 warmup.set_parameters(restraints="noh (ligand or protein)")
@@ -185,7 +184,7 @@ warmup.promote_parameter("md_engine", promoted_name="md_engine")
 # is applied in the first stage while a relatively small one is applied in the latter
 
 # NPT Equilibration stage 1
-equil1 = MDNptCube('equil1', title='System Equilibration I')
+equil1 = ParallelMDNptCube('equil1', title='System Equilibration I')
 equil1.set_parameters(time=0.01)
 # equil1.promote_parameter("temperature", promoted_name="temperature")
 # equil1.promote_parameter("pressure", promoted_name="pressure")
@@ -199,7 +198,7 @@ equil1.promote_parameter("md_engine", promoted_name="md_engine")
 
 
 # NPT Equilibration stage 2
-equil2 = MDNptCube('equil2', title='System Equilibration II')
+equil2 = ParallelMDNptCube('equil2', title='System Equilibration II')
 equil2.set_parameters(time=0.02)
 # equil2.promote_parameter("temperature", promoted_name="temperature")
 # equil2.promote_parameter("pressure", promoted_name="pressure")
@@ -212,7 +211,7 @@ equil2.set_parameters(suffix='equil2')
 equil2.promote_parameter("md_engine", promoted_name="md_engine")
 
 # NPT Equilibration stage 3
-equil3 = MDNptCube('equil3', title='System Equilibration III')
+equil3 = ParallelMDNptCube('equil3', title='System Equilibration III')
 equil3.set_parameters(time=0.03)
 # equil3.promote_parameter("temperature", promoted_name="temperature")
 # equil3.promote_parameter("pressure", promoted_name="pressure")
@@ -230,11 +229,11 @@ ofs.promote_parameter("data_out", promoted_name="out")
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
-trajCube = TrajToOEMolCube("TrajToOEMolCube")
-IntECube = TrajInteractionEnergyCube("TrajInteractionEnergyCube")
-PBSACube = TrajPBSACube("TrajPBSACube")
-clusCube = ClusterOETrajCube("ClusterOETrajCube")
-report_gen = MDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
+trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
+IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
+PBSACube = ParallelTrajPBSACube("TrajPBSACube")
+clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
+report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 
 report = MDFloeReportCube("report", title="Floe Report")
 

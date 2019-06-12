@@ -18,10 +18,7 @@
 
 import traceback
 from datarecord import OERecord
-from cuberecord import OERecordComputeCube
-from cuberecord.ports import RecordInputPort
 
-from floe.api import parameter
 from openeye import oechem
 from oeommtools import utils as oeommutils
 
@@ -29,8 +26,14 @@ from MDOrion.Standards import Fields
 
 from floe.constants import ADVANCED
 
+from floe.api import (parameter,
+                      ComputeCube)
 
-class ComplexPrepCube(OERecordComputeCube):
+from orionplatform.mixins import RecordPortsMixin
+from orionplatform.ports import RecordInputPort
+
+
+class ComplexPrepCube(RecordPortsMixin, ComputeCube):
     title = "Complex Preparation"
     version = "0.1.0"
     classification = [["System Preparation"]]
@@ -100,7 +103,7 @@ class ComplexPrepCube(OERecordComputeCube):
             if port == 'intake':
 
                 if not record.has_value(Fields.primary_molecule):
-                    raise ValueError("Missing the Primary Molecule field")
+                    raise ValueError("Missing the ligand Primary Molecule field")
 
                 ligand = record.get_value(Fields.primary_molecule)
 

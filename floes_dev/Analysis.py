@@ -19,14 +19,13 @@
 
 from floe.api import WorkFloe
 
-from cuberecord import (DatasetWriterCube,
-                        DatasetReaderCube)
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import (TrajToOEMolCube,
-                                       TrajInteractionEnergyCube,
-                                       TrajPBSACube,
-                                       ClusterOETrajCube,
-                                       MDTrajAnalysisClusterReport,
+from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
+                                       ParallelTrajInteractionEnergyCube,
+                                       ParallelTrajPBSACube,
+                                       ParallelClusterOETrajCube,
+                                       ParallelMDTrajAnalysisClusterReport,
                                        MDFloeReportCube)
 
 job = WorkFloe('Short Trajectory MD Analysis',
@@ -60,11 +59,11 @@ ofs.promote_parameter("data_out", promoted_name="out")
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
-trajCube = TrajToOEMolCube("TrajToOEMolCube")
-IntECube = TrajInteractionEnergyCube("TrajInteractionEnergyCube")
-PBSACube = TrajPBSACube("TrajPBSACube")
-clusCube = ClusterOETrajCube("ClusterOETrajCube")
-report_gen = MDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
+trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
+IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
+PBSACube = ParallelTrajPBSACube("TrajPBSACube")
+clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
+report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 
 report = MDFloeReportCube("report", title="Floe Report")
 

@@ -17,14 +17,15 @@
 
 import traceback
 
-from cuberecord import OERecordComputeCube
-
 from MDOrion.Standards import Fields
 
-from floe.api import parameter
+from floe.api import (parameter,
+                      ComputeCube)
+
+from orionplatform.mixins import RecordPortsMixin
 
 
-class ProteinSetting(OERecordComputeCube):
+class ProteinSetting(RecordPortsMixin, ComputeCube):
     title = "Protein Setting"
     version = "0.1.0"
     classification = [["System Preparation"]]

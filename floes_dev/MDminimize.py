@@ -18,8 +18,10 @@
 # or its use.
 
 from floe.api import WorkFloe
-from MDOrion.MDEngines.cubes import MDMinimizeCube
-from cuberecord import DatasetReaderCube, DatasetWriterCube
+
+from MDOrion.MDEngines.cubes import ParallelMDMinimizeCube
+
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
 job = WorkFloe("Minimize",
                title="Minimize")
@@ -49,7 +51,7 @@ ifs = DatasetReaderCube("SystemReader", title="System Reader")
 ifs.promote_parameter("data_in", promoted_name="system", title='System Input File',
                       description="System input file")
 
-min = MDMinimizeCube('Minimize', title="System Minimization")
+min = ParallelMDMinimizeCube('Minimize', title="System Minimization")
 min.promote_parameter('steps', promoted_name='steps', default=0)
 min.promote_parameter('md_engine', promoted_name='md_engine', default='OpenMM',
                       description='Select the MD Engine')

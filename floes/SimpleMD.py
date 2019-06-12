@@ -20,16 +20,15 @@
 
 from floe.api import WorkFloe
 
-from cuberecord import (DatasetWriterCube,
-                        DatasetReaderCube)
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.MDEngines.cubes import (MDMinimizeCube,
-                                     MDNvtCube,
-                                     MDNptCube)
+from MDOrion.MDEngines.cubes import (ParallelMDMinimizeCube,
+                                     ParallelMDNvtCube,
+                                     ParallelMDNptCube)
 
-from MDOrion.System.cubes import SolvationCube
+from MDOrion.System.cubes import ParallelSolvationCube
 
-from MDOrion.ForceField.cubes import ForceFieldCube
+from MDOrion.ForceField.cubes import ParallelForceFieldCube
 
 from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting)
@@ -76,7 +75,7 @@ sysid = IDSettingCube("System Ids")
 job.add_cube(sysid)
 
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
-solvate = SolvationCube("Hydration", title="System Hydration")
+solvate = ParallelSolvationCube("Hydration", title="System Hydration")
 solvate.promote_parameter('density', promoted_name='density', default=1.03,
                           description="Solution density in g/ml")
 solvate.promote_parameter('salt_concentration', promoted_name='salt_concentration', default=50.0,
@@ -88,13 +87,13 @@ coll_open = CollectionSetting("OpenCollection")
 coll_open.set_parameters(open=True)
 
 # Force Field Application
-ff = ForceFieldCube("ForceField", title="System Parametrization")
+ff = ParallelForceFieldCube("ForceField", title="System Parametrization")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
 ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
 ff.set_parameters(lig_res_name='LIG')
 
-prod = MDNptCube("Production", title="Production")
+prod = ParallelMDNptCube("Production", title="Production")
 prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
                        description='Length of MD run in nanoseconds')
 prod.promote_parameter('temperature', promoted_name='temperature', default=300.0,
@@ -111,7 +110,7 @@ prod.set_parameters(suffix='prod')
 
 
 # Minimization
-minComplex = MDMinimizeCube('minComplex', title='System Minimization')
+minComplex = ParallelMDMinimizeCube('minComplex', title='System Minimization')
 minComplex.set_parameters(restraints="noh (ligand or protein)")
 minComplex.set_parameters(restraintWt=5.0)
 minComplex.set_parameters(steps=0)
@@ -122,7 +121,7 @@ minComplex.promote_parameter("md_engine", promoted_name="md_engine")
 
 
 # NVT simulation. Here the assembled system is warmed up to the final selected temperature
-warmup = MDNvtCube('warmup', title='System Warm Up')
+warmup = ParallelMDNvtCube('warmup', title='System Warm Up')
 warmup.set_parameters(time=0.01)
 warmup.promote_parameter("temperature", promoted_name="temperature")
 warmup.set_parameters(restraints="noh (ligand or protein)")
@@ -141,7 +140,7 @@ warmup.promote_parameter("md_engine", promoted_name="md_engine")
 # is applied in the first stage while a relatively small one is applied in the latter
 
 # NPT Equilibration stage 1
-equil1 = MDNptCube('equil1', title='System Equilibration I')
+equil1 = ParallelMDNptCube('equil1', title='System Equilibration I')
 equil1.set_parameters(time=0.01)
 equil1.promote_parameter("temperature", promoted_name="temperature")
 equil1.promote_parameter("pressure", promoted_name="pressure")
@@ -155,7 +154,7 @@ equil1.promote_parameter("md_engine", promoted_name="md_engine")
 
 
 # NPT Equilibration stage 2
-equil2 = MDNptCube('equil2', title='System Equilibration II')
+equil2 = ParallelMDNptCube('equil2', title='System Equilibration II')
 equil2.set_parameters(time=0.02)
 equil2.promote_parameter("temperature", promoted_name="temperature")
 equil2.promote_parameter("pressure", promoted_name="pressure")
@@ -168,7 +167,7 @@ equil2.set_parameters(suffix='equil2')
 equil2.promote_parameter("md_engine", promoted_name="md_engine")
 
 # NPT Equilibration stage 3
-equil3 = MDNptCube('equil3', title='System Equilibration III')
+equil3 = ParallelMDNptCube('equil3', title='System Equilibration III')
 equil3.set_parameters(time=0.03)
 equil3.promote_parameter("temperature", promoted_name="temperature")
 equil3.promote_parameter("pressure", promoted_name="pressure")

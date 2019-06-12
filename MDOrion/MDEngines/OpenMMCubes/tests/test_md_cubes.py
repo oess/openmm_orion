@@ -33,7 +33,9 @@ from simtk.openmm import app
 
 import MDOrion
 
-from cuberecord.cube_testing import OEMolRecordStream
+from datarecord import read_records
+
+from openeye import oechem
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
@@ -141,11 +143,11 @@ class OmmMinimizationCubeTester(unittest.TestCase):
         # Complex file name
 
         # File name
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pbace_lcat13a.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a.oedb"))
 
-        for record in ifs:
+        for record in read_records(ifs):
 
-            mdrecord =MDDataRecord(record)
+            mdrecord = MDDataRecord(record)
 
             stages = mdrecord.get_stages
             self.assertEqual(len(stages), 1)
@@ -202,9 +204,9 @@ class OmmNVTCubeTester(unittest.TestCase):
         print('Testing cube:', self.cube.name)
 
         # File name
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pP38_lig38a_2n_nvt_5ns.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pP38_lig38a_2n_nvt_5ns.oedb"))
 
-        for record in ifs:
+        for record in read_records(ifs):
             pass
 
         # Process the molecules
@@ -278,9 +280,9 @@ class OmmNPTCubeTester(unittest.TestCase):
         print('Testing cube:', self.cube.name)
 
         # File name
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pP38_lig38a_2n_npt_5ns.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pP38_lig38a_2n_npt_5ns.oedb"))
 
-        for record in ifs:
+        for record in read_records(ifs):
             pass
 
         # Process the molecules

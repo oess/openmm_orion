@@ -29,7 +29,9 @@ from MDOrion.MDEngines.cubes import (MDMinimizeCube,
 
 import MDOrion
 
-from cuberecord.cube_testing import OEMolRecordStream
+from datarecord import read_records
+
+from openeye import oechem
 
 from MDOrion.Standards import Fields
 
@@ -52,12 +54,11 @@ class GmxMinimizationCubeTester(unittest.TestCase):
 
     def _test_success(self):
         print('Testing cube:', self.cube.name)
+
         # Complex file name
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a.oedb"))
 
-        # File name
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pbace_lcat13a.oedb"))
-
-        for record in ifs:
+        for record in read_records(ifs):
             pass
 
         # Process the molecules
@@ -95,10 +96,10 @@ class GmxNVTCubeTester(unittest.TestCase):
     def _test_success(self):
         print('Testing cube:', self.cube.name)
 
-        # File name
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pP38_lig38a_2n_nvt_5ns.oedb"))
+        # Complex file name
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pP38_lig38a_2n_nvt_5ns.oedb"))
 
-        for record in ifs:
+        for record in read_records(ifs):
             pass
 
         # Process the molecules
@@ -144,10 +145,10 @@ class GmxNPTCubeTester(unittest.TestCase):
     def _test_success(self):
         print('Testing cube:', self.cube.name)
 
-        # File name
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pP38_lig38a_2n_npt_5ns.oedb"))
+        # Complex file name
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pP38_lig38a_2n_npt_5ns.oedb"))
 
-        for record in ifs:
+        for record in read_records(ifs):
             pass
 
         # Process the molecules

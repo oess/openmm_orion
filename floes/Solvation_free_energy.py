@@ -20,25 +20,24 @@
 
 from floe.api import WorkFloe
 
-from cuberecord import (DatasetWriterCube,
-                        DatasetReaderCube)
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.System.cubes import (SolvationCube,
+from MDOrion.System.cubes import (ParallelSolvationCube,
                                   CollectionSetting)
 
-from MDOrion.ForceField.cubes import ForceFieldCube
+from MDOrion.ForceField.cubes import ParallelForceFieldCube
 
-from MDOrion.LigPrep.cubes import (LigandChargeCube,
+from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
 
 from MDOrion.System.cubes import IDSettingCube
 
-from MDOrion.Yank.cubes import (YankSolvationFECube,
+from MDOrion.Yank.cubes import (ParallelYankSolvationFECube,
                                 YankProxyCube)
 
-from MDOrion.MDEngines.cubes import (MDMinimizeCube,
-                                     MDNvtCube,
-                                     MDNptCube)
+from MDOrion.MDEngines.cubes import (ParallelMDMinimizeCube,
+                                     ParallelMDNvtCube,
+                                     ParallelMDNptCube)
 
 from MDOrion.TrjAnalysis.cubes import MDFloeReportCube
 
@@ -76,7 +75,7 @@ iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input 
 job.add_cube(iligs)
 
 
-chargelig = LigandChargeCube("LigCharge", title="Ligand Charge")
+chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")
 chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
                             description="Calculate ligand partial charges", default=True)
 job.add_cube(chargelig)
@@ -88,7 +87,7 @@ job.add_cube(ligset)
 ligid = IDSettingCube("Ligand Ids")
 job.add_cube(ligid)
 
-solvate = SolvationCube("Solvation", title="System Solvation")
+solvate = ParallelSolvationCube("Solvation", title="System Solvation")
 solvate.promote_parameter("density", promoted_name="density", title="Solution density in g/ml", default=1.0,
                           description="Solution Density in g/ml")
 solvate.promote_parameter("solvents", promoted_name="solvents", title="Solvent components",
@@ -108,7 +107,7 @@ coll_open = CollectionSetting("OpenCollection")
 coll_open.set_parameters(open=True)
 job.add_cube(coll_open)
 
-ff = ForceFieldCube("ForceField", title="System Parametrization")
+ff = ParallelForceFieldCube("ForceField", title="System Parametrization")
 ff.promote_parameter('ligand_forcefield', promoted_name='Ligand ForceField', default='Gaff2')
 ff.set_parameters(lig_res_name='LIG')
 job.add_cube(ff)
@@ -120,7 +119,7 @@ yank_proxy.promote_parameter('iterations', promoted_name='iterations', default=1
 job.add_cube(yank_proxy)
 
 # First Yank Cube used to build the UI interface
-solvationfe = YankSolvationFECube("SolvationFE", title="Yank Solvation")
+solvationfe = ParallelYankSolvationFECube("SolvationFE", title="Yank Solvation")
 solvationfe.promote_parameter('iterations', promoted_name='iterations')
 solvationfe.promote_parameter('verbose', promoted_name='verbose', default=False)
 # solvationfe.promote_parameter('temperature', promoted_name='temperature', default=300.0,
@@ -133,7 +132,7 @@ solvationfe.set_parameters(lig_res_name='LIG')
 job.add_cube(solvationfe)
 
 # Minimization
-minimize = MDMinimizeCube("Minimize", title="System Minimization")
+minimize = ParallelMDMinimizeCube("Minimize", title="System Minimization")
 minimize.set_parameters(restraints='noh ligand')
 minimize.set_parameters(restraintWt=5.0)
 minimize.set_parameters(center=True)
@@ -142,7 +141,7 @@ job.add_cube(minimize)
 
 
 # NVT Warm-up
-warmup = MDNvtCube('warmup', title='System Warm Up')
+warmup = ParallelMDNvtCube('warmup', title='System Warm Up')
 warmup.set_parameters(time=0.02)
 # warmup.promote_parameter("temperature", promoted_name="temperature")
 warmup.set_parameters(restraints="noh ligand")
@@ -155,7 +154,7 @@ job.add_cube(warmup)
 
 
 # NPT Equilibration stage
-equil = MDNptCube('equil', title='System Equilibration')
+equil = ParallelMDNptCube('equil', title='System Equilibration')
 equil.set_parameters(time=0.02)
 # equil.promote_parameter("temperature", promoted_name="temperature")
 # equil.promote_parameter("pressure", promoted_name="pressure")

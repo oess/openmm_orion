@@ -16,10 +16,12 @@
 # or its use.
 
 import traceback
-from MDOrion.LigPrep import ff_utils
-from floe.api import ParallelMixin, parameter
 
-from cuberecord import OERecordComputeCube
+from MDOrion.LigPrep import ff_utils
+
+from floe.api import (parameter,
+                      ComputeCube,
+                      ParallelMixin)
 
 from oeommtools import utils as oeommutils
 
@@ -27,8 +29,10 @@ from MDOrion.Standards import Fields
 
 from openeye import oechem
 
+from orionplatform.mixins import RecordPortsMixin
 
-class LigandChargeCube(ParallelMixin, OERecordComputeCube):
+
+class LigandChargeCube(RecordPortsMixin, ComputeCube):
     title = "Ligand Charge"
     version = "0.1.0"
     classification = [["System Preparation"]]
@@ -115,16 +119,16 @@ class LigandChargeCube(ParallelMixin, OERecordComputeCube):
             self.failure.emit(record)
 
 
-class LigandSetting(OERecordComputeCube):
+class LigandSetting(RecordPortsMixin, ComputeCube):
     title = "Ligand Setting"
     version = "0.1.0"
     classification = [["System Preparation"]]
     tags = ['Ligand']
     description = """
-    This cube is used to set the ligand residue name as the cube parameter 
-    “lig_res_name” (default: “LIG”). This is necessary to facilitate the 
+    This cube is used to set the ligand residue name as the cube parameter
+    “lig_res_name” (default: “LIG”). This is necessary to facilitate the
     identification of system components during a system splitting.
-    
+
     Input:
     -------
     Data record Stream - Streamed-in of the ligand molecules
@@ -186,3 +190,13 @@ class LigandSetting(OERecordComputeCube):
             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
             self.log.error(traceback.format_exc())
             self.failure.emit(record)
+
+
+class ParallelLigandChargeCube(ParallelMixin, LigandChargeCube):
+    title = "Parallel " + LigandChargeCube.title
+    description = "(Parallel) " + LigandChargeCube.description
+
+
+# class ParallelLigandSetting(ParallelMixin, LigandSetting):
+#     title = "Parallel " + LigandSetting.title
+#     description = "(Parallel) " + LigandSetting.description

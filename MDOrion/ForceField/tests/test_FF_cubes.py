@@ -27,7 +27,9 @@ import os
 
 import pytest
 
-from cuberecord.cube_testing import OEMolRecordStream
+from datarecord import read_records
+
+from openeye import oechem
 
 PACKAGE_DIR = os.path.dirname(os.path.dirname(MDOrion.__file__))
 FILE_DIR = os.path.join(PACKAGE_DIR, "tests", "data")
@@ -48,9 +50,9 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_excipient_successGaff2(self):
         print('Testing cube:', self.cube.name)
         # File name
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
 
-        for record in ifs:
+        for record in read_records(ifs):
             pass
 
         # Selecting ligand and excipient parametrization
@@ -72,9 +74,9 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_excipient_successSmirnoff(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
 
-        for record in ifs:
+        for record in read_records(ifs):
             pass
 
         # Selecting ligand and excipient parametrization
@@ -94,9 +96,9 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_non_std_residue(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pCDK2_l30_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pCDK2_l30_solvated_complex.oedb"))
 
-        for record in ifs:
+        for record in read_records(ifs):
             pass
 
         # Process the molecules
@@ -111,10 +113,10 @@ class ForceFieldPrepTester(unittest.TestCase):
     @pytest.mark.local
     def test_protein_force_field_amber_99sbildn(self):
         print('Testing cube:', self.cube.name)
-        # File name
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
 
-        for record in ifs:
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+
+        for record in read_records(ifs):
             pass
 
         # Selecting ligand and excipient parametrization
@@ -136,10 +138,10 @@ class ForceFieldPrepTester(unittest.TestCase):
     @pytest.mark.local
     def test_protein_force_field_amber_fb15(self):
         print('Testing cube:', self.cube.name)
-        # File name
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
 
-        for record in ifs:
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+
+        for record in read_records(ifs):
             pass
 
         # Selecting ligand and excipient parametrization
@@ -161,10 +163,10 @@ class ForceFieldPrepTester(unittest.TestCase):
     @pytest.mark.local
     def test_protein_force_field_amber_14sb(self):
         print('Testing cube:', self.cube.name)
-        # File name
-        ifs = OEMolRecordStream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
 
-        for record in ifs:
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+
+        for record in read_records(ifs):
             pass
 
         # Selecting ligand and excipient parametrization

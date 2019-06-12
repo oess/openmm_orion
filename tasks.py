@@ -110,70 +110,37 @@ def setversion(ctx, new_version):
     dump(spec, open('manifest.json', 'w'), sort_keys=True, indent=4)
 
 
-# @task
-# def release(ctx):
-#     """
-#     Create a package for the distribution. All the floes where
-#     the release variable is set to True are included in the package
-#     """
-#
-#     # clean(ctx)
-#
-#     # Remove Artemis test package dependence
-#     with open(os.path.join(PACKAGE_DIR, "requirements_dev.txt"), "r") as f:
-#         requirements_lines = f.readlines()
-#
-#     original_requirements = copy.deepcopy(requirements_lines)
-#
-#     requirements_lines = ["# " + line if 'OpenEye-Artemis' in line else line for line in requirements_lines]
-#
-#     with open("requirements_dev.txt", "w") as f:
-#         f.writelines(requirements_lines)
-#
-#     # Select just the floes marked with the flag release=True
-#     floes = os.path.basename(FLOES_DIR)
-#
-#     fns = [f for f in iglob(floes + '/**/*.py', recursive=True) if os.path.isfile(f)]
-#
-#     fns = [os.path.basename(fn) for fn in fns]
-#
-#     fns.sort()
-#
-#     release_list = []
-#
-#     for fn in fns:
-#         m = SourceFileLoader(fn, os.path.join(floes, fn)).load_module()
-#         try:
-#             m.release
-#             release_list.append(fn)
-#         except AttributeError:
-#             continue
-#
-#     inc = ""
-#     for fn in release_list:
-#         inc += "include floes/" + fn + '\n'
-#
-#     with open(os.path.join(PACKAGE_DIR, "MANIFEST.in"), "r") as f:
-#         manifest_lines = f.readlines()
-#
-#     original_manifest = copy.deepcopy(manifest_lines)
-#
-#     manifest_lines = ["{}".format(inc) if 'graft floes' in line else line for line in manifest_lines]
-#
-#     with open("MANIFEST.in", "w") as f:
-#         f.writelines(manifest_lines)
-#
-#     run("python setup.py sdist")
-#
-#     # Rewrite original files
-#     with open("MANIFEST.in", "w") as f:
-#         f.writelines(original_manifest)
-#
-#     with open("requirements_dev.txt", "w") as f:
-#         f.writelines(original_requirements)
+@task
+def release(ctx):
+    """
+    Create a package for the distribution. All the floes where
+    the release variable is set to True are included in the package
+    """
+
+    # clean(ctx)
+
+    # Un-wanted Package list
+    pkg_un = ['OpenEye-Artemis', 'OpenEye-floe-pkg-tools']
+
+    with open(os.path.join(PACKAGE_DIR, "requirements_dev.txt"), "r") as f:
+        requirements_lines = f.readlines()
+
+    original_requirements = copy.deepcopy(requirements_lines)
+
+    for idx in range(0, len(requirements_lines)):
+        for pkg in pkg_un:
+            if pkg in requirements_lines[idx]:
+                requirements_lines[idx] = "# " + requirements_lines[idx]
+
+    with open("requirements_dev.txt", "w") as f:
+        f.writelines(requirements_lines)
+
+    run("python setup.py sdist")
+
+    with open("requirements_dev.txt", "w") as f:
+        f.writelines(original_requirements)
 
 
-#
 @task
 def docs(ctx):
     clean_docs(ctx)
