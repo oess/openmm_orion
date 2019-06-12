@@ -433,7 +433,6 @@ class TestYankBindingFloes(FloeTestCase):
         self.assertEqual(count, 5)
 
     @pytest.mark.local
-    @pytest.mark.orion
     def test_yank_binding_yaml_user_file(self):
         workfloe = WorkFloeWrapper.get_workfloe(
             os.path.join(FLOES_DEV_DIR, "Binding_free_energy_detailed.py"),
