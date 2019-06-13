@@ -81,6 +81,11 @@ pdb_url_cube.promote_parameter('pdb_code', promoted_name='pdb', title='PDB code 
 
 prep_cube.set_parameters(build_sc=True)
 prep_cube.set_parameters(cap_termini=True)
+prep_cube.set_parameters(mutations=None)
+prep_cube.set_parameters(no_protonate=False)
+prep_cube.set_parameters(no_charge=True)
+prep_cube.set_parameters(no_interactions=True)
+prep_cube.set_parameters(no_packing=True)
 
 # DU to Receptor cube parameters
 # dataset_cube.promote_parameter('cache_grids', promoted_name='cache_grids', title='Switch to cache grids on the receptor')  # noqa

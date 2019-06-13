@@ -413,24 +413,28 @@ class _SprucePrepBase():
     max_residues = SpruceParameters().max_residues
     max_system_atoms = SpruceParameters().max_system_atoms
     site_size = SpruceParameters().site_size
+    no_charge = SpruceParameters().no_charge
+    no_packing = SpruceParameters().no_packing
 
     def begin(self):
         self.prep_opts_args = {'--no-protonate': self.args.no_protonate,
                                '--mutations': self.args.mutations,
                                '--build-sc': self.args.build_sc,
                                '--cap-termini': self.args.cap_termini,
-                               '--no-interactions': self.args.no_interactions}
+                               '--no-interactions': self.args.no_interactions,
+                               '--no-packing': self.args.no_packing,
+                               '--no-charge': self.args.no_charge}
 
         self.split_opts_args = {'--ligand-name': self.args.ligand_name,
-                               '--split-cofactors': self.args.split_cofactors,
-                               '--cofactors': self.args.cofactors,
-                               '--excipients': self.args.excipients,
-                               '--split-cofactors': self.args.split_cofactors,
-                               '--min-atoms': self.args.min_atoms,
-                               '--max-atoms': self.args.max_atoms,
-                               '--max-residues': self.args.max_residues,
-                               '--max-system-atoms': self.args.max_system_atoms,
-                               '--site-size': self.args.site_size}
+                                '--split-cofactors': self.args.split_cofactors,
+                                '--cofactors': self.args.cofactors,
+                                '--excipients': self.args.excipients,
+                                '--min-atoms': self.args.min_atoms,
+                                '--max-atoms': self.args.max_atoms,
+                                '--max-residues': self.args.max_residues,
+                                '--max-system-atoms': self.args.max_system_atoms,
+                                '--site-size': self.args.site_size}
+
         self.split_opts = OESpruceSplitOptions(**self.split_opts_args)
         self.prep_opts = OESprucePrepOptions(**self.prep_opts_args)
 

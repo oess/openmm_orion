@@ -194,3 +194,15 @@ class SpruceParameters():
                                required=True,
                                choices=[SpruceFields().ligand.get_name(), SpruceFields().receptors.get_name()],
                                default=SpruceFields().ligand.get_name())
+
+    @property
+    def no_charge(self):
+        return BooleanParameter("no_charge",
+                                title='Charge the system',
+                                required=False, default=True)
+
+    @property
+    def no_packing(self):
+        return BooleanParameter("no_packing",
+                                title='Remove or not packing residues',
+                                required=False, default=True)
