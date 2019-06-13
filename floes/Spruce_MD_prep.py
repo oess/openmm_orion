@@ -23,9 +23,11 @@ from MDOrion.Spruce.prep import (PDBCodeToUrl,
                                  DUtoMDDataset)
 
 # Declare and document floe
-prep_floe = WorkFloe('prep_floe', title="Spruce Prep Floe")
+prep_floe = WorkFloe('prep_floe', title="Spruce MD Prep Floe")
 
 prep_floe.description = """
+THIS is an ALPHA Version and bugs are expected.
+
 A basic floe for Spruce Prep Protein Ready for Short Trajectory MD
 
 Required Input Parameters:
@@ -56,7 +58,7 @@ prep_floe.add_cubes(pdb_url_cube,
                     dataset_md_cube)
 
 # PDB cube parameters
-pdb_url_cube.promote_parameter('pdb_code', promoted_name='pdb', title='PDB code to download to a record.')  # noqa
+pdb_url_cube.promote_parameter('pdb_code', promoted_name='pdb', title='PDB code to download to a record.', required=True)  # noqa
 
 # pdb_url_cube.promote_parameter('pdb_codes', promoted_name='pdb_codes', title='A text file of PDB codes that will be prepped in the floe.')
 # pdb_url_cube.promote_parameter('design_ref', promoted_name='design_ref', title='Reference design unit, for BU extraction, APO site extraction and alignment.')  # noqa
@@ -87,8 +89,8 @@ prep_cube.set_parameters(cap_termini=True)
 # dataset_cube.promote_parameter('dataset_name', promoted_name='dataset_name', title='File name for the non-Orion output dataset.')  # noqa
 
 dataset_md_cube.promote_parameter('keep_du', promoted_name='keep_du', title='Keep the DU on the output record.', default=False)  # noqa
-dataset_md_cube.promote_parameter('dataset_prefix', promoted_name='dataset_prefix', title='Prefix for the non-Orion output dataset.', default='PRT')  # noqa
-dataset_md_cube.promote_parameter('dataset_name', promoted_name='dataset_name', title='File name for the non-Orion output dataset.', default='PRT')  # noqa
+# dataset_md_cube.promote_parameter('dataset_prefix', promoted_name='dataset_prefix', title='Prefix for the output dataset.', default='MDReady_')  # noqa
+# dataset_md_cube.promote_parameter('dataset_name', promoted_name='dataset_name', title='File name for the non-Orion output dataset.', default='4WTR')  # noqa
 
 
 # Connect all the ports

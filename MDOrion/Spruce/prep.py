@@ -19,7 +19,7 @@ import os
 import tempfile
 
 from floe.api import (SourceCube,
-                      ParallelMixin)
+                      ParallelMixin, parameter)
 from floe.api.orion import in_orion
 
 from datarecord import (OERecord,
@@ -234,6 +234,9 @@ class DUtoReceptorDataset(RecordPortsMixin, SinkCube):
 
     def write(self, record, port):
         du_byte_list = record.get_value(SpruceFields().du_vec)
+
+        self.pdb_code = record.get_value(SpruceFields().pdb_code)
+
         for du_bytes in du_byte_list:
             du = oechem.OEDesignUnit()
             oechem.OEReadDesignUnitFromBytes(du, du_bytes)
@@ -261,11 +264,9 @@ class DUtoReceptorDataset(RecordPortsMixin, SinkCube):
             out_record.set_value(SpruceFields().ird_single, iridium_score)
             out_record.set_value(SpruceFields().du_title, du_title)
 
+            fname = 'Receptor_' + self.pdb_code
+
             if self.in_orion:
-                if self.args.dataset_name:
-                    fname = self.args.dataset_name
-                else:
-                    fname = self.args.dataset_prefix + du_title
                 dataset = Dataset.create(APISession, fname)  # noqa
                 dataset.write(out_record)
                 dataset.finalize()
@@ -277,11 +278,9 @@ class DUtoReceptorDataset(RecordPortsMixin, SinkCube):
                 APISession.tag_resource(dataset, "Iridium: {}".format(iridium_score))
                 APISession.tag_resource(dataset, self.job_tag)
             else:
-                if self.args.dataset_name:
-                    fname = self.args.dataset_name
-                else:
-                    clean_du_title = du_title.replace(' > ', '__DU__')
-                    fname = sanitize_filename(self.db_file.format(clean_du_title))
+
+                fname += '.oedb'
+
                 record_stream = oechem.oeofstream(fname)
                 OEWriteRecord(record_stream, out_record, fmt='binary')
                 record_stream.close()
@@ -298,8 +297,6 @@ class DUtoMDDataset(RecordPortsMixin, SinkCube):
     failure = RecordOutputPort('failure')
 
     keep_du = SpruceParameters().keep_du  # TODO: do something with this param
-    dataset_prefix = SpruceParameters().dataset_prefix
-    dataset_name = SpruceParameters().dataset_name
 
     def begin(self):
         if in_orion():
@@ -307,12 +304,14 @@ class DUtoMDDataset(RecordPortsMixin, SinkCube):
             self.job_tag = get_orion_job_tag()
         else:
             self.in_orion = False
-            self.db_file = self.args.dataset_prefix + "{}.oedb"
 
         self.component_mask = oechem.OEDesignUnitComponents_Default ^ oechem.OEDesignUnitComponents_Metals ^ oechem.OEDesignUnitComponents_Ligand
 
     def write(self, record, port):
         du_byte_list = record.get_value(SpruceFields().du_vec)
+
+        self.pdb_code = record.get_value(SpruceFields().pdb_code)
+
         for du_bytes in du_byte_list:
             du = oechem.OEDesignUnit()
             oechem.OEReadDesignUnitFromBytes(du, du_bytes)
@@ -321,19 +320,29 @@ class DUtoMDDataset(RecordPortsMixin, SinkCube):
                 self.log.warn("Could not make an MD ready complex from DU named {}".format(du.GetTitle()))  # noqa
                 continue
 
+            md_complex.SetTitle(self.pdb_code)
+
             out_record = OERecord()
             out_record.set_value(SpruceFields().md_complex, md_complex)
 
+            # # TODO DEBUG
+            # with oechem.oemolostream("test.oeb") as ofs:
+            #     oechem.OEWriteConstMolecule(ofs, md_complex)
+
             du_title = du.GetTitle()
+
             pdb_code = du_title[:du_title.find("(")] if du_title.find("(") != -1 else "Unknown"  # noqa
             sq = du.GetStructureQuality()
             iridium_score = oechem.OEGetIridiumCategoryName(sq.GetIridiumData().GetCategory()) if sq.HasIridiumData() else "N/A"  # noqa
 
+            if "biounit" in du_title:
+                fname = "BU_" + self.pdb_code
+
+            else:
+                fname = "MDReady_" + self.pdb_code
+
             if self.in_orion:
-                if self.args.dataset_name:
-                    fname = self.args.dataset_name
-                else:
-                    fname = self.args.dataset_prefix + du_title
+
                 dataset = Dataset.create(APISession, fname)  # noqa
                 dataset.write(out_record)
                 dataset.finalize()
@@ -345,11 +354,9 @@ class DUtoMDDataset(RecordPortsMixin, SinkCube):
                 APISession.tag_resource(dataset, "Iridium: {}".format(iridium_score))
                 APISession.tag_resource(dataset, self.job_tag)
             else:
-                if self.args.dataset_name:
-                    fname = self.args.dataset_name
-                else:
-                    clean_du_title = du_title.replace(' > ', '__DU__')
-                    fname = sanitize_filename(self.db_file.format(clean_du_title))
+               
+                fname += '.oedb'
+
                 record_stream = oechem.oeofstream(fname)
                 OEWriteRecord(record_stream, out_record, fmt='binary')
                 record_stream.close()
