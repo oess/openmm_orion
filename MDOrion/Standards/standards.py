@@ -55,24 +55,26 @@ class MDFileNames:
     trajectory_conformers = "trajectory_confs.oeb"
     mddata = "data.tar.gz"
 
+
+# Orion Hidden meta data options
+_metaHidden = OEFieldMeta(options=[Meta.Display.Hidden])
+_metaIDHidden = OEFieldMeta(options=[Meta.Source.ID, Meta.Display.Hidden])
+
+
 # ---------------- Field Standards -------------- #
-
-metaHidden = OEFieldMeta(options=[Meta.Display.Hidden])
-metaIDHidden = OEFieldMeta(options=[Meta.Source.ID, Meta.Display.Hidden])
-
 class Fields:
 
     # The Title field is used to set the system name
     title = OEField("Title_OPLMD", Types.String, meta=OEFieldMeta().set_option(Meta.Source.ID))
 
     # The ID field should be used as identification number for ligands, proteins or complexes
-    id = OEField("ID_OPLMD", Types.Int, meta=metaIDHidden)
+    id = OEField("ID_OPLMD", Types.Int, meta=_metaIDHidden)
 
     # The SysID field is used to keep track of the system order
-    sysid = OEField("SysID_OPLMD", Types.Int, meta=metaIDHidden)
+    sysid = OEField("SysID_OPLMD", Types.Int, meta=_metaIDHidden)
 
     # The ConfID field is used to identify a particular conformer
-    confid = OEField("ConfID_OPLMD", Types.Int, meta=metaIDHidden)
+    confid = OEField("ConfID_OPLMD", Types.Int, meta=_metaIDHidden)
 
     # The Ligand field should be used to save in a record a ligand as an OEMolecule
     ligand = OEField("Ligand_OPLMD", Types.Chem.Mol, meta=OEFieldMeta().set_option(Meta.Hints.Chem.Ligand))
@@ -88,15 +90,15 @@ class Fields:
 
     # Parmed Structure, Trajectory, MDData and Protein trajectory conformers Fields
     if in_orion():
-        pmd_structure = OEField('Structure_Parmed_OPLMD', Types.Int, meta=metaHidden)
-        trajectory = OEField("Trajectory_OPLMD", Types.Int, meta=metaHidden)
-        mddata = OEField("MDData_OPLMD", Types.Int, meta=metaHidden)
-        protein_traj_confs = OEField("ProtTraj_OPLMD", Types.Int, meta=metaHidden)
+        pmd_structure = OEField('Structure_Parmed_OPLMD', Types.Int, meta=_metaHidden)
+        trajectory = OEField("Trajectory_OPLMD", Types.Int, meta=_metaHidden)
+        mddata = OEField("MDData_OPLMD", Types.Int, meta=_metaHidden)
+        protein_traj_confs = OEField("ProtTraj_OPLMD", Types.Int, meta=_metaHidden)
     else:
-        pmd_structure = OEField('Structure_Parmed_OPLMD', ParmedData, meta=metaHidden)
-        trajectory = OEField("Trajectory_OPLMD", Types.String, meta=metaHidden)
-        mddata = OEField("MDData_OPLMD", Types.String, meta=metaHidden)
-        protein_traj_confs = OEField("ProtTraj_OPLMD", Types.Chem.Mol, meta=metaHidden)
+        pmd_structure = OEField('Structure_Parmed_OPLMD', ParmedData, meta=_metaHidden)
+        trajectory = OEField("Trajectory_OPLMD", Types.String, meta=_metaHidden)
+        mddata = OEField("MDData_OPLMD", Types.String, meta=_metaHidden)
+        protein_traj_confs = OEField("ProtTraj_OPLMD", Types.Chem.Mol, meta=_metaHidden)
 
     # The Stage Name
     stage_name = OEField('Stage_name_OPLMD', Types.String)
@@ -114,10 +116,10 @@ class Fields:
     md_state = OEField("MDState_OPLMD", MDStateData)
 
     # Collection is used to offload data from the record which must be < 100Mb
-    collection = OEField("Collection_ID_OPLMD", Types.Int, meta=metaHidden)
+    collection = OEField("Collection_ID_OPLMD", Types.Int, meta=_metaHidden)
 
     # Stage list Field
-    md_stages = OEField("MDStages_OPLMD", Types.RecordVec, meta=metaHidden)
+    md_stages = OEField("MDStages_OPLMD", Types.RecordVec, meta=_metaHidden)
 
     # Analysis Fields
     free_energy = OEField('FE_OPLMD', Types.Float,
@@ -133,24 +135,22 @@ class Fields:
 
     floe_report_label = OEField('Floe_report_label_OPLMD', Types.String)
 
+    class Analysis:
 
-class AnlysFields:
+        # The OETraj Field is for the record containing Traj OEMols and energies
+        oetraj_rec = OEField("OETraj", Types.Record, meta=_metaHidden)
 
-    # The OETraj Field is for the record containing Traj OEMols and energies
-    oetraj_rec = OEField("OETraj", Types.Record, meta=metaHidden)
+        # The TrajIntE Field is for the record containing Traj interaction energies
+        oeintE_rec = OEField("TrajIntE", Types.Record, meta=_metaHidden)
 
-    # The TrajIntE Field is for the record containing Traj interaction energies
-    oeintE_rec = OEField("TrajIntE", Types.Record, meta=metaHidden)
+        # The TrajPBSA Field is for the record containing Traj PBSA energies
+        oepbsa_rec = OEField("TrajPBSA", Types.Record, meta=_metaHidden)
 
-    # The TrajPBSA Field is for the record containing Traj PBSA energies
-    oepbsa_rec = OEField("TrajPBSA", Types.Record, meta=metaHidden)
+        # The TrajClus Field is for the record containing Traj ligand clustering results
+        oeclus_rec = OEField("TrajClus", Types.Record, meta=_metaHidden)
 
-    # The TrajClus Field is for the record containing Traj ligand clustering results
-    oeclus_rec = OEField("TrajClus", Types.Record, meta=metaHidden)
+        # The AnalysesDone Field is for a list of the analyses that have been done
+        analysesDone = OEField("AnalysesDone", Types.StringVec, meta=_metaHidden)
 
-    # The AnalysesDone Field is for a list of the analyses that have been done
-    analysesDone = OEField("AnalysesDone", Types.StringVec, meta=metaHidden)
-
-    # The Lig_Conf_Data Field is for the record containing Traj conf data for all confs
-    oetrajconf_rec = OEField("Lig_Conf_Data", Types.RecordVec, meta=metaHidden)
-
+        # The Lig_Conf_Data Field is for the record containing Traj conf data for all confs
+        oetrajconf_rec = OEField("Lig_Conf_Data", Types.RecordVec, meta=_metaHidden)

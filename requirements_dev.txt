@@ -7,11 +7,14 @@ six==1.12.0
 wcwidth==0.1.7
 
 # OE Stack
+
+# Leave this here to avoid pip install issues
+OpenEye-orionplatform==0.3.1
+
 OpenEye-Artemis==0.3.4
 OpenEye-ensemble2img==0.1.1
 OpenEye-floe-pkg-tools==0.7.5
 OpenEye-floereport==0.1.2
 OpenEye_oetrajanalysis==0.1.4.3
-OpenEye-orionplatform==0.3.1
 Openeye-spruce==0.12.0
 Openeye-toolkits==2019.4.2
