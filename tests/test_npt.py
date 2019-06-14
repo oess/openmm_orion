@@ -29,7 +29,7 @@ import pytest
 
 from openeye.oechem import oeifstream
 
-from datarecord import read_mol_record
+from datarecord import read_records
 
 import MDOrion
 
@@ -149,14 +149,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -166,11 +163,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)
@@ -254,14 +248,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -271,11 +262,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)

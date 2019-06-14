@@ -31,7 +31,7 @@ import MDOrion
 
 from openeye import oechem
 
-from datarecord import read_mol_record
+from datarecord import read_records
 
 from artemis.wrappers import using_orion
 
@@ -101,14 +101,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -119,11 +116,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oechem.oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)
@@ -183,14 +177,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -201,12 +192,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oechem.oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
-        ifs.close()
+        for rec in read_records(ifs):
+            records.append(rec)
 
         count = len(records)
         # Check the out record list
@@ -264,14 +251,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -282,11 +266,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oechem.oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)
@@ -345,14 +326,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -363,11 +341,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oechem.oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)
@@ -429,14 +404,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -447,11 +419,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oechem.oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)
@@ -512,14 +481,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -530,11 +496,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oechem.oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)
@@ -596,14 +559,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -614,11 +574,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oechem.oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)
@@ -679,14 +636,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -697,11 +651,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oechem.oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)
@@ -762,14 +713,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -780,11 +728,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oechem.oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)
@@ -848,14 +793,11 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
+        fail_ifs = oechem.oeifstream(fail_output_file.path)
         records_fail = []
 
-        while True:
-            record_fail = read_mol_record(fail_ifs)
-            if record_fail is None:
-                break
-            records_fail.append(record_fail)
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
         fail_ifs.close()
 
         count = len(records_fail)
@@ -866,11 +808,8 @@ class TestMDOrionFloes(FloeTestCase):
         ifs = oechem.oeifstream(output_file.path)
         records = []
 
-        while True:
-            record = read_mol_record(ifs)
-            if record is None:
-                break
-            records.append(record)
+        for rec in read_records(ifs):
+            records.append(rec)
         ifs.close()
 
         count = len(records)
