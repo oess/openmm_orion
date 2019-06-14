@@ -26,9 +26,19 @@ from MDOrion.Spruce.prep import (PDBCodeToUrl,
 prep_floe = WorkFloe('prep_floe', title="Spruce MD Prep Floe")
 
 prep_floe.description = """
-THIS is an ALPHA Version and bugs are expected.
+THIS is an ALPHA Version.
 
-A basic floe for Spruce Prep Protein Ready for Short Trajectory MD
+A basic floe for Spruce Protein Prep generating a protein ready for input
+into MD. Specifically, residues with missing sidechain atoms have the
+sidechains rebuilt, chain termini are capped with N-methyl and acetate,
+and the protein is intelligently protonated.
+Internal waters are retained. The cognate ligand is removed, as are
+excipients, metals, and glycosylation sugars on glycosylated residues.
+
+Known Bugs (being fixed):
+- Once glycosylation sugars have been removed, residue sidechains are not yet
+capped with hydrogen.
+- All metals are removed even if they are important (e.g. cofactors).
 
 Required Input Parameters:
 --------------------------
@@ -86,6 +96,8 @@ prep_cube.set_parameters(no_protonate=False)
 prep_cube.set_parameters(no_charge=True)
 prep_cube.set_parameters(no_interactions=True)
 prep_cube.set_parameters(no_packing=True)
+prep_cube.set_parameters(excipients=None)
+
 
 # DU to Receptor cube parameters
 # dataset_cube.promote_parameter('cache_grids', promoted_name='cache_grids', title='Switch to cache grids on the receptor')  # noqa
