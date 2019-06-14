@@ -2,7 +2,7 @@ import click
 
 from openeye import oechem
 
-from datarecord import read_mol_record, OEField
+from datarecord import read_records, OEField
 
 from MDOrion.Standards import Fields
 
@@ -54,11 +54,8 @@ def dataset(ctx, filename, id, profile=None, max_retries=2):
 
     records = []
 
-    while True:
-        record = read_mol_record(ifs)
-        if record is None:
-            break
-        records.append(record)
+    for rec in read_records(ifs):
+        records.append(rec)
     ifs.close()
 
     if id == 'all':
