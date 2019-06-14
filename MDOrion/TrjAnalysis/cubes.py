@@ -342,15 +342,13 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             record.set_value( AnlysFields.oetraj_rec, oetrajRecord)
 
             # update or initiate the list of analyses that have been done
-            analysesDoneField = OEField('AnalysesDone', Types.StringVec)
-
-            if record.has_value(analysesDoneField):
-                analysesDone = utl.RequestOEFieldType(record, analysesDoneField)
+            if record.has_value( AnlysFields.analysesDone):
+                analysesDone = utl.RequestOEFieldType(record,  AnlysFields.analysesDone)
                 analysesDone.append('OETraj')
             else:
                 analysesDone = ['OETraj']
 
-            record.set_value( analysesDoneField, analysesDone)
+            record.set_value(  AnlysFields.analysesDone, analysesDone)
             opt['Logger'].info('{}: saved protein and ligand traj OEMols'.format(system_title))
 
             self.success.emit(record)
@@ -410,7 +408,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} Attempting to compute MD Traj PBSA energies'.format(system_title))
 
             # Check that the OETraj analysis has been done
-            analysesDone = utl.RequestOEField( record, 'AnalysesDone', Types.StringVec)
+            analysesDone = utl.RequestOEFieldType(record,  AnlysFields.analysesDone)
             if 'OETraj' not in analysesDone:
                 raise ValueError('{} does not have OETraj analyses done'.format(system_title))
             else:
@@ -502,7 +500,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
             # Add the trajPBSA record to the parent record
             record.set_value( AnlysFields.oepbsa_rec, trajPBSA)
             analysesDone.append('TrajPBSA')
-            record.set_value(OEField('AnalysesDone', Types.StringVec), analysesDone)
+            record.set_value( AnlysFields.analysesDone, analysesDone)
             opt['Logger'].info('{} finished writing TrajPBSA OERecord'.format(system_title))
 
             self.success.emit(record)
@@ -570,7 +568,7 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
                 .format(system_title) )
 
             # Check that the OETraj analysis has been done
-            analysesDone = utl.RequestOEField( record, 'AnalysesDone', Types.StringVec)
+            analysesDone = utl.RequestOEFieldType(record,  AnlysFields.analysesDone)
             if 'OETraj' not in analysesDone:
                 raise ValueError('{} does not have OETraj analyses done'.format(system_title) )
             else:
@@ -624,7 +622,7 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
             # Add the trajIntE record to the parent record
             record.set_value( AnlysFields.oeintE_rec, trajIntE)
             analysesDone.append( 'TrajIntE')
-            record.set_value( OEField( 'AnalysesDone', Types.StringVec), analysesDone)
+            record.set_value(  AnlysFields.analysesDone, analysesDone)
             opt['Logger'].info('{} finished writing trajIntE OERecord'.format(system_title) )
 
             self.success.emit(record)
@@ -693,7 +691,7 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
                 .format(system_title) )
 
             # Check that the OETraj analysis has been done
-            analysesDone = utl.RequestOEField( record, 'AnalysesDone', Types.StringVec)
+            analysesDone = utl.RequestOEFieldType(record,  AnlysFields.analysesDone)
             if 'OETraj' not in analysesDone:
                 raise ValueError('{} does not have OETraj analyses done'.format(system_title) )
             else:
@@ -791,7 +789,7 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             #
             record.set_value( AnlysFields.oeclus_rec, trajClus)
             analysesDone.append( 'TrajClus')
-            record.set_value( OEField( 'AnalysesDone', Types.StringVec), analysesDone)
+            record.set_value( AnlysFields.analysesDone, analysesDone)
             opt['Logger'].info('{} finished writing trajClus OERecord'.format(system_title) )
 
             self.success.emit(record)
@@ -859,7 +857,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             asiteSVG = utl.PoseInteractionsSVG(ligInitPose, protInitPose, width=400, height=265)
 
             # Extract the traj SVG from the OETraj record
-            analysesDone = utl.RequestOEField(record, 'AnalysesDone', Types.StringVec)
+            analysesDone = utl.RequestOEFieldType(record,  AnlysFields.analysesDone)
 
             if 'OETraj' not in analysesDone:
                 raise ValueError('{} does not have OETraj analyses done'.format(system_title) )
@@ -879,8 +877,6 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             ligand_bfactor = utl.RequestOEField(oetrajRecord, 'LigAverage', Types.Chem.Mol)
 
             # Extract the three plots from the TrajClus record
-            analysesDone = utl.RequestOEField(record, 'AnalysesDone', Types.StringVec)
-
             if 'TrajClus' not in analysesDone:
                 raise ValueError('{} does not have TrajClus analyses done'.format(system_title))
             else:
