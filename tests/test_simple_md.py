@@ -75,7 +75,7 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream(fail_output_file.path)
+        fail_ifs = oechem.oeifstream()
         records_fail = []
 
         for rec_fail in read_records(fail_ifs):
@@ -131,7 +131,7 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream(fail_output_file.path)
+        fail_ifs = oechem.oeifstream()
         records_fail = []
 
         for rec_fail in read_records(fail_ifs):

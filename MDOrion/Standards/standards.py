@@ -128,12 +128,12 @@ class Fields:
     free_energy_err = OEField('FE_Error_OPLMD', Types.Float,
                               meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
 
-    floe_report = OEField('Floe_report_OPLMD', Types.String)
+    floe_report = OEField('Floe_report_OPLMD', Types.String, meta=_metaHidden)
 
     floe_report_svg_lig_depiction = OEField("Floe_report_lig_svg_OPLMD", Types.String,
                                             meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
 
-    floe_report_label = OEField('Floe_report_label_OPLMD', Types.String)
+    floe_report_label = OEField('Floe_report_label_OPLMD', Types.String, meta=_metaHidden)
 
     class Analysis:
 
