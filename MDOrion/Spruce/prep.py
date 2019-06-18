@@ -16,6 +16,9 @@
 # or its use.
 
 import os
+
+from orionclient.session import in_orion, OrionSession
+
 import tempfile
 
 from floe.api import (SourceCube,
@@ -486,7 +489,7 @@ class SprucePrepAdvanced(_SprucePrepBase, RecordPortsMixin, ComputeCube):
 
 
 class SprucePrepBasic(_SprucePrepBase, RecordPortsMixin, SourceCube):
-    title = "Spruce Prep Basic"
+    title = "Spruce Preparation"
     classification = [["Spruce", "Prep", "Basic"]]
     tags = ["OpenEye", "snowball", "Spruce", "Basic"]
     description = "A vector of Spruce-prepped OEDesignUnits is generated from PDB code or set of input PDB/MTZ files."  # noqa
@@ -505,6 +508,9 @@ class SprucePrepBasic(_SprucePrepBase, RecordPortsMixin, SourceCube):
 
         record = OERecord()
 
+        if self.args.pdb_file is None and self.args.pdb_code is None:
+            raise ValueError("The PDB code or the PDB file is required")
+
         if self.args.design_ref:
             du_ref = get_du_ref_file(self.args.design_ref)
             if du_ref is None:
@@ -514,6 +520,7 @@ class SprucePrepBasic(_SprucePrepBase, RecordPortsMixin, SourceCube):
                 return
         else:
             du_ref = None
+
         if self.args.biounit_ref:
             bu_ref = get_bu_ref_mol(self.args.biounit_ref)
             if bu_ref is not None:
@@ -538,52 +545,60 @@ class SprucePrepBasic(_SprucePrepBase, RecordPortsMixin, SourceCube):
             pdb_code = self.args.pdb_code
         else:
             if self.args.pdb_file:
-                if not os.path.isfile(str(self.args.pdb_file)):
+                if in_orion():
                     if not isinstance(self.args.pdb_file, dict):
-                        file = self.args.pdb_file
+                        fn = self.args.pdb_file
                     else:
-                        file = self.args.pdb_file["file"]
-                    resource = APISession.get_resource(File, file)
-                    self.temp = TemporaryPath(suffix=resource.name)
-                    resource.download_to_file(self.temp.path)
-                    self.args.pdb_file = self.temp.path
-                if isinstance(self.temp.path, str):
-                    with open(self.temp.path, "rb") as pdb_file:
-                        pdb = pdb_file.read()
+                        output_dir = tempfile.TemporaryDirectory()
+                        file_id = self.args.pdb_file['file']
+                        session = OrionSession()
+                        resource = session.get_resource(File, file_id)
+                        fn = os.path.join(output_dir.name, "protein.pdb")
+                        resource.download_to_file(fn)
                 else:
-                    pdb = self.args.pdb_file
+                    fn = self.args.pdb_file
+
+                with open(fn, "rb") as pdb_file:
+                    pdb = pdb_file.read()
             else:
                 self.log.info("A PDB file or PDB code is required. Aborting.".format(self.args.pdb_code))  # noqa
                 self.failure.emit(record)
                 return
+
         mol = oechem.OEMol()
+
         if not ReadProteinFromPDB(pdb.decode(), mol, expand_alts=False):
             self.log.warning("Could not read PDB data for code: {}".format(pdb_code))  # noqa
             self.failure.emit(record)
             return
+
         if not self.args.pdb_code:
-            pdb_code = mol.GetTitle() if len(mol.GetTitle()) >= 4 else mol.GetTitle()
+            # pdb_code = mol.GetTitle() if len(mol.GetTitle()) >= 4 else mol.GetTitle()
+            pdb_code = mol.GetTitle()[0:4]
 
         if self.args.mtz_file:
-            if not os.path.isfile(str(self.args.mtz_file)):
+            if in_orion():
                 if not isinstance(self.args.mtz_file, dict):
-                    file = self.args.mtz_file
+                    fn = self.args.mtz_file
                 else:
-                    file = self.args.mtz_file["file"]
-                resource = APISession.get_resource(File, file)
-                self.temp = TemporaryPath(suffix=resource.name)
-                resource.download_to_file(self.temp.path)
-                self.args.mtz_file = self.temp.path
-            if isinstance(self.temp.path, str):
-                with open(self.temp.path, "rb") as mtz_file:
-                    mtz = mtz_file.read()
+                    output_dir = tempfile.TemporaryDirectory()
+                    file_id = self.args.mtz_file['file']
+                    session = OrionSession()
+                    resource = session.get_resource(File, file_id)
+                    fn = os.path.join(output_dir.name, "protein.mtz")
+                    resource.download_to_file(fn)
             else:
-                mtz = self.args.mtz_file
+                fn = self.args.mtz_file
+
+            with open(fn, "rb") as mtz_file:
+                mtz = mtz_file.read()
+
         else:
             mtz_url = get_mtz_url(pdb_code, self.log.info)
             mtz = None
             if mtz_url:
                 mtz = download_mtz(mtz_url, pdb_code, self.log.info)
+
         du_list, ird_list = create_du_ird(mol, pdb_code, mtz,
                                           self.split_opts, self.prep_opts,
                                           du_ref, bu_ref)
@@ -598,6 +613,11 @@ class SprucePrepBasic(_SprucePrepBase, RecordPortsMixin, SourceCube):
         record.set_value(SpruceFields().pdb_file, pdb)
 
         yield record
+
+
+class ParallelSprucePrepBasic(ParallelMixin, SprucePrepBasic):
+    title = "Parallel " + SprucePrepBasic.title
+    description = "(Parallel) " + SprucePrepBasic.description
 
 
 class ParallelSprucePrepAdvanced(ParallelMixin, SprucePrepAdvanced):

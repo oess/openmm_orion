@@ -18,6 +18,7 @@ from datarecord import (OEField,
                         Types)
 from datarecord import OEPrimaryMolField
 
+
 class SpruceFields():
     @property
     def pdb_code(self):

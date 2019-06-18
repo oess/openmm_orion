@@ -178,9 +178,7 @@ def applyffExcipients(excipients, opt):
     # OpenMM topology and positions from OEMol
     topology, positions = oeommutils.oemol_to_openmmTop(excipients)
 
-
     # Ions are contained in the amberff14 force field
-
     exc_ff = "amber14/tip3p.xml"
 
     # Try to apply the selected FF on the excipients

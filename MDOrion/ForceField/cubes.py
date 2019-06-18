@@ -190,6 +190,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                                                            excipient_structure.positions,
                                                            verbose=False)
                 oechem.OEPerceiveBondOrders(excipients)
+                oechem.OEAssignFormalCharges(excipients)
                 oe_mol_list.append(excipients)
 
             # Build the overall Parmed structure
@@ -231,9 +232,17 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                     thisRes.SetHetAtom(True)
                 oechem.OEAtomSetResidue(at, thisRes)
 
-            if system_reassembled.GetMaxAtomIdx() != system_structure.topology.getNumAtoms():
+            if system_reassembled.NumAtoms() != system_structure.topology.getNumAtoms():
                 raise ValueError("OEMol system {} and generated Parmed structure "
                                  "mismatch atom numbers".format(system_title))
+            
+            system_formal_charge = 0
+            for at in system_reassembled.GetAtoms():
+                system_formal_charge += at.GetFormalCharge()
+                #if at.GetFormalCharge() != 0 :
+                #   print(at, at.GetFormalCharge())
+                
+            print("System Total Formal Charge = {}".format(system_formal_charge))
 
             # Copying the charges between the parmed structure and the oemol
             for parm_at, oe_at in zip(system_structure.atoms, system_reassembled.GetAtoms()):
@@ -262,7 +271,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             mdrecord.set_parmed(system_structure, shard_name="Parmed_" + system_title + '_' + str(sys_id))
 
             data_fn = os.path.basename(mdrecord.cwd) + '_' + system_title+'_' + str(sys_id) + '-' + opt['suffix']+'.tar.gz'
-
+  
             if not mdrecord.add_new_stage(self.title,
                                           MDStageTypes.SETUP,
                                           system_reassembled,

@@ -27,7 +27,7 @@ class SpruceParameters():
     def pdb_code(self):
         return StringParameter("pdb_code",
                                title="The PDB code that will be downloaded.",
-                               required=True)
+                               required=False)
 
     @property
     def pdb_codes(self):

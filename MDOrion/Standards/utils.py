@@ -37,6 +37,9 @@ import os
 from orionclient.types import (Shard,
                                ShardCollection)
 
+from orionclient.helpers.collections import (try_hard_to_create_shard,
+                                             try_hard_to_download_shard)
+
 
 class ParmedData(CustomHandler):
 
@@ -163,12 +166,8 @@ def upload_data(filename, collection_id=None, shard_name=""):
 
         collection = session.get_resource(ShardCollection, collection_id)
 
-        shard = Shard.create(collection, name=shard_name)
-
-        shard.upload_file(filename)
-
-        shard.close()
-
+        shard = try_hard_to_create_shard(collection, filename, name=shard_name)
+        
         file_id = shard.id
 
     else:
@@ -194,7 +193,7 @@ def download_data(file_id, path, collection_id=None):
 
         fn_local = os.path.join(path, MDFileNames.mddata)
 
-        shard.download_to_file(fn_local)
+        try_hard_to_download_shard(shard, fn_local)
 
     else:
         fn_local = file_id

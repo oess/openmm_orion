@@ -21,6 +21,7 @@ from .prep import UrlToFile
 from .prep import ParallelUrlToFile
 
 from .prep import SprucePrepBasic
+from .prep import ParallelSprucePrepBasic
 
 from .prep import SprucePrepAdvanced
 from .prep import ParallelSprucePrepAdvanced
