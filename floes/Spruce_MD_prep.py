@@ -41,10 +41,14 @@ capped with hydrogen.
 Required Input Parameters:
 --------------------------
 PDB ID: Protein ID number
+PDB File: Protein PDB file
+MTZ File: Protein MTZ file
 
 Outputs:
 --------
 out:  OERecord with the MD prepared protein
+      OERecord with the OE Receptor
+      OERecord with the Protein Bio-Unit
 
 """
 
@@ -63,7 +67,7 @@ prep_floe.add_cubes(prep_cube,
                     dataset_md_cube)
 
 # PDB cube parameters
-prep_cube.promote_parameter('pdb_code', promoted_name='pdb_code', title='PDB code to download to a record.')
+prep_cube.promote_parameter('pdb_code', promoted_name='pdb_code', title='The protein PDB code')
 prep_cube.promote_parameter('pdb_file', promoted_name='pdb_file', title='The protein PDB file')
 prep_cube.promote_parameter('mtz_file', promoted_name='mtz_file', title='The protein MTZ file')
 
@@ -77,7 +81,7 @@ prep_cube.set_parameters(no_interactions=True)
 prep_cube.set_parameters(no_packing=True)
 prep_cube.set_parameters(excipients=None)
 
-dataset_md_cube.promote_parameter('keep_du', promoted_name='keep_du', title='Keep the DU on the output record.', default=False)  # noqa
+dataset_md_cube.promote_parameter('keep_du', promoted_name='keep_du', title='Keep the DU on the output record.', default=False)
 
 # Connect all the ports
 prep_cube.success.connect(dataset_cube.intake)

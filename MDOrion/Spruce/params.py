@@ -26,7 +26,7 @@ class SpruceParameters():
     @property
     def pdb_code(self):
         return StringParameter("pdb_code",
-                               title="The PDB code that will be downloaded.",
+                               title="The protein PDB code",
                                required=False)
 
     @property
@@ -40,7 +40,7 @@ class SpruceParameters():
     @property
     def pdb_file(self):
         return FileInputParameter("pdb_file",
-                                  title="The PDB file that will be used.",
+                                  title="The protein PDB file",
                                   required=False,
                                   null=True,
                                   default=None)
@@ -48,7 +48,7 @@ class SpruceParameters():
     @property
     def mtz_file(self):
         return FileInputParameter("mtz_file",
-                                  title="The MTZ file that will be used.",
+                                  title="The protein MTZ file",
                                   required=False,
                                   null=True,
                                   default=None)

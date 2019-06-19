@@ -489,10 +489,17 @@ class SprucePrepAdvanced(_SprucePrepBase, RecordPortsMixin, ComputeCube):
 
 
 class SprucePrepBasic(_SprucePrepBase, RecordPortsMixin, SourceCube):
+
     title = "Spruce Preparation"
-    classification = [["Spruce", "Prep", "Basic"]]
-    tags = ["OpenEye", "snowball", "Spruce", "Basic"]
-    description = "A vector of Spruce-prepped OEDesignUnits is generated from PDB code or set of input PDB/MTZ files."  # noqa
+
+    classification = [["System Preparation"]]
+
+    tags = ["Protein", "Spruce"]
+
+    description = """
+    A vector of Spruce-prepped OEDesignUnits is generated 
+    from PDB code or set of input PDB/MTZ files.
+    """
 
     pdb_code = SpruceParameters().pdb_code
     design_ref = SpruceParameters().design_ref
