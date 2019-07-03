@@ -78,6 +78,8 @@ gen_vel		= {gen_vel}		; Velocity generation
 gen_temp    = {temperature:f} ; reference temperature in K
 """
 
+gromacs_pos_restraints = "{:<{digits}}\t{:<}  {:<5.2f}  {:<5.2f}  {:<5.2f}\n"
+
 # LANGEVIN DYNAMICS
 # gromacs_nvt_npt = """
 # define		= -DPOSRES	; position restrain
