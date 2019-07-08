@@ -8,7 +8,8 @@ from MDOrion.Standards import Fields
 
 from datarecord import (Types,
                         OEWriteRecord,
-                        OERecord)
+                        OERecord,
+                        Meta, OEFieldMeta)
 
 from datarecord.datarecord import RecordVecData, RecordData
 
@@ -213,11 +214,23 @@ def data_trajectory_extraction(ctx, name):
                 new_stage.set_value(Fields.mddata, data_fn)
 
                 if stage.has_field(OEField("Trajectory_OPLMD", Types.Int)):
-                    trj_id = stage.get_value(OEField("Trajectory_OPLMD", Types.Int))
+
+                    trj_field = stage.get_field("Trajectory_OPLMD")
+
+                    trj_meta = trj_field.get_meta()
+                    md_engine = trj_meta.get_attribute(Meta.Annotation.Description)
+
+                    trj_id = stage.get_value(trj_field)
                     trj_fn = os.path.basename(output_directory) + '_' + system_title + '_' + str(sys_id) + '-' + stg_type + '_traj' + '.tar.gz'
+
                     resource = session.get_resource(File, trj_id)
                     resource.download_to_file(trj_fn)
-                    new_stage.set_value(Fields.trajectory, trj_fn)
+
+                    trj_meta = OEFieldMeta()
+                    trj_meta.set_attribute(Meta.Annotation.Description, md_engine)
+                    new_trj_field = OEField(Fields.trajectory.get_name(), Fields.trajectory.get_type(), meta=trj_meta)
+
+                    new_stage.set_value(new_trj_field, trj_fn)
 
             new_stages.append(new_stage)
 
