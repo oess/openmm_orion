@@ -45,7 +45,7 @@ def main(ctx):
 @click.option("--id", help="Record ID number", default="all")
 @click.option("--profile", help="OCLI profile name", default="default")
 @click.pass_context
-def dataset(ctx, filename, id, profile=None, max_retries=2):
+def dataset(ctx, filename, id, profile=None, max_retries=5):
     """Records Extraction"""
 
     ctx.obj['filename'] = filename
@@ -207,6 +207,7 @@ def data_trajectory_extraction(ctx, name):
             with TemporaryDirectory() as output_directory:
                 data_fn = os.path.basename(output_directory) + '_' + system_title + '_' + str(sys_id) + '-' + stg_type + '.tar.gz'
                 shard_id = stage.get_value(OEField("MDData_OPLMD", Types.Int))
+
                 shard = session.get_resource(Shard(collection=collection), shard_id)
                 shard.download_to_file(data_fn)
                 new_stage.set_value(Fields.mddata, data_fn)

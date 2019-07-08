@@ -170,6 +170,8 @@ def upload_data(filename, collection_id=None, shard_name=""):
         
         file_id = shard.id
 
+        shard.close()
+
     else:
         file_id = filename
 
@@ -194,6 +196,8 @@ def download_data(file_id, path, collection_id=None):
         fn_local = os.path.join(path, MDFileNames.mddata)
 
         try_hard_to_download_shard(shard, fn_local)
+
+        shard.close()
 
     else:
         fn_local = file_id
