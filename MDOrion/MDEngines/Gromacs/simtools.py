@@ -668,16 +668,16 @@ class GromacsSimulations(MDSimulations):
                 # Tar the files dir with its content:
                 tar_fn = self.opt['trj_fn']
 
-                # with tarfile.open(tar_fn, mode='w:gz') as archive:
-                #
-                #     archive.add(self.opt['grm_gro_fn'], arcname=os.path.basename(self.opt['grm_gro_fn']))
-                #     archive.add(self.opt['grm_pdb_fn'], arcname=os.path.basename(self.opt['grm_pdb_fn']))
-                #     archive.add(self.opt['grm_top_fn'], arcname=os.path.basename(self.opt['grm_top_fn']))
-                #     archive.add(self.opt['grm_trj_comp_fn'], arcname=os.path.basename(self.opt['grm_trj_comp_fn']))
-                #     archive.add(self.opt['grm_log_fn'], arcname=os.path.basename(self.opt['grm_log_fn']))
-
                 with tarfile.open(tar_fn, mode='w:gz') as archive:
-                    archive.add(self.opt['out_directory'], arcname=os.path.basename(self.opt['out_directory']))
+
+                    archive.add(self.opt['grm_gro_fn'], arcname=os.path.basename(self.opt['grm_gro_fn']))
+                    archive.add(self.opt['grm_pdb_fn'], arcname=os.path.basename(self.opt['grm_pdb_fn']))
+                    archive.add(self.opt['grm_top_fn'], arcname=os.path.basename(self.opt['grm_top_fn']))
+                    archive.add(self.opt['grm_trj_comp_fn'], arcname=os.path.basename(self.opt['grm_trj_comp_fn']))
+                    archive.add(self.opt['grm_log_fn'], arcname=os.path.basename(self.opt['grm_log_fn']))
+
+                # with tarfile.open(tar_fn, mode='w:gz') as archive:
+                #     archive.add(self.opt['out_directory'], arcname=os.path.basename(self.opt['out_directory']))
 
         return
 
