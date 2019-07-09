@@ -4,7 +4,7 @@ from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-# from MDOrion.TrjAnalysis.cubes import ParallelTrajToOEMolCube
+from MDOrion.TrjAnalysis.cubes import ParallelTrajToOEMolCube
 
 from MDOrion.TrjAnalysis.cubes import ParallelTrajInteractionEnergyCube
 
@@ -39,19 +39,17 @@ ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecor
 ofs = DatasetWriterCube('ofs', title='OFS-Success')
 ofs.promote_parameter("data_out", promoted_name="out", title="System Output OERecord", description="OERecord file name")
 
-# trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
+trajToOEMol = ParallelTrajToOEMolCube("TrajToOEMolCube")
 trajIntE = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
 trajPBSA = ParallelTrajPBSACube("TrajPBSACube")
 clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
 molHtml = ParallelMDTrajAnalysisClusterReport("MolHtmlCube")
 floeReport = MDFloeReportCube("FloeReportCube")
 
-# job.add_cubes(ifs, trajCube, trajIntE, trajPBSA, clusCube, molHtml, ofs)
-job.add_cubes(ifs, trajIntE, trajPBSA, clusCube, molHtml, floeReport, ofs)
+job.add_cubes(ifs, trajToOEMol, trajIntE, trajPBSA, clusCube, molHtml, floeReport, ofs)
 
-# ifs.success.connect(trajCube.intake)
-# trajCube.success.connect(trajIntE.intake)
-ifs.success.connect(trajIntE.intake)
+ifs.success.connect(trajToOEMol.intake)
+trajToOEMol.success.connect(trajIntE.intake)
 trajIntE.success.connect(trajPBSA.intake)
 trajPBSA.success.connect(clusCube.intake)
 clusCube.success.connect(molHtml.intake)
