@@ -154,3 +154,11 @@ class Fields:
 
         # The Lig_Conf_Data Field is for the record containing Traj conf data for all confs
         oetrajconf_rec = OEField("Lig_Conf_Data", Types.RecordVec, meta=_metaHidden)
+
+        # mmpbsa ensemble average over the whole trajectory
+        mmpbsa_traj_mean = OEField('MMPBSATrajMean', Types.Float,
+                              meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
+
+        metaMMPBSA_traj_std = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
+        metaMMPBSA_traj_std.add_relation(Meta.Relations.ErrorsFor, mmpbsa_traj_mean)
+        mmpbsa_traj_std = OEField('MMPBSATrajStdev', Types.Float, meta=metaMMPBSA_traj_std)
