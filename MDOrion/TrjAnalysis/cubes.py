@@ -746,11 +746,11 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} writing trajClus OERecord'.format(system_title) )
             trajClus = OERecord()
             #
-            ClusLigAvgMol_field = OEField( 'ClusLigAvgMol', Types.Chem.MolVec)
-            trajClus.set_value( ClusLigAvgMol_field, clusLigAvgMol)
+            # ClusLigAvgMol_field = OEField( 'ClusLigAvgMol', Types.Chem.MolVec)
+            trajClus.set_value( Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
             #
-            ClusProtAvgMol_field = OEField( 'ClusProtAvgMol', Types.Chem.MolVec)
-            trajClus.set_value( ClusProtAvgMol_field, clusProtAvgMol)
+            # ClusProtAvgMol_field = OEField( 'ClusProtAvgMol', Types.Chem.MolVec)
+            trajClus.set_value( Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
             #
             ClusTrajSVG_field = OEField( 'ClusTrajSVG', Types.StringVec)
             trajClus.set_value( ClusTrajSVG_field, clusTrajSVG)
@@ -785,8 +785,12 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             rmsdInit_field = OEField( 'rmsdInitPose', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
             trajClus.set_value(rmsdInit_field, rmsdInit_svg)
 
-            #
+            # Set the TrajClus record on the top-level record
             record.set_value(Fields.Analysis.oeclus_rec, trajClus)
+            # also set prot and lig clus average mols on top-level record for 3D vis
+            record.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
+            record.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
+
             analysesDone.append('TrajClus')
             record.set_value(Fields.Analysis.analysesDone, analysesDone)
             opt['Logger'].info('{} finished writing trajClus OERecord'.format(system_title) )
