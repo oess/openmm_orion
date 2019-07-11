@@ -239,10 +239,13 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             system_formal_charge = 0
             for at in system_reassembled.GetAtoms():
                 system_formal_charge += at.GetFormalCharge()
-                #if at.GetFormalCharge() != 0 :
-                #   print(at, at.GetFormalCharge())
-                
-            print("System Total Formal Charge = {}".format(system_formal_charge))
+
+            system_partial_charge = 0.0
+            for at in system_structure.atoms:
+                system_partial_charge += at.charge
+
+            if abs(system_formal_charge - system_partial_charge) > 0.001:
+                opt['Logger'].warn("System Formal charge and System Partial charge mismatch: {} - {}".format(system_formal_charge, system_partial_charge))
 
             # Copying the charges between the parmed structure and the oemol
             for parm_at, oe_at in zip(system_structure.atoms, system_reassembled.GetAtoms()):
