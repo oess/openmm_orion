@@ -55,7 +55,6 @@ from MDOrion.TrjAnalysis.TrajAnFloeReport_utils import (_clus_floe_report_header
 
 
 class MDFloeReportCube(RecordPortsMixin, ComputeCube):
-    version = "0.1.0"
     title = "MDFloeReportCube"
     description = """
     The floe report cube generates an Orion floe report tiling the input ligands.
@@ -490,6 +489,9 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 avg_mmpbsa = np_mmpbsa.mean()
                 std_mmpbsa = np_mmpbsa.std()
 
+                # Add to the record the MMPBSA mean and std
+                record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
+                record.set_value(Fields.Analysis.mmpbsa_traj_std, std_mmpbsa)
                 # Add to the record the Average MMPBSA floe report label
                 record.set_value(Fields.floe_report_label, "MMPBSA = {:.1f}  &plusmn; {:.1f} kcal/mol".
                                  format(avg_mmpbsa, std_mmpbsa))
@@ -744,11 +746,11 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} writing trajClus OERecord'.format(system_title) )
             trajClus = OERecord()
             #
-            ClusLigAvgMol_field = OEField( 'ClusLigAvgMol', Types.Chem.MolVec)
-            trajClus.set_value( ClusLigAvgMol_field, clusLigAvgMol)
+            # ClusLigAvgMol_field = OEField( 'ClusLigAvgMol', Types.Chem.MolVec)
+            trajClus.set_value( Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
             #
-            ClusProtAvgMol_field = OEField( 'ClusProtAvgMol', Types.Chem.MolVec)
-            trajClus.set_value( ClusProtAvgMol_field, clusProtAvgMol)
+            # ClusProtAvgMol_field = OEField( 'ClusProtAvgMol', Types.Chem.MolVec)
+            trajClus.set_value( Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
             #
             ClusTrajSVG_field = OEField( 'ClusTrajSVG', Types.StringVec)
             trajClus.set_value( ClusTrajSVG_field, clusTrajSVG)
@@ -783,8 +785,12 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             rmsdInit_field = OEField( 'rmsdInitPose', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
             trajClus.set_value(rmsdInit_field, rmsdInit_svg)
 
-            #
+            # Set the TrajClus record on the top-level record
             record.set_value(Fields.Analysis.oeclus_rec, trajClus)
+            # also set prot and lig clus average mols on top-level record for 3D vis
+            record.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
+            record.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
+
             analysesDone.append('TrajClus')
             record.set_value(Fields.Analysis.analysesDone, analysesDone)
             opt['Logger'].info('{} finished writing trajClus OERecord'.format(system_title) )
@@ -1002,6 +1008,12 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 lig_svg = utl.ligand_to_svg_stmd(ligand_init, lig_name)
 
                 record.set_value(Fields.floe_report_svg_lig_depiction, lig_svg)
+
+                # TODO C. Bayly 2019 jul 9
+                # Having written the analysis report, we know we are finished with this molecule
+                # so set up the top-level record for display in Orion
+                # record.set_value(Fields.primary_molecule, record.get_value(Fields.ligand))
+
 
             self.success.emit(record)
 
