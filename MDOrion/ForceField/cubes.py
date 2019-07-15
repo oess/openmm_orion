@@ -181,17 +181,9 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
 
             # Apply FF to the excipients
             if excipients.NumAtoms():
+                oe_mol_list.append(excipients)
                 excipient_structure = ffutils.applyffExcipients(excipients, opt)
                 par_mol_list.append(excipient_structure)
-
-                # The excipient order is set equal to the order in related
-                # parmed structure to avoid possible atom index mismatching
-                excipients = oeommutils.openmmTop_to_oemol(excipient_structure.topology,
-                                                           excipient_structure.positions,
-                                                           verbose=False)
-                oechem.OEPerceiveBondOrders(excipients)
-                oechem.OEAssignFormalCharges(excipients)
-                oe_mol_list.append(excipients)
 
             # Build the overall Parmed structure
             system_structure = parmed.Structure()
@@ -207,8 +199,8 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                 num_atom_system += oe_mol_list[idx].NumAtoms()
 
             if not num_atom_system == system_structure.topology.getNumAtoms():
-                raise ValueError("Parmed and OE topologies mismatch atom number "
-                                 "error for system: {}".format(system_title))
+                raise ValueError("Parmed and OE topologies mismatch atom number {} vs {}"
+                                 .format(num_atom_system, system_structure.topology.getNumAtoms()))
 
             system_reassembled.SetTitle(system.GetTitle())
 
@@ -245,7 +237,8 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                 system_partial_charge += at.charge
 
             if abs(system_formal_charge - system_partial_charge) > 0.001:
-                opt['Logger'].warn("System Formal charge and System Partial charge mismatch: {} - {}".format(system_formal_charge, system_partial_charge))
+                raise ValueError("System Formal charge and System Partial charge mismatch: {} vs {}".format(
+                    system_formal_charge, system_partial_charge))
 
             # Copying the charges between the parmed structure and the oemol
             for parm_at, oe_at in zip(system_structure.atoms, system_reassembled.GetAtoms()):
