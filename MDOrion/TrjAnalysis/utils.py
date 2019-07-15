@@ -85,12 +85,6 @@ def ExtractAlignedProtLigTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
         protTraj: A multiconformer OEMol for the protein, one conformer per frame.
         ligTraj: A multiconformer OEMol for the ligand, one conformer per frame.'''
 
-    print(traj_filename)
-
-    with oechem.oemolostream("Start.oeb") as ofs:
-        oechem.OEWriteConstMolecule(ofs, mol)
-
-
     void, traj_ext = os.path.splitext(traj_filename)
 
     traj_dir = os.path.dirname(traj_filename)
