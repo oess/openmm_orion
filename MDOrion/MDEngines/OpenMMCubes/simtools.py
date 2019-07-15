@@ -318,7 +318,11 @@ class OpenMMSimulations(MDSimulations):
             if box is not None:
                 simulation_reference.context.setPeriodicBoxVectors(box[0], box[1], box[2])
 
+            self.opt['Logger'].warn("before >>>>>>>>>>>>>>>>>>")
+
             simulation_reference.minimizeEnergy(tolerance=1e5 * unit.kilojoule_per_mole)
+
+            self.opt['Logger'].warn("After  >>>>>>>>>>>>>>>>>>")
 
             state_reference_end = simulation_reference.context.getState(getPositions=True)
 

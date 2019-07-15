@@ -16,7 +16,8 @@ import glob
 
 from tempfile import TemporaryDirectory
 
-from MDOrion.Standards import MDEngines
+
+from oeommtools import utils as oeommutils
 
 def GetCardinalOrderOfProteinResNums(mol):
     # make map of protein res nums to the residue cardinal order index
@@ -50,19 +51,18 @@ def ExtractProtLigActsiteResNums(mol, fromLigCutoff=5.0):
     if not oechem.OEHasResidues(mol):
         oechem.OEPerceiveResidues(mol, oechem.OEPreserveResInfo_All)
     # split the total system into components
-    ligand = oechem.OEMol()
-    protein = oechem.OEMol()
-    water = oechem.OEMol()
-    other = oechem.OEMol()
-    #sopts = oechem.OESplitMolComplexOptions('MOL')
-    sopts = oechem.OESplitMolComplexOptions()
-    oechem.OESplitMolComplex(ligand, protein, water, other, mol, sopts)
+
+    protein, ligand, water, excipients = oeommutils.split(mol, ligand_res_name="LIG")
+
     # use residue-based distance cutoff (in angstroms) from ligand to define an active site residue
     nn = oechem.OENearestNbrs(protein, fromLigCutoff)
+
     actSiteResNums = set()
+
     for nbrs in nn.GetNbrs(ligand):
         residue = oechem.OEAtomGetResidue(nbrs.GetBgn())
         actSiteResNums.add(residue.GetResidueNumber())
+
     return protein, ligand, actSiteResNums
 
 
@@ -84,6 +84,12 @@ def ExtractAlignedProtLigTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
     Outputs:
         protTraj: A multiconformer OEMol for the protein, one conformer per frame.
         ligTraj: A multiconformer OEMol for the ligand, one conformer per frame.'''
+
+    print(traj_filename)
+
+    with oechem.oemolostream("Start.oeb") as ofs:
+        oechem.OEWriteConstMolecule(ofs, mol)
+
 
     void, traj_ext = os.path.splitext(traj_filename)
 
@@ -126,7 +132,7 @@ def ExtractAlignedProtLigTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
     ligIdx = topologyTraj.topology.select('resname == MOL or resname == LIG')
     protligIdx = np.append( protOEIdx, ligIdx)
 
-    #print( 'numAtoms prot, lig, protlig:', len(protOEIdx), len(ligIdx), len(protligIdx))
+    # print( 'numAtoms prot, lig, protlig:', len(protOEIdx), len(ligIdx), len(protligIdx))
     #protligIdx = topologyTraj.topology.select('protein or resname == MOL or resname == LIG')
 
     # Read the protein-ligand subsystem of the trajectory file
@@ -156,6 +162,7 @@ def ExtractAlignedProtLigTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
 
     # Generate a multiconformer representation of the ligand trajectory
     ligTraj = oechem.OEMol(ligand)
+
     ligTraj.DeleteConfs()
     for frame in trjImaged.xyz:
         xyzList = [10*frame[idx] for idx in ligIdx]
@@ -252,25 +259,6 @@ def PoseInteractionsSVG(ligand, proteinOrig, width=400, height=300):
     svgBytes = oedepict.OEWriteImageToString("svg", image)
 
     svgString = svgBytes.decode("utf-8")
-
-    # # TODO BUG TEMPORARY FIX FOR TOOLKIT VERSION 2018.10.1 JIRA CASE https://openeye.atlassian.net/browse/TOOLKS-624
-    #
-    # lines = svgString.splitlines(True)
-    #
-    # new_str = """.oedepict-visible {
-    #  visibility: visible;
-    # }"""
-    #
-    # for idx in range(0, len(lines)):
-    #     if lines[idx] == ' visibility: hidden;\n':
-    #         lines.insert(idx + 2, new_str)
-    #         break
-    #
-    # svg_out = " ".join(lines)
-    #
-    # # TODO END
-    #
-    # return svg_out
 
     return svgString
 
