@@ -438,6 +438,14 @@ def applyffExcipients(excipients, opt):
             "Excipient OE molecule and Excipient Parmed structure number of atoms mismatch {} vs {}".format(
                 len(excipients_pmd.atoms), excipients.NumAtoms()))
 
+    # Set the positions
+    oe_exc_coord_dic = excipients.GetCoords()
+    exc_coords = np.ndarray(shape=(excipients.NumAtoms(), 3))
+    for at_idx in oe_exc_coord_dic:
+        exc_coords[at_idx] = oe_exc_coord_dic[at_idx]
+
+    excipients_pmd.coordinates = exc_coords
+
     return excipients_pmd
 
 

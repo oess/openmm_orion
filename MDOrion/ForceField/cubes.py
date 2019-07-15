@@ -167,10 +167,6 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                 protein_structure = ffutils.applyffProtein(protein, opt)
                 par_mol_list.append(protein_structure)
 
-                protein_formal_charge = 0
-                for at in protein.GetAtoms():
-                    protein_formal_charge += at.GetFormalCharge()
-
             # Apply FF to the ligand
             if ligand.NumAtoms():
                 oe_mol_list.append(ligand)
@@ -241,7 +237,8 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                 system_partial_charge += at.charge
 
             if abs(system_formal_charge - system_partial_charge) > 0.001:
-                opt['Logger'].warn("System Formal charge and System Partial charge mismatch: {} vs {}".format(system_formal_charge, system_partial_charge))
+                raise ValueError("System Formal charge and System Partial charge mismatch: {} vs {}".format(
+                    system_formal_charge, system_partial_charge))
 
             # Copying the charges between the parmed structure and the oemol
             for parm_at, oe_at in zip(system_structure.atoms, system_reassembled.GetAtoms()):
