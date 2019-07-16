@@ -163,7 +163,9 @@ class Fields:
         metaMMPBSA_traj_std.add_relation(Meta.Relations.ErrorsFor, mmpbsa_traj_mean)
         mmpbsa_traj_std = OEField('MMPBSATrajStdev', Types.Float, meta=metaMMPBSA_traj_std)
 
-        # Trajectory cluster averages of protein and ligand
-        ClusLigAvg_fld = OEField('ClusLigAvgMol', Types.Chem.MolVec)
-        ClusProtAvg_fld = OEField('ClusProtAvgMol', Types.Chem.MolVec)
+        # Trajectory cluster averages and medians of protein and ligand
+        ClusLigAvg_fld = OEField('ClusLigAvgMol', Types.Chem.Mol)
+        ClusProtAvg_fld = OEField('ClusProtAvgMol', Types.Chem.Mol)
+        ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol)
+        ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol)
 
