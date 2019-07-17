@@ -24,6 +24,8 @@ from floe.api import (parameter,
 
 from orionplatform.mixins import RecordPortsMixin
 
+from MDOrion.ProtPrep.utils import ss_bond_fix
+
 
 class ProteinSetting(RecordPortsMixin, ComputeCube):
     title = "Protein Setting"
@@ -86,8 +88,11 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
             if not name:
                 name = self.opt['protein_prefix']
 
+            protein_ss_fix = ss_bond_fix(protein)
+
             record.set_value(Fields.title, name)
             record.set_value(Fields.id, self.count)
+            record.set_value(Fields.primary_molecule, protein_ss_fix)
             self.count += 1
 
             self.success.emit(record)

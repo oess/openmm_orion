@@ -37,6 +37,9 @@ from orionclient.session import (in_orion,
 import glob
 
 
+from orionclient.helpers.collections import (try_hard_to_create_shard,
+                                             try_hard_to_download_shard)
+
 def mdstages(f):
 
     def wrapper(*pos, **named):
@@ -971,13 +974,15 @@ class MDDataRecord(object):
 
                 parmed_fn = os.path.join(output_directory, "parmed.pickle")
 
-                shard.download_to_file(parmed_fn)
+                try_hard_to_download_shard(shard, parmed_fn)
 
                 with open(parmed_fn, 'rb') as f:
                     parm_dic = pickle.load(f)
 
                 pmd_structure = parmed.structure.Structure()
                 pmd_structure.__setstate__(parm_dic)
+
+            shard.close()
 
         if sync_stage_name is not None:
             mdstate = self.get_stage_state(stg_name=sync_stage_name)
@@ -1043,9 +1048,7 @@ class MDDataRecord(object):
 
                 collection = session.get_resource(ShardCollection, self.collection_id)
 
-                shard = Shard.create(collection, name=shard_name)
-
-                shard.upload_file(parmed_fn)
+                shard = try_hard_to_create_shard(collection, parmed_fn, name=shard_name)
 
                 shard.close()
 
@@ -1135,12 +1138,14 @@ class MDDataRecord(object):
 
                 protein_fn = os.path.join(output_directory, MDFileNames.trajectory_conformers)
 
-                shard.download_to_file(protein_fn)
+                try_hard_to_download_shard(shard, protein_fn)
 
                 protein_conf = oechem.OEMol()
 
                 with oechem.oemolistream(protein_fn) as ifs:
                     oechem.OEReadMolecule(ifs, protein_conf)
+
+            shard.close()
 
         return protein_conf
 
@@ -1185,9 +1190,7 @@ class MDDataRecord(object):
 
                 collection = session.get_resource(ShardCollection, self.collection_id)
 
-                shard = Shard.create(collection, name=shard_name)
-
-                shard.upload_file(protein_fn)
+                shard = try_hard_to_create_shard(collection, protein_fn, name=shard_name)
 
                 shard.close()
 

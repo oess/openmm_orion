@@ -83,6 +83,10 @@ def test_orion(ctx, profile="", test="orion"):
     else:
         run("""ORION_PROFILE={} py.test -s -v --orion --no-cleanup -m "{}" ./tests""".format(profile, test))
 
+@task
+def version(ctx):
+    print(MDOrion.__version__)
+
 
 @task
 def setversion(ctx, new_version):

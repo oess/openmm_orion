@@ -157,7 +157,7 @@ class Fields:
 
         # mmpbsa ensemble average over the whole trajectory
         mmpbsa_traj_mean = OEField('MMPBSATrajMean', Types.Float,
-                              meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
+                                   meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
 
         metaMMPBSA_traj_std = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
         metaMMPBSA_traj_std.add_relation(Meta.Relations.ErrorsFor, mmpbsa_traj_mean)
