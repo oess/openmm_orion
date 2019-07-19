@@ -84,7 +84,7 @@ class Fields:
     ligand_name = OEField("Ligand_name_OPLMD", Types.String, meta=_metaHidden)
 
     # The Protein field should be used to save in a record a Protein as an OEMolecule
-    protein = OEField("Protein_OPLMD", Types.Chem.Mol, meta=_metaProtHidden))
+    protein = OEField("Protein_OPLMD", Types.Chem.Mol, meta=_metaProtHidden)
 
     # System Well
     well = OEField("Well_OPLMD", Types.Chem.Mol)
