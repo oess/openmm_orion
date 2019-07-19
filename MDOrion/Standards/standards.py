@@ -80,7 +80,7 @@ class Fields:
     ligand = OEField("Ligand_OPLMD", Types.Chem.Mol, meta=OEFieldMeta().set_option(Meta.Hints.Chem.Ligand))
 
     # The ligand name
-    ligand_name = OEField("Ligand_name_OPLMD", Types.String)
+    ligand_name = OEField("Ligand_name_OPLMD", Types.String, meta=_metaHidden)
 
     # The Protein field should be used to save in a record a Protein as an OEMolecule
     protein = OEField("Protein_OPLMD", Types.Chem.Mol, meta=OEFieldMeta().set_option(Meta.Hints.Chem.Protein))
@@ -167,8 +167,8 @@ class Fields:
         mmpbsa_traj_std = OEField('MMPBSATrajStdev', Types.Float, meta=metaMMPBSA_traj_std)
 
         # Trajectory cluster averages and medians of protein and ligand
-        ClusLigAvg_fld = OEField('ClusLigAvgMol', Types.Chem.Mol)
-        ClusProtAvg_fld = OEField('ClusProtAvgMol', Types.Chem.Mol)
-        ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol)
-        ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol)
+        ClusLigAvg_fld = OEField('ClusLigAvgMol', Types.Chem.Mol, meta=_metaHidden)
+        ClusProtAvg_fld = OEField('ClusProtAvgMol', Types.Chem.Mol, meta=_metaHidden)
+        ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol, meta=_metaHidden)
+        ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol, meta=_metaHidden)
 

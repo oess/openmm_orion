@@ -64,8 +64,8 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
 
     protein_prefix = parameter.StringParameter(
         'protein_prefix',
-        default='PRT',
-        help_text='Protein prefix used to identify the protein'
+        default='',
+        help_text='Optional replacement protein title'
     )
 
     def begin(self):
@@ -84,9 +84,13 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
 
             protein = record.get_value(Fields.primary_molecule)
 
-            name = protein.GetTitle()[0:12]
+            name = self.opt['protein_prefix']
             if not name:
-                name = self.opt['protein_prefix']
+                titleFirst12 = protein.GetTitle()[0:12]
+                if titleFirst12:
+                    name = titleFirst12
+                else:
+                    name = 'protein'
 
             protein_ss_fix = ss_bond_fix(protein)
 
