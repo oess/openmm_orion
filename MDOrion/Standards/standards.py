@@ -59,6 +59,7 @@ class MDFileNames:
 # Orion Hidden meta data options
 _metaHidden = OEFieldMeta(options=[Meta.Display.Hidden])
 _metaIDHidden = OEFieldMeta(options=[Meta.Source.ID, Meta.Display.Hidden])
+_metaProtHidden = OEFieldMeta(options=[Meta.Hints.Chem.Protein, Meta.Display.Hidden])
 
 
 # ---------------- Field Standards -------------- #
@@ -83,7 +84,7 @@ class Fields:
     ligand_name = OEField("Ligand_name_OPLMD", Types.String, meta=_metaHidden)
 
     # The Protein field should be used to save in a record a Protein as an OEMolecule
-    protein = OEField("Protein_OPLMD", Types.Chem.Mol, meta=OEFieldMeta().set_option(Meta.Hints.Chem.Protein))
+    protein = OEField("Protein_OPLMD", Types.Chem.Mol, meta=_metaProtHidden))
 
     # Primary Molecule
     primary_molecule = OEPrimaryMolField()

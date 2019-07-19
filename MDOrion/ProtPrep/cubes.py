@@ -63,9 +63,9 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
         help_text="If Checked/True multiple protein will be allowed")
 
     protein_prefix = parameter.StringParameter(
-        'protein_prefix',
+        'protein_title',
         default='',
-        help_text='Optional replacement protein title'
+        help_text='Optional replacement for the protein title'
     )
 
     def begin(self):
