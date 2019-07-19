@@ -67,6 +67,18 @@ class MDRecordTests(unittest.TestCase):
 
     @pytest.mark.travis
     @pytest.mark.local
+    def test_get_well(self):
+        mol = self.mdrecord.get_value(Fields.well)
+        self.assertEqual(mol.NumAtoms(), self.mdrecord.get_well.NumAtoms())
+
+    @pytest.mark.travis
+    @pytest.mark.local
+    def test_set_well(self):
+        mol = self.mdrecord.get_value(Fields.well)
+        self.assertTrue(self.mdrecord.set_well(mol))
+
+    @pytest.mark.travis
+    @pytest.mark.local
     def test_get_id(self):
         id = self.mdrecord.get_value(Fields.id)
         self.assertEqual(id, 0)

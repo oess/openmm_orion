@@ -135,7 +135,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_primary
+            system = mdrecord.get_well
 
             if not mdrecord.has_title:
                 self.log.warn("Missing record Title field")
@@ -262,7 +262,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                                                            removeCMMotion=False,
                                                            rigidWater=False)
             mdrecord.set_title(system_title)
-            mdrecord.set_primary(system_reassembled)
+            mdrecord.set_well(system_reassembled)
 
             mdrecord.set_parmed(system_structure, shard_name="Parmed_" + system_title + '_' + str(sys_id))
 

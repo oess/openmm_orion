@@ -73,11 +73,14 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
 
     def process(self, record, port):
         try:
-            if not record.has_value(Fields.primary_molecule):
-                self.log.error("Missing '{}' field".format(Fields.primary_molecule.get_name()))
-                raise ValueError("Missing Primary Molecule")
+            if not record.has_value(Fields.well):
+                if not record.has_value(Fields.primary_molecule):
+                    raise ValueError("Primary Molecule is missing")
+                system = record.get_value(Fields.primary_molecule)
 
-            system = record.get_value(Fields.primary_molecule)
+                record.set_value(Fields.well, system)
+
+            system = record.get_value(Fields.well)
 
             if system.NumConfs() > 1:
                 self.opt['Logger'].info("[{}] The system {} has multiple conformers. Each single conformer "
@@ -106,7 +109,7 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
                 record.set_value(Fields.sysid, self.system_count)
                 record.set_value(Fields.confid, num_conf_counter)
                 record.set_value(Fields.title, system_title)
-                record.set_value(Fields.primary_molecule, conf_mol)
+                record.set_value(Fields.well, conf_mol)
 
                 num_conf_counter += 1
 
@@ -322,10 +325,10 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
         try:
             opt = self.opt
 
-            if not record.has_value(Fields.primary_molecule):
-                raise ValueError("Missing the Primary Molecule Field")
+            if not record.has_value(Fields.well):
+                raise ValueError("Missing the Well Molecule Field")
 
-            solute = record.get_value(Fields.primary_molecule)
+            solute = record.get_value(Fields.well)
 
             if not record.has_value(Fields.title):
                 self.log.warn("Missing Title field")
@@ -353,7 +356,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
                                                                         sol_system.NumAtoms()))
             sol_system.SetTitle(solute.GetTitle())
 
-            record.set_value(Fields.primary_molecule, sol_system)
+            record.set_value(Fields.well, sol_system)
             record.set_value(Fields.title, solute_title)
 
             self.success.emit(record)

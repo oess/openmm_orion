@@ -183,7 +183,7 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_primary
+            system = mdrecord.get_well
 
             if not mdrecord.has_title:
                 opt['Logger'].warn("Missing record Title field")
@@ -417,7 +417,7 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
                 record.set_value(Fields.floe_report_label, "&Delta;Gs = {:.1f} &plusmn; {:.1f} kcal/mol".
                                  format(DeltaG_solvation, dDeltaG_solvation))
 
-            mdrecord.set_primary(system)
+            mdrecord.set_well(system)
             record.set_value(current_iteration_field, opt['new_iterations'])
 
             self.success.emit(mdrecord.get_record)
@@ -504,7 +504,7 @@ class SyncBindingFECube(RecordPortsMixin, ComputeCube):
                 ligand_mdrecord = MDDataRecord(pair[0])
                 complex_mdrecord = MDDataRecord(pair[1])
 
-                mdrecord.set_primary(complex_mdrecord.get_primary)
+                mdrecord.set_well(complex_mdrecord.get_well)
                 mdrecord.set_id(complex_mdrecord.get_id)
                 mdrecord.set_title(complex_mdrecord.get_title)
 
@@ -694,7 +694,7 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            complex = mdrecord.get_primary
+            complex = mdrecord.get_well
 
             if not mdrecord.has_title:
                 opt['Logger'].warn("Missing record Title field")
@@ -957,7 +957,7 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
                                  format(DeltaG_binding, dDeltaG_binding))
 
             record.set_value(current_iteration_field, opt['new_iterations'])
-            mdrecord.set_primary(complex)
+            mdrecord.set_well(complex)
             # mdrecord.set_parmed(solvated_complex_parmed_structure, sync_stage_name='last')
 
             self.success.emit(mdrecord.get_record)
@@ -1020,10 +1020,10 @@ class YankProxyCube(RecordPortsMixin, ComputeCube):
             if not record.has_value(Fields.title):
                 self.opt['Logger'].warn("Missing record Title field")
 
-                if not record.has_value(Fields.primary_molecule):
-                    raise ValueError("The Primary Molecule is missing field")
+                if not record.has_value(Fields.well):
+                    raise ValueError("The Well Molecule is missing field")
 
-                complex = record.get_value(Fields.primary_molecule)
+                complex = record.get_value(Fields.well)
                 system_title = complex.GetTitle()[0:12]
             else:
                 system_title = record.get_value(Fields.title)

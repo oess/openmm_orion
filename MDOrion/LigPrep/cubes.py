@@ -108,6 +108,7 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
                                                                                           ligand.GetTitle()))
 
             record.set_value(Fields.primary_molecule, ligand)
+            record.set_value(Fields.well, ligand)
 
             self.success.emit(record)
 
@@ -158,11 +159,11 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
 
     def process(self, record, port):
         try:
-            if not record.has_value(Fields.primary_molecule):
-                self.log.error("Missing '{}' field".format(Fields.primary_molecule.get_name()))
-                raise ValueError("Missing Primary Molecule")
+            if not record.has_value(Fields.well):
+                self.log.error("Missing '{}' field".format(Fields.well.get_name()))
+                raise ValueError("Missing well Molecule")
 
-            ligand = record.get_value(Fields.primary_molecule)
+            ligand = record.get_value(Fields.well)
 
             if oechem.OECalculateMolecularWeight(ligand) > 900.0:  # Units are in Dalton
                 self.opt['Logger'].warn("[{}] The molecule {} seems to have a large molecular "
@@ -181,6 +182,7 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
                 oechem.OEAtomSetResidue(at, residue)
 
             record.set_value(Fields.primary_molecule, ligand)
+            record.set_value(Fields.well, ligand)
 
             self.success.emit(record)
 

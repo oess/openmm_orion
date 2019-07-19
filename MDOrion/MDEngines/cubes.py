@@ -207,7 +207,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_primary
+            system = mdrecord.get_well
 
             if not mdrecord.has_title:
                 opt['Logger'].warn("Missing record Title field")
@@ -234,7 +234,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
 
             # Update the system coordinates
             system.SetCoords(new_mdstate.get_oe_positions())
-            mdrecord.set_primary(system)
+            mdrecord.set_well(system)
 
             data_fn = os.path.basename(mdrecord.cwd) + '_' + opt['system_title'] + '_' + str(opt['system_id']) + '-' + opt['suffix'] + '.tar.gz'
 
@@ -446,7 +446,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_primary
+            system = mdrecord.get_well
 
             if not mdrecord.has_title:
                 opt['Logger'].warn("Missing record Title field")
@@ -481,7 +481,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
 
             # Update the system coordinates
             system.SetCoords(new_mdstate.get_oe_positions())
-            mdrecord.set_primary(system)
+            mdrecord.set_well(system)
 
             # Trajectory
             if opt['trajectory_interval']:
@@ -708,7 +708,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_primary
+            system = mdrecord.get_well
 
             if not mdrecord.has_title:
                 opt['Logger'].warn("Missing record Title field")
@@ -743,7 +743,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
 
             # Update the system coordinates
             system.SetCoords(new_mdstate.get_oe_positions())
-            mdrecord.set_primary(system)
+            mdrecord.set_well(system)
 
             # Trajectory
             if opt['trajectory_interval']:
