@@ -292,6 +292,8 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} Generating protein and ligand trajectory OEMols'.format(system_title))
 
             ptraj, ltraj = utl.ExtractAlignedProtLigTraj(setupOEMol, traj_fn)
+            ligand_name = record.get_value(Fields.ligand_name)
+            ltraj.SetTitle(ligand_name)
 
             opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'.format(
                 system_title, ptraj.NumAtoms(), ptraj.NumConfs()))
@@ -780,17 +782,26 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
                     ligMed, protMed, ligAvg, protAvg = oetrjutl.AnalyseProteinLigandTrajectoryOEMols( clusLig, clusProt)
                     opt['Logger'].info('generating cluster SVG for cluster {}'.format(clusID) )
                     clusSVG = ensemble2img.run_ensemble2img(ligAvg, protAvg, clusLig, clusProt)
-                    clusLigAvgMol.NewConf(ligAvg)
-                    clusProtAvgMol.NewConf(protAvg)
-                    clusLigMedMol.NewConf(ligMed)
-                    clusProtMedMol.NewConf(protMed)
+                    confTitle = 'clus '+str(clusID)
+                    conf = clusLigAvgMol.NewConf(ligAvg)
+                    conf.SetTitle(confTitle)
+                    conf = clusProtAvgMol.NewConf(protAvg)
+                    conf.SetTitle(confTitle)
+                    conf = clusLigMedMol.NewConf(ligMed)
+                    conf.SetTitle(confTitle)
+                    conf = clusProtMedMol.NewConf(protMed)
+                    conf.SetTitle(confTitle)
                     clusTrajSVG.append(clusSVG)
 
             if nMajorClusters>0:
                 # If we have some major clusters put the results on trajClus record
+                clusLigAvgMol.SetTitle('Average '+clusLigAvgMol.GetTitle())
                 trajClus.set_value( Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
+                clusProtAvgMol.SetTitle('Average '+clusProtAvgMol.GetTitle())
                 trajClus.set_value( Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
+                clusLigMedMol.SetTitle('Median '+clusLigMedMol.GetTitle())
                 trajClus.set_value( Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
+                clusProtMedMol.SetTitle('Median '+clusProtMedMol.GetTitle())
                 trajClus.set_value( Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
                 ClusTrajSVG_field = OEField( 'ClusTrajSVG', Types.StringVec)
                 trajClus.set_value( ClusTrajSVG_field, clusTrajSVG)
