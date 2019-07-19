@@ -166,6 +166,45 @@ class MDDataRecord(object):
 
         return True
 
+
+    @property
+    def get_well(self):
+        """
+        This method returns the well molecule present on the record
+
+        Return:
+        -------
+        record: OEMol
+            The Primary Molecule
+        """
+
+        if not self.rec.has_field(Fields.well):
+            raise ValueError("The Well Molecule has not been found on the record")
+
+        return self.rec.get_value(Fields.well)
+
+    def set_well(self, well):
+        """
+        This method sets the Well molecule on the record
+
+        Parameters:
+        -----------
+        Well OEMol
+            The Well molecule to set on the record
+
+        Return:
+        -------
+        record: Bool
+            True if the Well molecule has been set on the record
+        """
+
+        if not isinstance(well, oechem.OEMol):
+            raise ValueError("The Well Molecule is not a valid OEMol: {}".format(well))
+
+        self.rec.set_value(Fields.well, well)
+
+        return True
+
     @property
     def get_id(self):
         """

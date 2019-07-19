@@ -82,12 +82,12 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
             self.opt = vars(self.args)
             self.opt['Logger'] = self.log
 
-            if not record.has_value(Fields.primary_molecule):
-                self.log.error("Missing Protein field")
+            if not record.has_value(Fields.well):
+                self.log.error("Missing Protein well field")
                 self.failure.emit(record)
                 return
 
-            protein = record.get_value(Fields.primary_molecule)
+            protein = record.get_value(Fields.well)
 
             if not record.has_value(Fields.title):
                 self.log.warn("Missing Protein Title field")
@@ -102,10 +102,10 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
         try:
             if port == 'intake':
 
-                if not record.has_value(Fields.primary_molecule):
-                    raise ValueError("Missing the ligand Primary Molecule field")
+                if not record.has_value(Fields.well):
+                    raise ValueError("Missing the ligand well field")
 
-                ligand = record.get_value(Fields.primary_molecule)
+                ligand = record.get_value(Fields.well)
 
                 if ligand.NumConfs() > 1:
                     raise ValueError("The ligand {} has multiple conformers: {}".format(ligand.GetTitle(),
@@ -166,7 +166,8 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 for field in record.get_fields():
                     new_record.set_value(field, record.get_value(field))
 
-                new_record.set_value(Fields.primary_molecule, new_complex)
+                new_record.set_value(Fields.primary_molecule, ligand)
+                new_record.set_value(Fields.well, new_complex)
                 new_record.set_value(Fields.title, complex_title)
                 new_record.set_value(Fields.ligand, ligand)
                 new_record.set_value(Fields.protein, self.protein)

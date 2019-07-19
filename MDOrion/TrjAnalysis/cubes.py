@@ -1029,7 +1029,6 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 # so set up the top-level record for display in Orion
                 # record.set_value(Fields.primary_molecule, record.get_value(Fields.ligand))
 
-
             self.success.emit(record)
 
         except:

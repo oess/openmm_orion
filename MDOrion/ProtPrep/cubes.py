@@ -93,6 +93,8 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
             record.set_value(Fields.title, name)
             record.set_value(Fields.id, self.count)
             record.set_value(Fields.primary_molecule, protein_ss_fix)
+            record.set_value(Fields.well, protein_ss_fix)
+
             self.count += 1
 
             self.success.emit(record)

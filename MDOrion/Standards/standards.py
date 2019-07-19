@@ -85,6 +85,9 @@ class Fields:
     # The Protein field should be used to save in a record a Protein as an OEMolecule
     protein = OEField("Protein_OPLMD", Types.Chem.Mol, meta=OEFieldMeta().set_option(Meta.Hints.Chem.Protein))
 
+    # System Well
+    well = OEField("Well_OPLMD", Types.Chem.Mol)
+
     # Primary Molecule
     primary_molecule = OEPrimaryMolField()
 
