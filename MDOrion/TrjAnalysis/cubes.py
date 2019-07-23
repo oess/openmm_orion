@@ -292,8 +292,8 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} Generating protein and ligand trajectory OEMols'.format(system_title))
 
             ptraj, ltraj = utl.ExtractAlignedProtLigTraj(setupOEMol, traj_fn)
-            ligand_name = record.get_value(Fields.ligand_name)
-            ltraj.SetTitle(ligand_name)
+            ltraj.SetTitle(record.get_value(Fields.ligand_name))
+            ptraj.SetTitle(record.get_value(Fields.title))
 
             opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'.format(
                 system_title, ptraj.NumAtoms(), ptraj.NumConfs()))

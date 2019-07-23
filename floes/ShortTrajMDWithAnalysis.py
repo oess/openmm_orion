@@ -109,7 +109,7 @@ iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input
                         description="Protein file name")
 
 protset = ProteinSetting("ProteinSetting", title="Protein Setting")
-protset.promote_parameter("protein_prefix", promoted_name="protein_prefix", default="PRT")
+protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
 
 # Complex cube used to assemble the ligands and the solvated protein
 complx = ComplexPrepCube("Complex", title="Complex Preparation")

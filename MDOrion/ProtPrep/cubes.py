@@ -62,7 +62,7 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
         default=False,
         help_text="If Checked/True multiple protein will be allowed")
 
-    protein_prefix = parameter.StringParameter(
+    protein_title = parameter.StringParameter(
         'protein_title',
         default='',
         help_text='Optional replacement for the protein title'
@@ -84,7 +84,7 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
 
             protein = record.get_value(Fields.primary_molecule)
 
-            name = self.opt['protein_prefix']
+            name = self.opt['protein_title']
             if not name:
                 titleFirst12 = protein.GetTitle()[0:12]
                 if titleFirst12:
