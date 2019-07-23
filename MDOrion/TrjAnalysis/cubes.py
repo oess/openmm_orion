@@ -821,6 +821,14 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             record.set_value(Fields.Analysis.analysesDone, analysesDone)
             opt['Logger'].info('{} finished writing trajClus OERecord'.format(system_title) )
 
+            # debug begin bayly 2019jul
+            #from MDOrion.Standards import getMetaAttributes
+            #cubename = 'ClusterOETrajCube'
+            #fieldName = Fields.sysid.get_name()
+            #fieldMetaDict = getMetaAttributes( record, fieldName)
+            #print('{}: field {} metaData: '.format(cubename,fieldName), fieldMetaDict)
+            # debug end bayly 2019jul
+
             self.success.emit(record)
 
             del mdtrajrecord

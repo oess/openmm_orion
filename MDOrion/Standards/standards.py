@@ -87,7 +87,7 @@ class Fields:
     protein = OEField("Protein_OPLMD", Types.Chem.Mol, meta=_metaProtHidden)
 
     # System Well
-    well = OEField("Well_OPLMD", Types.Chem.Mol)
+    well = OEField("Well_OPLMD", Types.Chem.Mol, meta=_metaHidden)
 
     # Primary Molecule
     primary_molecule = OEPrimaryMolField()
@@ -168,8 +168,13 @@ class Fields:
         mmpbsa_traj_std = OEField('MMPBSATrajStdev', Types.Float, meta=metaMMPBSA_traj_std)
 
         # Trajectory cluster averages and medians of protein and ligand
-        ClusLigAvg_fld = OEField('ClusLigAvgMol', Types.Chem.Mol, meta=_metaHidden)
-        ClusProtAvg_fld = OEField('ClusProtAvgMol', Types.Chem.Mol, meta=_metaHidden)
-        ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol, meta=_metaHidden)
-        ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol, meta=_metaHidden)
+        ClusLigAvg_fld = OEField('ClusLigAvgMol', Types.Chem.Mol)
+        ClusProtAvg_fld = OEField('ClusProtAvgMol', Types.Chem.Mol)
+        ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol)
+        ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol)
 
+def getMetaAttributes(record, fieldName):
+    fieldWithMeta = record.get_field(fieldName, include_meta=True)
+    metaFromField = fieldWithMeta.get_meta()
+    metaDict = metaFromField.to_dict()
+    return metaDict
