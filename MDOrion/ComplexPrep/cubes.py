@@ -167,6 +167,7 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 new_record.set_value(Fields.title, complex_title)
                 new_record.set_value(Fields.ligand, ligand)
                 new_record.set_value(Fields.protein, self.protein)
+                new_record.set_value(Fields.protein_name, self.protein_title)
                 new_record.set_value(Fields.id, ligand_id)
 
                 self.success.emit(new_record)

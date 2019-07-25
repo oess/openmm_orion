@@ -65,8 +65,8 @@ _metaProtHidden = OEFieldMeta(options=[Meta.Hints.Chem.Protein, Meta.Display.Hid
 # ---------------- Field Standards -------------- #
 class Fields:
 
-    # The Title field is used to set the system name
-    title = OEField("Title_OPLMD", Types.String, meta=OEFieldMeta().set_option(Meta.Source.ID))
+    # The Title field is used to set the well name
+    title = OEField("Title_OPLMD", Types.String, meta=_metaIDHidden)
 
     # The ID field should be used as identification number for ligands, proteins or complexes
     id = OEField("ID_OPLMD", Types.Int, meta=_metaIDHidden)
@@ -78,13 +78,18 @@ class Fields:
     confid = OEField("ConfID_OPLMD", Types.Int, meta=_metaIDHidden)
 
     # The Ligand field should be used to save in a record a ligand as an OEMolecule
-    ligand = OEField("Ligand_OPLMD", Types.Chem.Mol, meta=OEFieldMeta().set_option(Meta.Hints.Chem.Ligand))
+    #ligand = OEField("Ligand_OPLMD", Types.Chem.Mol, meta=OEFieldMeta().set_option(Meta.Hints.Chem.Ligand))
+    ligand = OEField("Ligand_OPLMD", Types.Chem.Mol, meta=OEFieldMeta(options=[Meta.Hints.Chem.Ligand,
+                                                                               Meta.Display.Hidden]))
 
     # The ligand name
     ligand_name = OEField("Ligand_name_OPLMD", Types.String, meta=_metaHidden)
 
-    # The Protein field should be used to save in a record a Protein as an OEMolecule
+    # The protein field should be used to save in a record a Protein as an OEMolecule
     protein = OEField("Protein_OPLMD", Types.Chem.Mol, meta=_metaProtHidden)
+
+    # The protein name
+    protein_name = OEField("Protein_name_OPLMD", Types.String, meta=_metaHidden)
 
     # System Well
     well = OEField("Well_OPLMD", Types.Chem.Mol, meta=_metaHidden)

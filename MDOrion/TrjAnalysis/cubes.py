@@ -293,7 +293,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
             ptraj, ltraj = utl.ExtractAlignedProtLigTraj(setupOEMol, traj_fn)
             ltraj.SetTitle(record.get_value(Fields.ligand_name))
-            ptraj.SetTitle(record.get_value(Fields.title))
+            ptraj.SetTitle(record.get_value(Fields.protein_name))
 
             opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'.format(
                 system_title, ptraj.NumAtoms(), ptraj.NumConfs()))
