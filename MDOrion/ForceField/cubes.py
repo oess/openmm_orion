@@ -153,7 +153,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                                                                                          ligand.NumAtoms(),
                                                                                          water.NumAtoms(),
                                                                                          excipients.NumAtoms()))
-            sys_id = mdrecord.get_id
+            sys_id = mdrecord.get_well_id
 
             # Unique prefix name used to output parametrization files
             opt['prefix_name'] = system_title + '_'+str(sys_id)

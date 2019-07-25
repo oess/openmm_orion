@@ -105,7 +105,7 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             mdrecord = MDDataRecord(record)
 
             system_title = mdrecord.get_title
-            system_id = mdrecord.get_id
+            system_id = mdrecord.get_well_id
 
             if not record.has_value(Fields.floe_report):
                 raise ValueError("Missing the report field for the system {}".format(system_title + "_" + system_id))
@@ -276,7 +276,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             # Logger string
             opt['Logger'].info(' ')
             system_title = mdrecord.get_title
-            sys_id = mdrecord.get_id
+            sys_id = mdrecord.get_well_id
             opt['Logger'].info('{}: Attempting MD Traj conversion into OEMols'.format(system_title))
 
             traj_fn = mdrecord.get_stage_trajectory()
@@ -1098,7 +1098,7 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
         try:
             mdrecord = MDDataRecord(record)
 
-            sys_id = mdrecord.get_sys_id
+            sys_id = mdrecord.get_lig_id
 
             if sys_id not in self.lig_sys_ids.keys():
                 self.lig_sys_ids[sys_id] = [record]

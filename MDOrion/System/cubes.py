@@ -105,8 +105,8 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
 
                 # conf_mol.SetTitle(ligand_title)
 
-                record.set_value(Fields.id, self.total_count)
-                record.set_value(Fields.sysid, self.system_count)
+                record.set_value(Fields.wellid, self.total_count)
+                record.set_value(Fields.ligid, self.system_count)
                 record.set_value(Fields.confid, num_conf_counter)
                 record.set_value(Fields.title, system_title)
                 record.set_value(Fields.well, conf_mol)

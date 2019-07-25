@@ -196,7 +196,7 @@ def data_trajectory_extraction(ctx, name):
         stages = mdrecord.get_stages
 
         system_title = mdrecord.get_title
-        sys_id = mdrecord.get_id
+        sys_id = mdrecord.get_well_id
 
         new_stages = []
 
@@ -332,7 +332,7 @@ def ligand_extraction(ctx):
         else:
             title = mdrecord.get_title.split("_")[1:]
             title = "_".join(title)
-            id = mdrecord.get_id
+            id = mdrecord.get_well_id
             fn = title + "_" + str(id)+".oeb"
             with oechem.oemolostream(fn) as ofs:
                 oechem.OEWriteConstMolecule(ofs, record.get_value(Fields.ligand))

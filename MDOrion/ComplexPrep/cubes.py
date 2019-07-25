@@ -117,10 +117,10 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 else:
                     ligand_title = record.get_value(Fields.title)
 
-                if not record.has_value(Fields.id):
-                    raise ValueError("Missing Ligand record '{}' field".format(Fields.id.get_name()))
+                if not record.has_value(Fields.wellid):
+                    raise ValueError("Missing Ligand record '{}' field".format(Fields.wellid.get_name()))
 
-                ligand_id = record.get_value(Fields.id)
+                ligand_id = record.get_value(Fields.wellid)
 
                 complx = self.protein.CreateCopy()
                 oechem.OEAddMols(complx, ligand)
@@ -168,7 +168,7 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 new_record.set_value(Fields.ligand, ligand)
                 new_record.set_value(Fields.protein, self.protein)
                 new_record.set_value(Fields.protein_name, self.protein_title)
-                new_record.set_value(Fields.id, ligand_id)
+                new_record.set_value(Fields.wellid, ligand_id)
 
                 self.success.emit(new_record)
 

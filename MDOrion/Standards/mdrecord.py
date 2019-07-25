@@ -206,110 +206,110 @@ class MDDataRecord(object):
         return True
 
     @property
-    def get_id(self):
+    def get_well_id(self):
         """
-        This method returns the identification field ID present on the record
+        This method returns the integer value of the Well identification field present on the record
 
         Return:
         -------
             : Int
-            The record ID
+            The Well ID
         """
 
-        if not self.rec.has_field(Fields.id):
-            raise ValueError("The ID Field has not been found on the record")
+        if not self.rec.has_field(Fields.wellid):
+            raise ValueError("The Well ID Field has not been found on the record")
 
-        return self.rec.get_value(Fields.id)
+        return self.rec.get_value(Fields.wellid)
 
     @property
-    def has_id(self):
+    def has_well_id(self):
         """
-        This method checks if the identification field ID is present on the record
+        This method checks if the Well identification field is present on the record
 
         Return:
         -------
             : Bool
-            True if the ID field is resent on the record otherwise False
+            True if the Well ID field is present on the record otherwise False
         """
 
-        if not self.rec.has_field(Fields.id):
+        if not self.rec.has_field(Fields.wellid):
             return False
         else:
             return True
 
-    def set_id(self, id):
+    def set_well_id(self, id):
         """
-        This method sets the identification field ID on the record
+        This method sets the integer value of the Well identification field on the record
 
         Parameters:
         -----------
         id: Int
-            An identification integer for the record
+            An integer value for the Well identification field
 
         Return:
         -------
             : Bool
-            True if the ID has been set on the record
+            True if the Well identification ID has been set as an integer on the record
         """
 
         if not isinstance(id, int):
             raise ValueError(" The id must be an integer: {}".format(id))
 
-        self.rec.set_value(Fields.id, id)
+        self.rec.set_value(Fields.wellid, id)
 
         return True
 
     @property
-    def get_sys_id(self):
+    def get_lig_id(self):
         """
-        This method returns the identification field SYSTEM ID present on the record
+        This method returns the ligand identification field present on the record
 
         Return:
         -------
             : Int
-            The record SYSTEM ID
+            The integer value of the ligand identification field
         """
 
-        if not self.rec.has_field(Fields.sysid):
-            raise ValueError("The SYSTEM ID Field has not been found on the record")
+        if not self.rec.has_field(Fields.ligid):
+            raise ValueError("The ligand identification field has not been found on the record")
 
-        return self.rec.get_value(Fields.sysid)
+        return self.rec.get_value(Fields.ligid)
 
     @property
-    def has_sys_id(self):
+    def has_lig_id(self):
         """
-        This method checks if the identification field SYSTEM ID is present on the record
+        This method checks if the ligand identification field is present on the record
 
         Return:
         -------
             : Bool
-            True if the SYSTEM ID field is resent on the record otherwise False
+            True if the ligand identification field is present on the record otherwise False
         """
 
-        if not self.rec.has_field(Fields.sysid):
+        if not self.rec.has_field(Fields.ligid):
             return False
         else:
             return True
 
-    def set_sys_id(self, sys_id):
+    def set_lig_id(self, sys_id):
         """
-        This method sets the identification field SYSTEM ID on the record
+        This method sets the ligand identification field on the record
 
         Parameters:
         -----------
         sys_id: Int
-            An identification integer for the record
+            An integer value for the ligand identification field
 
         Return:
         -------
             : Bool
-            True if the SYSTEM ID has been set on the record
+            True if the value for the ligand identification field was successfully set on the record
         """
 
         if not isinstance(sys_id, int):
             raise ValueError("The system id must be an integer: {}".format(sys_id))
 
-        self.rec.set_value(Fields.sysid, sys_id)
+        self.rec.set_value(Fields.ligid, sys_id)
 
         return True
 

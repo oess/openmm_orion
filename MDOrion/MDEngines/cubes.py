@@ -216,7 +216,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
                 system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_id
+            opt['system_id'] = mdrecord.get_well_id
 
             system = mdrecord.get_stage_topology()
             mdstate = mdrecord.get_stage_state()
@@ -455,7 +455,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
                 system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_id
+            opt['system_id'] = mdrecord.get_well_id
 
             system = mdrecord.get_stage_topology()
             mdstate = mdrecord.get_stage_state()
@@ -717,7 +717,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
                 system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_id
+            opt['system_id'] = mdrecord.get_well_id
 
             system = mdrecord.get_stage_topology()
             mdstate = mdrecord.get_stage_state()

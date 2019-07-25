@@ -65,14 +65,14 @@ _metaProtHidden = OEFieldMeta(options=[Meta.Hints.Chem.Protein, Meta.Display.Hid
 # ---------------- Field Standards -------------- #
 class Fields:
 
-    # The Title field is used to set the well name
+    # The Title field is a string name for the well which used to compose file names
     title = OEField("Title_OPLMD", Types.String, meta=_metaIDHidden)
 
-    # The ID field should be used as identification number for ligands, proteins or complexes
-    id = OEField("ID_OPLMD", Types.Int, meta=_metaIDHidden)
+    # The wellid field is a unique integer for each well (final system for simulation)
+    wellid = OEField("WellID_OPLMD", Types.Int, meta=_metaIDHidden)
 
-    # The SysID field is used to keep track of the system order
-    sysid = OEField("SysID_OPLMD", Types.Int, meta=_metaIDHidden)
+    # The ligid field is a unique integer used to keep track of the ligand input order
+    ligid = OEField("LigID_OPLMD", Types.Int, meta=_metaIDHidden)
 
     # The ConfID field is used to identify a particular conformer
     confid = OEField("ConfID_OPLMD", Types.Int, meta=_metaIDHidden)
@@ -91,7 +91,7 @@ class Fields:
     # The protein name
     protein_name = OEField("Protein_name_OPLMD", Types.String, meta=_metaHidden)
 
-    # System Well
+    # The super-molecule for the entire Well (ie the final system for simulation)
     well = OEField("Well_OPLMD", Types.Chem.Mol, meta=_metaHidden)
 
     # Primary Molecule

@@ -118,7 +118,7 @@ class TestMDOrionFloes(FloeTestCase):
 
             mdrecord = MDDataRecord(record)
 
-            self.assertTrue(record.has_value(Fields.id))
+            self.assertTrue(record.has_value(Fields.wellid))
             self.assertTrue(record.has_value(Fields.title))
             self.assertTrue(record.has_value(Fields.ligand))
             self.assertTrue(record.has_value(Fields.protein))
@@ -127,7 +127,7 @@ class TestMDOrionFloes(FloeTestCase):
             self.assertTrue(record.has_value(Fields.md_stages))
             self.assertTrue(record.has_value(Fields.pmd_structure))
 
-            self.assertEqual(mdrecord.get_id, 0)
+            self.assertEqual(mdrecord.get_well_id, 0)
             self.assertEqual(mdrecord.get_title, "pMCL1_l26")
             self.assertEqual(record.get_value(Fields.ligand).NumAtoms(), 43)
             self.assertEqual(record.get_value(Fields.protein).NumAtoms(), 2432)

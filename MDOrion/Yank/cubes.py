@@ -192,7 +192,7 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
                 system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_id
+            opt['system_id'] = mdrecord.get_well_id
 
             if opt['iterations'] <= 0:
                 raise ValueError("The number of iterations cannot be a non-negative number: {}".format(opt['iterations']))
@@ -484,16 +484,16 @@ class SyncBindingFECube(RecordPortsMixin, ComputeCube):
 
             solvated_complex_lig_list = [(i, j) for i, j in
                                          itertools.product(self.solvated_ligand_list, self.solvated_complex_list)
-                                         if i.get_value(Fields.id) == j.get_value(Fields.id)]
+                                         if i.get_value(Fields.wellid) == j.get_value(Fields.wellid)]
 
             for pair in solvated_complex_lig_list:
 
                 new_record = OERecord()
 
                 self.log.info("SYNC = ({} - {} , {} - {})".format(pair[0].get_value(Fields.title),
-                                                                  pair[0].get_value(Fields.id),
+                                                                  pair[0].get_value(Fields.wellid),
                                                                   pair[1].get_value(Fields.title),
-                                                                  pair[1].get_value(Fields.id)))
+                                                                  pair[1].get_value(Fields.wellid)))
 
                 # Copy all the ligand fields into the new record
                 for field in pair[0].get_fields():
@@ -505,7 +505,7 @@ class SyncBindingFECube(RecordPortsMixin, ComputeCube):
                 complex_mdrecord = MDDataRecord(pair[1])
 
                 mdrecord.set_well(complex_mdrecord.get_well)
-                mdrecord.set_id(complex_mdrecord.get_id)
+                mdrecord.set_well_id(complex_mdrecord.get_well_id)
                 mdrecord.set_title(complex_mdrecord.get_title)
 
                 # mdrecord.delete_parmed
@@ -703,7 +703,7 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
                 system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_id
+            opt['system_id'] = mdrecord.get_well_id
 
             if not record.has_value(Fields.ligand_name):
                 raise ValueError("The ligand name has not been defined")
