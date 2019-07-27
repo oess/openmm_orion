@@ -319,9 +319,9 @@ equil2Complex.success.connect(equil3Complex.intake)
 equil3Complex.success.connect(sync.intake)
 
 # Ligand Connections
-iligs.success.connect(chargelig.intake)
-chargelig.success.connect(ligset.intake)
-ligset.success.connect(ligid.intake)
+iligs.success.connect(ligset.intake)
+ligset.success.connect(chargelig.intake)
+chargelig.success.connect(ligid.intake)
 ligid.success.connect(coll_open.intake)
 coll_open.success.connect(complx.intake)
 coll_open.success.connect(solvateLigand.intake)

@@ -102,9 +102,9 @@ fail.promote_parameter("data_out", promoted_name="fail")
 job.add_cubes(iligs, chargelig, ligset, ligid,
               iprot, protset, complx, solvate, ff, ofs, fail)
 
-iligs.success.connect(chargelig.intake)
-chargelig.success.connect(ligset.intake)
-ligset.success.connect(ligid.intake)
+iligs.success.connect(ligset.intake)
+ligset.success.connect(chargelig.intake)
+chargelig.success.connect(ligid.intake)
 ligid.success.connect(complx.intake)
 iprot.success.connect(protset.intake)
 protset.success.connect(complx.protein_port)

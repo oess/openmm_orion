@@ -92,12 +92,12 @@ job.tags = [tag for lists in job.classification for tag in lists]
 iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
 iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input File", description="Ligand file name")
 
+ligset = LigandSetting("LigandSetting", title="Ligand Setting")
+ligset.set_parameters(lig_res_name='LIG')
+
 chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")
 chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
                             description="Charge the ligand or not", default=True)
-
-ligset = LigandSetting("LigandSetting", title="Ligand Setting")
-ligset.set_parameters(lig_res_name='LIG')
 
 ligid = IDSettingCube("Ligand Ids")
 job.add_cube(ligid)
@@ -245,9 +245,9 @@ job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx, solvate, coll_op
               minComplex, warmup, equil1, equil2, equil3, prod, ofs, fail,
               trajCube, IntECube, PBSACube, clusCube, report_gen, report, coll_close)
 
-iligs.success.connect(chargelig.intake)
-chargelig.success.connect(ligset.intake)
-ligset.success.connect(ligid.intake)
+iligs.success.connect(ligset.intake)
+ligset.success.connect(chargelig.intake)
+chargelig.success.connect(ligid.intake)
 ligid.success.connect(complx.intake)
 iprot.success.connect(protset.intake)
 protset.success.connect(complx.protein_port)

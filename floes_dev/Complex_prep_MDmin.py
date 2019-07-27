@@ -111,9 +111,9 @@ job.add_cubes(iligs, chargelig, ligset, ligid,
               iprot, protset, complx, solvate,
               ff, minimize, ofs, fail)
 
-iligs.success.connect(chargelig.intake)
-chargelig.success.connect(ligset.intake)
-ligset.success.connect(ligid.intake)
+iligs.success.connect(ligset.intake)
+ligset.success.connect(chargelig.intake)
+chargelig.success.connect(ligid.intake)
 ligid.success.connect(complx.intake)
 iprot.success.connect(protset.intake)
 protset.success.connect(complx.protein_port)
