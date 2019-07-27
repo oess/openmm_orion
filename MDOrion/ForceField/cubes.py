@@ -146,8 +146,8 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             # Split the complex in components in order to apply the FF
             protein, ligand, water, excipients = oeommutils.split(system, ligand_res_name=opt['lig_res_name'])
 
-            self.log.info("[{}] \nComplex name: {}\nProtein atom numbers = {}\nLigand atom numbers = {}\n"
-                          "Water atom numbers = {}\nExcipients atom numbers = {}".format(opt['CubeTitle'],
+            self.log.info("[{}] Components of well {}:\n  Protein atoms = {}\n  Ligand atoms = {}\n"
+                          "  Water atoms = {}\n  Excipients atoms = {}".format(opt['CubeTitle'],
                                                                                          system_title,
                                                                                          protein.NumAtoms(),
                                                                                          ligand.NumAtoms(),

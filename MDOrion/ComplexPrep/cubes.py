@@ -112,15 +112,18 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                                                                                         ligand.GetNumConfs()))
 
                 if not record.has_value(Fields.title):
-                    self.log.warn("Missing Ligand record '{}' field".format(Fields.title.get_name()))
+                    self.log.warn("Missing title field '{}' field; improvising".format(Fields.title.get_name()))
                     ligand_title = ligand.GetTitle()[0:12]
                 else:
                     ligand_title = record.get_value(Fields.title)
 
-                if not record.has_value(Fields.wellid):
-                    raise ValueError("Missing Ligand record '{}' field".format(Fields.wellid.get_name()))
+                self.log.info("[{}] forming complex between protein {} and ligand: {}".format(self.title,
+                                                                        self.protein_title, ligand_title))
 
-                ligand_id = record.get_value(Fields.wellid)
+                if not record.has_value(Fields.wellid):
+                    raise ValueError("Missing well ID for well {} ".format(Fields.wellid.get_name()))
+
+                well_id = record.get_value(Fields.wellid)
 
                 complx = self.protein.CreateCopy()
                 oechem.OEAddMols(complx, ligand)
@@ -156,19 +159,17 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 if water.NumAtoms():
                     oechem.OEAddMols(new_complex, water_del)
 
-                complex_title = 'p' + self.protein_title + '_' + ligand_title
+                complex_title = 'p' + self.protein_title + '_l' + ligand_title
 
                 new_complex.SetTitle(ligand.GetTitle())
 
                 new_record = OERecord(record)
 
-                new_record.set_value(Fields.primary_molecule, ligand)
                 new_record.set_value(Fields.well, new_complex)
                 new_record.set_value(Fields.title, complex_title)
                 new_record.set_value(Fields.ligand, ligand)
                 new_record.set_value(Fields.protein, self.protein)
                 new_record.set_value(Fields.protein_name, self.protein_title)
-                new_record.set_value(Fields.wellid, ligand_id)
 
                 self.success.emit(new_record)
 

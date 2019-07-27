@@ -104,11 +104,11 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
                 map_charges = {at.GetIdx(): at.GetPartialCharge() for at in charged_ligand.GetAtoms()}
                 for at in ligand.GetAtoms():
                     at.SetPartialCharge(map_charges[at.GetIdx()])
-                self.log.info("[{}] ELF10 charge method applied to the ligand: {}".format(self.title,
+                self.log.info("[{}] ELF10 charges successfully applied to the ligand: {}".format(self.title,
                                                                                           ligand.GetTitle()))
 
+            # Set the primary molecule with the newly charged molecule
             record.set_value(Fields.primary_molecule, ligand)
-            record.set_value(Fields.well, ligand)
 
             self.success.emit(record)
 
@@ -156,14 +156,15 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
+        self.ligand_count = 0
+
 
     def process(self, record, port):
         try:
-            if not record.has_value(Fields.well):
-                self.log.error("Missing '{}' field".format(Fields.well.get_name()))
-                raise ValueError("Missing well Molecule")
+            if not record.has_value(Fields.primary_molecule):
+                raise ValueError("Missing Primary Molecule field")
 
-            ligand = record.get_value(Fields.well)
+            ligand = record.get_value(Fields.primary_molecule)
 
             if oechem.OECalculateMolecularWeight(ligand) > 900.0:  # Units are in Dalton
                 self.opt['Logger'].warn("[{}] The molecule {} seems to have a large molecular "
@@ -174,17 +175,16 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
 
             record.set_value(Fields.ligand_name, ligand.GetTitle())
 
-            ligand.SetTitle('l'+ligand.GetTitle())
-
             for at in ligand.GetAtoms():
                 residue = oechem.OEAtomGetResidue(at)
                 residue.SetName(self.args.lig_res_name)
                 oechem.OEAtomSetResidue(at, residue)
 
             record.set_value(Fields.primary_molecule, ligand)
-            record.set_value(Fields.well, ligand)
+            record.set_value(Fields.ligid, self.ligand_count)
 
             self.success.emit(record)
+            self.ligand_count += 1
 
         except Exception as e:
 

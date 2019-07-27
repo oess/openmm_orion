@@ -39,22 +39,24 @@ from os import environ
 
 
 class IDSettingCube(RecordPortsMixin, ComputeCube):
-    title = "System ID Setting"
+    title = "Simulation Well ID Setting"
     version = "0.1.0"
-    classification = [["System Preparation"]]
-    tags = ['System', 'Complex', 'Protein', 'Ligand']
+    classification = [["Simulation Well Preparation"]]
+    tags = ['Simulation', 'Complex', 'Protein', 'Ligand']
     description = """
-    This cube set IDs for each record as integers. If the input system 
-    on a record has multiple conformers these are spit in single one with 
-    its own ID. This cube should be used to set ligand IDs before to run MD
+    This cube sets the integer ID for each simulation well as well as a descriptive
+    title string. If the input molecule 
+    on a record has multiple conformers these are split into singles each with 
+    its own ID. If a complex will be formed, this cube should be used on ligands
+    before forming the complex.
     
     Input:
     -------
-    Data record Stream - Streamed-in of systems such as ligands
+    Data record Stream - Streamed input of ligands, one per record
 
     Output:
     -------
-    Data Record Stream - Streamed-out of records each one with associated IDs
+    Data record Stream - Streamed output of records, one per conformer, with title and ID.
     """
 
     # Override defaults for some parameters
@@ -69,54 +71,54 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
         self.total_count = 0
-        self.system_count = 0
+        self.ligid = -1
 
     def process(self, record, port):
         try:
             if not record.has_value(Fields.well):
                 if not record.has_value(Fields.primary_molecule):
                     raise ValueError("Primary Molecule is missing")
-                system = record.get_value(Fields.primary_molecule)
+                well = record.get_value(Fields.primary_molecule)
 
-                record.set_value(Fields.well, system)
+                record.set_value(Fields.well, well)
 
-            system = record.get_value(Fields.well)
+            well = record.get_value(Fields.well)
 
-            if system.NumConfs() > 1:
-                self.opt['Logger'].info("[{}] The system {} has multiple conformers. Each single conformer "
+            # There should be a ligid; if not, increment the last one
+            if not record.has_value(Fields.ligid):
+                self.ligid += 1
+                record.set_value(Fields.ligid, self.ligid)
+
+            if well.NumConfs() > 1:
+                self.opt['Logger'].info("[{}] The well {} has multiple conformers. Each single conformer "
                                         "will be treated as a new molecule".format(self.title,
-                                                                                   system.GetTitle()))
+                                                                                   well.GetTitle()))
+
+            name = well.GetTitle()[0:12]
+            if not name:
+                name = 'SYS'
 
             num_conf_counter = 0
-
-            for conf in system.GetConfs():
+            for conf in well.GetConfs():
 
                 conf_mol = oechem.OEMol(conf)
 
-                name = system.GetTitle()[0:12]
+                well_title = name
 
-                if not name:
-                    name = 'SYS'
+                if well.GetMaxConfIdx() > 1:
+                    well_title += '_c' + str(num_conf_counter)
 
-                system_title = name
-
-                if system.GetMaxConfIdx() > 1:
-                    system_title += '_c' + str(num_conf_counter)
-
-                # conf_mol.SetTitle(ligand_title)
+                conf_mol.SetTitle(well_title)
 
                 record.set_value(Fields.wellid, self.total_count)
-                record.set_value(Fields.ligid, self.system_count)
                 record.set_value(Fields.confid, num_conf_counter)
-                record.set_value(Fields.title, system_title)
+                record.set_value(Fields.title, well_title)
                 record.set_value(Fields.well, conf_mol)
 
                 num_conf_counter += 1
 
                 self.total_count += 1
                 self.success.emit(record)
-
-            self.system_count += 1
 
         except Exception as e:
 
@@ -336,6 +338,8 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
             else:
                 solute_title = record.get_value(Fields.title)
 
+            self.log.info("[{}] solvating well {}".format(self.title, solute_title))
+
             # Update cube simulation parameters with the eventually molecule SD tags
             new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(solute) if dp.GetTag() in
                             ["solvents", "molar_fractions", "density"]}
@@ -352,8 +356,8 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
             # Solvate the system
             sol_system = packmol.oesolvate(solute, **opt)
-            self.log.info("[{}] Solvated System atom number: {}".format(self.title,
-                                                                        sol_system.NumAtoms()))
+            self.log.info("[{}] Solvated simulation well {} yielding {} atoms overall".format(self.title,
+                                                                    solute_title, sol_system.NumAtoms()))
             sol_system.SetTitle(solute.GetTitle())
 
             record.set_value(Fields.well, sol_system)
