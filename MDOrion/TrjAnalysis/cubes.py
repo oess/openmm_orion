@@ -105,10 +105,10 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             mdrecord = MDDataRecord(record)
 
             system_title = mdrecord.get_title
-            system_id = mdrecord.get_well_id
+            sort_key = (1000*mdrecord.get_lig_id) + mdrecord.get_conf_id
 
             if not record.has_value(Fields.floe_report):
-                raise ValueError("Missing the report field for the system {}".format(system_title + "_" + system_id))
+                raise ValueError("Missing the report field for the system {}".format(system_title))
 
             report_string = record.get_value(Fields.floe_report)
 
@@ -116,6 +116,10 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
                 raise ValueError("Missing the ligand name field")
 
             ligand_name = record.get_value(Fields.ligand_name)
+            if len(ligand_name) < 15:
+                page_title = ligand_name
+            else:
+                page_title = ligand_name[0:13] + '...'
 
             if not record.has_value(Fields.floe_report_svg_lig_depiction):
                 raise ValueError("Missing the ligand  depiction field")
@@ -127,7 +131,13 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             else:
                 floe_report_label = record.get_value(Fields.floe_report_label)
 
-            self.floe_report_dic[system_id] = (report_string, ligand_svg, ligand_name, floe_report_label)
+            page = self.floe_report.create_page(page_title, is_index=False)
+            page_link = page.get_link()
+            page.set_from_string(report_string)
+
+            record.set_value(Fields.floe_report_URL, page_link)
+
+            self.floe_report_dic[sort_key] = (page_link, ligand_svg, floe_report_label)
 
             # Upload Floe Report
             if self.opt['upload']:
@@ -194,16 +204,7 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             # Sort the dictionary keys by using the ligand ID
             for key in sorted(self.floe_report_dic.keys()):
 
-                report_string, ligand_svg, ligand_title, label = self.floe_report_dic[key]
-
-                if len(ligand_title) < 15:
-                    page_title = ligand_title
-                else:
-                    page_title = ligand_title[0:13] + '...'
-
-                page = self.floe_report.create_page(page_title, is_index=False)
-                page_link = page.get_link()
-                page.set_from_string(report_string)
+                page_link, ligand_svg, label = self.floe_report_dic[key]
 
                 index_content += """
                 <a href='{}'>
