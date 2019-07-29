@@ -116,7 +116,7 @@ iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input
 job.add_cube(iprot)
 
 protset = ProteinSetting("ProteinSetting", title="Protein Setting")
-protset.promote_parameter("protein_prefix", promoted_name="protein_prefix", default="PRT")
+protset.promote_parameter("protein_title", promoted_name="protein_title", default="protein")
 job.add_cube(protset)
 
 # COMPLEX SETTING

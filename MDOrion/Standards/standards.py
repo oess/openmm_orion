@@ -78,7 +78,6 @@ class Fields:
     confid = OEField("ConfID_OPLMD", Types.Int, meta=_metaIDHidden)
 
     # The Ligand field should be used to save in a record a ligand as an OEMolecule
-    #ligand = OEField("Ligand_OPLMD", Types.Chem.Mol, meta=OEFieldMeta().set_option(Meta.Hints.Chem.Ligand))
     ligand = OEField("Ligand_OPLMD", Types.Chem.Mol, meta=OEFieldMeta(options=[Meta.Hints.Chem.Ligand,
                                                                                Meta.Display.Hidden]))
 
@@ -178,8 +177,9 @@ class Fields:
         ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol)
         ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol)
 
-def getMetaAttributes(record, fieldName):
-    fieldWithMeta = record.get_field(fieldName, include_meta=True)
-    metaFromField = fieldWithMeta.get_meta()
-    metaDict = metaFromField.to_dict()
-    return metaDict
+
+def get_meta_attributes(record, field_name):
+    field_with_meta = record.get_field(field_name, include_meta=True)
+    meta_from_field = field_with_meta.get_meta()
+    meta_dict = meta_from_field.to_dict()
+    return meta_dict

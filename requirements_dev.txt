@@ -11,10 +11,10 @@ wcwidth==0.1.7
 # Leave this here to avoid pip install issues
 OpenEye-orionplatform==0.3.2
 # temporarily pinning OpenEye-orionclient and OpenEye-floe to fix dependency bug 2019jul27
-OpenEye-orionclient==1.0.0
-OpenEye-floe==0.7.1
+# OpenEye-orionclient==1.0.0
+# OpenEye-floe==0.7.1
 
-OpenEye-Artemis==0.3.4
+OpenEye-Artemis==0.3.5
 OpenEye-ensemble2img==0.1.1
 OpenEye-floe-pkg-tools==0.7.5
 OpenEye-floereport==0.1.2
