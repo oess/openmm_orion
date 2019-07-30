@@ -79,35 +79,35 @@ class MDRecordTests(unittest.TestCase):
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_get_id(self):
+    def test_get_wellid(self):
         id = self.mdrecord.get_value(Fields.wellid)
         self.assertEqual(id, 0)
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_has_id(self):
+    def test_has_wellid(self):
         self.assertTrue(self.mdrecord.has_well_id)
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_set_id(self):
+    def test_set_wellid(self):
         self.mdrecord.set_well_id(5)
         self.assertEqual(self.mdrecord.get_well_id, 5)
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_get_sys_id(self):
+    def test_get_lig_id(self):
         id = self.mdrecord.get_value(Fields.ligid)
         self.assertEqual(id, 0)
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_has_sys_id(self):
+    def test_has_lig_id(self):
         self.assertTrue(self.mdrecord.has_lig_id)
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_set_sys_id(self):
+    def test_set_lig_id(self):
         self.mdrecord.set_lig_id(5)
         self.assertEqual(self.mdrecord.get_lig_id, 5)
 

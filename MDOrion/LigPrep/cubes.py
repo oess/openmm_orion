@@ -158,7 +158,6 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
         self.opt['Logger'] = self.log
         self.ligand_count = 0
 
-
     def process(self, record, port):
         try:
             if not record.has_value(Fields.primary_molecule):

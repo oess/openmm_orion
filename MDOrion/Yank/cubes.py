@@ -163,6 +163,7 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
 
             # Logger string
             str_logger = '-' * 32 + ' YANK SOLV CUBE PARAMETERS ' + '-' * 32
+
             for k, v in sorted(self.parameters().items()):
                 tmp_default = copy.deepcopy(v)
 
@@ -488,16 +489,16 @@ class SyncBindingFECube(RecordPortsMixin, ComputeCube):
 
             for pair in solvated_complex_lig_list:
 
-                new_record = OERecord()
+                new_record = OERecord(pair[0])
 
                 self.log.info("SYNC = ({} - {} , {} - {})".format(pair[0].get_value(Fields.title),
                                                                   pair[0].get_value(Fields.wellid),
                                                                   pair[1].get_value(Fields.title),
                                                                   pair[1].get_value(Fields.wellid)))
 
-                # Copy all the ligand fields into the new record
-                for field in pair[0].get_fields():
-                    new_record.set_value(field, pair[0].get_value(field))
+                # # Copy all the ligand fields into the new record
+                # for field in pair[0].get_fields(include_meta=True):
+                #     new_record.set_value(field, pair[0].get_value(field))
 
                 mdrecord = MDDataRecord(new_record)
 
