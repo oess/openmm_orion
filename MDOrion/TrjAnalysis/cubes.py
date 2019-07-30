@@ -6,6 +6,8 @@ from floe.api import (ParallelMixin,
 
 from MDOrion.Standards import Fields
 
+from oeommtools import utils as oeutils
+
 from floereport import FloeReport, LocalFloeReport
 
 from orionclient.session import in_orion, OrionSession
@@ -17,6 +19,8 @@ from os import environ
 import MDOrion.TrjAnalysis.utils as utl
 
 import MDOrion.TrjAnalysis.TrajMMPBSA_utils as mmpbsa
+
+from MDOrion.TrjAnalysis.water_utils import nmax_waters
 
 import oetrajanalysis.OETrajBasicAnalysis_utils as oetrjutl
 
@@ -1135,6 +1139,85 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
             new_rec.set_value( Fields.Analysis.oetrajconf_rec, list_conf_rec)
 
             self.success.emit(new_rec)
+
+
+class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
+
+    title = "NMax Waters"
+    version = "0.1.0"
+    classification = [["Analysis"]]
+    tags = ['Ligand', 'Protein', 'Waters']
+
+    description = """
+    This cube determines the max number of waters for all the ligands that
+    fits between the protein and ligand molecular surfaces. The cutoff distance
+    parameters determines the max distance used between the volume grid points
+    and the ligand-protein 
+
+    Input:
+    -------
+    Data record Stream - Streamed-in of systems records
+
+    Output:
+    -------
+    Data Record Stream - Streamed-out of records for each ligand with related conformers info
+    """
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 2000},
+        "spot_policy": {"default": "Prohibited"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    cutoff = parameter.DecimalParameter(
+        'cutoff',
+        default=5.0,
+        help_text="Cutoff Distance between Volume grid points and ligand-protein in A")
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+        self.nwaters = list()
+        self.records = list()
+
+    def process(self, record, port):
+        try:
+            mdrecord = MDDataRecord(record)
+
+            protein = mdrecord.get_protein
+
+            protein, ligand, water, exc = oeutils.split(protein, ligand_res_name='LIG')
+
+            if protein.NumAtoms() == 0:
+                raise ValueError("The Protein Atom number is zero")
+
+            ligand = mdrecord.get_ligand
+
+            nmax = nmax_waters(protein, ligand, self.opt['cutoff'])
+
+            self.nwaters.append(nmax)
+            self.records.append(record)
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
+
+        return
+
+    def end(self):
+
+        max_waters = max(self.nwaters)
+
+        for rec in self.records:
+            rec.set_value(Fields.Analysis.max_waters, max_waters)
+            self.success.emit(rec)
+
+        return
 
 
 class ParallelTrajToOEMolCube(ParallelMixin, TrajToOEMolCube):

@@ -17,6 +17,7 @@ import glob
 from tempfile import TemporaryDirectory
 
 
+
 from oeommtools import utils as oeommutils
 
 def GetCardinalOrderOfProteinResNums(mol):
@@ -114,7 +115,7 @@ def ExtractAlignedProtLigTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
     protResMap, numProtRes = GetCardinalOrderOfProteinResNums(protein)
     actSiteResIdxs = set()
     for resnum in actSiteResNums:
-        actSiteResIdxs.add( protResMap[resnum])
+        actSiteResIdxs.add(protResMap[resnum])
 
     # Extract protein atom indices: cannot trust mdtraj protein selection so
     # assume they are contiguous and starting the atom list and just get the same
@@ -124,7 +125,7 @@ def ExtractAlignedProtLigTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
     # Extract ligand atom indices
     #   Note: the ligand must have residue name 'MOL' or 'LIG' (bad, should change)
     ligIdx = topologyTraj.topology.select('resname == MOL or resname == LIG')
-    protligIdx = np.append( protOEIdx, ligIdx)
+    protligIdx = np.append(protOEIdx, ligIdx)
 
     # print( 'numAtoms prot, lig, protlig:', len(protOEIdx), len(ligIdx), len(protligIdx))
     #protligIdx = topologyTraj.topology.select('protein or resname == MOL or resname == LIG')
@@ -143,7 +144,7 @@ def ExtractAlignedProtLigTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
     # Image the protein-ligand trajectory so the complex does not jump across box boundaries
     protlig = topologyTraj.atom_slice(protligIdx)
     protligAtoms = [atom for atom in protlig.topology.atoms]
-    inplace = True
+    inplace = False
     trjImaged = trj.image_molecules(inplace, [protligAtoms])
 
     # Make a list of the atom indices of the carbon-alphas of the active site residues;
@@ -175,6 +176,118 @@ def ExtractAlignedProtLigTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
         conf = protTraj.NewConf(confxyz)
 
     return protTraj, ligTraj
+
+
+
+
+#
+#
+#
+# def ExtractAlignedProtLigWatTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
+#     """
+#     TESTING
+#
+#     :param mol:
+#     :param traj_filename:
+#     :param fromLigCutoff:
+#     :param skip:
+#     :return:
+#     """
+#
+#     void, traj_ext = os.path.splitext(traj_filename)
+#
+#     traj_dir = os.path.dirname(traj_filename)
+#
+#     # get the topology from 1st frame of the traj file
+#     if traj_ext == '.h5':
+#         topologyTraj = md.load_hdf5(traj_filename, frame=1)
+#
+#     elif traj_ext == '.xtc':
+#         pdb_fn = glob.glob(os.path.join(traj_dir, '*.pdb'))[0]
+#         topologyTraj = md.load_xtc(traj_filename, top=pdb_fn, frame=1)
+#     else:
+#         raise ValueError("Trajectory file format {} not recognized in the trajectory {}".format(traj_ext, traj_filename))
+#
+#     # Put the reference mol xyz into the 1-frame topologyTraj to use as a reference in the fit
+#     molXyz = oechem.OEDoubleArray(3*mol.GetMaxAtomIdx())
+#     mol.GetCoords(molXyz)
+#     molXyzArr = np.array(molXyz)
+#     molXyzArr.shape = (-1, 3)
+#
+#     # convert from angstroms to nanometers and slice out the protein-ligand complex
+#     topologyTraj.xyz[0] = molXyzArr/10.0
+#
+#     # extract protein and ligand molecules from the larger multicomponent system
+#     # and identify residue numbers for residues within fromLigCutoff of the ligand.
+#     protein, ligand, actSiteResNums = ExtractProtLigActsiteResNums(mol, fromLigCutoff)
+#     protResMap, numProtRes = GetCardinalOrderOfProteinResNums(protein)
+#     actSiteResIdxs = set()
+#     for resnum in actSiteResNums:
+#         actSiteResIdxs.add(protResMap[resnum])
+#
+#     # Extract protein atom indices: cannot trust mdtraj protein selection so
+#     # assume they are contiguous and starting the atom list and just get the same
+#     # number of atoms as in the OpenEye protein
+#     protOEIdx = np.array([atom.GetIdx() for atom in protein.GetAtoms()])
+#
+#     # Extract ligand atom indices
+#     #   Note: the ligand must have residue name 'MOL' or 'LIG' (bad, should change)
+#     ligIdx = topologyTraj.topology.select('resname == MOL or resname == LIG')
+#     protligIdx = np.append(protOEIdx, ligIdx)
+#
+#     # print( 'numAtoms prot, lig, protlig:', len(protOEIdx), len(ligIdx), len(protligIdx))
+#     #protligIdx = topologyTraj.topology.select('protein or resname == MOL or resname == LIG')
+#
+#     # Read the protein-ligand subsystem of the trajectory file
+#     if traj_ext == '.h5':  # OpenMM
+#         trj_initial = md.load_hdf5(traj_filename, atom_indices=protligIdx)
+#     elif traj_ext == '.xtc':  # Gromacs
+#         trj_initial = md.load_xtc(traj_filename, top=pdb_fn, atom_indices=protligIdx)
+#
+#     if skip > 0 and len(trj_initial) > skip:
+#         trj = trj_initial[skip:]
+#     else:
+#         trj = trj_initial
+#
+#     # Image the protein-ligand trajectory so the complex does not jump across box boundaries
+#     protlig = topologyTraj.atom_slice(protligIdx)
+#     protligAtoms = [atom for atom in protlig.topology.atoms]
+#     inplace = False
+#     trjImaged = trj.image_molecules(inplace, [protligAtoms])
+#
+#     # Make a list of the atom indices of the carbon-alphas of the active site residues;
+#     # assume residue numbering matches the mol
+#     actSiteCA = [atom.index for atom in topologyTraj.topology.atoms
+#                  if ((atom.residue.resSeq in actSiteResIdxs) and (atom.name == 'CA'))]
+#
+#     # Fit the protein-ligand trajectory to the active site carbon-alphas of the reference
+#     trjImaged.superpose(protlig, 0, actSiteCA)
+#
+#     # Generate a multiconformer representation of the ligand trajectory
+#     ligTraj = oechem.OEMol(ligand)
+#
+#     ligTraj.DeleteConfs()
+#     for frame in trjImaged.xyz:
+#         xyzList = [10*frame[idx] for idx in ligIdx]
+#         confxyz = oechem.OEFloatArray( np.array(xyzList).ravel())
+#         conf = ligTraj.NewConf(confxyz)
+#
+#     # Generate a multiconformer representation of the protein trajectory
+#     strNumProteinAtomsToSelect = 'index ' + str(protOEIdx[0]) + ' to ' + str(protOEIdx[-1])
+#     protIdx = protlig.topology.select(strNumProteinAtomsToSelect)
+#     protTraj = oechem.OEMol(protein)
+#     protTraj.DeleteConfs()
+#
+#     for frame in trjImaged.xyz:
+#         xyzList = [10*frame[idx] for idx in protIdx]
+#         confxyz = oechem.OEFloatArray(np.array(xyzList).ravel())
+#         conf = protTraj.NewConf(confxyz)
+#
+#     return protTraj, ligTraj
+#
+#
+
+
 
 
 def RequestOEField(record, field, rType):

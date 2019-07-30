@@ -177,6 +177,8 @@ class Fields:
         ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol)
         ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol)
 
+        max_waters = OEField("MaxWaters_OPLMD", Types.Float)
+
 
 def get_meta_attributes(record, field_name):
     field_with_meta = record.get_field(field_name, include_meta=True)
