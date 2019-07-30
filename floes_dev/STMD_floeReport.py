@@ -3,7 +3,8 @@ from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import ParallelMDTrajAnalysisClusterReport
+from MDOrion.TrjAnalysis.cubes import (ParallelMDTrajAnalysisClusterReport,
+                                       MDFloeReportCube)
 
 job = WorkFloe("Floe Report from Analyzed Short Trajectory MD")
 #
@@ -26,12 +27,14 @@ ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecor
 ofs = DatasetWriterCube('ofs', title='OFS-Success')
 ofs.promote_parameter("data_out", promoted_name="out", title="System Output OERecord", description="OERecord file name")
 
-reportCube = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
+report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
+report = MDFloeReportCube("report", title="Floe Report")
 
-job.add_cubes(ifs, reportCube, ofs)
+job.add_cubes(ifs, report_gen, report, ofs)
 
-ifs.success.connect(reportCube.intake)
-reportCube.success.connect(ofs.intake)
+ifs.success.connect(report_gen.intake)
+report_gen.success.connect(report.intake)
+report.success.connect(ofs.intake)
 
 if __name__ == "__main__":
     job.run()
