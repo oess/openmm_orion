@@ -414,18 +414,18 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
                     record.set_value(Fields.floe_report, report_str)
 
                 if 'start_avg_density' in avg_density_dic.keys():
-                    start_density_field = OEField("Start_Density_OPLMD", Types.Float)
+                    start_density_field = OEField("Start_State_Density_OPLMD", Types.Float)
                     meta_std = OEFieldMeta()
                     meta_std.add_relation(Meta.Relations.ErrorsFor, start_density_field)
-                    start_density_std_field = OEField("Start_Density_Std_OPLMD", Types.Float, meta=meta_std)
+                    start_density_std_field = OEField("Start_State_Density_Std_OPLMD", Types.Float, meta=meta_std)
                     record.set_value(start_density_field, avg_density_dic['start_avg_density'])
                     record.set_value(start_density_std_field, avg_density_dic['start_std_avg_density'])
 
                 if 'final_avg_density' in avg_density_dic.keys():
-                    final_density_field = OEField("Final_Density_OPLMD", Types.Float)
+                    final_density_field = OEField("Final_State_Density_OPLMD", Types.Float)
                     meta_std = OEFieldMeta()
                     meta_std.add_relation(Meta.Relations.ErrorsFor, final_density_field)
-                    final_density_std_field = OEField("Final_Density_Std_OPLMD", Types.Float, meta=meta_std)
+                    final_density_std_field = OEField("Final_State_Density_Std_OPLMD", Types.Float, meta=meta_std)
                     record.set_value(final_density_field, avg_density_dic['final_avg_density'])
                     record.set_value(final_density_std_field, avg_density_dic['final_std_avg_density'])
 
