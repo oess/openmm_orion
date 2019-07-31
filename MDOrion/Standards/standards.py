@@ -136,6 +136,8 @@ class Fields:
 
     floe_report_label = OEField('Floe_report_label_OPLMD', Types.String, meta=_metaHidden)
 
+    floe_report_URL = OEField('Floe_report_URL_OPLMD', Types.String, meta=OEFieldMeta(options=[Meta.Hints.URL]))
+
     class Analysis:
 
         # The OETraj Field is for the record containing Traj OEMols and energies
@@ -163,6 +165,9 @@ class Fields:
         metaMMPBSA_traj_std = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
         metaMMPBSA_traj_std.add_relation(Meta.Relations.ErrorsFor, mmpbsa_traj_mean)
         mmpbsa_traj_std = OEField('MMPBSATrajStdev', Types.Float, meta=metaMMPBSA_traj_std)
+
+        # The number of major clusters found
+        n_major_clusters = OEField("n major clusters", Types.Int)
 
         # Trajectory cluster averages and medians of protein and ligand
         ClusLigAvg_fld = OEField('ClusLigAvgMol', Types.Chem.Mol)
