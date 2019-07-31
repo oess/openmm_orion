@@ -325,7 +325,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
     def process(self, record, port):
 
         try:
-            opt = self.opt
+            opt = dict(self.opt)
 
             if not record.has_value(Fields.well):
                 raise ValueError("Missing the Well Molecule Field")
@@ -340,20 +340,19 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
             self.log.info("[{}] solvating well {}".format(self.title, solute_title))
 
-            # Update cube simulation parameters with the eventually molecule SD tags
-            new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(solute) if dp.GetTag() in
-                            ["solvents", "molar_fractions", "density"]}
-            if new_args:
-                for k in new_args:
-                    if k == 'molar_fractions':
-                        continue
-                    try:
-                        new_args[k] = float(new_args[k])
-                    except:
-                        pass
-                self.log.info("Updating parameters for molecule: {}\n{}".format(solute_title, new_args))
-                opt.update(new_args)
-
+            # Update cube simulation parameters
+            for field in record.get_fields(include_meta=True):
+                field_name = field.get_name()
+                if field_name in ['molar_fractions', 'density', 'solvents']:
+                    rec_value = record.get_value(field)
+                    if field_name == 'molar_fractions':
+                        opt[field_name] = str(rec_value)
+                    else:
+                        opt[field_name] = rec_value
+                    opt['Logger'].info("{} Updating parameters for molecule: {} {} = {}".format(self.title,
+                                                                                                solute.GetTitle(),
+                                                                                                field_name,
+                                                                                                rec_value))
             # Solvate the system
             sol_system = packmol.oesolvate(solute, **opt)
             self.log.info("[{}] Solvated simulation well {} yielding {} atoms overall".format(self.title,
