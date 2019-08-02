@@ -129,13 +129,6 @@ class Fields:
     # Stage list Field
     md_stages = OEField("MDStages_OPLMD", Types.RecordVec, meta=_metaHidden)
 
-    # Analysis Fields
-    free_energy = OEField('FE_OPLMD', Types.Float,
-                          meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
-
-    free_energy_err = OEField('FE_Error_OPLMD', Types.Float,
-                              meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
-
     floe_report = OEField('Floe_report_OPLMD', Types.String, meta=_metaHidden)
 
     floe_report_svg_lig_depiction = OEField("Floe_report_lig_svg_OPLMD", Types.String,
@@ -185,6 +178,15 @@ class Fields:
         ClusProtAvg_fld = OEField('ClusProtAvgMol', Types.Chem.Mol)
         ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol)
         ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol)
+
+        # Free Energy Yank
+        # Analysis Fields
+        free_energy = OEField('FE_OPLMD', Types.Float,
+                              meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
+
+        metaFreeEnergy_err = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
+        metaFreeEnergy_err.add_relation(Meta.Relations.ErrorsFor, free_energy)
+        free_energy_err = OEField('FE_Error_OPLMD', Types.Float, meta=metaFreeEnergy_err)
 
 
 def get_meta_attributes(record, field_name):

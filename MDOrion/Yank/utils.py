@@ -49,6 +49,8 @@ from openeye import (oedepict,
 
 from tempfile import TemporaryDirectory
 
+import mdtraj as md
+
 
 def yank_solvation_initialize(sim):
     def wrapper(*args):
@@ -328,6 +330,85 @@ def run_yank_binding(opt):
     return
 
 
+def calculate_state_start_final_avg_densities(opt):
+
+    exp_dir = os.path.join(opt['out_directory'], "experiments")
+
+    experiment_to_analyze = ExperimentAnalyzer(exp_dir)
+
+    analysis = experiment_to_analyze.auto_analyze()
+
+    nstates = analysis['general']['solvent1']['nstates']
+
+    start_state_idx = 0
+    final_state_idx = nstates - 1
+
+    average_densities = []
+    std_densities = []
+
+    solvated = oechem.OEMol()
+    with oechem.oemolistream(os.path.join(opt['out_directory'], 'solvated.pdb')) as ifs:
+        oechem.OEReadMolecule(ifs, solvated)
+    solvated_wgt = oechem.OECalculateMolecularWeight(solvated) * unit.gram / unit.mole
+
+    vacuum = oechem.OEMol()
+    with oechem.oemolistream(os.path.join(opt['out_directory'], 'solute.pdb')) as ifs:
+        oechem.OEReadMolecule(ifs, vacuum)
+    vacuum_wgt = oechem.OECalculateMolecularWeight(vacuum) * unit.gram / unit.mole
+
+    for state in [start_state_idx, final_state_idx]:
+        # Calculate the density per each simulation frame in the fully interactive
+        # state and calculate the average density and its standard deviation
+        opt_1 = '--netcdf={}'.format(os.path.join(exp_dir, "solvent1.nc"))
+        opt_2 = '--state={}'.format(state)
+        trj_fn = os.path.join(opt['out_directory'], 'ext_trajectory' + '_' + str(state) + '.h5')
+        opt_3 = '--trajectory={}'.format(trj_fn)
+
+        try:
+            os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
+
+            subprocess.check_call(['yank', 'analyze', 'extract-trajectory', opt_1, opt_2, opt_3])
+
+            traj = md.load(trj_fn)
+
+            # Volume array per each frame in nm^3 cubes
+            volumes = traj.unitcell_volumes * (unit.nanometers ** 3)
+
+            if state == start_state_idx:
+                wgt = solvated_wgt
+
+            else:  # Final state
+                wgt = solvated_wgt - vacuum_wgt
+
+            # Densities in g/ml
+            densities = (1 / unit.AVOGADRO_CONSTANT_NA) * wgt / volumes.in_units_of(unit.milliliter)
+
+            densities_array = densities / (unit.gram / unit.milliliter)
+
+            avg_density = float(densities_array.mean())
+            std_density = float(densities_array.std())
+
+            average_densities.append(avg_density)
+            std_densities.append(std_density)
+
+        except subprocess.SubprocessError:
+            opt['Logger'].warn("The average density has not been calculated for the state {}".format(state))
+
+    avg_density_dic = dict()
+
+    # Start State
+    if average_densities[0]:
+        avg_density_dic['start_avg_density'] = average_densities[0]
+        avg_density_dic['start_std_avg_density'] = std_densities[0]
+
+    # Final State
+    if average_densities[1]:
+        avg_density_dic['final_avg_density'] = average_densities[1]
+        avg_density_dic['final_std_avg_density'] = std_densities[1]
+
+    return avg_density_dic
+
+
 def run_yank_analysis(opt):
 
     exp_dir = os.path.join(opt['out_directory'], "experiments")
@@ -363,7 +444,11 @@ def run_yank_analysis(opt):
     except subprocess.SubprocessError:
         opt['Logger'].warn("The result html file has not been generated")
 
-    return DeltaG, dDeltaG, report_html_str
+    if opt['density']:
+        avg_density_dic = calculate_state_start_final_avg_densities(opt)
+        return DeltaG, dDeltaG, report_html_str, avg_density_dic
+    else:
+        return DeltaG, dDeltaG, report_html_str
 
 
 def calculate_iteration_time(output_directory, num_iterations):

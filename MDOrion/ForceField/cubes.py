@@ -236,7 +236,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             for at in system_structure.atoms:
                 system_partial_charge += at.charge
 
-            if abs(system_formal_charge - system_partial_charge) > 0.001:
+            if abs(system_formal_charge - system_partial_charge) > 0.01:
                 raise ValueError("System Formal charge and System Partial charge mismatch: {} vs {}".format(
                     system_formal_charge, system_partial_charge))
 
