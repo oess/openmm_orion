@@ -742,10 +742,12 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             trajHistRMSD_svg = clusutl.ClusterLigTrajHistRMSD(clusResults)
             opt['Logger'].info('{} plotting cluster strip plot'.format(system_title) )
             trajClus_svg = clusutl.ClusterLigTrajClusPlot(clusResults)
+
             # Calculate RMSD of ligand traj from ligand initial pose
-            vecRmsd = oechem.OEDoubleArray( ligTraj.GetMaxConfIdx() )
             ligInitPose = utl.RequestOEFieldType( record, Fields.ligand)
+            vecRmsd = oechem.OEDoubleArray( ligTraj.GetMaxConfIdx() )
             oechem.OERMSD(ligInitPose, ligTraj, vecRmsd)
+            trajClus.set_value(Fields.Analysis.lig_traj_rmsd, list(vecRmsd) )
             opt['Logger'].info('{} plotting strip plot of ligand RMSD from initial pose'.format(system_title) )
             rmsdInit_svg = clusutl.RmsdFromInitialPosePlot( clusResults['ClusterVec'], vecRmsd)
 
