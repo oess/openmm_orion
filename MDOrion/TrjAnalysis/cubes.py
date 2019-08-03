@@ -295,7 +295,14 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             # Generate multi-conformer protein and ligand OEMols from the trajectory
             opt['Logger'].info('{} Generating protein and ligand trajectory OEMols'.format(system_title))
 
-            ptraj, ltraj = utl.ExtractAlignedProtLigTraj(setupOEMol, traj_fn)
+            well = mdrecord.get_well
+
+            if not record.has_value(Fields.Analysis.max_waters):
+                raise ValueError("The Max number of Waters filed is  missing")
+
+            nmax = record.get_value(Fields.Analysis.max_waters)
+            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, well, traj_fn, nmax, opt)
+            # ptraj, ltraj = utl.ExtractAlignedProtLigTraj(setupOEMol, traj_fn)
             ltraj.SetTitle(record.get_value(Fields.ligand_name))
             ptraj.SetTitle(record.get_value(Fields.protein_name))
 
@@ -303,6 +310,8 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
                 system_title, ptraj.NumAtoms(), ptraj.NumConfs()))
             opt['Logger'].info('{} #atoms, #confs in ligand traj OEMol: {}, {}'.format(
                 system_title, ltraj.NumAtoms(), ltraj.NumConfs()))
+            opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'.format(
+                system_title, wtraj.NumAtoms(), wtraj.NumConfs()))
 
             # Generate average and median protein and ligand OEMols from ptraj, ltraj
             opt['Logger'].info('{} Generating protein and ligand median and average OEMols'.format(system_title))
@@ -321,6 +330,8 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             oetrajRecord = OERecord()
 
             oetrajRecord.set_value(OEField('LigTraj', Types.Chem.Mol), ltraj)
+
+            oetrajRecord.set_value(OEField('WatTraj', Types.Chem.Mol), wtraj)
 
             oetrajRecord.set_value(OEField('LigMedian', Types.Chem.Mol), ligMedian)
 
@@ -1136,7 +1147,7 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
 
             new_rec.set_value(Fields.ligand, lig_multi_conf)
             new_rec.set_value(Fields.ligand_name, list_conf_rec[0].get_value(Fields.ligand_name))
-            new_rec.set_value( Fields.Analysis.oetrajconf_rec, list_conf_rec)
+            new_rec.set_value(Fields.Analysis.oetrajconf_rec, list_conf_rec)
 
             self.success.emit(new_rec)
 
@@ -1212,6 +1223,8 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
     def end(self):
 
         max_waters = max(self.nwaters)
+
+        self.opt['Logger'].info("{} Max number of Waters: {}".format(self.title, max_waters))
 
         for rec in self.records:
             rec.set_value(Fields.Analysis.max_waters, max_waters)
