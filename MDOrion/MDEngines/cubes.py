@@ -37,6 +37,8 @@ import textwrap
 
 import os
 
+from openeye import oechem
+
 
 class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     title = 'Minimization Cube'
@@ -458,6 +460,18 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
             opt['system_id'] = mdrecord.get_well_id
 
             system = mdrecord.get_stage_topology()
+
+            # Update cube simulation parameters
+            for field in record.get_fields(include_meta=True):
+                field_name = field.get_name()
+                if field_name in ['temperature']:
+                    rec_value = record.get_value(field)
+                    opt[field_name] = rec_value
+                    opt['Logger'].info("{} Updating parameters for molecule: {} {} = {}".format(self.title,
+                                                                                                system.GetTitle(),
+                                                                                                field_name,
+                                                                                                rec_value))
+
             mdstate = mdrecord.get_stage_state()
 
             opt['out_directory'] = mdrecord.cwd
@@ -709,6 +723,17 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
             mdrecord = MDDataRecord(record)
 
             system = mdrecord.get_well
+
+            # Update cube simulation parameters
+            for field in record.get_fields(include_meta=True):
+                field_name = field.get_name()
+                if field_name in ['temperature', 'pressure']:
+                    rec_value = record.get_value(field)
+                    opt[field_name] = rec_value
+                    opt['Logger'].info("{} Updating parameters for molecule: {} {} = {}".format(self.title,
+                                                                                                system.GetTitle(),
+                                                                                                field_name,
+                                                                                                rec_value))
 
             if not mdrecord.has_title:
                 opt['Logger'].warn("Missing record Title field")

@@ -26,7 +26,9 @@ from orionplatform.ports import RecordInputPort, RecordOutputPort
 
 from datarecord import (Types,
                         OEField,
-                        OERecord)
+                        OERecord,
+                        OEFieldMeta,
+                        Meta)
 
 from openeye import oechem
 
@@ -249,18 +251,15 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
                 raise ValueError("The ligand is not neutral: formal charge = {}. "
                                  "Charged ligands are not currently supported".format(fchg_lig))
 
-            # Update cube simulation parameters with the eventually molecule SD tags
-            new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(system) if dp.GetTag() in
-                        ["temperature"]}
-            if new_args:
-                for k in new_args:
-                    try:
-                        new_args[k] = float(new_args[k])
-                    except:
-                        pass
-                self.log.info("Updating parameters for molecule: {}\n{}".format(system.GetTitle(), new_args))
-                opt.update(new_args)
-
+            # Update cube simulation parameters
+            for field in record.get_fields(include_meta=True):
+                field_name = field.get_name()
+                if field_name in ['temperature', 'pressure']:
+                    rec_value = record.get_value(field)
+                    opt[field_name] = rec_value
+                    opt['Logger'].info("Updating parameters for molecule: {} {} = {}".format(system.GetTitle(),
+                                                                                        field_name,
+                                                                                        rec_value))
             mdstate = mdrecord.get_stage_state()
             solvated_structure = mdrecord.get_parmed(sync_stage_name='last')
 
@@ -403,13 +402,32 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
 
             # Run Yank analysis
             if opt['new_iterations'] == opt['iterations']:
-                DeltaG_solvation, dDeltaG_solvation, report_str = yankutils.run_yank_analysis(opt)
 
-                record.set_value(Fields.free_energy, DeltaG_solvation)
-                record.set_value(Fields.free_energy_err, dDeltaG_solvation)
+                opt['density'] = True
+
+                DeltaG_solvation, dDeltaG_solvation, report_str, avg_density_dic = yankutils.run_yank_analysis(opt)
+
+                record.set_value(Fields.Analysis.free_energy, DeltaG_solvation)
+                record.set_value(Fields.Analysis.free_energy_err, dDeltaG_solvation)
 
                 if report_str is not None:
                     record.set_value(Fields.floe_report, report_str)
+
+                if 'start_avg_density' in avg_density_dic.keys():
+                    start_density_field = OEField("Start_State_Density_OPLMD", Types.Float)
+                    meta_std = OEFieldMeta()
+                    meta_std.add_relation(Meta.Relations.ErrorsFor, start_density_field)
+                    start_density_std_field = OEField("Start_State_Density_Std_OPLMD", Types.Float, meta=meta_std)
+                    record.set_value(start_density_field, avg_density_dic['start_avg_density'])
+                    record.set_value(start_density_std_field, avg_density_dic['start_std_avg_density'])
+
+                if 'final_avg_density' in avg_density_dic.keys():
+                    final_density_field = OEField("Final_State_Density_OPLMD", Types.Float)
+                    meta_std = OEFieldMeta()
+                    meta_std.add_relation(Meta.Relations.ErrorsFor, final_density_field)
+                    final_density_std_field = OEField("Final_State_Density_Std_OPLMD", Types.Float, meta=meta_std)
+                    record.set_value(final_density_field, avg_density_dic['final_avg_density'])
+                    record.set_value(final_density_std_field, avg_density_dic['final_std_avg_density'])
 
                 svg_lig = yankutils.ligand_to_svg(lig_split, lig_name)
 
@@ -942,10 +960,13 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
 
             # Run the analysis
             if opt['new_iterations'] == opt['iterations']:
+
+                opt['density'] = False
+
                 DeltaG_binding, dDeltaG_binding, report_str = yankutils.run_yank_analysis(opt)
 
-                record.set_value(Fields.free_energy, DeltaG_binding)
-                record.set_value(Fields.free_energy_err, dDeltaG_binding)
+                record.set_value(Fields.Analysis.free_energy, DeltaG_binding)
+                record.set_value(Fields.Analysis.free_energy_err, dDeltaG_binding)
 
                 if report_str is not None:
                     record.set_value(Fields.floe_report, report_str)

@@ -129,19 +129,14 @@ class Fields:
     # Stage list Field
     md_stages = OEField("MDStages_OPLMD", Types.RecordVec, meta=_metaHidden)
 
-    # Analysis Fields
-    free_energy = OEField('FE_OPLMD', Types.Float,
-                          meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
-
-    free_energy_err = OEField('FE_Error_OPLMD', Types.Float,
-                              meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
-
     floe_report = OEField('Floe_report_OPLMD', Types.String, meta=_metaHidden)
 
     floe_report_svg_lig_depiction = OEField("Floe_report_lig_svg_OPLMD", Types.String,
                                             meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
 
     floe_report_label = OEField('Floe_report_label_OPLMD', Types.String, meta=_metaHidden)
+
+    floe_report_URL = OEField('Floe_report_URL_OPLMD', Types.String, meta=OEFieldMeta(options=[Meta.Hints.URL]))
 
     class Analysis:
 
@@ -171,6 +166,9 @@ class Fields:
         metaMMPBSA_traj_std.add_relation(Meta.Relations.ErrorsFor, mmpbsa_traj_mean)
         mmpbsa_traj_std = OEField('MMPBSATrajStdev', Types.Float, meta=metaMMPBSA_traj_std)
 
+        # The number of major clusters found
+        n_major_clusters = OEField("n major clusters", Types.Int)
+
         # Trajectory cluster averages and medians of protein and ligand
         ClusLigAvg_fld = OEField('ClusLigAvgMol', Types.Chem.Mol)
         ClusProtAvg_fld = OEField('ClusProtAvgMol', Types.Chem.Mol)
@@ -178,6 +176,15 @@ class Fields:
         ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol)
 
         max_waters = OEField("MaxWaters_OPLMD", Types.Int)
+
+        # Free Energy Yank
+        # Analysis Fields
+        free_energy = OEField('FE_OPLMD', Types.Float,
+                              meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
+
+        metaFreeEnergy_err = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
+        metaFreeEnergy_err.add_relation(Meta.Relations.ErrorsFor, free_energy)
+        free_energy_err = OEField('FE_Error_OPLMD', Types.Float, meta=metaFreeEnergy_err)
 
 
 def get_meta_attributes(record, field_name):

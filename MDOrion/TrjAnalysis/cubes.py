@@ -109,10 +109,10 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             mdrecord = MDDataRecord(record)
 
             system_title = mdrecord.get_title
-            system_id = mdrecord.get_well_id
+            sort_key = (1000*mdrecord.get_lig_id) + mdrecord.get_conf_id
 
             if not record.has_value(Fields.floe_report):
-                raise ValueError("Missing the report field for the system {}".format(system_title + "_" + system_id))
+                raise ValueError("Missing the report field for the system {}".format(system_title))
 
             report_string = record.get_value(Fields.floe_report)
 
@@ -120,6 +120,10 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
                 raise ValueError("Missing the ligand name field")
 
             ligand_name = record.get_value(Fields.ligand_name)
+            if len(ligand_name) < 15:
+                page_title = ligand_name
+            else:
+                page_title = ligand_name[0:13] + '...'
 
             if not record.has_value(Fields.floe_report_svg_lig_depiction):
                 raise ValueError("Missing the ligand  depiction field")
@@ -127,11 +131,17 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             ligand_svg = record.get_value(Fields.floe_report_svg_lig_depiction)
 
             if not record.has_value(Fields.floe_report_label):
-                floe_report_label = ""
+                floe_report_label = ligand_name
             else:
                 floe_report_label = record.get_value(Fields.floe_report_label)
 
-            self.floe_report_dic[system_id] = (report_string, ligand_svg, ligand_name, floe_report_label)
+            page = self.floe_report.create_page(page_title, is_index=False)
+            page_link = page.get_link()
+            page.set_from_string(report_string)
+
+            record.set_value(Fields.floe_report_URL, page_link)
+
+            self.floe_report_dic[sort_key] = (page_link, ligand_svg, floe_report_label)
 
             # Upload Floe Report
             if self.opt['upload']:
@@ -198,16 +208,7 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             # Sort the dictionary keys by using the ligand ID
             for key in sorted(self.floe_report_dic.keys()):
 
-                report_string, ligand_svg, ligand_title, label = self.floe_report_dic[key]
-
-                if len(ligand_title) < 15:
-                    page_title = ligand_title
-                else:
-                    page_title = ligand_title[0:13] + '...'
-
-                page = self.floe_report.create_page(page_title, is_index=False)
-                page_link = page.get_link()
-                page.set_from_string(report_string)
+                page_link, ligand_svg, label = self.floe_report_dic[key]
 
                 index_content += """
                 <a href='{}'>
@@ -510,7 +511,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
                 record.set_value(Fields.Analysis.mmpbsa_traj_std, std_mmpbsa)
                 # Add to the record the Average MMPBSA floe report label
-                record.set_value(Fields.floe_report_label, "MMPBSA = {:.1f}  &plusmn; {:.1f} kcal/mol".
+                record.set_value(Fields.floe_report_label, "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".
                                  format(avg_mmpbsa, std_mmpbsa))
 
             # Add the trajPBSA record to the parent record
@@ -824,16 +825,29 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
                 # Set the TrajClus record on the top-level record
                 record.set_value(Fields.Analysis.oeclus_rec, trajClus)
 
-                # also set prot and lig clus average mols on top-level record for 3D vis
+                # Set prot and lig clus average mols on top-level record for 3D vis
                 record.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
                 record.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
                 record.set_value( Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
                 record.set_value( Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
+
+                # Set the number of major clusters and revise label
+                record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
+
+                # Revise top-level floe report label to include nMajorClusters
+                if not record.has_value(Fields.floe_report_label):
+                    floe_report_label = ""
+                else:
+                    floe_report_label = record.get_value(Fields.floe_report_label)
+                floe_report_label = "# clusters: " + str(nMajorClusters) + "<br>" + floe_report_label
+                record.set_value(Fields.floe_report_label, floe_report_label)
+
             else:
                 opt['Logger'].info('Warning: No major clusters found for {}'.format(system_title))
 
             analysesDone.append('TrajClus')
             record.set_value(Fields.Analysis.analysesDone, analysesDone)
+
             opt['Logger'].info('{} finished writing trajClus OERecord'.format(system_title) )
 
             # debug begin bayly 2019jul
@@ -923,7 +937,13 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             trajSVG = utl.RequestOEField(oetrajRecord, 'TrajSVG', Types.String)
 
             # Extract the label for the MMPBSA score for the whole trajectory
-            mmpbsaLabelStr = utl.RequestOEField(record, 'Floe_report_label_OPLMD', Types.String)
+            if not record.has_value(Fields.Analysis.mmpbsa_traj_mean):
+                mmpbsaLabelStr = lig_name
+            else:
+                mmpbsa_traj_mean = record.get_value(Fields.Analysis.mmpbsa_traj_mean)
+                mmpbsa_traj_std = record.get_value(Fields.Analysis.mmpbsa_traj_std)
+                mmpbsaLabelStr = "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".format(mmpbsa_traj_mean,
+                                                                                               mmpbsa_traj_std)
 
             # Extract Ligand average Bfactor
             ligand_bfactor = utl.RequestOEField(oetrajRecord, 'LigAverage', Types.Chem.Mol)
