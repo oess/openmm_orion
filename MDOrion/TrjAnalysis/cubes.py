@@ -299,7 +299,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             well = mdrecord.get_well
 
             if not record.has_value(Fields.Analysis.max_waters):
-                raise ValueError("The Max number of Waters filed is  missing")
+                raise ValueError("The Max number of Waters field is  missing")
 
             nmax = record.get_value(Fields.Analysis.max_waters)
             ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, well, traj_fn, nmax, opt)
@@ -311,8 +311,10 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
                 system_title, ptraj.NumAtoms(), ptraj.NumConfs()))
             opt['Logger'].info('{} #atoms, #confs in ligand traj OEMol: {}, {}'.format(
                 system_title, ltraj.NumAtoms(), ltraj.NumConfs()))
-            opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'.format(
-                system_title, wtraj.NumAtoms(), wtraj.NumConfs()))
+
+            if wtraj:
+                opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'.format(
+                    system_title, wtraj.NumAtoms(), wtraj.NumConfs()))
 
             # Generate average and median protein and ligand OEMols from ptraj, ltraj
             opt['Logger'].info('{} Generating protein and ligand median and average OEMols'.format(system_title))
@@ -332,7 +334,8 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
             oetrajRecord.set_value(OEField('LigTraj', Types.Chem.Mol), ltraj)
 
-            oetrajRecord.set_value(OEField('WatTraj', Types.Chem.Mol), wtraj)
+            if wtraj:
+                oetrajRecord.set_value(OEField('WatTraj', Types.Chem.Mol), wtraj)
 
             oetrajRecord.set_value(OEField('LigMedian', Types.Chem.Mol), ligMedian)
 
@@ -363,7 +366,11 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
                 analysesDone = ['OETraj']
 
             record.set_value(Fields.Analysis.analysesDone, analysesDone)
-            opt['Logger'].info('{}: saved protein and ligand traj OEMols'.format(system_title))
+
+            if wtraj:
+                opt['Logger'].info('{}: saved protein, ligand  and water traj OEMols'.format(system_title))
+            else:
+                opt['Logger'].info('{}: saved protein and ligand traj OEMols'.format(system_title))
 
             self.success.emit(record)
 
@@ -1244,7 +1251,10 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
 
         max_waters = max(self.nwaters)
 
-        self.opt['Logger'].info("{} Max number of Waters: {}".format(self.title, max_waters))
+        if max_waters == 0:
+            self.opt['Logger'].warn("{} Max number of waters is zero".format(self.title))
+        else:
+            self.opt['Logger'].info("{} Max number of Waters: {}".format(self.title, max_waters))
 
         for rec in self.records:
             rec.set_value(Fields.Analysis.max_waters, max_waters)

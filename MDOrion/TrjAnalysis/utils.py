@@ -265,71 +265,75 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, nmax, opt, cutoff
         with contextlib.redirect_stderr(devnull):
             trjImaged = trj.image_molecules(inplace=False, anchor_molecules=[protligAtoms], make_whole=True)
 
-    count = 0
-    water_max_frames = []
-    for frame in trjImaged:
-        # opt['Logger'].info("count {}".format(count))
-        # Extract frame coordinates
-        xyz = frame.xyz * 10
+    if nmax != 0:
 
-        # Set Well Coordinates as the current frame
-        well.SetCoords(xyz[0].flatten())
+        count = 0
+        water_max_frames = []
 
-        atm_list_frame_idx = md.compute_neighbors(frame, cutoff/10.0, lig_ca_idx, periodic=True)
+        for frame in trjImaged:
 
-        atm_idx = atm_list_frame_idx[0].tolist()
+            # opt['Logger'].info("count {}".format(count))
+            # Extract frame coordinates
+            xyz = frame.xyz * 10
 
-        oe_water_atoms = set()
+            # Set Well Coordinates as the current frame
+            well.SetCoords(xyz[0].flatten())
 
-        pred = oechem.OEIsWater(checkHydrogens=False)
+            atm_list_frame_idx = md.compute_neighbors(frame, cutoff/10.0, lig_ca_idx, periodic=True)
 
-        for idx in atm_idx:
-            atom = well.GetAtom((oechem.OEHasAtomIdx(idx)))
-            if len(list(oechem.OEGetResidueAtoms(atom))) == 3:
-                # Check if the residue is a water molecule
-                for at in oechem.OEGetResidueAtoms(atom):
-                    if pred(at):
-                        oe_water_atoms.add(at)
+            atm_idx = atm_list_frame_idx[0].tolist()
 
-        # Here we are assuming that all the water molecules
-        # have been  imaged inside the box centered in (0,0,0)
-        # and sides (Lx,Ly,Lz)
-        # water_coords = waters.GetCoords()
-        unit_cell_lengths = frame.unitcell_lengths[0] * 10
+            oe_water_atoms = set()
 
-        well_coords = well.GetCoords()
+            pred = oechem.OEIsWater(checkHydrogens=False)
 
-        metric_distances = dict()
+            for idx in atm_idx:
+                atom = well.GetAtom((oechem.OEHasAtomIdx(idx)))
+                if len(list(oechem.OEGetResidueAtoms(atom))) == 3:
+                    # Check if the residue is a water molecule
+                    for at in oechem.OEGetResidueAtoms(atom):
+                        if pred(at):
+                            oe_water_atoms.add(at)
 
-        pred = oechem.OEIsOxygen()
-        for at_water in oe_water_atoms:
-            if pred(at_water):
+            # Here we are assuming that all the water molecules
+            # have been  imaged inside the box centered in (0,0,0)
+            # and sides (Lx,Ly,Lz)
+            # water_coords = waters.GetCoords()
+            unit_cell_lengths = frame.unitcell_lengths[0] * 10
 
-                at_water_coords = well_coords[at_water.GetIdx()]
-                at_water_lig_distances2 = []
-                for idx in lig_idx:
-                    at_lig_coords = well_coords[idx]
-                    at_water_at_lig_distance2 = dist2(at_water_coords, at_lig_coords, unit_cell_lengths)
-                    at_water_lig_distances2.append(at_water_at_lig_distance2)
+            well_coords = well.GetCoords()
 
-                min_distance2_at_water_lig = min(at_water_lig_distances2)
+            metric_distances = dict()
 
-                at_water_ca_distances2 = []
-                for idx in ca_idx:
-                    at_ca_coords = well_coords[idx]
-                    at_water_at_ca_distance2 = dist2(at_water_coords, at_ca_coords, unit_cell_lengths)
-                    at_water_ca_distances2.append(at_water_at_ca_distance2)
+            pred = oechem.OEIsOxygen()
+            for at_water in oe_water_atoms:
+                if pred(at_water):
 
-                min_distance2_at_water_cas = min(at_water_ca_distances2)
+                    at_water_coords = well_coords[at_water.GetIdx()]
+                    at_water_lig_distances2 = []
+                    for idx in lig_idx:
+                        at_lig_coords = well_coords[idx]
+                        at_water_at_lig_distance2 = dist2(at_water_coords, at_lig_coords, unit_cell_lengths)
+                        at_water_lig_distances2.append(at_water_at_lig_distance2)
 
-                metric = min_distance2_at_water_lig + min_distance2_at_water_cas
+                    min_distance2_at_water_lig = min(at_water_lig_distances2)
 
-                metric_distances[at_water] = metric
+                    at_water_ca_distances2 = []
+                    for idx in ca_idx:
+                        at_ca_coords = well_coords[idx]
+                        at_water_at_ca_distance2 = dist2(at_water_coords, at_ca_coords, unit_cell_lengths)
+                        at_water_ca_distances2.append(at_water_at_ca_distance2)
 
-        water_list_sorted_max = sorted(metric_distances.items(), key=lambda x: x[1])[:nmax]
+                    min_distance2_at_water_cas = min(at_water_ca_distances2)
 
-        water_max_frames.append(water_list_sorted_max)
-        count += 1
+                    metric = min_distance2_at_water_lig + min_distance2_at_water_cas
+
+                    metric_distances[at_water] = metric
+
+            water_list_sorted_max = sorted(metric_distances.items(), key=lambda x: x[1])[:nmax]
+
+            water_max_frames.append(water_list_sorted_max)
+            count += 1
 
     # Put the reference mol xyz into the 1-frame topologyTraj to use as a reference in the fit
     setup_mol_array_coords = oechem.OEDoubleArray(3 * setup_mol.GetMaxAtomIdx())
@@ -349,27 +353,29 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, nmax, opt, cutoff
     protein_reference = oechem.OEMol(protein)
 
     count = 0
+    multi_conf_water = None
     for frame in trjImaged.xyz:
-        xyz = frame * 10
 
-        # Set Well Coordinates as the current frame for the water extraction
-        well.SetCoords(xyz.flatten())
-        water_list_sorted_max = water_max_frames[count]
+        if nmax != 0:
+            xyz = frame * 10
+            # Set Well Coordinates as the current frame for the water extraction
+            well.SetCoords(xyz.flatten())
+            water_list_sorted_max = water_max_frames[count]
 
-        bv = oechem.OEBitVector(nmax * 3)
+            bv = oechem.OEBitVector(nmax * 3)
 
-        water_idx = []
+            water_idx = []
 
-        for pair in water_list_sorted_max:
-            ow = pair[0]
-            water_idx.append(ow.GetIdx())
-            for atw in oechem.OEGetResidueAtoms(ow):
-                bv.SetBitOn(atw.GetIdx())
-                water_idx.append(atw.GetIdx())
+            for pair in water_list_sorted_max:
+                ow = pair[0]
+                water_idx.append(ow.GetIdx())
+                for atw in oechem.OEGetResidueAtoms(ow):
+                    bv.SetBitOn(atw.GetIdx())
+                    water_idx.append(atw.GetIdx())
 
-        pred_vec = oechem.OEAtomIdxSelected(bv)
-        water_nmax_reference = oechem.OEMol()
-        oechem.OESubsetMol(water_nmax_reference, well, pred_vec)
+            pred_vec = oechem.OEAtomIdxSelected(bv)
+            water_nmax_reference = oechem.OEMol()
+            oechem.OESubsetMol(water_nmax_reference, well, pred_vec)
 
         lig_xyz_list = [10 * frame[idx] for idx in lig_idx]
         lig_confxyz = oechem.OEFloatArray(np.array(lig_xyz_list).ravel())
@@ -378,32 +384,38 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, nmax, opt, cutoff
         prot_confxyz = oechem.OEFloatArray(np.array(prot_xyz_list).ravel())
 
         if count == 0:
-            multi_conf_water = oechem.OEMol(water_nmax_reference)
 
-            if multi_conf_water.NumAtoms() % 3 != 0:
-                raise ValueError("Number of Water atoms is not multiple of 3")
+            if nmax != 0:
 
-            # Clean ResNumber and Chain
-            oechem.OEPerceiveResidues(multi_conf_water, oechem.OEPreserveResInfo_All)
-            multi_conf_water.SetTitle("Water_" + str(nmax))
-            res_num = 0
-            i = 0
-            for at in multi_conf_water.GetAtoms():
-                res = oechem.OEAtomGetResidue(at)
-                res.SetName("HOH")
-                res.SetChainID("")
-                if i % 3 == 0:
-                    res_num += 1
-                    res.SetResidueNumber(res_num)
-                i += 1
+                multi_conf_water = oechem.OEMol(water_nmax_reference)
+
+                if multi_conf_water.NumAtoms() % 3 != 0:
+                    raise ValueError("Number of Water atoms is not multiple of 3")
+
+                # Clean ResNumber and Chain
+                oechem.OEPerceiveResidues(multi_conf_water, oechem.OEPreserveResInfo_All)
+                multi_conf_water.SetTitle("Water_" + str(nmax))
+
+                res_num = 0
+                i = 0
+                for at in multi_conf_water.GetAtoms():
+                    res = oechem.OEAtomGetResidue(at)
+                    res.SetName("HOH")
+                    res.SetChainID("")
+                    if i % 3 == 0:
+                        res_num += 1
+                        res.SetResidueNumber(res_num)
+                    i += 1
+
             ligand_reference.SetCoords(lig_confxyz)
             protein_reference.SetCoords(prot_confxyz)
             multi_conf_ligand = oechem.OEMol(ligand_reference)
             multi_conf_protein = oechem.OEMol(protein_reference)
         else:
-            water_confxyz = oechem.OEFloatArray(water_nmax_reference.NumAtoms() * 3)
-            water_nmax_reference.GetCoords(water_confxyz)
-            multi_conf_water.NewConf(water_confxyz)
+            if nmax != 0:
+                water_confxyz = oechem.OEFloatArray(water_nmax_reference.NumAtoms() * 3)
+                water_nmax_reference.GetCoords(water_confxyz)
+                multi_conf_water.NewConf(water_confxyz)
 
             multi_conf_ligand.NewConf(lig_confxyz)
             multi_conf_protein.NewConf(prot_confxyz)
