@@ -438,7 +438,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
             # Extract the relevant traj OEMols from the OETraj record
             oetrajRecord = utl.RequestOEFieldType(record, Fields.Analysis.oetraj_rec)
             opt['Logger'].info('{} found OETraj record'.format(system_title))
-            ligTraj = utl.RequestOEField( oetrajRecord, 'LigTraj', Types.Chem.Mol)
+            ligTraj = utl.RequestOEField(oetrajRecord, 'LigTraj', Types.Chem.Mol)
             opt['Logger'].info('{} #atoms, #confs in ligand traj OEMol: {}, {}'
                                .format(system_title, ligTraj.NumAtoms(), ligTraj.NumConfs()))
 

@@ -154,7 +154,7 @@ def PBSA(ligand, protein):
     bind.SetProtein(protein)
     results = oezap.OEBindResults()
     if not bind.Bind(ligand, results):
-        print( 'zap Bind run failed for {} with {}'.format( ligand.GetTitle(), protein.GetTitle()))
+        print('zap Bind run failed for {} with {}'.format(ligand.GetTitle(), protein.GetTitle()))
         return None, None, None, None, None, None
     # convert key values from kT to kcal/mol
     kTtoKcal = 0.59
@@ -180,13 +180,13 @@ def TrajPBSA( ligOETraj, protOETraj, radiiType=oechem.OERadiiType_Zap9):
     zapBindSA25 = []
     saBuried = []
     #
-    for protConf, ligConf in zip( protOETraj.GetConfs(), ligOETraj.GetConfs() ):
-        Ebind, EbindEl, EdesolEl, EintEl, EbindSA, buriedSA = PBSA( ligConf, protConf)
-        zapBind.append( Ebind)
-        zapBindEl.append( EbindEl)
-        zapDesolEl.append( EdesolEl)
-        zapIntEl.append( EintEl)
-        zapBindSA25.append( EbindSA)
-        saBuried.append( buriedSA)
+    for protConf, ligConf in zip(protOETraj.GetConfs(), ligOETraj.GetConfs()):
+        Ebind, EbindEl, EdesolEl, EintEl, EbindSA, buriedSA = PBSA(ligConf, protConf)
+        zapBind.append(Ebind)
+        zapBindEl.append(EbindEl)
+        zapDesolEl.append(EdesolEl)
+        zapIntEl.append(EintEl)
+        zapBindSA25.append(EbindSA)
+        saBuried.append(buriedSA)
     #
     return zapBind, zapBindEl, zapDesolEl, zapIntEl, zapBindSA25, saBuried
