@@ -22,7 +22,7 @@ import openmoltools
 from openmoltools.openeye import *
 
 
-def assignELF10charges(molecule, max_confs=800, strictStereo=True):
+def assignELF10charges(molecule, max_confs=800, strictStereo=True, opt=None):
     """
      This function computes atomic partial charges for an OEMol by
      using the ELF10 method
@@ -51,15 +51,24 @@ def assignELF10charges(molecule, max_confs=800, strictStereo=True):
         # Generate up to max_confs conformers
         mol_copy = generate_conformers(mol_copy, max_confs=max_confs, strictStereo=strictStereo)
 
+    with oechem.oemolostream("mol8_11_water_mc.oeb") as ofs:
+        oechem.OEWriteConstMolecule(ofs, mol_copy)
+
     # Assign MMFF Atom types
     if not oechem.OEMMFFAtomTypes(mol_copy):
         raise RuntimeError("MMFF atom type assignment returned errors")
 
     # ELF10 charges
-    status = oequacpac.OEAssignCharges(mol_copy, oequacpac.OEAM1BCCELF10Charges())
+    quacpac_status = oequacpac.OEAssignCharges(mol_copy, oequacpac.OEAM1BCCELF10Charges())
 
-    if not status:
-        raise RuntimeError("OEAssignCharges returned error code %d" % status)
+    if not quacpac_status:
+        opt['Logger'].warn("OEAM1BCCELF10 charge assignment failed due to a known OE Toolkits bug. "
+                           "Downgrading to OEAM1BCC charge assignment for this molecule")
+
+        quacpac_status = oequacpac.OEAssignCharges(mol_copy, oequacpac.OEAM1BCCCharges())
+
+    if not quacpac_status:
+        raise RuntimeError("OEAssignCharges returned error code {}".format(quacpac_status))
 
     return mol_copy
 

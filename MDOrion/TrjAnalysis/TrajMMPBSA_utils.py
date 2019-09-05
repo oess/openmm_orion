@@ -134,7 +134,7 @@ def ProtLigInteractionEFromParmedOETraj( pmed, ligOETraj, protOETraj):
         protState = protSim.context.getState(getEnergy=True)
         protIntraE = protState.getPotentialEnergy().in_units_of(
             unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
-        protE.append( protIntraE)
+        protE.append(protIntraE)
 
         cplxXYZ = protXYZ + ligXYZ
         cplxSim.context.setPositions(cplxXYZ)
@@ -154,14 +154,14 @@ def PBSA(ligand, protein):
     bind.SetProtein(protein)
     results = oezap.OEBindResults()
     if not bind.Bind(ligand, results):
-        print( 'zap Bind run failed for {} with {}'.format( ligand.GetTitle(), protein.GetTitle()))
+        print('zap Bind run failed for {} with {}'.format(ligand.GetTitle(), protein.GetTitle()))
         return None, None, None, None, None, None
     # convert key values from kT to kcal/mol
     kTtoKcal = 0.59
     Ebind = kTtoKcal*results.GetBindingEnergy()
     EbindEl = kTtoKcal*results.GetZapEnergy()
     EdesolEl = kTtoKcal*results.GetDesolvationEnergy()
-    EintEl = kTtoKcal*( results.GetZapEnergy()-results.GetDesolvationEnergy() )
+    EintEl = kTtoKcal*(results.GetZapEnergy() - results.GetDesolvationEnergy())
     EbindSA = kTtoKcal*results.GetBuriedAreaEnergy()
     SAburied = results.GetBuriedArea()
     #
@@ -179,14 +179,14 @@ def TrajPBSA( ligOETraj, protOETraj, radiiType=oechem.OERadiiType_Zap9):
     zapIntEl = []
     zapBindSA25 = []
     saBuried = []
-    #
-    for protConf, ligConf in zip( protOETraj.GetConfs(), ligOETraj.GetConfs() ):
-        Ebind, EbindEl, EdesolEl, EintEl, EbindSA, buriedSA = PBSA( ligConf, protConf)
-        zapBind.append( Ebind)
-        zapBindEl.append( EbindEl)
-        zapDesolEl.append( EdesolEl)
-        zapIntEl.append( EintEl)
-        zapBindSA25.append( EbindSA)
-        saBuried.append( buriedSA)
-    #
+
+    for protConf, ligConf in zip( protOETraj.GetConfs(), ligOETraj.GetConfs()):
+        Ebind, EbindEl, EdesolEl, EintEl, EbindSA, buriedSA = PBSA(ligConf, protConf)
+        zapBind.append(Ebind)
+        zapBindEl.append(EbindEl)
+        zapDesolEl.append(EdesolEl)
+        zapIntEl.append(EintEl)
+        zapBindSA25.append(EbindSA)
+        saBuried.append(buriedSA)
+
     return zapBind, zapBindEl, zapDesolEl, zapIntEl, zapBindSA25, saBuried

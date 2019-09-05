@@ -97,15 +97,15 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
             if self.opt['charge_ligands']:
                 charged_ligand = ff_utils.assignELF10charges(ligand,
                                                              self.opt['max_conformers'],
-                                                             strictStereo=False)
+                                                             strictStereo=False, opt=self.opt)
 
                 # If the ligand has been charged then transfer the computed
                 # charges to the starting ligand
                 map_charges = {at.GetIdx(): at.GetPartialCharge() for at in charged_ligand.GetAtoms()}
                 for at in ligand.GetAtoms():
                     at.SetPartialCharge(map_charges[at.GetIdx()])
-                self.log.info("[{}] ELF10 charges successfully applied to the ligand: {}".format(self.title,
-                                                                                          ligand.GetTitle()))
+                self.log.info("[{}] Charges successfully applied to the ligand: {}".format(self.title,
+                                                                                           ligand.GetTitle()))
 
             # Set the primary molecule with the newly charged molecule
             record.set_value(Fields.primary_molecule, ligand)
