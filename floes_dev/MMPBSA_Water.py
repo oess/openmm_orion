@@ -48,40 +48,11 @@ from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
                                        MDFloeReportCube,
                                        NMaxWatersLigProt)
 
-job = WorkFloe('Short Trajectory MD with Analysis',
-               title='Short Trajectory MD with Analysis')
+job = WorkFloe('MMPBSA',
+               title='MMPBSA')
 
 job.description = """
-The Short Trajectory MD (STMD) protocol performs MD simulations given
-a prepared protein and a set of posed and prepared ligands as input.
-The ligands need to have coordinates, all atoms, and correct chemistry. Each
-ligand can have multiple conformers but each conformer will be run separately
-as a different ligand.
-The protein needs to be prepared to MD standards: protein chains must be capped,
-all atoms in protein residues (including hydrogens) must be present, and missing
-protein loops resolved. Crystallographic internal waters should be retained where
-possible. The parametrization of some common nonstandard residues is partially supported.
-Given the inputs of the protein and posed ligands,
-the complex is formed with each ligand/conformer
-separately, and the complex is solvated and parametrized according to the
-selected force fields. A minimization stage is peformed on the system followed
-by a warm up (NVT ensemble) and three equilibration stages (NPT ensemble). In the
-minimization, warm up, and equilibration stages, positional harmonic restraints are
-applied on the ligand and protein. At the end of the equilibration stages a short
-(default 2ns) production run is performed on the unrestrained system.
-The production run is then analyzed in terms of interactions between the
-ligand and the active site and in terms of ligand RMSD after fitting the trajectory
-based on active site C_alphas.
-
-Required Input Parameters:
---------------------------
-ligands (file): dataset of prepared ligands posed in the protein active site.
-protein (file): dataset of the prepared protein structure.
-
-Outputs:
---------
-floe report: html page of the Analysis of each ligand.
-out (.oedb file): file of the Analysis results for all ligands.
+TESTING
 """
 # Locally the floe can be invoked by running the terminal command:
 # python floes/ShortTrajMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb

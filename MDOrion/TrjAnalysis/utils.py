@@ -271,7 +271,7 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, nmax, opt, cutoff
         water_max_frames = []
 
         for frame in trjImaged:
-
+            # print(count)
             # opt['Logger'].info("count {}".format(count))
             # Extract frame coordinates
             xyz = frame.xyz * 10
@@ -355,7 +355,7 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, nmax, opt, cutoff
     count = 0
     multi_conf_water = None
     for frame in trjImaged.xyz:
-
+        # print(count)
         if nmax != 0:
             xyz = frame * 10
             # Set Well Coordinates as the current frame for the water extraction
@@ -401,10 +401,10 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, nmax, opt, cutoff
                 for at in multi_conf_water.GetAtoms():
                     res = oechem.OEAtomGetResidue(at)
                     res.SetName("HOH")
-                    res.SetChainID("")
+                    res.SetChainID("A")
                     if i % 3 == 0:
                         res_num += 1
-                        res.SetResidueNumber(res_num)
+                    res.SetResidueNumber(res_num)
                     i += 1
 
             ligand_reference.SetCoords(lig_confxyz)

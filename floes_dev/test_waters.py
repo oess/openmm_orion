@@ -19,7 +19,7 @@
 
 from floe.api import WorkFloe
 
-from MDOrion.TrjAnalysis.cubes import NMaxWatersLigProt, TrajToOEMolCube
+from MDOrion.TrjAnalysis.cubes import TrajToOEMolCube, TrajInteractionEnergyCube
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
@@ -37,9 +37,8 @@ ifs = DatasetReaderCube("SystemReader", title="System Reader")
 ifs.promote_parameter("data_in", promoted_name="system", title='System Input File',
                       description="System input file")
 
-wat = NMaxWatersLigProt("Waters")
-
 trj2oe = TrajToOEMolCube("Traj2OEMol")
+eng = TrajInteractionEnergyCube("TrajEnergy")
 
 ofs = DatasetWriterCube('ofs', title='Out')
 ofs.promote_parameter("data_out", promoted_name="out")
@@ -47,11 +46,11 @@ ofs.promote_parameter("data_out", promoted_name="out")
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
-job.add_cubes(ifs, wat, trj2oe, ofs, fail)
-ifs.success.connect(wat.intake)
-wat.success.connect(trj2oe.intake)
-trj2oe.success.connect(ofs.intake)
-trj2oe.failure.connect(fail.intake)
+job.add_cubes(ifs, trj2oe, eng, ofs, fail)
+ifs.success.connect(trj2oe.intake)
+trj2oe.success.connect(eng.intake)
+eng.success.connect(ofs.intake)
+eng.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()

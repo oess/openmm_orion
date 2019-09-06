@@ -589,33 +589,42 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
             system_title = mdrecord.get_title
 
             opt['Logger'].info('{} Attempting to compute MD Traj protein-ligand Interaction energies'
-                .format(system_title) )
+                               .format(system_title))
 
             # Check that the OETraj analysis has been done
             analysesDone = utl.RequestOEFieldType(record, Fields.Analysis.analysesDone)
             if 'OETraj' not in analysesDone:
-                raise ValueError('{} does not have OETraj analyses done'.format(system_title) )
+                raise ValueError('{} does not have OETraj analyses done'.format(system_title))
             else:
-                opt['Logger'].info('{} found OETraj analyses'.format(system_title) )
+                opt['Logger'].info('{} found OETraj analyses'.format(system_title))
 
             # Extract the relevant traj OEMols from the OETraj record
             oetrajRecord = utl.RequestOEFieldType( record, Fields.Analysis.oetraj_rec)
             opt['Logger'].info('{} found OETraj record'.format(system_title))
-            ligTraj = utl.RequestOEField( oetrajRecord, 'LigTraj', Types.Chem.Mol)
+            ligTraj = utl.RequestOEField(oetrajRecord, 'LigTraj', Types.Chem.Mol)
             opt['Logger'].info('{} #atoms, #confs in ligand traj OEMol: {}, {}'
                                .format(system_title, ligTraj.NumAtoms(), ligTraj.NumConfs()))
 
             mdtrajrecord = MDDataRecord(oetrajRecord)
             protTraj = mdtrajrecord.get_protein_traj
 
-            opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'
-                .format( system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
+            opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'.
+                               format(system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
+
+            if oetrajRecord.has_field(OEField('WatTraj', Types.Chem.Mol)):
+                water_traj = oetrajRecord.get_value(OEField('WatTraj', Types.Chem.Mol))
+                opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'
+                                   .format(system_title, water_traj.NumAtoms(), water_traj.NumConfs()))
+            else:
+                water_traj = None
+                opt['Logger'].warn('{} Water Trajectory has not been detected'.format(system_title))
 
             prmed = mdrecord.get_parmed(sync_stage_name='last')
 
-            # Compute interaction energies for the protein, ligand, and complex subsystems
-            intE, cplxE, protE, ligE = mmpbsa.ProtLigInteractionEFromParmedOETraj(
-                                       prmed, ligTraj, protTraj)
+            # Compute interaction energies for the protein, ligand, complex asn water subsystems
+            intE, cplxE, protE, ligE, watE, lwIntE, pwIntE, cplxwIntE = mmpbsa.ProtLigWatInteractionEFromParmedOETraj(
+                prmed, ligTraj, protTraj, water_traj)
+
             if intE is None:
                 raise ValueError('{} Calculation of Interaction Energies failed'.format(system_title) )
 
@@ -627,22 +636,44 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
             # Create new record with traj interaction energy results
             opt['Logger'].info('{} writing trajIntE OERecord'.format(system_title))
             trajIntE = OERecord()
-            #
+
             intE_field = OEField("protein_ligand_interactionEnergy", Types.FloatVec,
                                  meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
             trajIntE.set_value(intE_field, intE)
-            #
+
             ligE_field = OEField("ligand_intraEnergy", Types.FloatVec,
                                  meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
             trajIntE.set_value(ligE_field, ligE)
-            #
+
             protE_field = OEField("protein_intraEnergy", Types.FloatVec,
                                   meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
             trajIntE.set_value(protE_field, protE)
-            #
+
             cplxE_field = OEField("complex_intraEnergy", Types.FloatVec,
                                   meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajIntE.set_value( cplxE_field, cplxE)
+            trajIntE.set_value(cplxE_field, cplxE)
+
+            if water_traj is not None:
+                watE_field = OEField("water_intraEnergy", Types.FloatVec,
+                                     meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
+
+                trajIntE.set_value(watE_field, watE)
+
+                lwE_field = OEField("ligand_water_interactionEnergy", Types.FloatVec,
+                                    meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
+
+                trajIntE.set_value(lwE_field, lwIntE)
+
+                pwE_field = OEField("protein_water_interactionEnergy", Types.FloatVec,
+                                    meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
+
+                trajIntE.set_value(pwE_field, pwIntE)
+
+                cmplxwE_field = OEField("complex_water_interactionEnergy", Types.FloatVec,
+                                        meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
+
+                trajIntE.set_value(cmplxwE_field, cplxwIntE)
+
             # Add the trajIntE record to the parent record
             record.set_value(Fields.Analysis.oeintE_rec, trajIntE)
             analysesDone.append('TrajIntE')
@@ -707,10 +738,9 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             # the parallel cube processes
             opt = dict(self.opt)
 
-
             # Logger string
             opt['Logger'].info(' Beginning ClusterOETrajCube')
-            system_title = utl.RequestOEFieldType( record, Fields.title)
+            system_title = utl.RequestOEFieldType(record, Fields.title)
             opt['Logger'].info('{} Attempting to cluster MD Traj'
                 .format(system_title) )
 
@@ -731,7 +761,7 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             mdtrajrecord = MDDataRecord(oetrajRecord)
             protTraj = mdtrajrecord.get_protein_traj
             opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'
-                .format( system_title, protTraj.NumAtoms(), protTraj.NumConfs()) )
+                               .format(system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
 
             # Cluster ligand traj into cluster OEMols with matching protein OEMols
             opt['Logger'].info('{} starting clustering'.format(system_title) )
@@ -816,18 +846,18 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
                     conf.SetTitle(confTitle)
                     clusTrajSVG.append(clusSVG)
 
-            if nMajorClusters>0:
+            if nMajorClusters > 0:
                 # If we have some major clusters put the results on trajClus record
                 clusLigAvgMol.SetTitle('Average '+clusLigAvgMol.GetTitle())
-                trajClus.set_value( Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
+                trajClus.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
                 clusProtAvgMol.SetTitle('Average '+clusProtAvgMol.GetTitle())
-                trajClus.set_value( Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
+                trajClus.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
                 clusLigMedMol.SetTitle('Median '+clusLigMedMol.GetTitle())
-                trajClus.set_value( Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
+                trajClus.set_value(Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
                 clusProtMedMol.SetTitle('Median '+clusProtMedMol.GetTitle())
-                trajClus.set_value( Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
-                ClusTrajSVG_field = OEField( 'ClusTrajSVG', Types.StringVec)
-                trajClus.set_value( ClusTrajSVG_field, clusTrajSVG)
+                trajClus.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
+                ClusTrajSVG_field = OEField('ClusTrajSVG', Types.StringVec)
+                trajClus.set_value(ClusTrajSVG_field, clusTrajSVG)
 
                 # Set the TrajClus record on the top-level record
                 record.set_value(Fields.Analysis.oeclus_rec, trajClus)
@@ -835,8 +865,8 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
                 # Set prot and lig clus average mols on top-level record for 3D vis
                 record.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
                 record.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
-                record.set_value( Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
-                record.set_value( Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
+                record.set_value(Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
+                record.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
 
                 # Set the number of major clusters and revise label
                 record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
@@ -1252,9 +1282,9 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
         max_waters = max(self.nwaters)
 
         if max_waters == 0:
-            self.opt['Logger'].warn("{} Max number of waters is zero".format(self.title))
+            self.opt['Logger'].warn("[{}] Max number of waters is zero".format(self.title))
         else:
-            self.opt['Logger'].info("{} Max number of Waters: {}".format(self.title, max_waters))
+            self.opt['Logger'].info("[{}] Max number of Waters: {}".format(self.title, max_waters))
 
         for rec in self.records:
             rec.set_value(Fields.Analysis.max_waters, max_waters)
