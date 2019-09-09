@@ -162,7 +162,7 @@ def ProtLigWatInteractionEFromParmedOETraj(pmed, ligOETraj, protOETraj, water_tr
     plIntE = []
     lwIntE = []
     pwIntE = []
-    cplxwIntE = []
+    pw_lIntE = []
 
     if water_traj is not None:
         zip_iter = zip(ligOETraj.GetConfs(), protOETraj.GetConfs(), water_traj.GetConfs())
@@ -234,13 +234,14 @@ def ProtLigWatInteractionEFromParmedOETraj(pmed, ligOETraj, protOETraj, water_tr
             cmplx_water_state = cmplx_water_sim.context.getState(getEnergy=True)
             cmplx_water_intra_eng = cmplx_water_state.getPotentialEnergy().in_units_of(
                 unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
-            cplxwIntE.append(cmplx_water_intra_eng - (cplxIntraE + water_intra_eng))
+
+            pw_lIntE.append(cmplx_water_intra_eng-(prot_water_intra_eng + ligIntraE))
 
         count += 1
 
     if water_traj is not None:
         print('OpenMM energies computed for protein, ligand, complex and water trajectories')
-        return plIntE, cplxE, protE, ligE, watE, lwIntE, pwIntE, cplxwIntE
+        return plIntE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE
     else:
         print('OpenMM energies computed for protein, ligand, and complex trajectories')
         return plIntE, cplxE, protE, ligE, None, None, None, None

@@ -443,7 +443,32 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                                .format(system_title, ligTraj.NumAtoms(), ligTraj.NumConfs()))
 
             mdtrajrecord = MDDataRecord(oetrajRecord)
-            protTraj = mdtrajrecord.get_protein_traj
+
+            if oetrajRecord.has_field(OEField('WatTraj', Types.Chem.Mol)):
+                water_traj = oetrajRecord.get_value(OEField('WatTraj', Types.Chem.Mol))
+                opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'
+                                   .format(system_title, water_traj.NumAtoms(), water_traj.NumConfs()))
+
+                protTraj = mdtrajrecord.get_protein_traj
+
+                prot_wat = oechem.OEMol(protTraj.GetActive())
+
+                oechem.OEAddMols(prot_wat, water_traj.GetActive())
+
+                for pr_conf, wat_conf in zip(protTraj.GetConfs(), water_traj.GetConfs()):
+                    pr_wat_conf = oechem.OEMol(pr_conf)
+                    oechem.OEAddMols(pr_wat_conf, wat_conf)
+                    pr_wat_conf_xyz = oechem.OEFloatArray(prot_wat.NumAtoms() * 3)
+                    pr_wat_conf.GetCoords(pr_wat_conf_xyz)
+                    prot_wat.NewConf(pr_wat_conf_xyz)
+
+                protTraj = prot_wat
+
+            else:
+                water_traj = None
+                opt['Logger'].warn('{} Water Trajectory has not been detected'.format(system_title))
+
+                protTraj = mdtrajrecord.get_protein_traj
 
             opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'
                                .format(system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
@@ -494,12 +519,23 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 # Extract the relevant P-L Interaction Energies from the record
                 oeTrjIntERecord = utl.RequestOEFieldType( record, Fields.Analysis.oeintE_rec)
                 opt['Logger'].info('{} found TrajIntE record'.format(system_title))
-                PLIntE = utl.RequestOEField(oeTrjIntERecord,
-                                            'protein_ligand_interactionEnergy', Types.FloatVec)
-                opt['Logger'].info('{} found Protein-Ligand force field interaction energies'
-                                   .format(system_title))
+
+                if water_traj is not None:
+
+                    PLIntE = utl.RequestOEField(oeTrjIntERecord,
+                                                'protein_and_water_ligand_interactionEnergy', Types.FloatVec)
+                    opt['Logger'].info('{} found Protein-Water and Ligand force field interaction energies'
+                                       .format(system_title))
+                else:
+
+                    PLIntE = utl.RequestOEField(oeTrjIntERecord,
+                                                'protein_ligand_interactionEnergy', Types.FloatVec)
+                    opt['Logger'].info('{} found Protein-Ligand force field interaction energies'
+                                       .format(system_title))
+
                 # Calculate  and store MMPB and MMPBSA energies on the trajPBSA record
-                zapMMPB = [eInt+eDesol for eInt,eDesol in zip(PLIntE, zapDesolEl)]
+                zapMMPB = [eInt+eDesol for eInt, eDesol in zip(PLIntE, zapDesolEl)]
+
                 zapMMPB_field = OEField("OEZap_MMPB_Bind", Types.FloatVec,
                                         meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
                 trajPBSA.set_value(zapMMPB_field, zapMMPB)
@@ -622,11 +658,11 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
             prmed = mdrecord.get_parmed(sync_stage_name='last')
 
             # Compute interaction energies for the protein, ligand, complex asn water subsystems
-            intE, cplxE, protE, ligE, watE, lwIntE, pwIntE, cplxwIntE = mmpbsa.ProtLigWatInteractionEFromParmedOETraj(
+            intE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE = mmpbsa.ProtLigWatInteractionEFromParmedOETraj(
                 prmed, ligTraj, protTraj, water_traj)
 
             if intE is None:
-                raise ValueError('{} Calculation of Interaction Energies failed'.format(system_title) )
+                raise ValueError('{} Calculation of Interaction Energies failed'.format(system_title))
 
             # protein and ligand traj OEMols now have parmed charges on them; save these
             oetrajRecord.set_value(OEField('LigTraj', Types.Chem.Mol), ligTraj)
@@ -669,10 +705,10 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
 
                 trajIntE.set_value(pwE_field, pwIntE)
 
-                cmplxwE_field = OEField("complex_water_interactionEnergy", Types.FloatVec,
-                                        meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
+                pw_lIntE_field = OEField("protein_and_water_ligand_interactionEnergy", Types.FloatVec,
+                                         meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
 
-                trajIntE.set_value(cmplxwE_field, cplxwIntE)
+                trajIntE.set_value(pw_lIntE_field, pw_lIntE)
 
             # Add the trajIntE record to the parent record
             record.set_value(Fields.Analysis.oeintE_rec, trajIntE)
@@ -1244,6 +1280,11 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
         default=5.0,
         help_text="Cutoff Distance between Volume grid points and ligand-protein in A")
 
+    explicit_water = parameter.BooleanParameter(
+        'explicit_water',
+        default=False,
+        help_text="""Enable MMPBSA calculation with explicit water""")
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -1263,7 +1304,11 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
 
             ligand = mdrecord.get_ligand
 
-            nmax = nmax_waters(protein, ligand, self.opt['cutoff'])
+            if self.opt['explicit_water']:
+                nmax = nmax_waters(protein, ligand, self.opt['cutoff'])
+            else:
+                self.opt['Logger'].info("MMPBSA Explicit Water set off")
+                nmax = 0
 
             self.nwaters.append(nmax)
             self.records.append(record)
