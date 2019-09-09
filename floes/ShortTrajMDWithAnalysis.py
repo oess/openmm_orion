@@ -36,9 +36,9 @@ from MDOrion.ProtPrep.cubes import ProteinSetting
 from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
 
-from MDOrion.System.cubes import IDSettingCube
-
-from MDOrion.System.cubes import CollectionSetting
+from MDOrion.System.cubes import (IDSettingCube,
+                                  CollectionSetting,
+                                  ParallelRecordSizeCheck)
 
 from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
                                        ParallelTrajInteractionEnergyCube,
@@ -224,10 +224,12 @@ equil3.set_parameters(suffix='equil3')
 equil3.promote_parameter("md_engine", promoted_name="md_engine")
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
-ofs.promote_parameter("data_out", promoted_name="out")
+ofs.promote_parameter("data_out", promoted_name="out",
+                      title="MD Out", description="MD Dataset out")
 
 fail = DatasetWriterCube('fail', title='Failures')
-fail.promote_parameter("data_out", promoted_name="fail")
+fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
+                       description="MD Dataset Failures out")
 
 trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
 IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
@@ -237,13 +239,16 @@ report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 
 report = MDFloeReportCube("report", title="Floe Report")
 
-# This cube is necessary dor the correct working of collection and shard
+# This cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection")
 coll_close.set_parameters(open=False)
 
+check_rec = ParallelRecordSizeCheck("Record Check Success")
+
 job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx, solvate, coll_open, ff,
-              minComplex, warmup, equil1, equil2, equil3, prod, ofs, fail,
-              trajCube, IntECube, PBSACube, clusCube, report_gen, report, coll_close)
+              minComplex, warmup, equil1, equil2, equil3, prod,
+              trajCube, IntECube, PBSACube, clusCube, report_gen,
+              report, coll_close, check_rec, ofs, fail)
 
 iligs.success.connect(ligset.intake)
 ligset.success.connect(chargelig.intake)
@@ -261,22 +266,24 @@ equil1.success.connect(equil2.intake)
 equil2.success.connect(equil3.intake)
 equil3.success.connect(prod.intake)
 prod.success.connect(trajCube.intake)
-prod.failure.connect(fail.intake)
+prod.failure.connect(check_rec.fail_in)
 # prod.success.connect(ofs.intake)
 trajCube.success.connect(IntECube.intake)
-trajCube.failure.connect(fail.intake)
+trajCube.failure.connect(check_rec.fail_in)
 IntECube.success.connect(PBSACube.intake)
-IntECube.failure.connect(fail.intake)
+IntECube.failure.connect(check_rec.fail_in)
 PBSACube.success.connect(clusCube.intake)
-PBSACube.failure.connect(fail.intake)
+PBSACube.failure.connect(check_rec.fail_in)
 clusCube.success.connect(report_gen.intake)
-clusCube.failure.connect(fail.intake)
+clusCube.failure.connect(check_rec.fail_in)
 report_gen.success.connect(report.intake)
-report_gen.failure.connect(fail.intake)
-report.failure.connect(fail.intake)
+report_gen.failure.connect(check_rec.fail_in)
+report.failure.connect(check_rec.fail_in)
 report.success.connect(coll_close.intake)
-coll_close.success.connect(ofs.intake)
-coll_close.failure.connect(fail.intake)
+coll_close.success.connect(check_rec.intake)
+coll_close.failure.connect(check_rec.fail_in)
+check_rec.success.connect(ofs.intake)
+check_rec.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()

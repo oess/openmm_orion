@@ -19,9 +19,17 @@ import traceback
 
 from MDOrion.Standards import Fields
 
+from MDOrion.Standards.mdrecord import MDDataRecord
+
+from MDOrion.System.utils import get_human_readable
+
 from openeye import oechem
 
 from orionplatform.mixins import RecordPortsMixin
+
+from orionplatform.ports import (RecordInputPort,
+                                 RecordOutputPort)
+
 
 from floe.api import (ParallelMixin,
                       parameter,
@@ -374,6 +382,81 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
         return
 
 
+class RecordSizeCheck(RecordPortsMixin, ComputeCube):
+    title = "Record Size Checking"
+    version = "0.1.0"
+    classification = [["System Preparation"]]
+    tags = ['System', 'Complex', 'Protein', 'Ligand']
+    description = """
+    This cube checks if the size of the incoming record is less than 100MB
+    to avoid Orion database size issues. Locally does not have any effect.
+
+    Input:
+    -------
+    Data record Stream - Streamed-in of system records
+
+    Output:
+    -------
+    Data Record Stream - Streamed-out of records
+    """
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 2000},
+        "spot_policy": {"default": "Prohibited"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    fail_in = RecordInputPort("fail_in", initializer=False)
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+
+    def process(self, record, port):
+        try:
+            if in_orion():
+                # Create the MD record to use the MD Record API
+                mdrecord = MDDataRecord(record)
+
+                system = mdrecord.get_well
+
+                if not mdrecord.has_title:
+                    self.log.warn("Missing record Title field")
+                    system_title = system.GetTitle()[0:12]
+                else:
+                    system_title = mdrecord.get_title
+
+                tot_size = 0
+                for field in record.get_fields():
+                    tot_size += record.get_value_size(field)
+
+                if tot_size > 100 * 1024 * 1024:
+                    raise ValueError("The record size exceeds the 100 MB: {} = {}".format(system_title,
+                                                                                          get_human_readable(tot_size)))
+                else:
+                    self.opt['Logger'].info("Record size: {} = {}".format(system_title, get_human_readable(tot_size)))
+
+                if port == "intake":
+                    self.success.emit(record)
+                else:  # Fail in port
+                    self.failure.emit(record)
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+
+        return
+
+
 class ParallelSolvationCube(ParallelMixin, SolvationCube):
     title = "Parallel " + SolvationCube.title
     description = "(Parallel) " + SolvationCube.description
+
+
+class ParallelRecordSizeCheck(ParallelMixin, RecordSizeCheck):
+    title = "Parallel " + RecordSizeCheck.title
+    description = "(Parallel) " + RecordSizeCheck.description

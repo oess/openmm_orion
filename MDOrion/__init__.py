@@ -15,7 +15,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '0.9.4a0'
+__version__ = '0.9.4a6'
 
 
 

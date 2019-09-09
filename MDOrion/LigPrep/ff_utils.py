@@ -51,9 +51,6 @@ def assignELF10charges(molecule, max_confs=800, strictStereo=True, opt=None):
         # Generate up to max_confs conformers
         mol_copy = generate_conformers(mol_copy, max_confs=max_confs, strictStereo=strictStereo)
 
-    with oechem.oemolostream("mol8_11_water_mc.oeb") as ofs:
-        oechem.OEWriteConstMolecule(ofs, mol_copy)
-
     # Assign MMFF Atom types
     if not oechem.OEMMFFAtomTypes(mol_copy):
         raise RuntimeError("MMFF atom type assignment returned errors")
