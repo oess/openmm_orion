@@ -1285,6 +1285,13 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
         default=False,
         help_text="""Enable MMPBSA calculation with explicit water""")
 
+    water_number = parameter.IntegerParameter(
+        'water_number',
+        default=0,
+        help_text="""If different from zero the selected water number will be used"""
+    )
+
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -1305,7 +1312,12 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
             ligand = mdrecord.get_ligand
 
             if self.opt['explicit_water']:
-                nmax = nmax_waters(protein, ligand, self.opt['cutoff'])
+
+                if self.opt['water_number'] != 0:
+                    self.opt['Logger'].info("User selected number of waters: {}".format(self.opt['water_number']))
+                    nmax = self.opt['water_number']
+                else:
+                    nmax = nmax_waters(protein, ligand, self.opt['cutoff'])
             else:
                 self.opt['Logger'].info("MMPBSA Explicit Water set off")
                 nmax = 0
