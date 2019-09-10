@@ -308,18 +308,26 @@ class DUtoMDDataset(RecordPortsMixin, SinkCube):
         else:
             self.in_orion = False
 
-        self.component_mask = oechem.OEDesignUnitComponents_Default ^ oechem.OEDesignUnitComponents_Metals ^ oechem.OEDesignUnitComponents_Ligand
+        self.component_mask = oechem.OEDesignUnitComponents_MolComponents ^ \
+                              oechem.OEDesignUnitComponents_Ligand ^ \
+                              oechem.OEDesignUnitComponents_PackingResidues ^ \
+                              oechem.OEDesignUnitComponents_Solvent ^ \
+                              oechem.OEDesignUnitComponents_Undefined
+
+        # Distance within to keep system components in A
+        self.dist_mask = 5.0
 
     def write(self, record, port):
         du_byte_list = record.get_value(SpruceFields().du_vec)
-
         self.pdb_code = record.get_value(SpruceFields().pdb_code)
 
         for du_bytes in du_byte_list:
             du = oechem.OEDesignUnit()
             oechem.OEReadDesignUnitFromBytes(du, du_bytes)
             md_complex = oechem.OEGraphMol()
-            if not du.GetComponents(md_complex, self.component_mask):
+
+            if not du.GetComponentsWithin(md_complex, oechem.OEDesignUnitComponents_Solvent,
+                                          self.component_mask, self.dist_mask):
                 self.log.warn("Could not make an MD ready complex from DU named {}".format(du.GetTitle()))  # noqa
                 continue
 
