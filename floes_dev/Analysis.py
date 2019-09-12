@@ -49,9 +49,8 @@ out (.oedb file): file of the Analysis results for all ligands.
 job.classification = [['Analysis']]
 job.tags = [tag for lists in job.classification for tag in lists]
 
-isys = DatasetReaderCube("SystemReader", title="System Reader")
-isys.promote_parameter("data_in", promoted_name="system", title='System Input File',
-                       description="System file name")
+ifs = DatasetReaderCube("ifs")
+ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out")
@@ -67,9 +66,9 @@ report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 
 report = MDFloeReportCube("report", title="Floe Report")
 
-job.add_cubes(isys, trajCube, IntECube, PBSACube, clusCube, report_gen, report, ofs, fail)
+job.add_cubes(ifs, trajCube, IntECube, PBSACube, clusCube, report_gen, report, ofs, fail)
 
-isys.success.connect(trajCube.intake)
+ifs.success.connect(trajCube.intake)
 trajCube.success.connect(IntECube.intake)
 trajCube.failure.connect(fail.intake)
 IntECube.success.connect(PBSACube.intake)
