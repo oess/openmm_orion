@@ -143,8 +143,10 @@ def ExtractAlignedProtLigTraj(mol, traj_filename, fromLigCutoff=5.0, skip=0):
     # Image the protein-ligand trajectory so the complex does not jump across box boundaries
     protlig = topologyTraj.atom_slice(protligIdx)
     protligAtoms = [atom for atom in protlig.topology.atoms]
-    inplace = True
-    trjImaged = trj.image_molecules(inplace, [protligAtoms])
+    with open(os.devnull, 'w') as devnull:
+        with contextlib.redirect_stderr(devnull):
+            inplace = False
+            trjImaged = trj.image_molecules(inplace, [protligAtoms], make_whole=True)
 
     # Make a list of the atom indices of the carbon-alphas of the active site residues;
     # assume residue numbering matches the mol
