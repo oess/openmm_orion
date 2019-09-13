@@ -272,7 +272,7 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, nmax, opt, cutoff
 
         for frame in trjImaged:
             # print(count)
-            # opt['Logger'].info("count {}".format(count))
+            opt['Logger'].info("count {}".format(count))
             # Extract frame coordinates
             xyz = frame.xyz * 10
 

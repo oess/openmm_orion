@@ -452,8 +452,9 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 protTraj = mdtrajrecord.get_protein_traj
 
                 prot_wat = oechem.OEMol(protTraj.GetActive())
-
                 oechem.OEAddMols(prot_wat, water_traj.GetActive())
+
+                prot_wat.DeleteConfs()
 
                 for pr_conf, wat_conf in zip(protTraj.GetConfs(), water_traj.GetConfs()):
                     pr_wat_conf = oechem.OEMol(pr_conf)
