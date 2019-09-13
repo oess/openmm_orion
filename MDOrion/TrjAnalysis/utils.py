@@ -10,7 +10,7 @@ import mdtraj as md
 
 from datarecord import OEField
 
-import os
+import os, contextlib
 
 import glob
 
