@@ -166,6 +166,103 @@ class MDDataRecord(object):
 
         return True
 
+    @property
+    def get_ligand(self):
+        """
+        This method returns the ligand molecule present on the record
+
+        Return:
+        -------
+            : OEMol
+            The ligand molecule
+        """
+
+        if not self.rec.has_field(Fields.ligand):
+            raise ValueError("The ligand molecule has not been found on the record")
+
+        return self.rec.get_value(Fields.ligand)
+
+    @property
+    def has_ligand(self):
+        """
+        This method returns true if ligand molecule is present on the record
+
+        Return:
+        -------
+            : Bool
+            True if the ligand molecule is present on the record
+        """
+
+        if self.rec.has_field(Fields.ligand):
+            return True
+        else:
+            return False
+
+    def set_ligand(self, ligand):
+        """
+        This method sets the ligand molecule  on the record
+
+        Return:
+        -------
+            : Bool
+            returns True if the ligand has been set on the record
+        """
+
+        if not isinstance(ligand, oechem.OEMol):
+            raise ValueError("The ligand molecule is not a valid OEMol: {}".format(ligand))
+
+        self.rec.set_value(Fields.ligand, ligand)
+
+        return True
+
+    @property
+    def get_protein(self):
+        """
+        This method returns the protein molecule present on the record
+
+        Return:
+        -------
+            : OEMol
+            The protein molecule
+        """
+
+        if not self.rec.has_field(Fields.protein):
+            raise ValueError("The protein molecule has not been found on the record")
+
+        return self.rec.get_value(Fields.protein)
+
+    @property
+    def has_protein(self):
+        """
+        This method returns true if the protein molecule is present on the record
+
+        Return:
+        -------
+            : Bool
+            True if the protein molecule is present on the record
+        """
+
+        if self.rec.has_field(Fields.protein):
+            return True
+        else:
+            return False
+
+    def set_protein(self, protein):
+        """
+        This method sets the protein molecule  on the record
+
+        Return:
+        -------
+            : Bool
+            returns True if the protein has been set on the record
+        """
+
+        if not isinstance(protein, oechem.OEMol):
+            raise ValueError("The protein molecule is not a valid OEMol: {}".format(protein))
+
+        self.rec.set_value(Fields.protein, protein)
+
+        return True
 
     @property
     def get_well(self):

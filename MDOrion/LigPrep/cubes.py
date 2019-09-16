@@ -90,6 +90,10 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
                                                 ligand.GetTitle(),
                                                 oechem.OECalculateMolecularWeight(ligand)))
 
+            oechem.OEDeleteInteractionsHintSerializationData(ligand)
+            oechem.OEDeleteInteractionsHintSerializationIds(ligand)
+            oechem.OEClearStyle(ligand)
+
             # Ligand sanitation
             ligand = oeommutils.sanitizeOEMolecule(ligand)
 
@@ -97,10 +101,12 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
             if self.opt['charge_ligands']:
                 charged_ligand = ff_utils.assignELF10charges(ligand,
                                                              self.opt['max_conformers'],
-                                                             strictStereo=False, opt=self.opt)
+                                                             strictStereo=False,
+                                                             opt=self.opt)
 
                 # If the ligand has been charged then transfer the computed
                 # charges to the starting ligand
+
                 map_charges = {at.GetIdx(): at.GetPartialCharge() for at in charged_ligand.GetAtoms()}
                 for at in ligand.GetAtoms():
                     at.SetPartialCharge(map_charges[at.GetIdx()])

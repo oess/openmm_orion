@@ -479,3 +479,12 @@ def applyffLigand(ligand, opt):
                                                                       opt['ligand_forcefield']))
 
     return ligand_structure
+
+
+def clean_int(molecule):
+
+    oechem.OEDeleteInteractionsHintSerializationData(molecule)
+    oechem.OEDeleteInteractionsHintSerializationIds(molecule)
+    oechem.OEClearStyle(molecule)
+
+    return molecule

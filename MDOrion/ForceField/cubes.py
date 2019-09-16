@@ -148,11 +148,17 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
 
             self.log.info("[{}] Components of well {}:\n  Protein atoms = {}\n  Ligand atoms = {}\n"
                           "  Water atoms = {}\n  Excipients atoms = {}".format(opt['CubeTitle'],
-                                                                                         system_title,
-                                                                                         protein.NumAtoms(),
-                                                                                         ligand.NumAtoms(),
-                                                                                         water.NumAtoms(),
-                                                                                         excipients.NumAtoms()))
+                                                                               system_title,
+                                                                               protein.NumAtoms(),
+                                                                               ligand.NumAtoms(),
+                                                                               water.NumAtoms(),
+                                                                               excipients.NumAtoms()))
+
+            protein = ffutils.clean_int(protein)
+            ligand = ffutils.clean_int(ligand)
+            water = ffutils.clean_int(water)
+            excipients = ffutils.clean_int(excipients)
+
             sys_id = mdrecord.get_well_id
 
             # Unique prefix name used to output parametrization files
