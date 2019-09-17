@@ -481,10 +481,25 @@ def applyffLigand(ligand, opt):
     return ligand_structure
 
 
-def clean_int(molecule):
+def clean_tags(molecule):
+    """
+    This function remove tags that could cause problems along the MD Analysis stage.
+    In particular Hint interactions, Style and PDB data are removed.
+
+    Parameters:
+    -----------
+    molecule: OEMol molecule
+        The molecule to clean
+
+    Return:
+    -------
+    molecule: OEMol molecule
+        The cleaned molecule
+    """
 
     oechem.OEDeleteInteractionsHintSerializationData(molecule)
     oechem.OEDeleteInteractionsHintSerializationIds(molecule)
     oechem.OEClearStyle(molecule)
+    oechem.OEClearPDBData(molecule)
 
     return molecule

@@ -154,10 +154,10 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                                                                                water.NumAtoms(),
                                                                                excipients.NumAtoms()))
 
-            protein = ffutils.clean_int(protein)
-            ligand = ffutils.clean_int(ligand)
-            water = ffutils.clean_int(water)
-            excipients = ffutils.clean_int(excipients)
+            protein = ffutils.clean_tags(protein)
+            ligand = ffutils.clean_tags(ligand)
+            water = ffutils.clean_tags(water)
+            excipients = ffutils.clean_tags(excipients)
 
             sys_id = mdrecord.get_well_id
 

@@ -86,10 +86,11 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
 
             protein = record.get_value(Fields.primary_molecule)
 
-            # Removing Interaction Hint Container and Style
+            # Removing Interaction Hint Container, Style and PDB Data
             oechem.OEDeleteInteractionsHintSerializationData(protein)
             oechem.OEDeleteInteractionsHintSerializationIds(protein)
             oechem.OEClearStyle(protein)
+            oechem.OEClearPDBData(protein)
 
             name = self.opt['protein_title']
 

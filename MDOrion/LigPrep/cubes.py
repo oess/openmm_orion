@@ -90,9 +90,11 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
                                                 ligand.GetTitle(),
                                                 oechem.OECalculateMolecularWeight(ligand)))
 
+            # Removing Interaction Hint Container, Style and PDB Data
             oechem.OEDeleteInteractionsHintSerializationData(ligand)
             oechem.OEDeleteInteractionsHintSerializationIds(ligand)
             oechem.OEClearStyle(ligand)
+            oechem.OEClearPDBData(ligand)
 
             # Ligand sanitation
             ligand = oeommutils.sanitizeOEMolecule(ligand)

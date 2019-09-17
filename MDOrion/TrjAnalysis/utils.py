@@ -253,7 +253,8 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, nmax, opt, cutoff
 
     elif traj_ext == '.xtc':
         pdb_fn = glob.glob(os.path.join(traj_dir, '*.pdb'))[0]
-        trj = md.load_xtc(trj_fn, top=pdb_fn, frame=1)
+        trj = md.load_xtc(trj_fn, top=pdb_fn)
+        trj = trj[1:]
     else:
         raise ValueError("Trajectory file format {} not recognized in the trajectory {}".format(traj_ext, trj_fn))
 
