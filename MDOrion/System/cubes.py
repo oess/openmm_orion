@@ -438,10 +438,10 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
                 else:
                     self.opt['Logger'].info("Record size: {} = {}".format(system_title, get_human_readable(tot_size)))
 
-                if port == "intake":
-                    self.success.emit(record)
-                else:  # Fail in port
-                    self.failure.emit(record)
+            if port == "intake":
+                self.success.emit(record)
+            else:  # Fail in port
+                self.failure.emit(record)
 
         except Exception as e:
 

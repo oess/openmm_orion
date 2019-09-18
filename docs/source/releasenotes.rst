@@ -25,6 +25,8 @@ Floe Updates
 
 * The MD Spruce Pre Floe has been removed
 
+* The Simple MD Floe has been renamed in Plain MD Floe
+
 --------------------------------------------------------------------------------
 
 New Cubes

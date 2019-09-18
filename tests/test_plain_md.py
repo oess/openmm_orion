@@ -46,9 +46,9 @@ class TestMDOrionFloes(FloeTestCase):
 
     @pytest.mark.local
     @pytest.mark.orion
-    def test_omm_simple_MD(self):
+    def test_omm_PlainMD(self):
         workfloe = WorkFloeWrapper.get_workfloe(
-            os.path.join(FLOES_DIR, "SimpleMD.py"),
+            os.path.join(FLOES_DIR, "PlainMD.py"),
             run_timeout=43200,
             queue_timeout=2000
         )
@@ -100,9 +100,9 @@ class TestMDOrionFloes(FloeTestCase):
 
     @pytest.mark.local
     @pytest.mark.orion
-    def test_gmx_Simple_floe(self):
+    def test_gmx_PlainMD_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
-            os.path.join(FLOES_DIR, "SimpleMD.py"),
+            os.path.join(FLOES_DIR, "PlainMD.py"),
             run_timeout=43200,
             queue_timeout=2000
         )

@@ -34,11 +34,11 @@ from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
                                   ParallelRecordSizeCheck)
 
-job = WorkFloe('Simple MD',
-               title='Simple MD')
+job = WorkFloe('Plain MD',
+               title='Plain MD')
 
 job.description = """
-The Simple MD protocol performs MD simulations given one or more
+The Plain MD protocol performs MD simulations given one or more
 complete molecular systems as input, each to be treated in its entirety as a solute.
 The solute need to have coordinates, all atoms, and correct chemistry.
 Each molecular system can have multiple conformers but each conformer will be
