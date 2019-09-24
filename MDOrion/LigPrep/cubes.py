@@ -180,7 +180,12 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
                                                 ligand.GetTitle(),
                                                 oechem.OECalculateMolecularWeight(ligand)))
 
-            record.set_value(Fields.ligand_name, ligand.GetTitle())
+            lig_title = ligand.GetTitle()
+
+            if lig_title == "":
+                lig_title = 'LIG'
+
+            record.set_value(Fields.ligand_name, lig_title)
 
             for at in ligand.GetAtoms():
                 residue = oechem.OEAtomGetResidue(at)

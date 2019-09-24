@@ -160,9 +160,28 @@ class OpenMMSimulations(MDSimulations):
             force_restr.addPerParticleParameter("y0")
             force_restr.addPerParticleParameter("z0")
 
+            if opt['restraint_to_reference'] and box is not None:
+                opt['Logger'].info("[{}] Restraint to the Reference State Enabled".format(opt['CubeTitle']))
+                reference_positions = opt['reference_state'].get_positions()
+                coords = np.array(reference_positions.value_in_unit(unit.nanometers))
+                # System Center of Geometry
+                cog = np.mean(coords, axis=0)
+
+                # System box vectors
+                box_v = opt['reference_state'].get_box_vectors().value_in_unit(unit.nanometers)
+                box_v = np.array([box_v[0][0], box_v[1][1], box_v[2][2]])
+
+                # Translation vector
+                delta = box_v / 2 - cog
+                # New Coordinates
+                corrected_reference_positions = coords + delta
+
             for idx in range(0, len(positions)):
                 if idx in res_atom_set:
-                    xyz = positions[idx].in_units_of(unit.nanometers) / unit.nanometers
+                    if opt['restraint_to_reference']:
+                        xyz = corrected_reference_positions[idx]  # nanometers unit
+                    else:
+                        xyz = positions[idx].in_units_of(unit.nanometers) / unit.nanometers
                     force_restr.addParticle(idx, xyz)
 
             self.system.addForce(force_restr)

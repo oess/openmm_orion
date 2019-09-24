@@ -17,7 +17,6 @@ import glob
 from tempfile import TemporaryDirectory
 
 
-
 from oeommtools import utils as oeommutils
 
 def GetCardinalOrderOfProteinResNums(mol):
