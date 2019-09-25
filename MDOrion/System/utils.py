@@ -1,4 +1,4 @@
-# (C) 2018 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -15,24 +15,14 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-from .prep import PDBCodeToUrl
 
-from .prep import UrlToFile
-from .prep import ParallelUrlToFile
+def get_human_readable(size, precision=2):
 
-from .prep import SprucePrepBasic
-from .prep import ParallelSprucePrepBasic
+    suffixes = ['B', 'KB', 'MB', 'GB', 'TB']
+    suffixIndex = 0
 
-from .prep import SprucePrepAdvanced
-from .prep import ParallelSprucePrepAdvanced
+    while size > 1024 and suffixIndex < 4:
+        suffixIndex += 1  # increment the index of the suffix
+        size = size / 1024.0  # apply the division
 
-from .prep import DUtoReceptorDataset
-from .prep import ParallelDUtoReceptorDataset
-
-from .prep import DUtoMDDataset
-
-from .prep import DUVectorToSingleDU
-from .prep import ParallelDUVectorToSingleDU
-
-from .fields import SpruceFields
-from .params import SpruceParameters
+    return "%.*f %s" % (precision, size, suffixes[suffixIndex])

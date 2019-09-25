@@ -15,8 +15,8 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '0.9.4a1'
 
+__version__ = '0.9.5a0'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
@@ -58,4 +58,3 @@ from .Yank.cubes import ParallelYankSolvationFECube
 from .Yank.cubes import YankBindingFECube
 from .Yank.cubes import ParallelYankBindingFECube
 
-from .Spruce import prep

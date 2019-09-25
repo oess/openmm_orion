@@ -175,11 +175,13 @@ coll_close.set_parameters(open=False)
 job.add_cube(coll_close)
 
 ofs = DatasetWriterCube('ofs', title='Out')
-ofs.promote_parameter("data_out", promoted_name="out")
+ofs.promote_parameter("data_out", promoted_name="out", title="MD Out",
+                      description="MD Dataset out")
 job.add_cube(ofs)
 
 fail = DatasetWriterCube('fail', title='Failures')
-fail.promote_parameter("data_out", promoted_name="fail")
+fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
+                       description="Dataset Failures out")
 job.add_cube(fail)
 
 iligs.success.connect(ligset.intake)

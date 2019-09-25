@@ -98,6 +98,12 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
         default=5.0,
         help_text="Restraint weight for xyz atom restraints in kcal/(mol A^2)")
 
+    restraint_to_reference = parameter.BooleanParameter(
+        'restraint_to_reference',
+        default=True,
+        help_text='If True the starting reference system coordinates will be used '
+                  'to restraint the system')
+
     freeze = parameter.StringParameter(
         'freeze',
         default='',
@@ -223,6 +229,9 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
             system = mdrecord.get_stage_topology()
             mdstate = mdrecord.get_stage_state()
 
+            if opt['restraint_to_reference']:
+                opt['reference_state'] = mdrecord.get_stage_state(stg_name='System Parametrization')
+
             opt['out_directory'] = mdrecord.cwd
             opt['molecule'] = system
             opt['str_logger'] = str_logger
@@ -328,6 +337,12 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
         'restraintWt',
         default=2.0,
         help_text="Restraint weight for xyz atom restraints in kcal/(mol A^2)")
+
+    restraint_to_reference = parameter.BooleanParameter(
+        'restraint_to_reference',
+        default=True,
+        help_text='If True the starting reference system coordinates will be used '
+                  'to restraint the system')
 
     freeze = parameter.StringParameter(
         'freeze',
@@ -474,6 +489,9 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
 
             mdstate = mdrecord.get_stage_state()
 
+            if opt['restraint_to_reference']:
+                opt['reference_state'] = mdrecord.get_stage_state(stg_name='System Parametrization')
+
             opt['out_directory'] = mdrecord.cwd
             opt['molecule'] = system
             opt['str_logger'] = str_logger
@@ -607,6 +625,12 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
         'restraintWt',
         default=2.0,
         help_text="Restraint weight for xyz atom restraints in kcal/(mol A^2)")
+
+    restraint_to_reference = parameter.BooleanParameter(
+        'restraint_to_reference',
+        default=True,
+        help_text='If True the starting reference system coordinates will be used '
+                  'to restraint the system')
 
     freeze = parameter.StringParameter(
         'freeze',
@@ -746,6 +770,9 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
 
             system = mdrecord.get_stage_topology()
             mdstate = mdrecord.get_stage_state()
+
+            if opt['restraint_to_reference']:
+                opt['reference_state'] = mdrecord.get_stage_state(stg_name='System Parametrization')
 
             opt['out_directory'] = mdrecord.cwd
             opt['molecule'] = system

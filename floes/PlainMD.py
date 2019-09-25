@@ -31,13 +31,14 @@ from MDOrion.System.cubes import ParallelSolvationCube
 from MDOrion.ForceField.cubes import ParallelForceFieldCube
 
 from MDOrion.System.cubes import (IDSettingCube,
-                                  CollectionSetting)
+                                  CollectionSetting,
+                                  ParallelRecordSizeCheck)
 
-job = WorkFloe('Simple MD',
-               title='Simple MD')
+job = WorkFloe('Plain MD',
+               title='Plain MD')
 
 job.description = """
-The Simple MD protocol performs MD simulations given one or more
+The Plain MD protocol performs MD simulations given one or more
 complete molecular systems as input, each to be treated in its entirety as a solute.
 The solute need to have coordinates, all atoms, and correct chemistry.
 Each molecular system can have multiple conformers but each conformer will be
@@ -183,20 +184,25 @@ equil3.promote_parameter("md_engine", promoted_name="md_engine")
 coll_close = CollectionSetting("CloseCollection")
 coll_close.set_parameters(open=False)
 
-ofs = DatasetWriterCube('ofs', title='Out')
-ofs.promote_parameter("data_out", promoted_name="out")
+rec_check = ParallelRecordSizeCheck("RecordCheck")
+
+ofs = DatasetWriterCube('ofs', title='MD Out')
+ofs.promote_parameter("data_out", promoted_name="out",
+                      title="MD Out", description="MD Dataset out")
 
 fail = DatasetWriterCube('fail', title='Failures')
-fail.promote_parameter("data_out", promoted_name="fail")
+fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
+                       description="MD Dataset Failures out")
 
 job.add_cubes(ifs, solvate, coll_open, ff, minComplex,
               warmup, equil1, equil2, equil3, prod,
-              coll_close, ofs, fail)
+              coll_close, rec_check, ofs, fail)
 
 ifs.success.connect(sysid.intake)
 sysid.success.connect(solvate.intake)
 solvate.success.connect(coll_open.intake)
 coll_open.success.connect(ff.intake)
+coll_open.failure.connect(rec_check.fail_in)
 ff.success.connect(minComplex.intake)
 minComplex.success.connect(warmup.intake)
 warmup.success.connect(equil1.intake)
@@ -204,8 +210,11 @@ equil1.success.connect(equil2.intake)
 equil2.success.connect(equil3.intake)
 equil3.success.connect(prod.intake)
 prod.success.connect(coll_close.intake)
-coll_close.success.connect(ofs.intake)
-prod.failure.connect(fail.intake)
+prod.failure.connect(rec_check.fail_in)
+coll_close.success.connect(rec_check.intake)
+coll_close.failure.connect(rec_check.fail_in)
+rec_check.success.connect(ofs.intake)
+rec_check.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()

@@ -16,13 +16,16 @@
 # or its use.
 
 
-import subprocess, tempfile, parmed
+import subprocess
+import tempfile
+import parmed
+
 from openeye import oechem, oequacpac
 import openmoltools
 from openmoltools.openeye import *
 
 
-def assignELF10charges(molecule, max_confs=800, strictStereo=True):
+def assignELF10charges(molecule, max_confs=800, strictStereo=True, opt=None):
     """
      This function computes atomic partial charges for an OEMol by
      using the ELF10 method
@@ -55,11 +58,47 @@ def assignELF10charges(molecule, max_confs=800, strictStereo=True):
     if not oechem.OEMMFFAtomTypes(mol_copy):
         raise RuntimeError("MMFF atom type assignment returned errors")
 
-    # ELF10 charges
-    status = oequacpac.OEAssignCharges(mol_copy, oequacpac.OEAM1BCCELF10Charges())
+    # Check for Carboxylic Acid patterns in the molecule
+    smarts = '(O=)[C][O,S][H]'
+    ss = oechem.OESubSearch(smarts)
 
-    if not status:
-        raise RuntimeError("OEAssignCharges returned error code %d" % status)
+    oechem.OEPrepareSearch(mol_copy, ss)
+    unique_match = True
+
+    a_match_list = []
+    for match in ss.Match(mol_copy, unique_match):
+
+        for ma in match.GetAtoms():
+            a_match_list.append(ma.target)
+
+    # Set the Carboxylic Acid torsion to zero for each generated conformers
+    if a_match_list:
+
+        if len(a_match_list) % 4 != 0:
+            raise ValueError("The atom matching list must be multiple of 4")
+
+        for i in range(0, len(a_match_list), 4):
+
+            chunk = a_match_list[i:i + 4]
+
+            for conf in mol_copy.GetConfs():
+
+                conf.SetTorsion(chunk[0],
+                                chunk[1],
+                                chunk[2],
+                                chunk[3], 0.0)
+
+    # Try to calculate the ELF10 charges for the molecule
+    quacpac_status = oequacpac.OEAssignCharges(mol_copy, oequacpac.OEAM1BCCELF10Charges())
+
+    if not quacpac_status:
+        opt['Logger'].warn("OEAM1BCCELF10 charge assignment failed downgrading "
+                           "to OEAM1BCC charge assignment for this molecule: {}".format(mol_copy.GetTitle()))
+
+        quacpac_status = oequacpac.OEAssignCharges(mol_copy, oequacpac.OEAM1BCCCharges())
+
+    if not quacpac_status:
+        raise RuntimeError("OEAssignCharges returned error code {}".format(quacpac_status))
 
     return mol_copy
 

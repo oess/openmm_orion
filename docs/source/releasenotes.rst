@@ -3,7 +3,7 @@ Release Notes
 #############
 
 
-v0.9.3
+v0.9.4
 ======================
 
 General Notice
@@ -15,12 +15,37 @@ General Notice
 New Floes
 --------------------------------------------------------------------------------
 * None
+=======
+* The MD Spruce Prep Floe has been removed. Proteins must be prepared with the Spruce Prep floes available in the Classic
+   floes now.
 
+* The calculation of MMPBSA can now be also performed by using explicit waters (still experimental)
+
+New Floes
+--------------------------------------------------------------------------------
+
+* None
+
+--------------------------------------------------------------------------------
+
+Floe Updates
+--------------------------------------------------------------------------------
+
+* The MD Spruce Prep Floe has been removed
+
+* The Simple MD Floe has been renamed the Plain MD Floe
+
+--------------------------------------------------------------------------------
 
 New Cubes
 --------------------------------------------------------------------------------
 * None
+=======
+* A new cube has been developed to check the record size before writing to the Orion backend
+    to avoiding floe failures. The new cube has been added to all the floes for sanity check.
 
+* A new cube to estimate the water number around a ligand-protein complex has been developed. The cube is
+    used in the MMPBSA calculation with the explicit water flag set on
 
 Cube Updates
 --------------------------------------------------------------------------------
@@ -35,3 +60,13 @@ Cube Updates
 
 .. _2019.Oct: https://docs.eyesopen.com/toolkits/python/releasenotes/releasenotes/index.html
 .. _OpenEye Toolkits: https://docs.eyesopen.com/toolkits/python/index.html
+=======
+* Hint interactions and Styles have been removed from receptors and ligands in the Protein, Ligand and FF parametrization
+    setting cubes that could cause problems along the MD analysis stages (debugging is in progress)
+
+* A bug has been fixed in the ligand Elf10 charging cube that was causing problems when carboxylic acid was present
+    in a ligand to be charged
+
+* The Trajectory to OEMol, Interaction Energies and PBSA calculation cubes have been updated to account for the explicit
+    water in the new MMPBSA calculation
+

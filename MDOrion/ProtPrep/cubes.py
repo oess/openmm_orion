@@ -26,6 +26,8 @@ from orionplatform.mixins import RecordPortsMixin
 
 from MDOrion.ProtPrep.utils import ss_bond_fix
 
+from openeye import oechem
+
 
 class ProteinSetting(RecordPortsMixin, ComputeCube):
     title = "Protein Setting"
@@ -84,11 +86,18 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
 
             protein = record.get_value(Fields.primary_molecule)
 
+            # Removing Interaction Hint Container, Style and PDB Data
+            oechem.OEDeleteInteractionsHintSerializationData(protein)
+            oechem.OEDeleteInteractionsHintSerializationIds(protein)
+            oechem.OEClearStyle(protein)
+            oechem.OEClearPDBData(protein)
+
             name = self.opt['protein_title']
+
             if not name:
-                titleFirst12 = protein.GetTitle()[0:12]
-                if titleFirst12:
-                    name = titleFirst12
+                title_first12 = protein.GetTitle()[0:12]
+                if title_first12:
+                    name = title_first12
                 else:
                     name = 'protein'
 
