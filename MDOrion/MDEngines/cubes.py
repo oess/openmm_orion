@@ -37,8 +37,6 @@ import textwrap
 
 import os
 
-from openeye import oechem
-
 
 class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     title = 'Minimization Cube'

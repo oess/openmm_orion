@@ -267,23 +267,22 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
             solute_structure = solvated_structure.split()[0][0]
             solute_structure.box = None
 
-            solvent_res_names = set()
-            for res in solvated_structure.residues:
-                solvent_res_names.add(res.name)
-            solvent_res_names.remove(solute_structure.residues[0].name)
+            # solvent_res_names = set()
+            # for res in solvated_structure.residues:
+            #     solvent_res_names.add(res.name)
+            # solvent_res_names.remove(solute_structure.residues[0].name)
+            #
+            # solvent_res_names = list(solvent_res_names)
+            #
+            # for i in range(0, len(solvent_res_names)):
+            #     if '+' in solvent_res_names[i]:
+            #         solvent_res_names[i] = "'"+solvent_res_names[i]+"'"
+            #     if '-' in solvent_res_names[i]:
+            #         solvent_res_names[i] = "'"+solvent_res_names[i]+"'"
+            #
+            # opt['solvent_str_names'] = ' '.join(solvent_res_names)
 
-            solvent_res_names = list(solvent_res_names)
-
-            for i in range(0, len(solvent_res_names)):
-                if '+' in solvent_res_names[i]:
-                    solvent_res_names[i] = "'"+solvent_res_names[i]+"'"
-                if '-' in solvent_res_names[i]:
-                    solvent_res_names[i] = "'"+solvent_res_names[i]+"'"
-
-            opt['solvent_str_names'] = ' '.join(solvent_res_names)
-            
             # Write out all the required files and set-run the Yank experiment
-
             stg_name = mdrecord.get_stages_names[-1]
             output_directory = mdrecord.processed[stg_name]
 
@@ -788,15 +787,15 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
                     for hres in frag.GetResidues():
                         solvent_res_names.add(hres.GetOEResidue().GetName())
 
-            solvent_res_names = list(solvent_res_names)
-
-            for i in range(0, len(solvent_res_names)):
-                if '+' in solvent_res_names[i]:
-                    solvent_res_names[i] = "'" + solvent_res_names[i] + "'"
-                if '-' in solvent_res_names[i]:
-                    solvent_res_names[i] = "'" + solvent_res_names[i] + "'"
-
-            opt['solvent_str_names'] = ' '.join(solvent_res_names)
+            # solvent_res_names = list(solvent_res_names)
+            #
+            # for i in range(0, len(solvent_res_names)):
+            #     if '+' in solvent_res_names[i]:
+            #         solvent_res_names[i] = "'" + solvent_res_names[i] + "'"
+            #     if '-' in solvent_res_names[i]:
+            #         solvent_res_names[i] = "'" + solvent_res_names[i] + "'"
+            #
+            # opt['solvent_str_names'] = ' '.join(solvent_res_names)
 
             if current_iterations == 0:
 
