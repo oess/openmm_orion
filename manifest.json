@@ -23,14 +23,14 @@
         "matplotlib==3.0.3",
         "networkx==1.11",
         "numpy==1.14.2",
-        "oeommtools==0.1.6",
+        "oeommtools==0.1.7",
         "openforcefield==0.0.2",
-        "openmm==7.2.2",
-        "openmmtools==0.15.0",
+        "openmm==7.4.0",
+        "openmmtools==0.18.3",
         "openmoltools==0.8.1",
         "packmol==18.169",
-        "parmed==3.0.1",
-        "pdbfixer==1.4",
+        "parmed==3.2.0",
+        "pdbfixer==1.5",
         "pip==18.0",
         "pymbar==3.0.3",
         "pyyaml==3.13",
@@ -39,10 +39,10 @@
         "seaborn==0.8.1",
         "smirnoff99frosst=1.0.5",
         "sstmap==1.1.2",
-        "yank==0.23.7"
+        "yank==0.24.1"
     ],
     "name": "OpenEye MD Floes",
     "python_version": "3.6",
     "requirements": "requirements_dev.txt",
-    "version": "0.9.5a0"
+    "version": "0.9.5a8"
 }

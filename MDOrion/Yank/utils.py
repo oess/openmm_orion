@@ -75,7 +75,7 @@ def yank_solvation_initialize(sim):
             solvated_xml_fn=opt['solvated_omm_sys_serialized_fn'],
             solute_pdb_fn=opt['solute_structure_fn'],
             solute_xml_fn=opt['solute_omm_sys_serialized_fn'],
-            solvent_dsl=opt['solvent_str_names'])
+            solvent_dsl=opt['lig_res_name'])
 
         opt['yank_template'] = yank_template
 
@@ -162,7 +162,7 @@ def yank_binding_initialize(sim):
             solvent_pdb_fn=opt['solvated_ligand_structure_fn'],
             solvent_xml_fn=opt['solvated_ligand_omm_serialized_fn'],
             ligand_resname=opt['lig_res_name'],
-            solvent_dsl=opt['solvent_str_names'],
+            solvent_dsl=opt['lig_res_name'],
             sampler=opt['sampler'],
             restraints=opt['restraints'],
             protocol=opt['protocol'])

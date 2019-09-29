@@ -45,8 +45,11 @@ mcmc_moves:
   langevin:
     type: LangevinSplittingDynamicsMove
     timestep: {timestep:f}*femtoseconds
-    splitting: 'V R R R O R R R V'
+    splitting: 'V R O R V'
     n_steps: {nsteps_per_iteration:d}
+    collision_rate: 1.0 / picosecond
+    reassign_velocities: yes
+    n_restart_attempts: 6
 
 samplers:
   repex:
@@ -69,7 +72,7 @@ systems:
     phase2_path: [{solute_pdb_fn}, {solute_xml_fn}]
     solvent1: solvent
     solvent2: vacuum
-    solvent_dsl: resname {solvent_dsl}
+    solvent_dsl: not resname {solvent_dsl}
 
 protocols:
   solvation-protocol:
@@ -119,7 +122,7 @@ systems:
     phase1_path: [{complex_pdb_fn}, {complex_xml_fn}]
     phase2_path: [{solvent_pdb_fn}, {solvent_xml_fn}]
     ligand_dsl: resname {ligand_resname}
-    solvent_dsl: resname {solvent_dsl}
+    solvent_dsl: not resname {solvent_dsl}
 
 samplers:
   repex:
