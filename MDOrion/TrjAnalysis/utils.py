@@ -16,8 +16,12 @@ import glob
 
 from tempfile import TemporaryDirectory
 
-
 from oeommtools import utils as oeommutils
+
+from scipy.signal import (argrelmax,
+                          argrelmin,
+                          medfilt)
+
 
 def GetCardinalOrderOfProteinResNums(mol):
     # make map of protein res nums to the residue cardinal order index
@@ -582,3 +586,75 @@ def ligand_to_svg_stmd(ligand, ligand_name):
                     marker = False
 
     return svg_lines
+
+
+def clean_average(data):
+
+    def pwc_medfiltit(y, W):
+
+        xold = y  # Initialize iterated running medians
+
+        # Iterate
+        stop = False
+
+        while not stop:
+            xnew = medfilt(xold, W)
+            stop = np.all(xnew == xold)
+            xold = xnew
+
+        return xold
+
+    # Change the data in a numpy array
+    np_arr = np.array(data)
+
+    # Remove all nans from the array if any
+    np_no_nans = np_arr[~np.isnan(np_arr)]
+
+    # De-noise the data
+    smooth = pwc_medfiltit(np_no_nans, 15)
+
+    # Estimate the average and standard deviation
+    tmp_avg = smooth.mean()
+    tmp_std = smooth.std()
+
+    # 4 std range
+    low_std = tmp_avg - 4.0 * tmp_std
+    high_std = tmp_avg + 4.0 * tmp_std
+
+    # Detect all the elements that are inside 4 std from the average in the original data set
+    clean_index = np.where(np.logical_and(np_no_nans >= low_std, np_no_nans <= high_std))
+
+    new_arr = np_no_nans.take(clean_index)
+
+    avg = new_arr.mean()
+    std = new_arr.std()
+
+    # # Detect Spikes in the data set and remove them
+    # indexmin = argrelmin(np_no_nans, order=1)[0]
+    #
+    # indexmax = argrelmax(np_no_nans, order=1)[0]
+    #
+    # extrema_indexes = np.sort(np.concatenate((indexmin, indexmax)))
+    #
+    # # Temporary array generated removing the extrema values
+    # tmp_arr = np.delete(np_no_nans, extrema_indexes)
+    #
+    # # Estimate the average and standard deviation
+    # tmp_avg = tmp_arr.mean()
+    # tmp_std = tmp_arr.std()
+    #
+    # # 3 std range
+    # low_std = tmp_avg - 3.0 * tmp_std
+    # high_std = tmp_avg + 3.0 * tmp_std
+    #
+    # # Detect all the elements that are inside 3 std from the average
+    # clean_index = np.where(np.logical_and(np_no_nans >= low_std, np_no_nans <= high_std))
+    #
+    # new_arr = np_no_nans.take(clean_index)
+    #
+    # avg = new_arr.mean()
+    # std = new_arr.std()
+
+    # print(avg, std)
+
+    return avg, std
