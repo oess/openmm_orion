@@ -382,6 +382,11 @@ def info_extraction(ctx):
                                                GetHumanReadable(record.get_value_size(field))
                                                ))
                 else:
+                    try:
+                        size = GetHumanReadable(record.get_value_size(field))
+                    except:
+                        size = "None"
+
                     print("{} {} name = {}\n        "
                           "{}type = {}\n        "
                           "{}size = {}".format(blank * (level + 1),
@@ -390,7 +395,7 @@ def info_extraction(ctx):
                                                blank * (level + 1),
                                                field.get_type(),
                                                blank * (level + 1),
-                                               GetHumanReadable(record.get_value_size(field))
+                                               size
                                                ))
 
             elif field_type == RecordData:

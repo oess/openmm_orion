@@ -28,8 +28,6 @@ import ensemble2img
 
 from tempfile import TemporaryDirectory
 
-import numpy as np
-
 from openeye import oechem
 
 import oetrajanalysis.Clustering_utils as clusutl
@@ -479,6 +477,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                                        ligTraj, protTraj)
             if zapBind is None:
                 raise ValueError('{} Calculation of PBSA energies failed'.format(system_title) )
+
             # generate Surface Areas energy for buried SA based on 0.006 kcal/mol/A^2
             zapBindSA6 = [sa*-0.006 for sa in saBuried]
 
@@ -546,10 +545,8 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                                           meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
                 trajPBSA.set_value(zapMMPBSA_field, zapMMPBSA)
 
-                # Average MMPBSA for all the trajectory frames
-                np_mmpbsa = np.array(zapMMPBSA)
-                avg_mmpbsa = np_mmpbsa.mean()
-                std_mmpbsa = np_mmpbsa.std()
+                # Clean average MMPBSA to avoid nans and high zap energy values
+                avg_mmpbsa, std_mmpbsa = utl.clean_average(zapMMPBSA)
 
                 # Add to the record the MMPBSA mean and std
                 record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
@@ -658,7 +655,7 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
 
             prmed = mdrecord.get_parmed(sync_stage_name='last')
 
-            # Compute interaction energies for the protein, ligand, complex asn water subsystems
+            # Compute interaction energies for the protein, ligand, complex and water subsystems
             intE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE = mmpbsa.ProtLigWatInteractionEFromParmedOETraj(
                 prmed, ligTraj, protTraj, water_traj)
 
@@ -860,6 +857,7 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             clusTrajSVG = []
             nMajorClusters = 0
             for clusID, count in enumerate(clusResults['ClusterCounts']):
+
                 # only proceed with major clusters (major= 10% or more of traj)
                 if count/clusResults['nFrames'] >= 0.1:
                     nMajorClusters += 1
@@ -916,8 +914,34 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
                 floe_report_label = "# clusters: " + str(nMajorClusters) + "<br>" + floe_report_label
                 record.set_value(Fields.floe_report_label, floe_report_label)
 
-            else:
+            # TODO Modified by GAC to include cases when no major clusters are found
+            # TESTING IN PROGRESS
+            else:  # number of clusters is zero
                 opt['Logger'].info('Warning: No major clusters found for {}'.format(system_title))
+                # clusProtAvgMol.SetTitle('Average ' + clusProtAvgMol.GetTitle())
+                # trajClus.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
+                # clusProtMedMol.SetTitle('Median ' + clusProtMedMol.GetTitle())
+                # trajClus.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
+                ClusTrajSVG_field = OEField('ClusTrajSVG', Types.StringVec)
+                trajClus.set_value(ClusTrajSVG_field, clusTrajSVG)
+
+                # Set the TrajClus record on the top-level record
+                record.set_value(Fields.Analysis.oeclus_rec, trajClus)
+
+                # Set prot and lig clus average mols on top-level record for 3D vis
+                # record.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
+                # record.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
+
+                # Set the number of major clusters and revise label
+                record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
+
+                # Revise top-level floe report label to include nMajorClusters
+                if not record.has_value(Fields.floe_report_label):
+                    floe_report_label = ""
+                else:
+                    floe_report_label = record.get_value(Fields.floe_report_label)
+                floe_report_label = "# clusters: " + str(nMajorClusters) + "<br>" + floe_report_label
+                record.set_value(Fields.floe_report_label, floe_report_label)
 
             analysesDone.append('TrajClus')
             record.set_value(Fields.Analysis.analysesDone, analysesDone)

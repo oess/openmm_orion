@@ -259,6 +259,7 @@ class GromacsSimulations(MDSimulations):
 
         # Select atom to restraint
         if opt['restraints']:
+
             res_atom_list = sorted(oeommutils.select_oemol_atom_idx_by_language(opt['molecule'], mask=opt['restraints']))
 
             if res_atom_list:
@@ -293,6 +294,29 @@ class GromacsSimulations(MDSimulations):
 
         # Apply restraints
         if apply_restraints:
+
+            if opt['restraint_to_reference']:
+                opt['Logger'].info("[{}] Restraint to the Reference State Enabled".format(opt['CubeTitle']))
+                reference_positions = opt['reference_state'].get_positions()
+                coords = np.array(reference_positions.value_in_unit(unit.angstrom))
+                # System Center of Geometry
+                cog = np.mean(coords, axis=0)
+
+                # System box vectors
+                box_v = opt['reference_state'].get_box_vectors().value_in_unit(unit.angstrom)
+                box_v = np.array([box_v[0][0], box_v[1][1], box_v[2][2]])
+
+                # Translation vector
+                delta = box_v / 2 - cog
+                # New Coordinates
+                corrected_reference_positions = coords + delta
+
+                tmp_pmd_structure = new_system_structure.__copy__()
+
+                tmp_pmd_structure.coordinates = corrected_reference_positions
+                opt['grm_gro_ref_restraint_fn'] = os.path.join(opt['out_directory'],
+                                                               opt['outfname'] + "_ref_restraint.gro")
+                tmp_pmd_structure.save(opt['grm_gro_ref_restraint_fn'], overwrite=True)
 
             # Restraints weight
             res_wgt = opt['restraintWt'] * unit.kilocalories_per_mole / (unit.angstroms ** 2)
@@ -603,15 +627,27 @@ class GromacsSimulations(MDSimulations):
 
         # Generate Gromacs .tpr file
         if apply_restraints:
-            subprocess.check_call(['gmx',
-                                   'grompp',
-                                   '-f', opt['mdp_fn'],
-                                   '-c', opt['grm_gro_fn'],
-                                   '-r', opt['grm_gro_fn'],
-                                   '-p', opt['grm_top_res_fn'],
-                                   '-n', opt['grm_ndx_fn'],
-                                   '-o', opt['grm_tpr_fn'],
-                                   '-maxwarn', b'5'])
+
+            if opt['restraint_to_reference']:
+                subprocess.check_call(['gmx',
+                                       'grompp',
+                                       '-f', opt['mdp_fn'],
+                                       '-c', opt['grm_gro_fn'],
+                                       '-r', opt['grm_gro_ref_restraint_fn'],
+                                       '-p', opt['grm_top_res_fn'],
+                                       '-n', opt['grm_ndx_fn'],
+                                       '-o', opt['grm_tpr_fn'],
+                                       '-maxwarn', b'5'])
+            else:
+                subprocess.check_call(['gmx',
+                                       'grompp',
+                                       '-f', opt['mdp_fn'],
+                                       '-c', opt['grm_gro_fn'],
+                                       '-r', opt['grm_gro_fn'],
+                                       '-p', opt['grm_top_res_fn'],
+                                       '-n', opt['grm_ndx_fn'],
+                                       '-o', opt['grm_tpr_fn'],
+                                       '-maxwarn', b'5'])
 
         else:
             # Generate topology files

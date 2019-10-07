@@ -18,7 +18,8 @@
 # or its use.
 
 
-from floe.api import WorkFloe
+from floe.api import (WorkFloe,
+                      ParallelCubeGroup)
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
@@ -165,6 +166,9 @@ equil.set_parameters(trajectory_interval=0.0)
 equil.set_parameters(reporter_interval=0.0)
 equil.set_parameters(suffix='equil')
 job.add_cube(equil)
+
+md_group = ParallelCubeGroup(cubes=[minimize, warmup, equil])
+job.add_group(md_group)
 
 report = MDFloeReportCube("report", title="Floe Report")
 job.add_cube(report)
