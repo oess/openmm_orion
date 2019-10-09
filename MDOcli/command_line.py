@@ -84,92 +84,6 @@ def dataset(ctx, filename, id, profile=None, max_retries=5):
     else:
         click.secho("Unable to find credentials", fg='red', err=True)
 
-#
-# @dataset.command("trajectory")
-# @click.option("--format", help="Trajectory format", default='tar.gz')
-# @click.option("--stgn", help="MD Stage number", default="all")
-# @click.option("--fixname", help="Edit the trajectory file name", default=None)
-# @click.pass_context
-# def trajectory_extraction(ctx, format, stgn, fixname):
-#     stagen = stgn
-#
-#     new_record_list = []
-#
-#     for record in ctx.obj['records']:
-#
-#         if not record.has_value(Fields.md_stages):
-#             print("No MD stages have been found in the selected record")
-#             continue
-#
-#         stages = record.get_value(Fields.md_stages)
-#         nstages = len(stages)
-#         title = record.get_value(Fields.title)
-#         id = record.get_value(Fields.id)
-#         fn = title + "_" + str(id)
-#
-#         if stagen == 'last':
-#             stages_work_on = [stages[-1]]
-#         elif stagen == 'all':
-#             stages_work_on = stages
-#         else:
-#             if int(stagen) > nstages:
-#                 print("Wrong stage number selection: {} > max = {}".format(stagen, nstages))
-#                 return
-#             else:
-#                 stages_work_on = [stages[int(stagen)]]
-#
-#         for idx in range(0, len(stages_work_on)):
-#
-#             stage = stages_work_on[idx]
-#
-#             if stage.has_value(Fields.trajectory):
-#                 fnt = stage.get_value(Fields.trajectory)
-#                 trj_field = stage.get_field(Fields.trajectory.get_name())
-#                 trj_meta = trj_field.get_meta()
-#
-#             elif stage.has_value(Fields.orion_local_trj_field):
-#                 trj_id = stage.get_value(Fields.orion_local_trj_field)
-#                 trj_field = stage.get_field(Fields.orion_local_trj_field.get_name())
-#                 trj_meta = trj_field.get_meta()
-#
-#                 suffix = ''
-#                 if stage.has_value(Fields.log_data):
-#                     log = stage.get_value(Fields.log_data)
-#                     log_split = log.split()
-#                     for i in range(0, len(log_split)):
-#                         if log_split[i] == 'suffix':
-#                             suffix = log_split[i+2]
-#                             break
-#                 fnt = fn + '-' + suffix + '.' + format
-#
-#                 resource = ctx.obj['session'].get_resource(File, trj_id)
-#
-#                 resource.download_to_file(fnt)
-#
-#             else:
-#                 print("No MD trajectory found in the selected stage record {}".format(stage.get_value(Fields.stage_name)))
-#                 continue
-#
-#             if fixname is not None:
-#                 trj_field = OEField(Fields.trajectory.get_name(),
-#                                     Fields.trajectory.get_type(),
-#                                     meta=trj_meta)
-#
-#                 stage.set_value(trj_field, fnt)
-#
-#                 stages_work_on[idx] = stage
-#
-#             record.set_value(Fields.md_stages, stages_work_on)
-#             new_record_list.append(record)
-#
-#     if fixname is not None:
-#
-#         ofs = oechem.oeofstream(fixname)
-#
-#         for record in new_record_list:
-#             OEWriteRecord(ofs, record, fmt='binary')
-#
-
 
 @dataset.command("makelocal")
 @click.option("--name", help="Edit the trajectory file name", default="local.oedb")
@@ -426,4 +340,156 @@ def info_extraction(ctx):
     for idx in range(0, len(ctx.obj['records'])):
         print(30 * "*" + " RECORD {}/{} ".format(idx + 1, len(ctx.obj['records'])) + 30 * "*")
         recursive_record(ctx.obj['records'][idx], 0)
-        print("\n" + 30 * "*" + " END RECORD ".format(idx + 1, len(ctx.obj['records'])) + 30 * "*" + "\n") 
+        print("\n" + 30 * "*" + " END RECORD ".format(idx + 1, len(ctx.obj['records'])) + 30 * "*" + "\n")
+
+
+
+
+#############
+@main.group()
+@click.argument('filename', type=click.Path(exists=True))
+@click.option("--id", help="Record ID number", default="all")
+@click.pass_context
+def analysis(ctx, filename, id, profile=None, max_retries=5):
+    """Records Extraction"""
+
+    ctx.obj['filename'] = filename
+
+    ifs = oechem.oeifstream(filename)
+
+    records = []
+
+    for rec in read_records(ifs):
+        records.append(rec)
+    ifs.close()
+
+    if id == 'all':
+        ctx.obj['records'] = records
+    else:
+        if int(id) < len(records):
+            ctx.obj['records'] = [records[int(id)]]
+        else:
+            raise ValueError("Wrong record number selection: {} > max = {}".format(int(id), len(records)))
+
+
+def check_sys_id(record):
+    if not record.has_value(Fields.title):
+        raise ValueError("System title field is not present on the record")
+
+    title = record.get_value(Fields.title)
+
+    if not record.has_value(Fields.wellid):
+        raise ValueError("Well ID not present on the record")
+
+    wellid = record.get_value(Fields.wellid)
+
+    sys_id = title + "_" + str(wellid)
+
+    return sys_id
+
+
+@analysis.command("energy")
+@click.pass_context
+def energy_extraction(ctx):
+
+    for record in ctx.obj['records']:
+
+        sys_id = check_sys_id(record)
+
+        if not record.has_field(Fields.Analysis.oeintE_rec):
+            raise ValueError("Interaction Energy Record field is missing")
+
+        oeintE_rec = record.get_value(Fields.Analysis.oeintE_rec)
+
+        for fd in oeintE_rec.get_fields():
+            name = fd.get_name()
+            vec_list = oeintE_rec.get_value(fd)
+            f = open(sys_id+"_"+name + '.txt', 'w')
+            for val in vec_list:
+                f.write(str(val) + "\n")
+            f.close()
+
+
+@analysis.command("mmpbsa")
+@click.pass_context
+def mmpbsa_extraction(ctx):
+
+    for record in ctx.obj['records']:
+
+        sys_id = check_sys_id(record)
+
+        if not record.has_field(Fields.Analysis.oepbsa_rec):
+            raise ValueError("PBSA record field is missing")
+
+        oepbsa_rec = record.get_value(Fields.Analysis.oepbsa_rec)
+
+        for fd in oepbsa_rec.get_fields():
+            name = fd.get_name()
+            vec_list = oepbsa_rec.get_value(fd)
+            f = open(sys_id+"_"+name + '.txt', 'w')
+            for val in vec_list:
+                f.write(str(val) + "\n")
+            f.close()
+
+
+@analysis.command("clusters")
+@click.pass_context
+def cluster_extraction(ctx):
+
+    for record in ctx.obj['records']:
+
+        sys_id = check_sys_id(record)
+
+        if not record.has_field(Fields.Analysis.oeclus_rec):
+            raise ValueError("Cluster record field is missing")
+
+        oeclus_rec = record.get_value(Fields.Analysis.oeclus_rec)
+
+        clust_names = ["ClusLigAvgMol",
+                       "ClusProtAvgMol",
+                       "ClusLigMedMol",
+                       "ClusProtMedMol"]
+
+        ofs = oechem.oemolostream(sys_id+"_clusters.oeb")
+
+        for fd in oeclus_rec.get_fields():
+
+            name = fd.get_name()
+
+            if name in clust_names:
+                mol = oeclus_rec.get_value(fd)
+                mol.SetTitle(name)
+                oechem.OEWriteConstMolecule(ofs, mol)
+
+        ofs.close()
+
+
+@analysis.command("traj_confs")
+@click.pass_context
+def traj_conf_extraction(ctx):
+
+    for record in ctx.obj['records']:
+
+        sys_id = check_sys_id(record)
+
+        if not record.has_field(Fields.Analysis.oetraj_rec):
+            raise ValueError("Multi Conf Trajectory record field is missing")
+
+        oetraj_rec = record.get_value(Fields.Analysis.oetraj_rec)
+
+        traj_names = ["LigTraj",
+                      "ProtTraj_OPLMD",
+                      "WatTraj"]
+
+        ofs = oechem.oemolostream(sys_id+"_traj_confs.oeb")
+
+        for fd in oetraj_rec.get_fields():
+
+            name = fd.get_name()
+
+            if name in traj_names:
+                mol = oetraj_rec.get_value(fd)
+                mol.SetTitle(name)
+                oechem.OEWriteConstMolecule(ofs, mol)
+
+        ofs.close()
