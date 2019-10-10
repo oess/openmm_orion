@@ -16,7 +16,7 @@
 # or its use.
 
 
-__version__ = '0.9.5b4'
+__version__ = '0.9.5b6'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
