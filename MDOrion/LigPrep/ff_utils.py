@@ -24,6 +24,9 @@ from openeye import oechem, oequacpac
 import openmoltools
 from openmoltools.openeye import *
 
+from simtk.openmm.app import AmberInpcrdFile, AmberPrmtopFile
+from simtk.openmm import app
+
 
 def assignELF10charges(molecule, max_confs=800, strictStereo=True, opt=None):
     """
@@ -198,8 +201,18 @@ class ParamLigStructure(object):
                                                       frcmod_filename,
                                                       leaprc='leaprc.%s' % forcefield.lower())
 
-        # Load via ParmEd
-        molecule_structure = parmed.amber.AmberParm(prmtop, inpcrd)
+        # TODO Load via ParmEd: This is causing Problems
+        #  Merging two structures (OpenMM PMD structure and
+        #  Amber PMD Structure): The NB exception list is messed up
+        # molecule_structure = parmed.amber.AmberParm(prmtop, inpcrd)
+
+        # TODO MODIFIED BY GAC
+        omm_prmtop = AmberPrmtopFile(prmtop)
+        omm_inpcrd = AmberInpcrdFile(inpcrd)
+
+        omm_system = omm_prmtop.createSystem(nonbondedMethod=app.NoCutoff)
+
+        molecule_structure = parmed.openmm.load_topology(omm_prmtop.topology, omm_system, xyz=omm_inpcrd.positions)
 
         if self.delete_out_files:
             os.remove(gaff_mol2_filename)
