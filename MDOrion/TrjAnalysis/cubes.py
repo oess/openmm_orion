@@ -929,8 +929,9 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             record.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
 
             # put highlighted carbon styling on the default moleule (initial pose ligand)
-            utl.HighlightStyleMolecule(ligInitPose)
-            record.set_value(Fields.ligand, ligInitPose)
+            primaryMol = utl.RequestOEFieldType( record, Fields.primary_molecule)
+            utl.HighlightStyleMolecule(primaryMol)
+            record.set_value(Fields.primary_molecule, primaryMol)
 
             ClusTrajSVG_field = OEField('ClusTrajSVG', Types.StringVec)
             trajClus.set_value(ClusTrajSVG_field, clusTrajSVG)
