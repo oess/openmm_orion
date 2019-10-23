@@ -658,3 +658,65 @@ def clean_average(data):
     # print(avg, std)
 
     return avg, std
+
+def HighlightStyleMolecule(mol):
+    hiliteColorer = oechem.OEMolStyleColorer(oechem.OEAtomColorScheme_Element)
+    hiliteCarbonColor = oechem.OEColor( 245, 210,150 )
+    hiliteColorer.AddColor(6, hiliteCarbonColor )
+    hiliteColorer.AddColor(15, oechem.OEMagenta)
+    #
+    hiliteConfStyle = oechem.OE3DMolStyle()
+    hiliteConfStyle.SetAtomStyle(oechem.OEAtomStyle_Stick)
+    hiliteConfStyle.SetHydrogenVisibility(oechem.OEHydrogenVisibility_Polar)
+    hiliteConfStyle.SetAtomColorer(hiliteColorer)
+    #
+    oechem.OEClearStyle( mol)
+    oechem.OESetStyle( mol, hiliteConfStyle)
+    return
+
+def SetProteinLigandVizStyle( protein, ligand, carbonRGB=(180,180,180)):
+    # set the carbon color (and phosphorus to magenta)
+    carbonColor = oechem.OEColor( carbonRGB[0], carbonRGB[1], carbonRGB[2] )
+    acolorer = oechem.OEMolStyleColorer(oechem.OEAtomColorScheme_Element)
+    acolorer.AddColor(15, oechem.OEMagenta)
+    acolorer.AddColor(6, carbonColor)
+    # make the protein style object
+    protein_style = oechem.OE3DMolStyle()
+    protein_style.SetHydrogenVisibility(oechem.OEHydrogenVisibility_Polar)
+    protein_style.SetAtomStyle(oechem.OEAtomStyle_Hidden)
+    protein_style.SetProteinStyle(oechem.OEProteinStyle_Ribbons)
+    protein_style.SetProteinColorer(oechem.OEMolStyleColorer(oechem.OEProteinColorScheme_AtomColor))
+    protein_style.SetAtomColorer(acolorer)
+    # make the active site style object
+    asite_style = oechem.OE3DMolStyle()
+    asite_style.SetAtomStyle(oechem.OEAtomStyle_Wireframe)
+    # make the ligand style object
+    ligand_style = oechem.OE3DMolStyle()
+    ligand_style.SetAtomStyle(oechem.OEAtomStyle_Stick)
+    ligand_style.SetHydrogenVisibility(oechem.OEHydrogenVisibility_Polar)
+    ligand_style.SetAtomColorer(acolorer)
+    # now color the protein and the ligand
+    oechem.OEClearStyle( protein)
+    oechem.OESetStyle( protein, protein_style)
+    oechem.OEClearStyle( ligand)
+    oechem.OESetStyle( ligand, ligand_style)
+    # display binding site residues
+    asitePred = oechem.OEAtomMatchResidue( protein, ligand, 5)
+    for atom in protein.GetAtoms( asitePred):
+        oechem.OEClearStyle(atom)
+        oechem.OESetStyle(atom, asite_style)
+    return
+
+def StyleTrajProteinLigandClusters( protein, ligand):
+    if protein.NumConfs()!=ligand.NumConfs():
+        print('Cannot style; protein and ligand must have same number of conformers')
+        return False
+    confRGB = ColorblindRGBMarkerColors( protein.NumConfs())
+    #print( confRGB)
+    SetProteinLigandVizStyle( protein, ligand, confRGB[0])
+    for pconf, lconf, colorRGB in zip(protein.GetConfs(), ligand.GetConfs(), confRGB):
+        #print( pconf.GetTitle(), lconf.GetTitle(), colorRGB)
+        SetProteinLigandVizStyle( pconf, lconf, colorRGB)
+    return True
+
+

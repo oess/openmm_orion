@@ -21,24 +21,21 @@ from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
-                                       ParallelTrajInteractionEnergyCube,
-                                       ParallelTrajPBSACube,
-                                       ParallelClusterOETrajCube,
+from MDOrion.TrjAnalysis.cubes import ( ParallelClusterOETrajCube,
                                        ParallelMDTrajAnalysisClusterReport,
                                        MDFloeReportCube)
 
-job = WorkFloe('Short Trajectory MD Analysis',
-               title='Short Trajectory MD Analysis')
+job = WorkFloe('Short Trajectory MD cluster and report',
+               title='Short Trajectory MD cluster and report')
 
 job.description = """
-An MD production run is  analyzed in terms of interactions between the
-ligand and the active site and in terms of ligand RMSD after fitting the trajectory
+An MD production run which has been analyzed in terms of interactions between the
+ligand and the active site is clustered in terms of ligand RMSD after fitting the trajectory
 based on active site C_alphas.
 
 Required Input Parameters:
 --------------------------
-Record of an MD Short Trajectory run of a solvated complex system
+Dataset result of an MD Short Trajectory run with traj OEMols and MMPBSA interactions
 
 Outputs:
 --------
@@ -58,23 +55,14 @@ ofs.promote_parameter("data_out", promoted_name="out")
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
-trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
-IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
-PBSACube = ParallelTrajPBSACube("TrajPBSACube")
 clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
 report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 
 report = MDFloeReportCube("report", title="Floe Report")
 
-job.add_cubes(ifs, trajCube, IntECube, PBSACube, clusCube, report_gen, report, ofs, fail)
+job.add_cubes(ifs, clusCube, report_gen, report, ofs, fail)
 
-ifs.success.connect(trajCube.intake)
-trajCube.success.connect(IntECube.intake)
-trajCube.failure.connect(fail.intake)
-IntECube.success.connect(PBSACube.intake)
-IntECube.failure.connect(fail.intake)
-PBSACube.success.connect(clusCube.intake)
-PBSACube.failure.connect(fail.intake)
+ifs.success.connect(clusCube.intake)
 clusCube.success.connect(report_gen.intake)
 clusCube.failure.connect(fail.intake)
 report_gen.success.connect(report.intake)

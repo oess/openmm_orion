@@ -828,10 +828,12 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             trajHistRMSD_svg = clusutl.ClusterLigTrajHistRMSD(clusResults)
             opt['Logger'].info('{} plotting cluster strip plot'.format(system_title) )
             trajClus_svg = clusutl.ClusterLigTrajClusPlot(clusResults)
+
             # Calculate RMSD of ligand traj from ligand initial pose
-            vecRmsd = oechem.OEDoubleArray( ligTraj.GetMaxConfIdx() )
             ligInitPose = utl.RequestOEFieldType( record, Fields.ligand)
+            vecRmsd = oechem.OEDoubleArray( ligTraj.GetMaxConfIdx() )
             oechem.OERMSD(ligInitPose, ligTraj, vecRmsd)
+            trajClus.set_value(Fields.Analysis.lig_traj_rmsd, list(vecRmsd) )
             opt['Logger'].info('{} plotting strip plot of ligand RMSD from initial pose'.format(system_title) )
             rmsdInit_svg = clusutl.RmsdFromInitialPosePlot( clusResults['ClusterVec'], vecRmsd)
 
@@ -845,31 +847,37 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             ClusSVG_field = OEField( 'ClusSVG', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
             trajClus.set_value( ClusSVG_field, trajClus_svg)
 
-            # Create trajSVG for each major cluster (major= 10% or more of traj)
-            clusLigAvgMol = oechem.OEMol(ligTraj)
-            clusLigAvgMol.DeleteConfs()
-            clusProtAvgMol = oechem.OEMol(protTraj)
-            clusProtAvgMol.DeleteConfs()
-            clusLigMedMol = oechem.OEMol(ligTraj)
-            clusLigMedMol.DeleteConfs()
-            clusProtMedMol = oechem.OEMol(protTraj)
-            clusProtMedMol.DeleteConfs()
-            clusTrajSVG = []
+            # make a list of major clusters (major= 10% or more of traj)
+            majorClusters = []
             nMajorClusters = 0
             for clusID, count in enumerate(clusResults['ClusterCounts']):
-
-                # only proceed with major clusters (major= 10% or more of traj)
                 if count/clusResults['nFrames'] >= 0.1:
                     nMajorClusters += 1
+                    majorClusters.append(clusID)
+            opt['Logger'].info('Found {} major clusters for {}'.format(nMajorClusters, system_title))
+
+            clusTrajSVG = []
+            # Generate per-cluster info for major clusters
+            if nMajorClusters > 0:
+                clusLigAvgMol = oechem.OEMol(ligTraj)
+                clusLigAvgMol.DeleteConfs()
+                clusProtAvgMol = oechem.OEMol(protTraj)
+                clusProtAvgMol.DeleteConfs()
+                clusLigMedMol = oechem.OEMol(ligTraj)
+                clusLigMedMol.DeleteConfs()
+                clusProtMedMol = oechem.OEMol(protTraj)
+                clusProtMedMol.DeleteConfs()
+
+                # for each major cluster generate SVG and average and median for protein and ligand
+                for clusID in majorClusters:
                     opt['Logger'].info('Extracting cluster {} from {}'.format( clusID, system_title ))
                     clusLig = clusutl.TrajOEMolFromCluster( ligTraj, clusResults['ClusterVec'], clusID)
                     opt['Logger'].info( 'ligand cluster {} with {} confs'.format(clusID,clusLig.NumConfs()) )
                     clusProt = clusutl.TrajOEMolFromCluster( protTraj, clusResults['ClusterVec'], clusID)
                     opt['Logger'].info('protein cluster {} with {} confs'.format(clusID,clusProt.NumConfs()) )
                     opt['Logger'].info('generating representative protein average and median confs')
+                    #
                     ligMed, protMed, ligAvg, protAvg = oetrjutl.AnalyseProteinLigandTrajectoryOEMols( clusLig, clusProt)
-                    opt['Logger'].info('generating cluster SVG for cluster {}'.format(clusID) )
-                    clusSVG = ensemble2img.run_ensemble2img(ligAvg, protAvg, clusLig, clusProt)
                     confTitle = 'clus '+str(clusID)
                     conf = clusLigAvgMol.NewConf(ligAvg)
                     conf.SetTitle(confTitle)
@@ -879,69 +887,68 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
                     conf.SetTitle(confTitle)
                     conf = clusProtMedMol.NewConf(protMed)
                     conf.SetTitle(confTitle)
+                    #
+                    opt['Logger'].info('generating cluster SVG for cluster {}'.format(clusID) )
+                    clusSVG = ensemble2img.run_ensemble2img(ligAvg, protAvg, clusLig, clusProt)
                     clusTrajSVG.append(clusSVG)
 
-            if nMajorClusters > 0:
-                # If we have some major clusters put the results on trajClus record
+                # style the molecules and put the results on trajClus record
                 clusLigAvgMol.SetTitle('Average '+clusLigAvgMol.GetTitle())
-                trajClus.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
                 clusProtAvgMol.SetTitle('Average '+clusProtAvgMol.GetTitle())
+                utl.StyleTrajProteinLigandClusters(clusProtAvgMol,clusLigAvgMol)
+                trajClus.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
                 trajClus.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
+                #
                 clusLigMedMol.SetTitle('Median '+clusLigMedMol.GetTitle())
-                trajClus.set_value(Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
                 clusProtMedMol.SetTitle('Median '+clusProtMedMol.GetTitle())
+                utl.StyleTrajProteinLigandClusters(clusProtMedMol,clusLigMedMol)
+                trajClus.set_value(Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
                 trajClus.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
-                ClusTrajSVG_field = OEField('ClusTrajSVG', Types.StringVec)
-                trajClus.set_value(ClusTrajSVG_field, clusTrajSVG)
 
-                # Set the TrajClus record on the top-level record
-                record.set_value(Fields.Analysis.oeclus_rec, trajClus)
 
-                # Set prot and lig clus average mols on top-level record for 3D vis
-                record.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
-                record.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
-                record.set_value(Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
-                record.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
-
-                # Set the number of major clusters and revise label
-                record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
-
-                # Revise top-level floe report label to include nMajorClusters
-                if not record.has_value(Fields.floe_report_label):
-                    floe_report_label = ""
-                else:
-                    floe_report_label = record.get_value(Fields.floe_report_label)
-                floe_report_label = "# clusters: " + str(nMajorClusters) + "<br>" + floe_report_label
-                record.set_value(Fields.floe_report_label, floe_report_label)
-
-            # TODO Modified by GAC to include cases when no major clusters are found
-            # TESTING IN PROGRESS
+            # case when no major clusters are found
             else:  # number of clusters is zero
-                opt['Logger'].info('Warning: No major clusters found for {}'.format(system_title))
-                # clusProtAvgMol.SetTitle('Average ' + clusProtAvgMol.GetTitle())
-                # trajClus.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
-                # clusProtMedMol.SetTitle('Median ' + clusProtMedMol.GetTitle())
-                # trajClus.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
-                ClusTrajSVG_field = OEField('ClusTrajSVG', Types.StringVec)
-                trajClus.set_value(ClusTrajSVG_field, clusTrajSVG)
+                opt['Logger'].info('No major clusters found for {}'.format(system_title))
+                # In lieu of cluster mols, copy traj and median mols to top level
+                clusLigAvgMol = utl.RequestOEField( oetrajRecord, 'LigAverage', Types.Chem.Mol)
+                clusProtAvgMol = utl.RequestOEField( oetrajRecord, 'ProtAverage', Types.Chem.Mol)
+                clusLigAvgMol.SetTitle('Average '+clusLigAvgMol.GetTitle())
+                clusProtAvgMol.SetTitle('Average '+clusProtAvgMol.GetTitle())
+                utl.SetProteinLigandVizStyle(clusProtAvgMol, clusLigAvgMol)
+                #
+                clusLigMedMol = utl.RequestOEField( oetrajRecord, 'LigMedian', Types.Chem.Mol)
+                clusProtMedMol = utl.RequestOEField( oetrajRecord, 'ProtMedian', Types.Chem.Mol)
+                clusLigMedMol.SetTitle('Median '+clusLigMedMol.GetTitle())
+                clusProtMedMol.SetTitle('Median '+clusProtMedMol.GetTitle())
+                utl.SetProteinLigandVizStyle(clusProtMedMol, clusLigMedMol)
 
-                # Set the TrajClus record on the top-level record
-                record.set_value(Fields.Analysis.oeclus_rec, trajClus)
+            # Set prot and lig clus average mols on top-level record for 3D vis
+            record.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
+            record.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
+            record.set_value(Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
+            record.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
 
-                # Set prot and lig clus average mols on top-level record for 3D vis
-                # record.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
-                # record.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
+            # put highlighted carbon styling on the default moleule (initial pose ligand)
+            primaryMol = utl.RequestOEFieldType( record, Fields.primary_molecule)
+            utl.HighlightStyleMolecule(primaryMol)
+            record.set_value(Fields.primary_molecule, primaryMol)
 
-                # Set the number of major clusters and revise label
-                record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
+            ClusTrajSVG_field = OEField('ClusTrajSVG', Types.StringVec)
+            trajClus.set_value(ClusTrajSVG_field, clusTrajSVG)
 
-                # Revise top-level floe report label to include nMajorClusters
-                if not record.has_value(Fields.floe_report_label):
-                    floe_report_label = ""
-                else:
-                    floe_report_label = record.get_value(Fields.floe_report_label)
-                floe_report_label = "# clusters: " + str(nMajorClusters) + "<br>" + floe_report_label
-                record.set_value(Fields.floe_report_label, floe_report_label)
+            # Set the TrajClus record on the top-level record
+            record.set_value(Fields.Analysis.oeclus_rec, trajClus)
+
+            # Set the number of major clusters and revise label
+            record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
+
+            # Revise top-level floe report label to include nMajorClusters
+            if not record.has_value(Fields.floe_report_label):
+                floe_report_label = ""
+            else:
+                floe_report_label = record.get_value(Fields.floe_report_label)
+            floe_report_label = "# clusters: " + str(nMajorClusters) + "<br>" + floe_report_label
+            record.set_value(Fields.floe_report_label, floe_report_label)
 
             analysesDone.append('TrajClus')
             record.set_value(Fields.Analysis.analysesDone, analysesDone)
