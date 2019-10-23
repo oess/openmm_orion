@@ -27,6 +27,14 @@ from openmoltools.openeye import *
 from simtk.openmm.app import AmberInpcrdFile, AmberPrmtopFile
 from simtk.openmm import app
 
+from openforcefield.typing.engines.smirnoff import ForceField
+
+from pkg_resources import resource_filename
+
+from openforcefield.topology import Topology, Molecule
+
+from oeommtools.utils import oemol_to_openmmTop
+
 
 def assignELF10charges(molecule, max_confs=800, strictStereo=True, opt=None):
     """
@@ -126,8 +134,8 @@ class ParamLigStructure(object):
     """
 
     def __init__(self, molecule, forcefield, prefix_name='ligand', delete_out_files=True):
-        if not forcefield in ['SMIRNOFF', 'GAFF', 'GAFF2']:
-            raise RuntimeError('Selected forcefield %s is not GAFF/GAFF2/SMIRNOFF' % forcefield)
+        if not forcefield in ['smirnoff99Frosst.offxml', 'openff_unconstrained-1.0.0.offxml', 'GAFF', 'GAFF2']:
+            raise RuntimeError('Selected forcefield %s is not GAFF/GAFF2/Smirnoff99Frosst/OpenFF_1.0' % forcefield)
         else:
             self.molecule = molecule
             self.forcefield = str(forcefield).strip()
@@ -139,7 +147,7 @@ class ParamLigStructure(object):
     def checkTleap(self):
         # Try to check if tleap is going to fail
         with open('tleap_commands', 'w') as cmd:
-            cmd.write( "source leaprc.%s; quit" % self.forcefield.lower() )
+            cmd.write("source leaprc.%s; quit" % self.forcefield.lower())
         tmp = subprocess.getoutput('tleap -f tleap_commands')
         elements = tmp.split('\n')
         for elem in elements:
@@ -159,14 +167,44 @@ class ParamLigStructure(object):
             raise Exception('Molecule %s has no charges; input molecules must be charged.' % molecule.GetTitle())
 
     def getSmirnoffStructure(self, molecule=None):
-        from openforcefield.utils.utils import generateSMIRNOFFStructure
         if not molecule:
             molecule = self.molecule
+
         try:
-            molecule_structure = generateSMIRNOFFStructure(molecule)
+            self.checkCharges(molecule)
         except:
-            raise RuntimeError('Error generating SMIRNOFF Structure for %s' % molecule.GetTitle())
-        return molecule_structure
+            print("WARNING: Missing Charges, assigning elf10 charges to molecule")
+
+            molecule = assignELF10charges(molecule)
+
+        if self.forcefield == 'smirnoff99Frosst.offxml':
+
+            fffn = resource_filename('openforcefield', os.path.join('data', 'test_forcefields/' + self.forcefield))
+
+            if not os.path.exists(fffn):
+                raise ValueError(
+                    "Sorry! {} does not exist. If you just added it, you'll have to re-install".format(fffn))
+
+            with open(fffn) as ffxml:
+                ff = ForceField(ffxml, allow_cosmetic_attributes=True)
+
+        elif self.forcefield == 'openff_unconstrained-1.0.0.offxml':
+
+            ff = ForceField(self.forcefield, allow_cosmetic_attributes=True)
+
+        else:
+            raise ValueError("Force Field not Supported: {}".format(self.forcefield))
+
+        mol_off = Molecule.from_openeye(molecule, allow_undefined_stereo=True)
+        topology = Topology.from_molecules([mol_off])
+
+        omm_sys = ff.create_openmm_system(topology, charge_from_molecules=[mol_off])
+
+        omm_top, positions = oemol_to_openmmTop(molecule)
+
+        pmd_structure = parmed.openmm.load_topology(omm_top, omm_sys, xyz=positions)
+
+        return pmd_structure
 
     def getGaffStructure(self, molecule=None, forcefield=None):
         if not molecule:
@@ -223,9 +261,13 @@ class ParamLigStructure(object):
         return molecule_structure
 
     def parameterize(self):
-        if self.forcefield == 'SMIRNOFF':
+
+        if self.forcefield in ['smirnoff99Frosst.offxml', 'openff_unconstrained-1.0.0.offxml']:
             structure = self.getSmirnoffStructure()
+
         elif self.forcefield in ['GAFF', 'GAFF2']:
             structure = self.getGaffStructure()
+
         self.structure = structure
         return self.structure
+

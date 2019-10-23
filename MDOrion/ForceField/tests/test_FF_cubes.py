@@ -71,7 +71,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_excipient_successSmirnoff(self):
+    def test_excipient_successSmirnoff99Frosst(self):
         print('Testing cube:', self.cube.name)
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
@@ -80,8 +80,30 @@ class ForceFieldPrepTester(unittest.TestCase):
             pass
 
         # Selecting ligand and excipient parametrization
-        self.cube.args.ligand_forcefield = 'Smirnoff'
-        self.cube.args.other_forcefield = 'Smirnoff'
+        self.cube.args.ligand_forcefield = 'Smirnoff99Frosst'
+        self.cube.args.other_forcefield = 'Smirnoff99Frosst'
+
+        # Process the molecules
+        self.cube.process(record, self.cube.intake.name)
+
+        # Assert that one molecule was emitted on the success port
+        self.assertEqual(self.runner.outputs['success'].qsize(), 1)
+        # Assert that zero molecules were emitted on the failure port
+        self.assertEqual(self.runner.outputs['failure'].qsize(), 0)
+
+    @pytest.mark.travis
+    @pytest.mark.local
+    def test_excipient_successSOpenFF(self):
+        print('Testing cube:', self.cube.name)
+
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+
+        for record in read_records(ifs):
+            pass
+
+        # Selecting ligand and excipient parametrization
+        self.cube.args.ligand_forcefield = 'OpenFF_1.0.0'
+        self.cube.args.other_forcefield = 'OpenFF_1.0.0'
 
         # Process the molecules
         self.cube.process(record, self.cube.intake.name)
