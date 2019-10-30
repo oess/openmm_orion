@@ -179,6 +179,14 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
                                         .format(self.title,
                                                 ligand.GetTitle(),
                                                 oechem.OECalculateMolecularWeight(ligand)))
+            # Check Atom Names
+            if any([atom.GetName() == '' for atom in ligand.GetAtoms()]):
+                oechem.OETriposAtomNames(ligand)
+                # Check names are unique; non-unique names will also cause a problem
+
+            atomnames = [atom.GetName() for atom in ligand.GetAtoms()]
+            if any(atomnames.count(atom.GetName()) > 1 for atom in ligand.GetAtoms()):
+                raise Exception("Error: Reference molecule must have unique atom names in order to create a Topology.")
 
             lig_title = ligand.GetTitle()
 

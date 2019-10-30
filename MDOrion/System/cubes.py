@@ -363,8 +363,10 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
                                                                                                 rec_value))
             # Solvate the system
             sol_system = packmol.oesolvate(solute, **opt)
+
             self.log.info("[{}] Solvated simulation well {} yielding {} atoms overall".format(self.title,
-                                                                    solute_title, sol_system.NumAtoms()))
+                                                                                              solute_title,
+                                                                                              sol_system.NumAtoms()))
             sol_system.SetTitle(solute.GetTitle())
 
             record.set_value(Fields.well, sol_system)

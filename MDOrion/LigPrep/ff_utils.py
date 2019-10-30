@@ -36,6 +36,9 @@ from openforcefield.topology import Topology, Molecule
 from oeommtools.utils import oemol_to_openmmTop
 
 
+from simtk import openmm
+
+
 def assignELF10charges(molecule, max_confs=800, strictStereo=True, opt=None):
     """
      This function computes atomic partial charges for an OEMol by
@@ -167,6 +170,7 @@ class ParamLigStructure(object):
             raise Exception('Molecule %s has no charges; input molecules must be charged.' % molecule.GetTitle())
 
     def getSmirnoffStructure(self, molecule=None):
+
         if not molecule:
             molecule = self.molecule
 
@@ -199,6 +203,9 @@ class ParamLigStructure(object):
         topology = Topology.from_molecules([mol_off])
 
         omm_sys = ff.create_openmm_system(topology, charge_from_molecules=[mol_off])
+
+        # omm_top = generateTopologyFromOEMol(molecule)
+        # positions = mol_off.conformers[0]
 
         omm_top, positions = oemol_to_openmmTop(molecule)
 

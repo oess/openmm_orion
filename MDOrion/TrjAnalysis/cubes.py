@@ -830,8 +830,9 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             trajClus_svg = clusutl.ClusterLigTrajClusPlot(clusResults)
 
             # Calculate RMSD of ligand traj from ligand initial pose
-            ligInitPose = utl.RequestOEFieldType( record, Fields.ligand)
-            vecRmsd = oechem.OEDoubleArray( ligTraj.GetMaxConfIdx() )
+            ligInitPose = utl.RequestOEFieldType(record, Fields.ligand)
+            vecRmsd = oechem.OEDoubleArray(ligTraj.GetMaxConfIdx())
+
             oechem.OERMSD(ligInitPose, ligTraj, vecRmsd)
             trajClus.set_value(Fields.Analysis.lig_traj_rmsd, list(vecRmsd) )
             opt['Logger'].info('{} plotting strip plot of ligand RMSD from initial pose'.format(system_title) )
@@ -904,7 +905,6 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
                 utl.StyleTrajProteinLigandClusters(clusProtMedMol,clusLigMedMol)
                 trajClus.set_value(Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
                 trajClus.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
-
 
             # case when no major clusters are found
             else:  # number of clusters is zero
@@ -1082,6 +1082,10 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
             opt['Logger'].info('{} finished writing analysis files'.format(system_title))
 
+            # Make a copy of the ligand starting pose.
+            # OE Prepare Depiction is removing hydrogens
+            ligand_init = oechem.OEMol(ligInitPose)
+
             # prepare the 2D structure depiction
             oedepict.OEPrepareDepiction(ligInitPose)
             img = oedepict.OEImage(400, 300)
@@ -1113,7 +1117,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
                 report_file.write("""      <h3>
                         {mmpbsaLabel}
-                      </h3>""".format(mmpbsaLabel=mmpbsaLabelStr ))
+                      </h3>""".format(mmpbsaLabel=mmpbsaLabelStr))
 
                 analysis_txt = MakeClusterInfoText(clusData, clusRGB)
                 report_file.write("".join(analysis_txt))
@@ -1166,8 +1170,6 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 record.set_value(Fields.floe_report, report_html_str)
 
                 # Copy Bfactors from the average Bfactor ligand to a copy of the ligand initial pose
-                ligand_init = oechem.OEMol(ligInitPose)
-
                 for at_avg_bfac, at_init in zip(ligand_bfactor.GetAtoms(), ligand_init.GetAtoms()):
                     if at_avg_bfac.GetAtomicNum() == at_init.GetAtomicNum():
                         res_avg_bfac = oechem.OEAtomGetResidue(at_avg_bfac)

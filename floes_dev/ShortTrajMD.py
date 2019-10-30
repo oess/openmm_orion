@@ -130,7 +130,6 @@ ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Ga
 ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
 ff.set_parameters(lig_res_name='LIG')
 
-
 prod = ParallelMDNptCube("Production", title="Production")
 prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
                        description='Length of MD run in nanoseconds')

@@ -153,7 +153,6 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                                                                                ligand.NumAtoms(),
                                                                                water.NumAtoms(),
                                                                                excipients.NumAtoms()))
-
             protein = ffutils.clean_tags(protein)
             ligand = ffutils.clean_tags(ligand)
             water = ffutils.clean_tags(water)

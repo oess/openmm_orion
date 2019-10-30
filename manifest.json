@@ -23,7 +23,7 @@
         "matplotlib==3.0.3",
         "networkx==1.11",
         "numpy==1.14.2",
-        "oeommtools==0.1.7",
+        "oeommtools==0.1.10",
         "openforcefield==0.5.1",
         "openforcefields==1.0.0",
         "openmm==7.4.0",
@@ -45,5 +45,5 @@
     "name": "OpenEye MD Floes",
     "python_version": "3.6",
     "requirements": "requirements_dev.txt",
-    "version": "0.9.5b10"
+    "version": "0.9.5b12"
 }

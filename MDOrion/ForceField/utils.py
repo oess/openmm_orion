@@ -84,7 +84,9 @@ def applyffProtein(protein, opt):
     opt['Logger'].info("[{}] Protein parametrized by using: {}".format(opt['CubeTitle'],
                                                                        opt['protein_forcefield']))
 
-    topology, positions = oeommutils.oemol_to_openmmTop(protein)
+    protein_copy = oechem.OEMol(protein)
+
+    topology, positions = oeommutils.oemol_to_openmmTop(protein_copy)
 
     forcefield = app.ForceField(proteinff[opt['protein_forcefield']])
 
@@ -135,7 +137,9 @@ def applyffWater(water, opt):
     opt['Logger'].info("[{}] Water parametrized by using: {}".format(opt['CubeTitle'],
                                                                      opt['solvent_forcefield']))
 
-    topology, positions = oeommutils.oemol_to_openmmTop(water)
+    water_copy = oechem.OEMol(water)
+
+    topology, positions = oeommutils.oemol_to_openmmTop(water_copy)
 
     forcefield = app.ForceField(solventff[opt['solvent_forcefield']])
 
@@ -177,18 +181,21 @@ def applyffExcipients(excipients, opt):
 
     opt['Logger'].info("[{}] Excipients parametrized by using: {} and Ions by using Amber 14".format(opt['CubeTitle'],
                                                                                                      opt['other_forcefield']))
-    numparts, partlist = oechem.OEDetermineComponents(excipients)
+
+    excipients_copy = oechem.OEMol(excipients)
+
+    numparts, partlist = oechem.OEDetermineComponents(excipients_copy)
     pred = oechem.OEPartPredAtom(partlist)
 
     part_mols = []
     for i in range(1, numparts + 1):
         pred.SelectPart(i)
         partmol = oechem.OEMol()
-        oechem.OESubsetMol(partmol, excipients, pred)
+        oechem.OESubsetMol(partmol, excipients_copy, pred)
         part_mols.append(partmol)
 
     # OpenMM topology and positions from OEMol
-    topology, positions = oeommutils.oemol_to_openmmTop(excipients)
+    topology, positions = oeommutils.oemol_to_openmmTop(excipients_copy)
 
     map_omm_to_oe = {omm_res: oe_mol for omm_res, oe_mol in zip(topology.residues(), part_mols)}
 
@@ -262,14 +269,14 @@ def applyffExcipients(excipients, opt):
     for res in topology.residues():
         excipients_pmd += map_omm_res_to_pmd[res]
 
-    if len(excipients_pmd.atoms) != excipients.NumAtoms():
+    if len(excipients_pmd.atoms) != excipients_copy.NumAtoms():
         raise ValueError(
             "Excipient OE molecule and Excipient Parmed structure number of atoms mismatch {} vs {}".format(
-                len(excipients_pmd.atoms), excipients.NumAtoms()))
+                len(excipients_pmd.atoms), excipients_copy.NumAtoms()))
 
     # Set the positions
-    oe_exc_coord_dic = excipients.GetCoords()
-    exc_coords = np.ndarray(shape=(excipients.NumAtoms(), 3))
+    oe_exc_coord_dic = excipients_copy.GetCoords()
+    exc_coords = np.ndarray(shape=(excipients_copy.NumAtoms(), 3))
     for at_idx in oe_exc_coord_dic:
         exc_coords[at_idx] = oe_exc_coord_dic[at_idx]
 
@@ -295,13 +302,14 @@ def applyffLigand(ligand, opt):
     ligand_structure: Parmed structure instance
         The parametrized ligand parmed structure
     """
+    ligand_copy = oechem.OEMol(ligand)
 
     # Check TLeap
     if opt['ligand_forcefield'] in ['GAFF', 'GAFF2']:
         ff_utils.ParamLigStructure(oechem.OEMol(), ligandff[opt['ligand_forcefield']]).checkTleap
 
     # Parametrize the Ligand
-    pmd = ff_utils.ParamLigStructure(ligand, ligandff[opt['ligand_forcefield']], prefix_name=opt['prefix_name'])
+    pmd = ff_utils.ParamLigStructure(ligand_copy, ligandff[opt['ligand_forcefield']], prefix_name=opt['prefix_name'])
     ligand_structure = pmd.parameterize()
     ligand_structure.residues[0].name = opt['lig_res_name']
     opt['Logger'].info("[{}] Ligand parametrized by using: {}".format(opt['CubeTitle'],
