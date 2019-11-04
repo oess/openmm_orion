@@ -296,12 +296,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
             well = mdrecord.get_well
 
-            if not record.has_value(Fields.Analysis.max_waters):
-                raise ValueError("The Max number of Waters field is  missing")
-
-            nmax = record.get_value(Fields.Analysis.max_waters)
-            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, well, traj_fn, nmax, opt)
-            # ptraj, ltraj = utl.ExtractAlignedProtLigTraj(setupOEMol, traj_fn)
+            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, well, traj_fn, opt)
             ltraj.SetTitle(record.get_value(Fields.ligand_name))
             ptraj.SetTitle(record.get_value(Fields.protein_name))
 
@@ -309,10 +304,8 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
                 system_title, ptraj.NumAtoms(), ptraj.NumConfs()))
             opt['Logger'].info('{} #atoms, #confs in ligand traj OEMol: {}, {}'.format(
                 system_title, ltraj.NumAtoms(), ltraj.NumConfs()))
-
-            if wtraj:
-                opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'.format(
-                    system_title, wtraj.NumAtoms(), wtraj.NumConfs()))
+            opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'.format(
+                system_title, wtraj.NumAtoms(), wtraj.NumConfs()))
 
             # Generate average and median protein and ligand OEMols from ptraj, ltraj
             opt['Logger'].info('{} Generating protein and ligand median and average OEMols'.format(system_title))
@@ -365,10 +358,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
             record.set_value(Fields.Analysis.analysesDone, analysesDone)
 
-            if wtraj:
-                opt['Logger'].info('{}: saved protein, ligand  and water traj OEMols'.format(system_title))
-            else:
-                opt['Logger'].info('{}: saved protein and ligand traj OEMols'.format(system_title))
+            opt['Logger'].info('{}: saved protein, ligand  and water traj OEMols'.format(system_title))
 
             self.success.emit(record)
 
@@ -406,6 +396,11 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
     The energy units are in kcal/mol.
     """
 
+    explicit_water = parameter.BooleanParameter(
+        'explicit_water',
+        default=False,
+        help_text="""Enable MMPBSA calculation with explicit water""")
+
     # Override defaults for some parameters
     parameter_overrides = {
         "memory_mb": {"default": 2000},
@@ -442,7 +437,8 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
 
             mdtrajrecord = MDDataRecord(oetrajRecord)
 
-            if oetrajRecord.has_field(OEField('WatTraj', Types.Chem.Mol)):
+            if self.opt['explicit_water']:
+
                 water_traj = oetrajRecord.get_value(OEField('WatTraj', Types.Chem.Mol))
                 opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'
                                    .format(system_title, water_traj.NumAtoms(), water_traj.NumConfs()))
@@ -462,11 +458,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                     prot_wat.NewConf(pr_wat_conf_xyz)
 
                 protTraj = prot_wat
-
             else:
-                water_traj = None
-                opt['Logger'].warn('{} Water Trajectory has not been detected'.format(system_title))
-
                 protTraj = mdtrajrecord.get_protein_traj
 
             opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'
@@ -476,7 +468,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
             zapBind, zapBindPB, zapDesolEl, zapIntEl, zapBindSA25, saBuried = mmpbsa.TrajPBSA(
                                        ligTraj, protTraj)
             if zapBind is None:
-                raise ValueError('{} Calculation of PBSA energies failed'.format(system_title) )
+                raise ValueError('{} Calculation of PBSA energies failed'.format(system_title))
 
             # generate Surface Areas energy for buried SA based on 0.006 kcal/mol/A^2
             zapBindSA6 = [sa*-0.006 for sa in saBuried]
@@ -484,30 +476,30 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
             # Create new record with traj interaction energy results
             opt['Logger'].info('{} writing trajPBSA OERecord'.format(system_title) )
             trajPBSA = OERecord()
-            #
+
             zapBind_field = OEField("OEZap_PBSA25_Bind", Types.FloatVec,
                                     meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
             trajPBSA.set_value(zapBind_field, zapBind)
-            #
+
             zapBindPB_field = OEField("OEZap_PB_Bind", Types.FloatVec,
                                       meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
             trajPBSA.set_value(zapBindPB_field, zapBindPB)
-            #
+
             zapDesolEl_field = OEField("OEZap_PB_Desolvation", Types.FloatVec,
                                        meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
             trajPBSA.set_value(zapDesolEl_field, zapDesolEl)
-            #
+
             zapIntEl_field = OEField("OEZap_PB_Interaction", Types.FloatVec,
                                      meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
             trajPBSA.set_value(zapIntEl_field, zapIntEl)
-            #
+
             zapBindSA25_field = OEField("OEZap_SA25_Bind", Types.FloatVec,
                                         meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
             trajPBSA.set_value(zapBindSA25_field, zapBindSA25)
-            #
+
             saBuried_field = OEField("OEZap_BuriedArea", Types.FloatVec)
             trajPBSA.set_value(saBuried_field, saBuried)
-            #
+
             zapBindSA6_field = OEField("OEZap_SA6_Bind", Types.FloatVec,
                                        meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
             trajPBSA.set_value(zapBindSA6_field, zapBindSA6)
@@ -520,7 +512,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 oeTrjIntERecord = utl.RequestOEFieldType( record, Fields.Analysis.oeintE_rec)
                 opt['Logger'].info('{} found TrajIntE record'.format(system_title))
 
-                if water_traj is not None:
+                if self.opt['explicit_water']:
 
                     PLIntE = utl.RequestOEField(oeTrjIntERecord,
                                                 'protein_and_water_ligand_interactionEnergy', Types.FloatVec)
@@ -539,7 +531,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 zapMMPB_field = OEField("OEZap_MMPB_Bind", Types.FloatVec,
                                         meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
                 trajPBSA.set_value(zapMMPB_field, zapMMPB)
-                #
+
                 zapMMPBSA = [eMMPB+eSA6 for eMMPB,eSA6 in zip(zapMMPB, zapBindSA6)]
                 zapMMPBSA_field = OEField("OEZap_MMPBSA6_Bind", Types.FloatVec,
                                           meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
@@ -633,7 +625,7 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
                 opt['Logger'].info('{} found OETraj analyses'.format(system_title))
 
             # Extract the relevant traj OEMols from the OETraj record
-            oetrajRecord = utl.RequestOEFieldType( record, Fields.Analysis.oetraj_rec)
+            oetrajRecord = utl.RequestOEFieldType(record, Fields.Analysis.oetraj_rec)
             opt['Logger'].info('{} found OETraj record'.format(system_title))
             ligTraj = utl.RequestOEField(oetrajRecord, 'LigTraj', Types.Chem.Mol)
             opt['Logger'].info('{} #atoms, #confs in ligand traj OEMol: {}, {}'
@@ -645,19 +637,15 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'.
                                format(system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
 
-            if oetrajRecord.has_field(OEField('WatTraj', Types.Chem.Mol)):
-                water_traj = oetrajRecord.get_value(OEField('WatTraj', Types.Chem.Mol))
-                opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'
-                                   .format(system_title, water_traj.NumAtoms(), water_traj.NumConfs()))
-            else:
-                water_traj = None
-                opt['Logger'].warn('{} Water Trajectory has not been detected'.format(system_title))
+            water_traj = oetrajRecord.get_value(OEField('WatTraj', Types.Chem.Mol))
+            opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'
+                               .format(system_title, water_traj.NumAtoms(), water_traj.NumConfs()))
 
             prmed = mdrecord.get_parmed(sync_stage_name='last')
 
             # Compute interaction energies for the protein, ligand, complex and water subsystems
             intE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE = mmpbsa.ProtLigWatInteractionEFromParmedOETraj(
-                prmed, ligTraj, protTraj, water_traj)
+                prmed, ligTraj, protTraj, water_traj, opt)
 
             if intE is None:
                 raise ValueError('{} Calculation of Interaction Energies failed'.format(system_title))
@@ -687,26 +675,25 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
                                   meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
             trajIntE.set_value(cplxE_field, cplxE)
 
-            if water_traj is not None:
-                watE_field = OEField("water_intraEnergy", Types.FloatVec,
+            watE_field = OEField("water_intraEnergy", Types.FloatVec,
+                                 meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
+
+            trajIntE.set_value(watE_field, watE)
+
+            lwE_field = OEField("ligand_water_interactionEnergy", Types.FloatVec,
+                                meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
+
+            trajIntE.set_value(lwE_field, lwIntE)
+
+            pwE_field = OEField("protein_water_interactionEnergy", Types.FloatVec,
+                                meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
+
+            trajIntE.set_value(pwE_field, pwIntE)
+
+            pw_lIntE_field = OEField("protein_and_water_ligand_interactionEnergy", Types.FloatVec,
                                      meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
 
-                trajIntE.set_value(watE_field, watE)
-
-                lwE_field = OEField("ligand_water_interactionEnergy", Types.FloatVec,
-                                    meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-
-                trajIntE.set_value(lwE_field, lwIntE)
-
-                pwE_field = OEField("protein_water_interactionEnergy", Types.FloatVec,
-                                    meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-
-                trajIntE.set_value(pwE_field, pwIntE)
-
-                pw_lIntE_field = OEField("protein_and_water_ligand_interactionEnergy", Types.FloatVec,
-                                         meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-
-                trajIntE.set_value(pw_lIntE_field, pw_lIntE)
+            trajIntE.set_value(pw_lIntE_field, pw_lIntE)
 
             # Add the trajIntE record to the parent record
             record.set_value(Fields.Analysis.oeintE_rec, trajIntE)
@@ -1324,7 +1311,6 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
         default=0,
         help_text="""If different from zero the selected water number will be used"""
     )
-
 
     def begin(self):
         self.opt = vars(self.args)

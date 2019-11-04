@@ -18,7 +18,8 @@
 # or its use.
 
 
-from floe.api import WorkFloe
+from floe.api import (WorkFloe,
+                      ParallelCubeGroup)
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
@@ -179,6 +180,9 @@ equil3.set_parameters(trajectory_interval=0.0)
 equil3.set_parameters(reporter_interval=0.001)
 equil3.set_parameters(suffix='equil3')
 equil3.promote_parameter("md_engine", promoted_name="md_engine")
+
+md_group = ParallelCubeGroup(cubes=[minComplex, warmup, equil1, equil2, equil3, prod])
+job.add_group(md_group)
 
 # This cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection")

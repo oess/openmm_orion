@@ -40,7 +40,7 @@ num_proc = 5
 PACKAGE_DIR = os.path.dirname(os.path.dirname(MDOrion.__file__))
 
 FILE_DIR = os.path.join(PACKAGE_DIR, "tests", "data")
-FLOES_DIR = os.path.join(PACKAGE_DIR, "floes")
+FLOES_DIR = os.path.join(PACKAGE_DIR, "floes_dev")
 
 os.chdir(FILE_DIR)
 

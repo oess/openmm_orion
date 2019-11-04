@@ -146,8 +146,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     verbose = parameter.BooleanParameter(
         'verbose',
         default=True,
-        description='Increase log file verbosity. NOTE:'
-                    'Not currently implemented in Gromacs')
+        description='Increase log file verbosity')
 
     suffix = parameter.StringParameter(
         'suffix',
@@ -398,8 +397,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
     verbose = parameter.BooleanParameter(
         'verbose',
         default=True,
-        help_text='Increase log file verbosity. NOTE: '
-                  'Not currently implemented in Gromacs')
+        help_text='Increase log file verbosity')
 
     hmr = parameter.BooleanParameter(
         'hmr',

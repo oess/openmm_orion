@@ -31,10 +31,10 @@ def ParmedAndOEMolAtomsMatch(parmedObj, mol):
     return True
 
 
-def ProtLigWatInteractionEFromParmedOETraj(pmed, ligOETraj, protOETraj, water_traj):
+def ProtLigWatInteractionEFromParmedOETraj(pmed, ligOETraj, protOETraj, water_traj, opt):
 
     # Generate ligand and protein parmed subsystems
-    print('Generating ligand and protein parmed subsystems')
+    opt['Logger'].info('Generating ligand and protein parmed subsystems')
 
     # Parmed spitting
     pmd_split = pmed.split()
@@ -79,31 +79,31 @@ def ProtLigWatInteractionEFromParmedOETraj(pmed, ligOETraj, protOETraj, water_tr
                          format(proteinPmed.atoms, protOETraj.NumAtoms()))
 
     # Generate Parametrized Waters
-    if water_traj is not None:
-        oe_water_mol = water_traj.GetActive()
+    oe_water_mol = water_traj.GetActive()
 
-        omm_wat_top, omm_wat_pos = oemol_to_openmmTop(oe_water_mol)
+    omm_wat_top, omm_wat_pos = oemol_to_openmmTop(oe_water_mol)
 
-        wat_ff = openmm.app.ForceField("tip3p.xml")
+    wat_ff = openmm.app.ForceField("tip3p.xml")
 
-        omm_wat_system = wat_ff.createSystem(omm_wat_top,
-                                             rigidWater=False,
-                                             constraints=None,
-                                             nonbondedMethod=openmm.app.NoCutoff)
+    omm_wat_system = wat_ff.createSystem(omm_wat_top,
+                                         rigidWater=False,
+                                         constraints=None,
+                                         nonbondedMethod=openmm.app.NoCutoff)
 
-        water_pmed = parmed.openmm.load_topology(omm_wat_top, omm_wat_system, xyz=omm_wat_pos)
+    water_pmed = parmed.openmm.load_topology(omm_wat_top, omm_wat_system, xyz=omm_wat_pos)
 
     # Parmed Complex
     complexPmed = proteinPmed + ligandPmed
 
     # Check that protein and ligand atoms match between parmed subsystems, ligOETraj, and protOETraj
     if not ParmedAndOEMolAtomsMatch(ligandPmed, ligOETraj):
-        print('ligand atoms do not match between parmed and ligOETraj')
-        return None, None, None, None
+        opt['Logger'].info('ligand atoms do not match between parmed and ligOETraj')
+        return None, None, None, None, None, None, None, None
     if not ParmedAndOEMolAtomsMatch(proteinPmed, protOETraj):
-        print('protein atoms do not match between parmed and protOETraj')
-        return None, None, None, None
-    print('protein and ligand atoms match between parmed subsystems, ligOETraj, and protOETraj')
+        opt['Logger'].info('protein atoms do not match between parmed and protOETraj')
+        return None, None, None, None, None, None, None, None
+
+    opt['Logger'].info('protein and ligand atoms match between parmed subsystems, ligOETraj, and protOETraj')
 
     # While we are here put the parmed charges on protOETraj and ligOETraj as side effects
     for pmdAtom, oeAtom in zip(proteinPmed.atoms, protOETraj.GetAtoms()):
@@ -129,29 +129,28 @@ def ProtLigWatInteractionEFromParmedOETraj(pmed, ligOETraj, protOETraj, water_tr
     cplx_integrator = openmm.LangevinIntegrator(Integrator)
     cplxSim = openmm.app.Simulation(complexPmed.topology, cplxOmmSys, cplx_integrator)
 
-    print('OpenMM components generated for protein, ligand, and complex subsystems')
+    opt['Logger'].info('OpenMM components generated for protein, ligand, and complex subsystems')
 
     # Water Systems
-    if water_traj is not None:
-        water_integrator = openmm.LangevinIntegrator(Integrator)
-        water_omm_sim = openmm.app.Simulation(water_pmed.topology, omm_wat_system, water_integrator)
+    water_integrator = openmm.LangevinIntegrator(Integrator)
+    water_omm_sim = openmm.app.Simulation(water_pmed.topology, omm_wat_system, water_integrator)
 
-        lig_water_pmd = ligandPmed + water_pmed
-        lig_water_sys = lig_water_pmd.createSystem(nonbondedMethod=openmm.app.NoCutoff)
-        lig_water_integrator = openmm.LangevinIntegrator(Integrator)
-        lig_water_sim = openmm.app.Simulation(lig_water_pmd.topology, lig_water_sys, lig_water_integrator)
+    lig_water_pmd = ligandPmed + water_pmed
+    lig_water_sys = lig_water_pmd.createSystem(nonbondedMethod=openmm.app.NoCutoff)
+    lig_water_integrator = openmm.LangevinIntegrator(Integrator)
+    lig_water_sim = openmm.app.Simulation(lig_water_pmd.topology, lig_water_sys, lig_water_integrator)
 
-        prot_water_pmd = proteinPmed + water_pmed
-        prot_water_sys = prot_water_pmd.createSystem(nonbondedMethod=openmm.app.NoCutoff)
-        prot_water_integrator = openmm.LangevinIntegrator(Integrator)
-        prot_water_sim = openmm.app.Simulation(prot_water_pmd.topology, prot_water_sys, prot_water_integrator)
+    prot_water_pmd = proteinPmed + water_pmed
+    prot_water_sys = prot_water_pmd.createSystem(nonbondedMethod=openmm.app.NoCutoff)
+    prot_water_integrator = openmm.LangevinIntegrator(Integrator)
+    prot_water_sim = openmm.app.Simulation(prot_water_pmd.topology, prot_water_sys, prot_water_integrator)
 
-        cmplx_water_pmd = complexPmed + water_pmed
-        cmplx_water_sys = cmplx_water_pmd.createSystem(nonbondedMethod=openmm.app.NoCutoff)
-        cmplx_water_integrator = openmm.LangevinIntegrator(Integrator)
-        cmplx_water_sim = openmm.app.Simulation(cmplx_water_pmd.topology, cmplx_water_sys, cmplx_water_integrator)
+    cmplx_water_pmd = complexPmed + water_pmed
+    cmplx_water_sys = cmplx_water_pmd.createSystem(nonbondedMethod=openmm.app.NoCutoff)
+    cmplx_water_integrator = openmm.LangevinIntegrator(Integrator)
+    cmplx_water_sim = openmm.app.Simulation(cmplx_water_pmd.topology, cmplx_water_sys, cmplx_water_integrator)
 
-        print('OpenMM components generated for water, water-ligand, water-protein and complex-water subsystem')
+    opt['Logger'].info('OpenMM components generated for water, water-ligand, water-protein and complex-water subsystem')
 
     # Evaluate energies for the subsystems
     ligE = []
@@ -163,10 +162,7 @@ def ProtLigWatInteractionEFromParmedOETraj(pmed, ligOETraj, protOETraj, water_tr
     pwIntE = []
     pw_lIntE = []
 
-    if water_traj is not None:
-        zip_iter = zip(ligOETraj.GetConfs(), protOETraj.GetConfs(), water_traj.GetConfs())
-    else:
-        zip_iter = zip(ligOETraj.GetConfs(), protOETraj.GetConfs())
+    zip_iter = zip(ligOETraj.GetConfs(), protOETraj.GetConfs(), water_traj.GetConfs())
 
     count = 0
     for confs in zip_iter:
@@ -199,51 +195,46 @@ def ProtLigWatInteractionEFromParmedOETraj(pmed, ligOETraj, protOETraj, water_tr
 
         plIntE.append(cplxIntraE - (protIntraE + ligIntraE))
 
-        if water_traj is not None:
+        water_conf = confs[2]
 
-            water_conf = confs[2]
+        # Waters intra-molecular energy
+        water_xyz_dict = water_conf.GetCoords()
+        water_xyz = [openmm.Vec3(v[0], v[1], v[2]) for k, v in water_xyz_dict.items()] * unit.angstrom
+        water_omm_sim.context.setPositions(water_xyz)
+        water_state = water_omm_sim.context.getState(getEnergy=True)
+        water_intra_eng = water_state.getPotentialEnergy().in_units_of(
+            unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
+        watE.append(water_intra_eng)
 
-            # Waters intra-molecular energy
-            water_xyz_dict = water_conf.GetCoords()
-            water_xyz = [openmm.Vec3(v[0], v[1], v[2]) for k, v in water_xyz_dict.items()] * unit.angstrom
-            water_omm_sim.context.setPositions(water_xyz)
-            water_state = water_omm_sim.context.getState(getEnergy=True)
-            water_intra_eng = water_state.getPotentialEnergy().in_units_of(
-                unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
-            watE.append(water_intra_eng)
+        # Ligand-Water inter-molecular energy
+        lig_water_xyz = ligXYZ + water_xyz
+        lig_water_sim.context.setPositions(lig_water_xyz)
+        lig_water_state = lig_water_sim.context.getState(getEnergy=True)
+        lig_water_intra_eng = lig_water_state.getPotentialEnergy().in_units_of(
+            unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
+        lwIntE.append(lig_water_intra_eng - (ligIntraE + water_intra_eng))
 
-            # Ligand-Water inter-molecular energy
-            lig_water_xyz = ligXYZ + water_xyz
-            lig_water_sim.context.setPositions(lig_water_xyz)
-            lig_water_state = lig_water_sim.context.getState(getEnergy=True)
-            lig_water_intra_eng = lig_water_state.getPotentialEnergy().in_units_of(
-                unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
-            lwIntE.append(lig_water_intra_eng - (ligIntraE + water_intra_eng))
+        # Protein-Water inter-molecular energy
+        prot_water_xyz = protXYZ + water_xyz
+        prot_water_sim.context.setPositions(prot_water_xyz)
+        prot_water_state = prot_water_sim.context.getState(getEnergy=True)
+        prot_water_intra_eng = prot_water_state.getPotentialEnergy().in_units_of(
+            unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
+        pwIntE.append(prot_water_intra_eng - (protIntraE + water_intra_eng))
 
-            # Protein-Water inter-molecular energy
-            prot_water_xyz = protXYZ + water_xyz
-            prot_water_sim.context.setPositions(prot_water_xyz)
-            prot_water_state = prot_water_sim.context.getState(getEnergy=True)
-            prot_water_intra_eng = prot_water_state.getPotentialEnergy().in_units_of(
-                unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
-            pwIntE.append(prot_water_intra_eng - (protIntraE + water_intra_eng))
+        cmplx_water_xyz = cplxXYZ + water_xyz
+        cmplx_water_sim.context.setPositions(cmplx_water_xyz)
+        cmplx_water_state = cmplx_water_sim.context.getState(getEnergy=True)
+        cmplx_water_intra_eng = cmplx_water_state.getPotentialEnergy().in_units_of(
+            unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
 
-            cmplx_water_xyz = cplxXYZ + water_xyz
-            cmplx_water_sim.context.setPositions(cmplx_water_xyz)
-            cmplx_water_state = cmplx_water_sim.context.getState(getEnergy=True)
-            cmplx_water_intra_eng = cmplx_water_state.getPotentialEnergy().in_units_of(
-                unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
-
-            pw_lIntE.append(cmplx_water_intra_eng-(prot_water_intra_eng + ligIntraE))
+        pw_lIntE.append(cmplx_water_intra_eng-(prot_water_intra_eng + ligIntraE))
 
         count += 1
 
-    if water_traj is not None:
-        print('OpenMM energies computed for protein, ligand, complex and water trajectories')
-        return plIntE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE
-    else:
-        print('OpenMM energies computed for protein, ligand, and complex trajectories')
-        return plIntE, cplxE, protE, ligE, None, None, None, None
+    opt['Logger'].info('OpenMM energies computed for protein, ligand, complex and water trajectories')
+
+    return plIntE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE
 
 
 def PBSA(ligand, protein):
@@ -265,11 +256,11 @@ def PBSA(ligand, protein):
     return Ebind, EbindEl, EdesolEl, EintEl, EbindSA, SAburied
 
 
-def TrajPBSA( ligOETraj, protOETraj, radiiType=oechem.OERadiiType_Zap9):
+def TrajPBSA(ligOETraj, protOETraj, radiiType=oechem.OERadiiType_Zap9):
     # set ZAP9 radii on protein and ligand
     oechem.OEAssignRadii(protOETraj, radiiType, oechem.OERadiiType_HonigIonicCavity)
     oechem.OEAssignRadii(ligOETraj, radiiType)
-    #
+
     zapBind = []
     zapBindEl = []
     zapDesolEl = []

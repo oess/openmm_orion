@@ -51,6 +51,8 @@ from collections import OrderedDict
 
 from MDOrion.Standards import MDEngines
 
+from subprocess import STDOUT, PIPE, Popen, DEVNULL
+
 
 class GromacsSimulations(MDSimulations):
 
@@ -669,13 +671,25 @@ class GromacsSimulations(MDSimulations):
     def run(self):
 
         # Run Gromacs
-        subprocess.check_call(['gmx',
-                               'mdrun',
-                               '-v',
-                               '-s', self.opt['grm_tpr_fn'],
-                               '-deffnm', self.opt['grm_def_fn'],
-                               '-o', self.opt['grm_trj_fn']
-                               ])
+        if self.opt['verbose']:
+
+            subprocess.check_call(['gmx',
+                                   'mdrun',
+                                   '-v',
+                                   '-s', self.opt['grm_tpr_fn'],
+                                   '-deffnm', self.opt['grm_def_fn'],
+                                   '-o', self.opt['grm_trj_fn']
+                                   ])
+        else:
+            p = Popen(['gmx',
+                       'mdrun',
+                       '-v',
+                       '-s', self.opt['grm_tpr_fn'],
+                       '-deffnm', self.opt['grm_def_fn'],
+                       '-o', self.opt['grm_trj_fn']
+                       ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+
+            p.communicate()
 
         if self.opt['SimType'] in ['nvt', 'npt']:
 

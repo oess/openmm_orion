@@ -117,11 +117,7 @@ protset.promote_parameter("protein_title", promoted_name="protein_title", defaul
 complx = ComplexPrepCube("Complex", title="Complex Preparation")
 complx.set_parameters(lig_res_name='LIG')
 
-# NMax Water cube
-max_wat = NMaxWatersLigProt("NMax_Waters")
-
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
-
 solvate = ParallelSolvationCube("Hydration", title="System Hydration")
 # solvate.promote_parameter('density', promoted_name='density', default=1.03,
 #                           description="Solution density in g/ml")
@@ -267,7 +263,7 @@ coll_close.set_parameters(open=False)
 
 check_rec = ParallelRecordSizeCheck("Record Check Success")
 
-job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx, max_wat,
+job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx,
               solvate, coll_open, ff,
               minComplex, warmup, equil1, equil2, equil3, prod,
               trajCube, IntECube, PBSACube, clusCube, report_gen,
@@ -279,8 +275,7 @@ chargelig.success.connect(ligid.intake)
 ligid.success.connect(complx.intake)
 iprot.success.connect(protset.intake)
 protset.success.connect(complx.protein_port)
-complx.success.connect(max_wat.intake)
-max_wat.success.connect(solvate.intake)
+complx.success.connect(solvate.intake)
 solvate.success.connect(coll_open.intake)
 coll_open.success.connect(ff.intake)
 coll_open.failure.connect(check_rec.fail_in)
