@@ -2,6 +2,40 @@
 Release Notes
 #############
 
+v0.9.5
+======================
+
+General Notice
+--------------------------------------------------------------------------------
+* Open force field 1.0.0 (parsley) support
+* A new automatic color style is automatically applied to the clustering in the
+  ``Short trajectory MD analysis``
+* Fixed a wrong setting in the ``Solvation Cube`` that was placing solvent molecules
+  to close to the solute. This could have produced un-realistic results for some system
+  where water molecules could have been placed inside proteins
+* Fixed a bug in the GAFF/GAFF2 force field where 1-4 interactions were
+  not correctly scaled
+* Fixed a bug related to un-wanted ligand atom re-ordering
+
+New Floes
+--------------------------------------------------------------------------------
+* A new Plain Gromacs floe has been added to perform MD by using Gromacs .tpr files
+
+Floe Updates
+--------------------------------------------------------------------------------
+* The Yank solvation free energy floe has been removed
+
+New Cubes
+--------------------------------------------------------------------------------
+* None
+
+Cube Updates
+--------------------------------------------------------------------------------
+* The force field parametrization cube now support open force field 1.0.0 (parsley)
+* The trajectory to multi conformer cube is now adding to the record protein-ligand binding site
+  close waters. These are used to perform MMPBSA calculations with explicit water
+======================
+
 
 v0.9.4
 ======================
@@ -14,18 +48,10 @@ General Notice
 
 New Floes
 --------------------------------------------------------------------------------
-* None
-=======
 * The MD Spruce Prep Floe has been removed. Proteins must be prepared with the Spruce Prep floes available in the Classic
    floes now.
 
 * The calculation of MMPBSA can now be also performed by using explicit waters (still experimental)
-
-New Floes
---------------------------------------------------------------------------------
-
-* None
-
 --------------------------------------------------------------------------------
 
 Floe Updates
@@ -39,8 +65,6 @@ Floe Updates
 
 New Cubes
 --------------------------------------------------------------------------------
-* None
-=======
 * A new cube has been developed to check the record size before writing to the Orion backend
     to avoiding floe failures. The new cube has been added to all the floes for sanity check.
 
@@ -58,9 +82,6 @@ Cube Updates
 * In :ref:`cube_MDNptCube` and :ref:`cube_MDNvtCube` the restraints are now correctly set in GROMACS for proteins consisting of multiple chains.
 
 
-.. _2019.Oct: https://docs.eyesopen.com/toolkits/python/releasenotes/releasenotes/index.html
-.. _OpenEye Toolkits: https://docs.eyesopen.com/toolkits/python/index.html
-=======
 * Hint interactions and Styles have been removed from receptors and ligands in the Protein, Ligand and FF parametrization
     setting cubes that could cause problems along the MD analysis stages (debugging is in progress)
 
@@ -69,4 +90,4 @@ Cube Updates
 
 * The Trajectory to OEMol, Interaction Energies and PBSA calculation cubes have been updated to account for the explicit
     water in the new MMPBSA calculation
-
+======================

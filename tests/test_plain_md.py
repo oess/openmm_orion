@@ -19,7 +19,8 @@ import os
 
 from artemis.wrappers import (WorkFloeWrapper,
                               DatasetWrapper,
-                              OutputDatasetWrapper)
+                              OutputDatasetWrapper,
+                              FileWrapper,)
 
 from artemis.test import FloeTestCase
 
@@ -153,3 +154,36 @@ class TestMDOrionFloes(FloeTestCase):
         count = len(records)
         # Check the out record list
         self.assertEqual(count, 1)
+
+    @pytest.mark.local
+    @pytest.mark.orion
+    def test_gmx_tpr_floe(self):
+
+        workfloe = WorkFloeWrapper.get_workfloe(
+            os.path.join(FLOES_DIR, "PlainGromacs.py"),
+            run_timeout=43200,
+            queue_timeout=2000
+        )
+
+        user_tpr_file = FileWrapper.get_file(
+            os.path.join(
+                FILE_DIR,
+                "pL99_ltoluene.tpr"
+            )
+        )
+
+        workfloe.start(
+            {
+                "promoted": {
+                    "tpr": user_tpr_file.identifier,
+                },
+
+                "cube": {
+                    "GromacsRun": {
+                        "cube_run_time": 0.1
+                    }
+                }
+            }
+        )
+
+        self.assertWorkFloeComplete(workfloe)
