@@ -26,7 +26,7 @@ from MDOrion.MDEngines.Gromacs.cubes import (InputGromacs,
                                              WriterRecordCube)
 
 
-job = WorkFloe('GromacsTpr', title='Gromacs Tpr')
+job = WorkFloe('PlainGromacs', title='Plain Gromacs')
 
 job.description = """
 This Floe has been design to run Gromacs by using as

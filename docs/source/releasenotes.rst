@@ -8,7 +8,7 @@ v0.9.5
 General Notice
 --------------------------------------------------------------------------------
 * Open force field 1.0.0 (parsley) support
-* A new automatic color style is automatically applied to the clustering in the
+* A new automatic color style is applied to the clustering in the
   ``Short trajectory MD analysis``
 * Fixed a wrong setting in the ``Solvation Cube`` that was placing solvent molecules
   to close to the solute. This could have produced un-realistic results for some system
@@ -16,6 +16,7 @@ General Notice
 * Fixed a bug in the GAFF/GAFF2 force field where 1-4 interactions were
   not correctly scaled
 * Fixed a bug related to un-wanted ligand atom re-ordering
+* Fixed a bug in the protein-ligand active site depiction
 
 New Floes
 --------------------------------------------------------------------------------

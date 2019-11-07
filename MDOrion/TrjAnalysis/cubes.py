@@ -1020,10 +1020,10 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             if 'OETraj' not in analysesDone:
                 raise ValueError('{} does not have OETraj analyses done'.format(system_title) )
             else:
-                opt['Logger'].info('{} found OETraj analyses'.format(system_title) )
+                opt['Logger'].info('{} found OETraj analyses'.format(system_title))
 
             # Extract the relevant traj SVG from the OETraj record
-            oetrajRecord = utl.RequestOEFieldType( record, Fields.Analysis.oetraj_rec)
+            oetrajRecord = utl.RequestOEFieldType(record, Fields.Analysis.oetraj_rec)
             opt['Logger'].info('{} found OETraj record'.format(system_title))
 
             trajSVG = utl.RequestOEField(oetrajRecord, 'TrajSVG', Types.String)
@@ -1047,9 +1047,9 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 opt['Logger'].info('{} found TrajClus analyses'.format(system_title))
 
             # Extract the relevant traj SVG from the TrajClus record
-            clusRecord = utl.RequestOEFieldType( record, Fields.Analysis.oeclus_rec)
+            clusRecord = utl.RequestOEFieldType(record, Fields.Analysis.oeclus_rec)
 
-            opt['Logger'].info('{} found TrajClus record'.format(system_title) )
+            opt['Logger'].info('{} found TrajClus record'.format(system_title))
             trajHistRMSD_svg = utl.RequestOEField(clusRecord, 'HistSVG', Types.String)
             trajClus_svg = utl.RequestOEField(clusRecord, 'ClusSVG', Types.String)
             rmsdInit_svg = utl.RequestOEField(clusRecord, 'rmsdInitPose', Types.String)

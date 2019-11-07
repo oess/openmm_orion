@@ -747,15 +747,10 @@ def PoseInteractionsSVG(ligand, proteinOrig, width=400, height=300):
     if not oechem.OEHasResidues(proteinOrig):
         oechem.OEPerceiveResidues(proteinOrig, oechem.OEPreserveResInfo_All)
         print('Perceiving residues')
+
     # split the total system into components
-    ligandPsuedo = oechem.OEMol()
-    protein = oechem.OEMol()
-    water = oechem.OEMol()
-    other = oechem.OEMol()
-    #sopts = oechem.OESplitMolComplexOptions('MOL')
-    sopts = oechem.OESplitMolComplexOptions()
-    oechem.OESplitMolComplex(ligandPsuedo, protein, water, other, proteinOrig, sopts)
-    #
+    protein, ligandPsuedo, water, other = oeommutils.split(proteinOrig)
+
     # make the OEHintInteractionContainer
     asite = oechem.OEInteractionHintContainer(protein, ligand)
     if not asite.IsValid():
