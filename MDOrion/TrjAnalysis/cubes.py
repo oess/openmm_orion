@@ -279,7 +279,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             # Logger string
             opt['Logger'].info(' ')
             system_title = mdrecord.get_title
-            sys_id = mdrecord.get_well_id
+            sys_id = mdrecord.get_simwell_id
             opt['Logger'].info('{}: Attempting MD Traj conversion into OEMols'.format(system_title))
 
             traj_fn = mdrecord.get_stage_trajectory()
@@ -294,7 +294,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             # Generate multi-conformer protein and ligand OEMols from the trajectory
             opt['Logger'].info('{} Generating protein and ligand trajectory OEMols'.format(system_title))
 
-            well = mdrecord.get_well
+            well = mdrecord.get_simwell
 
             ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, well, traj_fn, opt)
             ltraj.SetTitle(record.get_value(Fields.ligand_name))
@@ -538,14 +538,14 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 trajPBSA.set_value(zapMMPBSA_field, zapMMPBSA)
 
                 # Clean average MMPBSA to avoid nans and high zap energy values
-                avg_mmpbsa, std_mmpbsa = utl.clean_average(zapMMPBSA)
+                avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(zapMMPBSA)
 
                 # Add to the record the MMPBSA mean and std
                 record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
-                record.set_value(Fields.Analysis.mmpbsa_traj_std, std_mmpbsa)
+                record.set_value(Fields.Analysis.mmpbsa_traj_serr, serr_mmpbsa)
                 # Add to the record the Average MMPBSA floe report label
                 record.set_value(Fields.floe_report_label, "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".
-                                 format(avg_mmpbsa, std_mmpbsa))
+                                 format(avg_mmpbsa, serr_mmpbsa))
 
             # Add the trajPBSA record to the parent record
             record.set_value(Fields.Analysis.oepbsa_rec, trajPBSA)
@@ -1033,7 +1033,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 mmpbsaLabelStr = lig_name
             else:
                 mmpbsa_traj_mean = record.get_value(Fields.Analysis.mmpbsa_traj_mean)
-                mmpbsa_traj_std = record.get_value(Fields.Analysis.mmpbsa_traj_std)
+                mmpbsa_traj_std = record.get_value(Fields.Analysis.mmpbsa_traj_serr)
                 mmpbsaLabelStr = "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".format(mmpbsa_traj_mean,
                                                                                                mmpbsa_traj_std)
 
