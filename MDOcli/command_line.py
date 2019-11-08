@@ -110,7 +110,7 @@ def data_trajectory_extraction(ctx, name):
         stages = mdrecord.get_stages
 
         system_title = mdrecord.get_title
-        sys_id = mdrecord.get_well_id
+        sys_id = mdrecord.get_simwell_id
 
         new_stages = []
 
@@ -246,7 +246,7 @@ def ligand_extraction(ctx):
         else:
             title = mdrecord.get_title.split("_")[1:]
             title = "_".join(title)
-            id = mdrecord.get_well_id
+            id = mdrecord.get_simwell_id
             fn = title + "_" + str(id)+".oeb"
             with oechem.oemolostream(fn) as ofs:
                 oechem.OEWriteConstMolecule(ofs, record.get_value(Fields.ligand))
@@ -378,10 +378,10 @@ def check_sys_id(record):
 
     title = record.get_value(Fields.title)
 
-    if not record.has_value(Fields.wellid):
+    if not record.has_value(Fields.simwellid):
         raise ValueError("Well ID not present on the record")
 
-    wellid = record.get_value(Fields.wellid)
+    wellid = record.get_value(Fields.simwellid)
 
     sys_id = title + "_" + str(wellid)
 

@@ -83,14 +83,14 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
 
     def process(self, record, port):
         try:
-            if not record.has_value(Fields.well):
+            if not record.has_value(Fields.simwell):
                 if not record.has_value(Fields.primary_molecule):
                     raise ValueError("Primary Molecule is missing")
                 well = record.get_value(Fields.primary_molecule)
 
-                record.set_value(Fields.well, well)
+                record.set_value(Fields.simwell, well)
 
-            well = record.get_value(Fields.well)
+            well = record.get_value(Fields.simwell)
 
             # There should be a ligid; if not, increment the last one
             if not record.has_value(Fields.ligid):
@@ -118,10 +118,10 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
 
                 conf_mol.SetTitle(well_title)
 
-                record.set_value(Fields.wellid, self.total_count)
+                record.set_value(Fields.simwellid, self.total_count)
                 record.set_value(Fields.confid, num_conf_counter)
                 record.set_value(Fields.title, well_title)
-                record.set_value(Fields.well, conf_mol)
+                record.set_value(Fields.simwell, conf_mol)
 
                 num_conf_counter += 1
 
@@ -335,10 +335,10 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
         try:
             opt = dict(self.opt)
 
-            if not record.has_value(Fields.well):
+            if not record.has_value(Fields.simwell):
                 raise ValueError("Missing the Well Molecule Field")
 
-            solute = record.get_value(Fields.well)
+            solute = record.get_value(Fields.simwell)
 
             if not record.has_value(Fields.title):
                 self.log.warn("Missing Title field")
@@ -369,7 +369,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
                                                                                               sol_system.NumAtoms()))
             sol_system.SetTitle(solute.GetTitle())
 
-            record.set_value(Fields.well, sol_system)
+            record.set_value(Fields.simwell, sol_system)
             record.set_value(Fields.title, solute_title)
 
             self.success.emit(record)
@@ -422,7 +422,7 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
                 # Create the MD record to use the MD Record API
                 mdrecord = MDDataRecord(record)
 
-                system = mdrecord.get_well
+                system = mdrecord.get_simwell
 
                 if not mdrecord.has_title:
                     self.log.warn("Missing record Title field")

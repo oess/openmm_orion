@@ -69,7 +69,7 @@ class Fields:
     title = OEField("Title_OPLMD", Types.String, meta=_metaIDHidden)
 
     # The wellid field is a unique integer for each well (final system for simulation)
-    wellid = OEField("WellID_OPLMD", Types.Int, meta=_metaIDHidden)
+    simwellid = OEField("SimwellID_OPLMD", Types.Int, meta=_metaIDHidden)
 
     # The ligid field is a unique integer used to keep track of the ligand input order
     ligid = OEField("LigID_OPLMD", Types.Int, meta=_metaIDHidden)
@@ -91,7 +91,7 @@ class Fields:
     protein_name = OEField("Protein_name_OPLMD", Types.String, meta=_metaHidden)
 
     # The super-molecule for the entire Well (ie the final system for simulation)
-    well = OEField("Well_OPLMD", Types.Chem.Mol, meta=_metaHidden)
+    simwell = OEField("Simwell_OPLMD", Types.Chem.Mol, meta=_metaHidden)
 
     # Primary Molecule
     primary_molecule = OEPrimaryMolField()
@@ -166,9 +166,9 @@ class Fields:
         mmpbsa_traj_mean = OEField('MMPBSATrajMean', Types.Float,
                                    meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
 
-        metaMMPBSA_traj_std = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
-        metaMMPBSA_traj_std.add_relation(Meta.Relations.ErrorsFor, mmpbsa_traj_mean)
-        mmpbsa_traj_std = OEField('MMPBSATrajStdev', Types.Float, meta=metaMMPBSA_traj_std)
+        metaMMPBSA_traj_serr = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
+        metaMMPBSA_traj_serr.add_relation(Meta.Relations.ErrorsFor, mmpbsa_traj_mean)
+        mmpbsa_traj_serr = OEField('MMPBSATrajSerr', Types.Float, meta=metaMMPBSA_traj_serr)
 
         # The number of major clusters found
         n_major_clusters = OEField("n major clusters", Types.Int)

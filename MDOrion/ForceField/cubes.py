@@ -135,7 +135,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_well
+            system = mdrecord.get_simwell
 
             if not mdrecord.has_title:
                 self.log.warn("Missing record Title field")
@@ -158,7 +158,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             water = ffutils.clean_tags(water)
             excipients = ffutils.clean_tags(excipients)
 
-            sys_id = mdrecord.get_well_id
+            sys_id = mdrecord.get_simwell_id
 
             # Unique prefix name used to output parametrization files
             opt['prefix_name'] = system_title + '_'+str(sys_id)
@@ -267,7 +267,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                                                            removeCMMotion=False,
                                                            rigidWater=False)
             mdrecord.set_title(system_title)
-            mdrecord.set_well(system_reassembled)
+            mdrecord.set_simwell(system_reassembled)
 
             mdrecord.set_parmed(system_structure, shard_name="Parmed_" + system_title + '_' + str(sys_id))
 

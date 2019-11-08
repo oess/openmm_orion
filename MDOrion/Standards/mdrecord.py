@@ -265,7 +265,7 @@ class MDDataRecord(object):
         return True
 
     @property
-    def get_well(self):
+    def get_simwell(self):
         """
         This method returns the well molecule present on the record
 
@@ -275,12 +275,12 @@ class MDDataRecord(object):
             The Primary Molecule
         """
 
-        if not self.rec.has_field(Fields.well):
+        if not self.rec.has_field(Fields.simwell):
             raise ValueError("The Well Molecule has not been found on the record")
 
-        return self.rec.get_value(Fields.well)
+        return self.rec.get_value(Fields.simwell)
 
-    def set_well(self, well):
+    def set_simwell(self, well):
         """
         This method sets the Well molecule on the record
 
@@ -298,12 +298,12 @@ class MDDataRecord(object):
         if not isinstance(well, oechem.OEMol):
             raise ValueError("The Well Molecule is not a valid OEMol: {}".format(well))
 
-        self.rec.set_value(Fields.well, well)
+        self.rec.set_value(Fields.simwell, well)
 
         return True
 
     @property
-    def get_well_id(self):
+    def get_simwell_id(self):
         """
         This method returns the integer value of the Well identification field present on the record
 
@@ -313,13 +313,13 @@ class MDDataRecord(object):
             The Well ID
         """
 
-        if not self.rec.has_field(Fields.wellid):
+        if not self.rec.has_field(Fields.simwellid):
             raise ValueError("The Well ID Field has not been found on the record")
 
-        return self.rec.get_value(Fields.wellid)
+        return self.rec.get_value(Fields.simwellid)
 
     @property
-    def has_well_id(self):
+    def has_simwell_id(self):
         """
         This method checks if the Well identification field is present on the record
 
@@ -329,12 +329,12 @@ class MDDataRecord(object):
             True if the Well ID field is present on the record otherwise False
         """
 
-        if not self.rec.has_field(Fields.wellid):
+        if not self.rec.has_field(Fields.simwellid):
             return False
         else:
             return True
 
-    def set_well_id(self, id):
+    def set_simwell_id(self, id):
         """
         This method sets the integer value of the Well identification field on the record
 
@@ -352,7 +352,7 @@ class MDDataRecord(object):
         if not isinstance(id, int):
             raise ValueError(" The id must be an integer: {}".format(id))
 
-        self.rec.set_value(Fields.wellid, id)
+        self.rec.set_value(Fields.simwellid, id)
 
         return True
 

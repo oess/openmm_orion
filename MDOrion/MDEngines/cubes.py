@@ -212,7 +212,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_well
+            system = mdrecord.get_simwell
 
             if not mdrecord.has_title:
                 opt['Logger'].warn("Missing record Title field")
@@ -221,7 +221,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
                 system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_well_id
+            opt['system_id'] = mdrecord.get_simwell_id
 
             system = mdrecord.get_stage_topology()
             mdstate = mdrecord.get_stage_state()
@@ -242,7 +242,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
 
             # Update the system coordinates
             system.SetCoords(new_mdstate.get_oe_positions())
-            mdrecord.set_well(system)
+            mdrecord.set_simwell(system)
 
             data_fn = os.path.basename(mdrecord.cwd) + '_' + opt['system_title'] + '_' + str(opt['system_id']) + '-' + opt['suffix'] + '.tar.gz'
 
@@ -459,7 +459,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_well
+            system = mdrecord.get_simwell
 
             if not mdrecord.has_title:
                 opt['Logger'].warn("Missing record Title field")
@@ -468,7 +468,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
                 system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_well_id
+            opt['system_id'] = mdrecord.get_simwell_id
 
             system = mdrecord.get_stage_topology()
 
@@ -509,7 +509,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
 
             # Update the system coordinates
             system.SetCoords(new_mdstate.get_oe_positions())
-            mdrecord.set_well(system)
+            mdrecord.set_simwell(system)
 
             # Trajectory
             if opt['trajectory_interval']:
@@ -742,7 +742,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_well
+            system = mdrecord.get_simwell
 
             # Update cube simulation parameters
             for field in record.get_fields(include_meta=True):
@@ -762,7 +762,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
                 system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_well_id
+            opt['system_id'] = mdrecord.get_simwell_id
 
             system = mdrecord.get_stage_topology()
             mdstate = mdrecord.get_stage_state()
@@ -791,7 +791,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
 
             # Update the system coordinates
             system.SetCoords(new_mdstate.get_oe_positions())
-            mdrecord.set_well(system)
+            mdrecord.set_simwell(system)
 
             # Trajectory
             if opt['trajectory_interval']:
