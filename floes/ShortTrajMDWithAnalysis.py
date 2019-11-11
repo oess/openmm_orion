@@ -92,7 +92,7 @@ job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
 iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
-iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input File", description="Ligand file name")
+iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset", description="Ligand Dataset")
 
 ligset = LigandSetting("LigandSetting", title="Ligand Setting")
 ligset.set_parameters(lig_res_name='LIG')
@@ -107,8 +107,8 @@ job.add_cube(ligid)
 # Protein Reading cube. The protein prefix parameter is used to select a name for the
 # output system files
 iprot = DatasetReaderCube("ProteinReader", title="Protein Reader")
-iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input File',
-                        description="Protein file name")
+iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input Dataset',
+                        description="Protein Dataset")
 
 protset = ProteinSetting("ProteinSetting", title="Protein Setting")
 protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
