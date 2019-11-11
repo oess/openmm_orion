@@ -82,12 +82,12 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
             self.opt = vars(self.args)
             self.opt['Logger'] = self.log
 
-            if not record.has_value(Fields.simwell):
-                self.log.error("Missing Protein well field")
+            if not record.has_value(Fields.flask):
+                self.log.error("Missing Protein flask field")
                 self.failure.emit(record)
                 return
 
-            protein = record.get_value(Fields.simwell)
+            protein = record.get_value(Fields.flask)
 
             if not record.has_value(Fields.title):
                 self.log.warn("Missing Protein Title field")
@@ -102,10 +102,10 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
         try:
             if port == 'intake':
 
-                if not record.has_value(Fields.simwell):
-                    raise ValueError("Missing the ligand well field")
+                if not record.has_value(Fields.flask):
+                    raise ValueError("Missing the ligand flask field")
 
-                ligand = record.get_value(Fields.simwell)
+                ligand = record.get_value(Fields.flask)
 
                 if ligand.NumConfs() > 1:
                     raise ValueError("The ligand {} has multiple conformers: {}".format(ligand.GetTitle(),
@@ -120,10 +120,10 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 self.log.info("[{}] forming complex between protein {} and ligand: {}".format(self.title,
                                                                         self.protein_title, ligand_title))
 
-                if not record.has_value(Fields.simwellid):
-                    raise ValueError("Missing well ID for well {} ".format(Fields.simwellid.get_name()))
+                if not record.has_value(Fields.flaskid):
+                    raise ValueError("Missing flask ID for flask {} ".format(Fields.flaskid.get_name()))
 
-                well_id = record.get_value(Fields.simwellid)
+                flask_id = record.get_value(Fields.flaskid)
 
                 complx = self.protein.CreateCopy()
                 oechem.OEAddMols(complx, ligand)
@@ -165,7 +165,7 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
 
                 new_record = OERecord(record)
 
-                new_record.set_value(Fields.simwell, new_complex)
+                new_record.set_value(Fields.flask, new_complex)
                 new_record.set_value(Fields.title, complex_title)
                 new_record.set_value(Fields.ligand, ligand)
                 new_record.set_value(Fields.protein, self.protein)

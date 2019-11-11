@@ -65,11 +65,11 @@ _metaProtHidden = OEFieldMeta(options=[Meta.Hints.Chem.Protein, Meta.Display.Hid
 # ---------------- Field Standards -------------- #
 class Fields:
 
-    # The Title field is a string name for the well which used to compose file names
+    # The Title field is a string name for the flask which used to compose file names
     title = OEField("Title_OPLMD", Types.String, meta=_metaIDHidden)
 
-    # The wellid field is a unique integer for each well (final system for simulation)
-    simwellid = OEField("SimwellID_OPLMD", Types.Int, meta=_metaIDHidden)
+    # The flaskid field is a unique integer for each flask (final system for simulation)
+    flaskid = OEField("FlaskID_OPLMD", Types.Int, meta=_metaIDHidden)
 
     # The ligid field is a unique integer used to keep track of the ligand input order
     ligid = OEField("LigID_OPLMD", Types.Int, meta=_metaIDHidden)
@@ -90,8 +90,8 @@ class Fields:
     # The protein name
     protein_name = OEField("Protein_name_OPLMD", Types.String, meta=_metaHidden)
 
-    # The super-molecule for the entire Well (ie the final system for simulation)
-    simwell = OEField("Simwell_OPLMD", Types.Chem.Mol, meta=_metaHidden)
+    # The super-molecule for the entire flask (ie the final system for simulation)
+    flask = OEField("Flask_OPLMD", Types.Chem.Mol, meta=_metaHidden)
 
     # Primary Molecule
     primary_molecule = OEPrimaryMolField()

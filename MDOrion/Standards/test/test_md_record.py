@@ -67,32 +67,32 @@ class MDRecordTests(unittest.TestCase):
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_get_simwell(self):
-        mol = self.mdrecord.get_value(Fields.simwell)
-        self.assertEqual(mol.NumAtoms(), self.mdrecord.get_simwell.NumAtoms())
+    def test_get_flask(self):
+        mol = self.mdrecord.get_value(Fields.flask)
+        self.assertEqual(mol.NumAtoms(), self.mdrecord.get_flask.NumAtoms())
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_set_simwell(self):
-        mol = self.mdrecord.get_value(Fields.simwell)
-        self.assertTrue(self.mdrecord.set_simwell(mol))
+    def test_set_flask(self):
+        mol = self.mdrecord.get_value(Fields.flask)
+        self.assertTrue(self.mdrecord.set_flask(mol))
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_get_simwellid(self):
-        id = self.mdrecord.get_value(Fields.simwellid)
+    def test_get_flaskid(self):
+        id = self.mdrecord.get_value(Fields.flaskid)
         self.assertEqual(id, 0)
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_has_simwellid(self):
-        self.assertTrue(self.mdrecord.has_simwell_id)
+    def test_has_flaskid(self):
+        self.assertTrue(self.mdrecord.has_flask_id)
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_set_simwellid(self):
-        self.mdrecord.set_simwell_id(5)
-        self.assertEqual(self.mdrecord.get_simwell_id, 5)
+    def test_set_flaskid(self):
+        self.mdrecord.set_flask_id(5)
+        self.assertEqual(self.mdrecord.get_flask_id, 5)
 
     @pytest.mark.travis
     @pytest.mark.local

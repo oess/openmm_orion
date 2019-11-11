@@ -186,7 +186,7 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_simwell
+            system = mdrecord.get_flask
 
             if not mdrecord.has_title:
                 opt['Logger'].warn("Missing record Title field")
@@ -195,7 +195,7 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
                 system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_simwell_id
+            opt['system_id'] = mdrecord.get_flask_id
 
             if opt['iterations'] <= 0:
                 raise ValueError("The number of iterations cannot be a non-negative number: {}".format(opt['iterations']))
@@ -435,7 +435,7 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
                 record.set_value(Fields.floe_report_label, "&Delta;Gs = {:.1f} &plusmn; {:.1f} kcal/mol".
                                  format(DeltaG_solvation, dDeltaG_solvation))
 
-            mdrecord.set_simwell(system)
+            mdrecord.set_flask(system)
             record.set_value(current_iteration_field, opt['new_iterations'])
 
             self.success.emit(mdrecord.get_record)
@@ -502,16 +502,16 @@ class SyncBindingFECube(RecordPortsMixin, ComputeCube):
 
             solvated_complex_lig_list = [(i, j) for i, j in
                                          itertools.product(self.solvated_ligand_list, self.solvated_complex_list)
-                                         if i.get_value(Fields.simwellid) == j.get_value(Fields.simwellid)]
+                                         if i.get_value(Fields.flaskid) == j.get_value(Fields.flaskid)]
 
             for pair in solvated_complex_lig_list:
 
                 new_record = OERecord(pair[0])
 
                 self.log.info("SYNC = ({} - {} , {} - {})".format(pair[0].get_value(Fields.title),
-                                                                  pair[0].get_value(Fields.simwellid),
+                                                                  pair[0].get_value(Fields.flaskid),
                                                                   pair[1].get_value(Fields.title),
-                                                                  pair[1].get_value(Fields.simwellid)))
+                                                                  pair[1].get_value(Fields.flaskid)))
 
                 # # Copy all the ligand fields into the new record
                 # for field in pair[0].get_fields(include_meta=True):
@@ -522,8 +522,8 @@ class SyncBindingFECube(RecordPortsMixin, ComputeCube):
                 ligand_mdrecord = MDDataRecord(pair[0])
                 complex_mdrecord = MDDataRecord(pair[1])
 
-                mdrecord.set_simwell(complex_mdrecord.get_simwell)
-                mdrecord.set_simwell_id(complex_mdrecord.get_simwell_id)
+                mdrecord.set_flask(complex_mdrecord.get_flask)
+                mdrecord.set_flask_id(complex_mdrecord.get_flask_id)
                 mdrecord.set_title(complex_mdrecord.get_title)
 
                 # mdrecord.delete_parmed
@@ -712,7 +712,7 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            complex = mdrecord.get_simwell
+            complex = mdrecord.get_flask
 
             if not mdrecord.has_title:
                 opt['Logger'].warn("Missing record Title field")
@@ -721,7 +721,7 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
                 system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_simwell_id
+            opt['system_id'] = mdrecord.get_flask_id
 
             if not record.has_value(Fields.ligand_name):
                 raise ValueError("The ligand name has not been defined")
@@ -978,7 +978,7 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
                                  format(DeltaG_binding, dDeltaG_binding))
 
             record.set_value(current_iteration_field, opt['new_iterations'])
-            mdrecord.set_simwell(complex)
+            mdrecord.set_flask(complex)
             # mdrecord.set_parmed(solvated_complex_parmed_structure, sync_stage_name='last')
 
             self.success.emit(mdrecord.get_record)
@@ -1041,10 +1041,10 @@ class YankProxyCube(RecordPortsMixin, ComputeCube):
             if not record.has_value(Fields.title):
                 self.opt['Logger'].warn("Missing record Title field")
 
-                if not record.has_value(Fields.simwell):
+                if not record.has_value(Fields.flask):
                     raise ValueError("The Well Molecule is missing field")
 
-                complex = record.get_value(Fields.simwell)
+                complex = record.get_value(Fields.flask)
                 system_title = complex.GetTitle()[0:12]
             else:
                 system_title = record.get_value(Fields.title)

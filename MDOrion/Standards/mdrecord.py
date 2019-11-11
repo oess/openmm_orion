@@ -265,9 +265,9 @@ class MDDataRecord(object):
         return True
 
     @property
-    def get_simwell(self):
+    def get_flask(self):
         """
-        This method returns the well molecule present on the record
+        This method returns the flask molecule present on the record
 
         Return:
         -------
@@ -275,84 +275,84 @@ class MDDataRecord(object):
             The Primary Molecule
         """
 
-        if not self.rec.has_field(Fields.simwell):
-            raise ValueError("The Well Molecule has not been found on the record")
+        if not self.rec.has_field(Fields.flask):
+            raise ValueError("The Flask Molecule has not been found on the record")
 
-        return self.rec.get_value(Fields.simwell)
+        return self.rec.get_value(Fields.flask)
 
-    def set_simwell(self, well):
+    def set_flask(self, flask):
         """
-        This method sets the Well molecule on the record
+        This method sets the flask molecule on the record
 
         Parameters:
         -----------
-        Well OEMol
-            The Well molecule to set on the record
+        flask OEMol
+            The flask molecule to set on the record
 
         Return:
         -------
         record: Bool
-            True if the Well molecule has been set on the record
+            True if the flask molecule has been set on the record
         """
 
-        if not isinstance(well, oechem.OEMol):
-            raise ValueError("The Well Molecule is not a valid OEMol: {}".format(well))
+        if not isinstance(flask, oechem.OEMol):
+            raise ValueError("The flask Molecule is not a valid OEMol: {}".format(flask))
 
-        self.rec.set_value(Fields.simwell, well)
+        self.rec.set_value(Fields.flask, flask)
 
         return True
 
     @property
-    def get_simwell_id(self):
+    def get_flask_id(self):
         """
-        This method returns the integer value of the Well identification field present on the record
+        This method returns the integer value of the flask identification field present on the record
 
         Return:
         -------
             : Int
-            The Well ID
+            The flask ID
         """
 
-        if not self.rec.has_field(Fields.simwellid):
-            raise ValueError("The Well ID Field has not been found on the record")
+        if not self.rec.has_field(Fields.flaskid):
+            raise ValueError("The flask ID Field has not been found on the record")
 
-        return self.rec.get_value(Fields.simwellid)
+        return self.rec.get_value(Fields.flaskid)
 
     @property
-    def has_simwell_id(self):
+    def has_flask_id(self):
         """
-        This method checks if the Well identification field is present on the record
+        This method checks if the flask identification field is present on the record
 
         Return:
         -------
             : Bool
-            True if the Well ID field is present on the record otherwise False
+            True if the flask ID field is present on the record otherwise False
         """
 
-        if not self.rec.has_field(Fields.simwellid):
+        if not self.rec.has_field(Fields.flaskid):
             return False
         else:
             return True
 
-    def set_simwell_id(self, id):
+    def set_flask_id(self, id):
         """
-        This method sets the integer value of the Well identification field on the record
+        This method sets the integer value of the flask identification field on the record
 
         Parameters:
         -----------
         id: Int
-            An integer value for the Well identification field
+            An integer value for the flask identification field
 
         Return:
         -------
             : Bool
-            True if the Well identification ID has been set as an integer on the record
+            True if the flask identification ID has been set as an integer on the record
         """
 
         if not isinstance(id, int):
             raise ValueError(" The id must be an integer: {}".format(id))
 
-        self.rec.set_value(Fields.simwellid, id)
+        self.rec.set_value(Fields.flaskid, id)
 
         return True
 

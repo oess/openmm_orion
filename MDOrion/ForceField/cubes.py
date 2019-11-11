@@ -52,33 +52,33 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
     classification = [["Force Field"]]
     tags = ['ForceField']
     description = """
-    This cube parametrized a system with the selected force fields. 
-    The cube tries to split a system into components: protein, ligand, 
+    This cube parametrizes a flask with the selected force fields. 
+    The cube tries to split a flask into components: protein, ligand, 
     water and excipients. The user can select the parametrization to be 
     applied to each component. The protein forcefield is limited to 
     standard amino acids and limited support to non-standard. Sugars 
     are not currently supported but this will be improved in coming 
     releases. The cube requires a record as input and produces a new 
-    record where the system has been parametrized. The parametrization 
+    record where the flask has been parametrized. The parametrization 
     is carried out by using a Parmed object 
     (https://github.com/ParmEd/ParmEd) 
     which will be present on the emitted record. The supported protein 
     force fields are amber99sb-ildn and the new amberfb-15. Small organic
     molecules like ligands and excipients can be parametrized by using 
-    GAFF, GAFF2 and SMIRNOFF. The system spitting is based on the ligand 
+    GAFF, GAFF2 and SMIRNOFF forcefields. The flask splitting is based on the ligand 
     residue name. The default one is “LIG” and can be changed by using 
     the provided cube parameter. Water is currently parametrized by 
     using TIP3P force field water model only.
 
     Input:
     -------
-    oechem.OEDataRecord - Streamed-in of the systems to parametrize
+    oechem.OEDataRecord - Streamed-in record of the flasks to parametrize
 
     Output:
     -------
-    oechem.OEDataRecord - Streamed-out of records with the parametrized systems.
-    Each record will contain a new Parmed object that carry out the 
-    system parametrization
+    oechem.OEDataRecord - Streamed-out of records with the parametrized flasks.
+    Each record will contain a new Parmed object that contain the 
+    flask parametrization
     """
 
     # Override defaults for some parameters
@@ -135,20 +135,20 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_simwell
+            flask = mdrecord.get_flask
 
             if not mdrecord.has_title:
                 self.log.warn("Missing record Title field")
-                system_title = system.GetTitle()[0:12]
+                flask_title = flask.GetTitle()[0:12]
             else:
-                system_title = mdrecord.get_title
+                flask_title = mdrecord.get_title
 
             # Split the complex in components in order to apply the FF
-            protein, ligand, water, excipients = oeommutils.split(system, ligand_res_name=opt['lig_res_name'])
+            protein, ligand, water, excipients = oeommutils.split(flask, ligand_res_name=opt['lig_res_name'])
 
-            self.log.info("[{}] Components of well {}:\n  Protein atoms = {}\n  Ligand atoms = {}\n"
+            self.log.info("[{}] Components of flask {}:\n  Protein atoms = {}\n  Ligand atoms = {}\n"
                           "  Water atoms = {}\n  Excipients atoms = {}".format(opt['CubeTitle'],
-                                                                               system_title,
+                                                                               flask_title,
                                                                                protein.NumAtoms(),
                                                                                ligand.NumAtoms(),
                                                                                water.NumAtoms(),
@@ -158,10 +158,10 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             water = ffutils.clean_tags(water)
             excipients = ffutils.clean_tags(excipients)
 
-            sys_id = mdrecord.get_simwell_id
+            sys_id = mdrecord.get_flask_id
 
             # Unique prefix name used to output parametrization files
-            opt['prefix_name'] = system_title + '_'+str(sys_id)
+            opt['prefix_name'] = flask_title + '_'+str(sys_id)
 
             oe_mol_list = []
             par_mol_list = []
@@ -191,37 +191,37 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                 par_mol_list.append(excipient_structure)
 
             # Build the overall Parmed structure
-            system_structure = parmed.Structure()
+            flask_structure = parmed.Structure()
 
             for struc in par_mol_list:
-                system_structure = system_structure + struc
+                flask_structure = flask_structure + struc
 
-            system_reassembled = oe_mol_list[0].CreateCopy()
-            num_atom_system = system_reassembled.NumAtoms()
+            flask_reassembled = oe_mol_list[0].CreateCopy()
+            num_atom_flask = flask_reassembled.NumAtoms()
 
             for idx in range(1, len(oe_mol_list)):
-                oechem.OEAddMols(system_reassembled, oe_mol_list[idx])
-                num_atom_system += oe_mol_list[idx].NumAtoms()
+                oechem.OEAddMols(flask_reassembled, oe_mol_list[idx])
+                num_atom_flask += oe_mol_list[idx].NumAtoms()
 
-            if not num_atom_system == system_structure.topology.getNumAtoms():
+            if not num_atom_flask == flask_structure.topology.getNumAtoms():
                 raise ValueError("Parmed and OE topologies mismatch atom number {} vs {}"
-                                 .format(num_atom_system, system_structure.topology.getNumAtoms()))
+                                 .format(num_atom_flask, flask_structure.topology.getNumAtoms()))
 
-            system_reassembled.SetTitle(system.GetTitle())
+            flask_reassembled.SetTitle(flask.GetTitle())
 
             # Set Parmed structure box_vectors
             is_periodic = True
 
             try:
-                vec_data = pack_utils.getData(system_reassembled, tag='box_vectors')
+                vec_data = pack_utils.getData(flask_reassembled, tag='box_vectors')
                 vec = pack_utils.decodePyObj(vec_data)
-                system_structure.box_vectors = vec
+                flask_structure.box_vectors = vec
             except:
                 is_periodic = False
-                self.log.warn("System {} has been parametrize without periodic box vectors ".format(system_title))
+                self.log.warn("flask {} has been parametrize without periodic box vectors ".format(flask_title))
 
             # Set atom serial numbers, Ligand name and HETATM flag
-            for at in system_reassembled.GetAtoms():
+            for at in flask_reassembled.GetAtoms():
                 thisRes = oechem.OEAtomGetResidue(at)
                 thisRes.SetSerialNumber(at.GetIdx())
                 if thisRes.GetName() == 'UNL':
@@ -229,24 +229,24 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                     thisRes.SetHetAtom(True)
                 oechem.OEAtomSetResidue(at, thisRes)
 
-            if system_reassembled.NumAtoms() != system_structure.topology.getNumAtoms():
-                raise ValueError("OEMol system {} and generated Parmed structure "
-                                 "mismatch atom numbers".format(system_title))
+            if flask_reassembled.NumAtoms() != flask_structure.topology.getNumAtoms():
+                raise ValueError("OEMol flask {} and generated Parmed structure "
+                                 "mismatch atom numbers".format(flask_title))
             
-            system_formal_charge = 0
-            for at in system_reassembled.GetAtoms():
-                system_formal_charge += at.GetFormalCharge()
+            flask_formal_charge = 0
+            for at in flask_reassembled.GetAtoms():
+                flask_formal_charge += at.GetFormalCharge()
 
-            system_partial_charge = 0.0
-            for at in system_structure.atoms:
-                system_partial_charge += at.charge
+            flask_partial_charge = 0.0
+            for at in flask_structure.atoms:
+                flask_partial_charge += at.charge
 
-            if abs(system_formal_charge - system_partial_charge) > 0.01:
-                raise ValueError("System Formal charge and System Partial charge mismatch: {} vs {}".format(
-                    system_formal_charge, system_partial_charge))
+            if abs(flask_formal_charge - flask_partial_charge) > 0.01:
+                raise ValueError("flask Formal charge and flask Partial charge mismatch: {} vs {}".format(
+                    flask_formal_charge, flask_partial_charge))
 
             # Copying the charges between the parmed structure and the oemol
-            for parm_at, oe_at in zip(system_structure.atoms, system_reassembled.GetAtoms()):
+            for parm_at, oe_at in zip(flask_structure.atoms, flask_reassembled.GetAtoms()):
 
                 if parm_at.atomic_number != oe_at.GetAtomicNum():
                     raise ValueError("Atomic number mismatch between the Parmed and the OpenEye topologies: {} - {}".
@@ -256,27 +256,27 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
 
             # Check if it is possible to create the OpenMM System
             if is_periodic:
-                omm_system = system_structure.createSystem(nonbondedMethod=app.CutoffPeriodic,
+                omm_flask = flask_structure.createSystem(nonbondedMethod=app.CutoffPeriodic,
                                                            nonbondedCutoff=10.0 * unit.angstroms,
                                                            constraints=None,
                                                            removeCMMotion=False,
                                                            rigidWater=False)
             else:
-                omm_system = system_structure.createSystem(nonbondedMethod=app.NoCutoff,
+                omm_flask = flask_structure.createSystem(nonbondedMethod=app.NoCutoff,
                                                            constraints=None,
                                                            removeCMMotion=False,
                                                            rigidWater=False)
-            mdrecord.set_title(system_title)
-            mdrecord.set_simwell(system_reassembled)
+            mdrecord.set_title(flask_title)
+            mdrecord.set_flask(flask_reassembled)
 
-            mdrecord.set_parmed(system_structure, shard_name="Parmed_" + system_title + '_' + str(sys_id))
+            mdrecord.set_parmed(flask_structure, shard_name="Parmed_" + flask_title + '_' + str(sys_id))
 
-            data_fn = os.path.basename(mdrecord.cwd) + '_' + system_title+'_' + str(sys_id) + '-' + opt['suffix']+'.tar.gz'
+            data_fn = os.path.basename(mdrecord.cwd) + '_' + flask_title+'_' + str(sys_id) + '-' + opt['suffix']+'.tar.gz'
   
             if not mdrecord.add_new_stage(self.title,
                                           MDStageTypes.SETUP,
-                                          system_reassembled,
-                                          MDState(system_structure),
+                                          flask_reassembled,
+                                          MDState(flask_structure),
                                           data_fn):
                 raise ValueError("Problems adding the new Parametrization Stage")
 

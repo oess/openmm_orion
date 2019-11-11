@@ -279,7 +279,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             # Logger string
             opt['Logger'].info(' ')
             system_title = mdrecord.get_title
-            sys_id = mdrecord.get_simwell_id
+            sys_id = mdrecord.get_flask_id
             opt['Logger'].info('{}: Attempting MD Traj conversion into OEMols'.format(system_title))
 
             traj_fn = mdrecord.get_stage_trajectory()
@@ -294,9 +294,9 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             # Generate multi-conformer protein and ligand OEMols from the trajectory
             opt['Logger'].info('{} Generating protein and ligand trajectory OEMols'.format(system_title))
 
-            well = mdrecord.get_simwell
+            flask = mdrecord.get_flask
 
-            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, well, traj_fn, opt)
+            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, flask, traj_fn, opt)
             ltraj.SetTitle(record.get_value(Fields.ligand_name))
             ptraj.SetTitle(record.get_value(Fields.protein_name))
 
