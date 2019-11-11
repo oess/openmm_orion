@@ -45,5 +45,5 @@
     "name": "OpenEye MD Floes",
     "python_version": "3.6",
     "requirements": "requirements_dev.txt",
-    "version": "0.9.5b16"
+    "version": "0.9.5b17"
 }
