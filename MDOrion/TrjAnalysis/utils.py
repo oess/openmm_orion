@@ -493,7 +493,12 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, opt, nmax=30, wat
     lig_idx = top_trj.select("resname LIG")
 
     # Protein indexes
-    prot_idx = top_trj.select("protein")
+    # prot_idx = top_trj.select("protein")
+
+    # It is safer to use OE toolkits than mdtraj which is missing the protein caps
+    prot_idx = []
+    for at in protein.GetAtoms():
+        prot_idx.append(at.GetIdx())
 
     # Water oxygen indexes
     water_O_idx = top_trj.select("water and element O")
