@@ -22,6 +22,8 @@ from oeommtools import utils as oeommutils
 
 from scipy.signal import medfilt
 
+from pymbar import timeseries
+
 from MDOrion.TrjAnalysis.water_utils import nmax_waters
 
 
@@ -432,7 +434,7 @@ def ExtractProtLigActsiteResNums(mol, fromLigCutoff=5.0):
 #     return multi_conf_protein, multi_conf_ligand, multi_conf_water
 
 
-def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, opt, nmax=30, water_cutoff=10.0):
+def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, water_cutoff=10.0):
     """
     Extracts the aligned protein trajectory and aligned ligand trajectory and aligned
     Water trajectory from a MD trajectory of a larger system that includes other
@@ -448,8 +450,8 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, opt, nmax=30, wat
     Inputs:
         setup_mol: An OEMol giving the topology for the trajectory and the reference xyz
             coordinates for the alignment.
-        well: OEMol
-            The system well
+        flask: OEMol
+            The system flask
 
         trj_fn: String
             The filename of the hdf5-format MD trajectory or Gromacs .xtc file format
@@ -463,8 +465,8 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, opt, nmax=30, wat
         multi_conf_water: A multi conformer OEMol for the waters, one conformer per frame.
     """
 
-    # Extract protein, ligand, water and excipients from the well
-    protein, ligand, water, excipients = oeommutils.split(well, ligand_res_name="LIG")
+    # Extract protein, ligand, water and excipients from the flask
+    protein, ligand, water, excipients = oeommutils.split(flask, ligand_res_name="LIG")
 
     check_nmax = nmax_waters(protein, ligand, water_cutoff)
 
@@ -611,8 +613,8 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, opt, nmax=30, wat
         # Extract coordinates in A
         xyz = frame * 10
 
-        # Set Well Coordinates as the current frame for the water extraction
-        well.SetCoords(xyz.flatten())
+        # Set flask Coordinates as the current frame for the water extraction
+        flask.SetCoords(xyz.flatten())
         water_list_sorted_max = water_max_frames[count]
 
         # print(water_list_sorted_max)
@@ -623,7 +625,7 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, opt, nmax=30, wat
         #
         # for pair in water_list_sorted_max:
         #
-        #     ow = well.GetAtom(oechem.OEHasAtomIdx(pair[0]))
+        #     ow = flask.GetAtom(oechem.OEHasAtomIdx(pair[0]))
         #
         #     # Select the whole water molecule
         #     for atw in oechem.OEGetResidueAtoms(ow):
@@ -632,13 +634,13 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, opt, nmax=30, wat
         #
         # pred_vec = oechem.OEAtomIdxSelected(bv)
         # water_nmax_reference = oechem.OEMol()
-        # oechem.OESubsetMol(water_nmax_reference, well, pred_vec)
+        # oechem.OESubsetMol(water_nmax_reference, flask, pred_vec)
 
         water_list = []
         for pair in water_list_sorted_max:
             bv = oechem.OEBitVector(3)
             water_idx = []
-            ow = well.GetAtom(oechem.OEHasAtomIdx(pair[0]))
+            ow = flask.GetAtom(oechem.OEHasAtomIdx(pair[0]))
 
             # Select the whole water molecule
             for atw in oechem.OEGetResidueAtoms(ow):
@@ -647,7 +649,7 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, well, trj_fn, opt, nmax=30, wat
 
             pred_vec = oechem.OEAtomIdxSelected(bv)
             water = oechem.OEMol()
-            oechem.OESubsetMol(water, well, pred_vec)
+            oechem.OESubsetMol(water, flask, pred_vec)
 
             water_list.append(water)
 
@@ -862,7 +864,7 @@ def ligand_to_svg_stmd(ligand, ligand_name):
     return svg_lines
 
 
-def clean_average(data):
+def clean_mean_serr(data):
 
     def pwc_medfiltit(y, W):
 
@@ -881,57 +883,33 @@ def clean_average(data):
     # Change the data in a numpy array
     np_arr = np.array(data)
 
-    # Remove all nans from the array if any
+    # Remove all nans from the array if any; this becomes our working set of values
     np_no_nans = np_arr[~np.isnan(np_arr)]
 
-    # De-noise the data
+    # De-noise the data to prepare it to make low_std and high_std
     smooth = pwc_medfiltit(np_no_nans, 15)
 
-    # Estimate the average and standard deviation
+    # Estimate the average and standard deviation from which we make make low_std and high_std
     tmp_avg = smooth.mean()
     tmp_std = smooth.std()
 
     # 4 std range
-    low_std = tmp_avg - 4.0 * tmp_std
-    high_std = tmp_avg + 4.0 * tmp_std
+    low_std = tmp_avg - 8.0 * tmp_std
+    high_std = tmp_avg + 8.0 * tmp_std
 
     # Detect all the elements that are inside 4 std from the average in the original data set
     clean_index = np.where(np.logical_and(np_no_nans >= low_std, np_no_nans <= high_std))
 
-    new_arr = np_no_nans.take(clean_index)
+    new_arr = np_no_nans.take(clean_index[0])
 
-    avg = new_arr.mean()
-    std = new_arr.std()
+    # since this is a timeseries, data is probably not independent so get g (statistical inefficiency)
+    [t0, g, Neff_max] = timeseries.detectEquilibration(new_arr)
+    # effective number of uncorrelated samples is totalSamples/g
+    neff = len(new_arr)/g
+    # use neff to calculate the standard error of the mean
+    serr = new_arr.std()/np.sqrt(neff)
 
-    # # Detect Spikes in the data set and remove them
-    # indexmin = argrelmin(np_no_nans, order=1)[0]
-    #
-    # indexmax = argrelmax(np_no_nans, order=1)[0]
-    #
-    # extrema_indexes = np.sort(np.concatenate((indexmin, indexmax)))
-    #
-    # # Temporary array generated removing the extrema values
-    # tmp_arr = np.delete(np_no_nans, extrema_indexes)
-    #
-    # # Estimate the average and standard deviation
-    # tmp_avg = tmp_arr.mean()
-    # tmp_std = tmp_arr.std()
-    #
-    # # 3 std range
-    # low_std = tmp_avg - 3.0 * tmp_std
-    # high_std = tmp_avg + 3.0 * tmp_std
-    #
-    # # Detect all the elements that are inside 3 std from the average
-    # clean_index = np.where(np.logical_and(np_no_nans >= low_std, np_no_nans <= high_std))
-    #
-    # new_arr = np_no_nans.take(clean_index)
-    #
-    # avg = new_arr.mean()
-    # std = new_arr.std()
-
-    # print(avg, std)
-
-    return avg, std
+    return new_arr.mean(), serr
 
 def HighlightStyleMolecule(mol):
     hiliteColorer = oechem.OEMolStyleColorer(oechem.OEAtomColorScheme_Element)

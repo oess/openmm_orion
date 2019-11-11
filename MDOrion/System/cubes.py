@@ -47,12 +47,12 @@ from os import environ
 
 
 class IDSettingCube(RecordPortsMixin, ComputeCube):
-    title = "Simulation Well ID Setting"
+    title = "Simulation Flask ID Setting"
     version = "0.1.0"
-    classification = [["Simulation Well Preparation"]]
+    classification = [["Simulation Flask Preparation"]]
     tags = ['Simulation', 'Complex', 'Protein', 'Ligand']
     description = """
-    This cube sets the integer ID for each simulation well as well as a descriptive
+    This cube sets the integer ID for each simulation flask as well as a descriptive
     title string. If the input molecule 
     on a record has multiple conformers these are split into singles each with 
     its own ID. If a complex will be formed, this cube should be used on ligands
@@ -83,45 +83,45 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
 
     def process(self, record, port):
         try:
-            if not record.has_value(Fields.well):
+            if not record.has_value(Fields.flask):
                 if not record.has_value(Fields.primary_molecule):
                     raise ValueError("Primary Molecule is missing")
-                well = record.get_value(Fields.primary_molecule)
+                flask = record.get_value(Fields.primary_molecule)
 
-                record.set_value(Fields.well, well)
+                record.set_value(Fields.flask, flask)
 
-            well = record.get_value(Fields.well)
+            flask = record.get_value(Fields.flask)
 
             # There should be a ligid; if not, increment the last one
             if not record.has_value(Fields.ligid):
                 self.ligid += 1
                 record.set_value(Fields.ligid, self.ligid)
 
-            if well.NumConfs() > 1:
-                self.opt['Logger'].info("[{}] The well {} has multiple conformers. Each single conformer "
+            if flask.NumConfs() > 1:
+                self.opt['Logger'].info("[{}] The flask {} has multiple conformers. Each single conformer "
                                         "will be treated as a new molecule".format(self.title,
-                                                                                   well.GetTitle()))
+                                                                                   flask.GetTitle()))
 
-            name = well.GetTitle()[0:12]
+            name = flask.GetTitle()[0:12]
             if not name:
                 name = 'SYS'
 
             num_conf_counter = 0
-            for conf in well.GetConfs():
+            for conf in flask.GetConfs():
 
                 conf_mol = oechem.OEMol(conf)
 
-                well_title = name
+                flask_title = name
 
-                if well.GetMaxConfIdx() > 1:
-                    well_title += '_c' + str(num_conf_counter)
+                if flask.GetMaxConfIdx() > 1:
+                    flask_title += '_c' + str(num_conf_counter)
 
-                conf_mol.SetTitle(well_title)
+                conf_mol.SetTitle(flask_title)
 
-                record.set_value(Fields.wellid, self.total_count)
+                record.set_value(Fields.flaskid, self.total_count)
                 record.set_value(Fields.confid, num_conf_counter)
-                record.set_value(Fields.title, well_title)
-                record.set_value(Fields.well, conf_mol)
+                record.set_value(Fields.title, flask_title)
+                record.set_value(Fields.flask, conf_mol)
 
                 num_conf_counter += 1
 
@@ -335,10 +335,10 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
         try:
             opt = dict(self.opt)
 
-            if not record.has_value(Fields.well):
-                raise ValueError("Missing the Well Molecule Field")
+            if not record.has_value(Fields.flask):
+                raise ValueError("Missing the Flask Molecule Field")
 
-            solute = record.get_value(Fields.well)
+            solute = record.get_value(Fields.flask)
 
             if not record.has_value(Fields.title):
                 self.log.warn("Missing Title field")
@@ -346,7 +346,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
             else:
                 solute_title = record.get_value(Fields.title)
 
-            self.log.info("[{}] solvating well {}".format(self.title, solute_title))
+            self.log.info("[{}] solvating flask {}".format(self.title, solute_title))
 
             # Update cube simulation parameters
             for field in record.get_fields(include_meta=True):
@@ -364,12 +364,12 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
             # Solvate the system
             sol_system = packmol.oesolvate(solute, **opt)
 
-            self.log.info("[{}] Solvated simulation well {} yielding {} atoms overall".format(self.title,
+            self.log.info("[{}] Solvated simulation flask {} yielding {} atoms overall".format(self.title,
                                                                                               solute_title,
                                                                                               sol_system.NumAtoms()))
             sol_system.SetTitle(solute.GetTitle())
 
-            record.set_value(Fields.well, sol_system)
+            record.set_value(Fields.flask, sol_system)
             record.set_value(Fields.title, solute_title)
 
             self.success.emit(record)
@@ -422,7 +422,7 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
                 # Create the MD record to use the MD Record API
                 mdrecord = MDDataRecord(record)
 
-                system = mdrecord.get_well
+                system = mdrecord.get_flask
 
                 if not mdrecord.has_title:
                     self.log.warn("Missing record Title field")

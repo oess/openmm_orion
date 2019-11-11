@@ -11,7 +11,7 @@ General Notice
 * A new automatic color style is applied to the clustering in the
   ``Short trajectory MD analysis``
 * Fixed a wrong setting in the ``Solvation Cube`` that was placing solvent molecules
-  to close to the solute. This could have produced un-realistic results for some system
+  too close to the solute. This could have produced un-realistic results for some system
   where water molecules could have been placed inside proteins
 * Fixed a bug in the GAFF/GAFF2 force field where 1-4 interactions were
   not correctly scaled
@@ -77,7 +77,7 @@ Cube Updates
 * Exposed MMPBSA ensemble average and standard deviation in the :ref:`cube_TrajPBSACube` so that it can be displayed in the Analyze page in Orion.
 * :ref:`cube_MDTrajAnalysisClusterReport` now generates trajectory average and median molecules for protein and ligand, with one conformer for each major cluster. These are exposed int the 3D visualization page in Orion.
 * :ref:`cube_ClusterOETrajCube` now exposes a link to the per-ligand floe report page so it is available in the Analyze page in Orion.
-* In :ref:`cube_ComplexPrepCube` traditional references to the full periodic supermolecular ensemble as a "system" have been replaced with references to a "well" by analogy with an assay well.
+* In :ref:`cube_ComplexPrepCube` traditional references to the full periodic supermolecular ensemble as a "system" have been replaced with references to a "flask" by analogy with an assay well.
 * In :ref:`cube_MDFloeReportCube` the floe report now generates tiled links to individual ligands in the same order as the initial list of ligands.
 * In :ref:`cube_MDFloeReportCube` the floe report tiles now show how many major clusters were found for each ligand.
 * In :ref:`cube_MDNptCube` and :ref:`cube_MDNvtCube` the restraints are now correctly set in GROMACS for proteins consisting of multiple chains.

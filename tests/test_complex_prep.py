@@ -118,21 +118,21 @@ class TestMDOrionFloes(FloeTestCase):
 
             mdrecord = MDDataRecord(record)
 
-            self.assertTrue(record.has_value(Fields.wellid))
+            self.assertTrue(record.has_value(Fields.flaskid))
             self.assertTrue(record.has_value(Fields.title))
             self.assertTrue(record.has_value(Fields.ligand))
             self.assertTrue(record.has_value(Fields.protein))
             self.assertTrue(record.has_value(Fields.primary_molecule))
-            self.assertTrue(record.has_value(Fields.well))
+            self.assertTrue(record.has_value(Fields.flask))
             self.assertTrue(record.has_value(Fields.md_stages))
             self.assertTrue(record.has_value(Fields.pmd_structure))
 
-            self.assertEqual(mdrecord.get_well_id, 0)
+            self.assertEqual(mdrecord.get_flask_id, 0)
             self.assertEqual(mdrecord.get_title, "pMCL1_l26")
             self.assertEqual(record.get_value(Fields.ligand).NumAtoms(), 43)
             self.assertEqual(record.get_value(Fields.protein).NumAtoms(), 2432)
 
-            complx = mdrecord.get_well
+            complx = mdrecord.get_flask
             protein_split, ligand_split, water, excipients = oeommutils.split(complx)
             self.assertEqual(protein_split.NumAtoms(), 2432)
             self.assertEqual(ligand_split.NumAtoms(), 43)

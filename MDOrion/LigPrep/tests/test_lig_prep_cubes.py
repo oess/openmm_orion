@@ -67,7 +67,7 @@ class LigChargeTester(unittest.TestCase):
 
         ligand_record = OERecord()
         ligand_record.set_value(Fields.primary_molecule, ligand_copy)
-        ligand_record.set_value(Fields.wellid, 0)
+        ligand_record.set_value(Fields.flaskid, 0)
         ligand_record.set_value(Fields.title, ligand_copy.GetTitle())
 
         # Process the molecules

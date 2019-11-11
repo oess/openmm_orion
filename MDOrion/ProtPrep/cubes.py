@@ -104,9 +104,9 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
             protein_ss_fix = ss_bond_fix(protein)
 
             record.set_value(Fields.title, name)
-            record.set_value(Fields.wellid, self.count)
+            record.set_value(Fields.flaskid, self.count)
             record.set_value(Fields.primary_molecule, protein_ss_fix)
-            record.set_value(Fields.well, protein_ss_fix)
+            record.set_value(Fields.flask, protein_ss_fix)
 
             self.count += 1
 
