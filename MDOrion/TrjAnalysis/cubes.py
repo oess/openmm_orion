@@ -58,6 +58,9 @@ from MDOrion.TrjAnalysis.TrajAnFloeReport_utils import (_clus_floe_report_header
 
 class MDFloeReportCube(RecordPortsMixin, ComputeCube):
     title = "MDFloeReportCube"
+    version = "0.1.1"
+    classification = [["Analysis"]]
+    tags = ['Report']
     description = """
     The floe report cube generates an Orion floe report tiling the input ligands.
     Each input record must have ligand ID, ligand title, ligand name, the ligand
@@ -72,8 +75,8 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
     -------
     None
     """
-    classification = [["Analysis"]]
-    tags = ['Report']
+
+    uuid = "58a012d2-69e9-4d15-ba17-66f65c55dec5"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -231,8 +234,7 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
 
 class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
     title = 'Traj to OEMol Cube'
-
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["Analysis"]]
     tags = ['Trajectory', 'Ligand', 'Protein']
 
@@ -248,6 +250,8 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
     -------
     oechem.OEDataRecord - Stream of output data with trajectory OEMols
     """
+
+    uuid = "3ad0e991-712f-4a87-903e-4e0edc774bb3"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -376,7 +380,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
 class TrajPBSACube(RecordPortsMixin, ComputeCube):
     title = "Trajectory Poisson-Boltzmann and Surface Area Energies"
-    version = "0.0.0"
+    version = "0.1.1"
     classification = [["Analysis"]]
     tags = ['OEChem', 'Zap', 'TrajAnalysis', 'MMPBSA']
     description = """
@@ -396,10 +400,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
     The energy units are in kcal/mol.
     """
 
-    explicit_water = parameter.BooleanParameter(
-        'explicit_water',
-        default=False,
-        help_text="""Enable MMPBSA calculation with explicit water""")
+    uuid = "f6c96295-51fd-42df-8763-0f3b6f6d0e0d"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -408,6 +409,11 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
+
+    explicit_water = parameter.BooleanParameter(
+        'explicit_water',
+        default=False,
+        help_text="""Enable MMPBSA calculation with explicit water""")
 
     def begin(self):
         self.opt = vars(self.args)
@@ -569,7 +575,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
 
 class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
     title = "Trajectory Interaction Energies"
-    version = "0.0.0"
+    version = "0.1.1"
     classification = [["Analysis"]]
     tags = ['OEChem', 'OpenMM', 'TrajAnalysis', 'MMPBSA']
     description = """
@@ -591,6 +597,8 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
     This includes the MM interaction potential energies and their ligand, protein
     and complex components. The energy units are in kcal/mol.
     """
+
+    uuid = "d10a770d-fcd2-4d09-bf00-00d6a00353de"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -718,8 +726,7 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
 
 class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
     title = 'Cluster Protein-Ligand Traj OEMols'
-
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["Analysis"]]
     tags = ['Clustering', 'Ligand', 'Protein']
 
@@ -738,6 +745,8 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
     -------
     oechem.OEDataRecord - Stream of output data for the clustered system
     """
+
+    uuid = "b503c2f4-12e6-49c7-beb6-ee17da177ec2"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -966,8 +975,7 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
 
 class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
     title = 'Extract relevant outputs of MD Traj Cluster  Analysis'
-
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["Analysis"]]
     tags = ['Ligand', 'Protein']
 
@@ -978,6 +986,8 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
     This cube takes as input the OERecord containing the work
     product of trajectory analysis on Short Traj MD results.
     """
+
+    uuid = "42f2eef0-60aa-46f8-8d55-c8f10576e319"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -1188,9 +1198,8 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
 
 class ConformerGatheringData(RecordPortsMixin, ComputeCube):
-
     title = "MD Conformer Gathering Data"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["Analysis"]]
     tags = ['Ligand', 'Protein']
 
@@ -1215,6 +1224,8 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
+
+    uuid = "1cc827a6-a2c2-4b51-a705-dd082f3a200c"
 
     def begin(self):
         self.opt = vars(self.args)
@@ -1267,9 +1278,8 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
 
 
 class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
-
     title = "NMax Waters"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["Analysis"]]
     tags = ['Ligand', 'Protein', 'Waters']
 
@@ -1287,6 +1297,8 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
     -------
     Data Record Stream - Streamed-out of records for each ligand with related conformers info
     """
+
+    uuid = "c8608012-dc09-47de-8d23-fe2338419ff3"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -1373,26 +1385,31 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
 class ParallelTrajToOEMolCube(ParallelMixin, TrajToOEMolCube):
     title = "Parallel " + TrajToOEMolCube.title
     description = "(Parallel) " + TrajToOEMolCube.description
+    uuid = "c6435bfa-9e2c-4c6d-a59f-81baff1dc7b8"
 
 
 class ParallelTrajInteractionEnergyCube(ParallelMixin, TrajInteractionEnergyCube):
     title = "Parallel " + TrajInteractionEnergyCube.title
     description = "(Parallel) " + TrajInteractionEnergyCube.description
+    uuid = "a6a11dbb-bc25-4548-bf1a-471bda2f0406"
 
 
 class ParallelTrajPBSACube(ParallelMixin, TrajPBSACube):
     title = "Parallel " + TrajPBSACube.title
     description = "(Parallel) " + TrajPBSACube.description
+    uuid = "1f62c9ee-1d83-469c-b6a0-3b20dc64a1e1"
 
 
 class ParallelClusterOETrajCube(ParallelMixin, ClusterOETrajCube):
     title = "Parallel " + ClusterOETrajCube.title
     description = "(Parallel) " + ClusterOETrajCube.description
+    uuid = "216973c9-5f13-46f9-b79d-dee9d90398e9"
 
 
 class ParallelMDTrajAnalysisClusterReport(ParallelMixin,  MDTrajAnalysisClusterReport):
     title = "Parallel " + MDTrajAnalysisClusterReport.title
     description = "(Parallel) " + MDTrajAnalysisClusterReport.description
+    uuid = "10f572c8-a874-47de-8f48-19ac76f72bdd"
 
 
 # import traceback
@@ -1441,7 +1458,7 @@ class ParallelMDTrajAnalysisClusterReport(ParallelMixin,  MDTrajAnalysisClusterR
 #
 # class SSTMapHsa(ParallelMixin, OERecordComputeCube):
 #
-#     version = "0.1.0"
+#     version = "0.1.1"
 #
 #     title = "SSTMAP HSA Analysis"
 #
@@ -1728,7 +1745,7 @@ class ParallelMDTrajAnalysisClusterReport(ParallelMixin,  MDTrajAnalysisClusterR
 #     # Cube documentation.  This documentation for this cube, and all other cubes in this repository, can be converted
 #     # to html by calling 'invoke docs' from the root directory of this repository.  This documentation will also
 #     # appear in the Orion Floe editor.
-#     version = "0.1.0"
+#     version = "0.1.1"
 #
 #     title = "SSTMAP GIST Analysis"
 #

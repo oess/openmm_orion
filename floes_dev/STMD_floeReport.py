@@ -7,7 +7,7 @@ from MDOrion.TrjAnalysis.cubes import (ParallelMDTrajAnalysisClusterReport,
                                        MDFloeReportCube)
 
 job = WorkFloe("Floe Report from Analyzed Short Trajectory MD")
-#
+
 job.description = """
 Generate a Floe Report from Analyzed and Clustered Short Trajectory MD results
 
@@ -20,6 +20,8 @@ Outputs:
 floe report: html page of the Analysis for each ligand.
 out (.oedb file): file of the Analysis results for all ligands.
 """
+
+job.uuid = "a21708dd-085b-4494-84db-a45d12c4dded"
 
 ifs = DatasetReaderCube("ifs")
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")

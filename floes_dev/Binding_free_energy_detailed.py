@@ -82,6 +82,7 @@ Outputs:
 """
 
 job.classification = [['Binding Free Energy']]
+job.uuid = "15af0da4-76f0-4b24-bc81-b4e2a7d8ea6d"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting

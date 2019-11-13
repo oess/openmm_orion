@@ -57,6 +57,7 @@ ofs: Output file
 """
 
 job.classification = [['Simulation']]
+job.uuid = "15099639-58e1-4051-af37-05c8d180c78c"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
@@ -76,9 +77,6 @@ ligid = IDSettingCube("Ligand Ids")
 iprot = DatasetReaderCube("Protein Reader", title="Protein Reader")
 iprot.promote_parameter("data_in", promoted_name="protein", title="Protein Input File", description="Protein file name")
 
-
-protset = ProteinSetting("ProteinSetting")
-
 complx = ComplexPrepCube("Complex")
 complx.set_parameters(lig_res_name='LIG')
 
@@ -94,6 +92,11 @@ ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
 ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
 ff.set_parameters(lig_res_name='LIG')
+
+protset = ProteinSetting("ProteinSetting", title="Protein Setting")
+protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
+protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber99SBildn')
+protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='Gaff2')
 
 # Minimization
 minimize = ParallelMDMinimizeCube('minComplex', title="System Minimization")

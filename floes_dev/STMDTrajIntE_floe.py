@@ -25,6 +25,8 @@ Outputs:
 out (.oedb file): file of the Analysis results for all ligands.
 """
 
+job.uuid = "d00de553-5f78-4496-ae96-9c8adc527f53"
+
 ifs = DatasetReaderCube("ifs")
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")
 

@@ -23,6 +23,8 @@ Outputs:
 ofs (.oedb file): file of the MD results with Interaction Energy results.
 """
 
+job.uuid = "a73059bd-25e6-47f3-b2d2-56474c439417"
+
 ifs = DatasetReaderCube("ifs")
 
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")

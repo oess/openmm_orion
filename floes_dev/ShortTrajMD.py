@@ -81,6 +81,7 @@ floe report: html page of the Analysis of each ligand.
 # python floes/ShortTrajMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
 
 job.classification = [['Complex Setup', 'FrosstMD']]
+job.uuid = "a60efdb6-6c58-44e6-9449-421c94ace80d"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting

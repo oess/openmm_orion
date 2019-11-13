@@ -41,7 +41,7 @@ import os
 class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     title = 'Minimization Cube'
 
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["MD Simulations"]]
     tags = ['OpenMM', 'Gromacs', 'Minimization']
 
@@ -65,6 +65,8 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     oechem.OEDataRecord - Streamed-out of records with the systems energy 
     minimized.
     """
+
+    uuid = "bdfeaabe-f93b-4a14-9754-d6ca0c18a009"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -275,7 +277,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
 
 class MDNvtCube(RecordPortsMixin, ComputeCube):
     title = 'NVT Cube'
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["MD Simulations"]]
     tags = ['Gromacs', 'OpenMM', 'NVT']
 
@@ -301,6 +303,8 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
     -------
     oechem.OEDataRecord - Streamed-out of records with the systems NVT time evolved
     """
+
+    uuid = "94962b93-bf32-4b5e-b324-dbe8b9350266"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -557,7 +561,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
 
 class MDNptCube(RecordPortsMixin, ComputeCube):
     title = 'NPT Cube'
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [['MD Simulations']]
     tags = ['Gromacs', 'OpenMM', 'NPT']
 
@@ -583,6 +587,8 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
     -------
     oechem.OEDataRecord - Streamed-out of records with the systems NPT time evolved
     """
+
+    uuid = "602d397b-d8a5-4388-a94a-ac3a54ff3bad"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -841,13 +847,17 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
 class ParallelMDMinimizeCube(ParallelMixin, MDMinimizeCube):
     title = "Parallel " + MDMinimizeCube.title
     description = "(Parallel) " + MDMinimizeCube.description
+    uuid = "24ed6b12-a426-4e0d-bbac-99b9e34cca5c"
 
 
 class ParallelMDNvtCube(ParallelMixin,  MDNvtCube):
     title = "Parallel " + MDNvtCube.title
     description = "(Parallel) " + MDNvtCube.description
+    uuid = "1cff32be-9b10-4070-a4d2-f7370cc8be96"
 
 
 class ParallelMDNptCube(ParallelMixin,  MDNptCube):
     title = "Parallel " + MDNptCube.title
     description = "(Parallel) " + MDNptCube.description
+    uuid = "94728422-e840-49ba-9006-f6170dad54ba"
+

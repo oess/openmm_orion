@@ -45,6 +45,7 @@ ofs: Outputs the minimized system
 """
 
 job.classification = [['Simulation']]
+job.uuid = "57f233a2-751c-43bc-b613-f064ce685468"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = DatasetReaderCube("SystemReader", title="System Reader")

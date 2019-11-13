@@ -44,6 +44,7 @@ out (.oedb file): file of the Analysis results for all ligands.
 """
 
 job.classification = [['Analysis']]
+job.uuid = "4de8826b-8902-4037-9f8e-5c1a7d8a793c"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = DatasetReaderCube("ifs")

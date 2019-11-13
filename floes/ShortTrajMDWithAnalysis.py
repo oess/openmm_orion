@@ -46,8 +46,7 @@ from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
                                        ParallelTrajPBSACube,
                                        ParallelClusterOETrajCube,
                                        ParallelMDTrajAnalysisClusterReport,
-                                       MDFloeReportCube,
-                                       NMaxWatersLigProt)
+                                       MDFloeReportCube)
 
 job = WorkFloe('Short Trajectory MD with Analysis',
                title='Short Trajectory MD with Analysis')
@@ -88,6 +87,7 @@ out (.oedb file): file of the Analysis results for all ligands.
 # python floes/ShortTrajMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
 
 job.classification = [['Molecular Dynamics']]
+job.uuid = "372e1890-d053-4027-970a-85b209e4676f"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
@@ -110,15 +110,12 @@ iprot = DatasetReaderCube("ProteinReader", title="Protein Reader")
 iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input Dataset',
                         description="Protein Dataset")
 
-protset = ProteinSetting("ProteinSetting", title="Protein Setting")
-protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
-
 # Complex cube used to assemble the ligands and the solvated protein
 complx = ComplexPrepCube("Complex", title="Complex Preparation")
 complx.set_parameters(lig_res_name='LIG')
 
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
-solvate = ParallelSolvationCube("Hydration", title="System Hydration")
+solvate = ParallelSolvationCube("Solvation", title="Solvation")
 # solvate.promote_parameter('density', promoted_name='density', default=1.03,
 #                           description="Solution density in g/ml")
 # solvate.promote_parameter('salt_concentration', promoted_name='salt_concentration', default=50.0,
@@ -133,11 +130,17 @@ coll_open = CollectionSetting("OpenCollection")
 coll_open.set_parameters(open=True)
 
 # Force Field Application
-ff = ParallelForceFieldCube("ForceField", title="System Parametrization")
+ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
 ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
 ff.set_parameters(lig_res_name='LIG')
+
+# Protein Setting
+protset = ProteinSetting("ProteinSetting", title="Protein Setting")
+protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
+protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber99SBildn')
+protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='Gaff2')
 
 prod = ParallelMDNptCube("Production", title="Production")
 prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
@@ -169,7 +172,7 @@ minComplex.promote_parameter("md_engine", promoted_name="md_engine")
 
 
 # NVT simulation. Here the assembled system is warmed up to the final selected temperature
-warmup = ParallelMDNvtCube('warmup', title='System Warm Up')
+warmup = ParallelMDNvtCube('warmup', title='Warm Up')
 warmup.set_parameters(time=0.01)
 # warmup.promote_parameter("temperature", promoted_name="temperature")
 # warmup.set_parameters(restraints="noh (ligand or protein)")
@@ -190,7 +193,7 @@ warmup.promote_parameter("md_engine", promoted_name="md_engine")
 # is applied in the first stage while a relatively small one is applied in the latter
 
 # NPT Equilibration stage 1
-equil1 = ParallelMDNptCube('equil1', title='System Equilibration I')
+equil1 = ParallelMDNptCube('equil1', title='Equilibration I')
 equil1.set_parameters(time=0.01)
 # equil1.promote_parameter("temperature", promoted_name="temperature")
 # equil1.promote_parameter("pressure", promoted_name="pressure")
@@ -206,7 +209,7 @@ equil1.promote_parameter("md_engine", promoted_name="md_engine")
 
 
 # NPT Equilibration stage 2
-equil2 = ParallelMDNptCube('equil2', title='System Equilibration II')
+equil2 = ParallelMDNptCube('equil2', title='Equilibration II')
 equil2.set_parameters(time=0.02)
 # equil2.promote_parameter("temperature", promoted_name="temperature")
 # equil2.promote_parameter("pressure", promoted_name="pressure")
@@ -221,7 +224,7 @@ equil2.set_parameters(suffix='equil2')
 equil2.promote_parameter("md_engine", promoted_name="md_engine")
 
 # NPT Equilibration stage 3
-equil3 = ParallelMDNptCube('equil3', title='System Equilibration III')
+equil3 = ParallelMDNptCube('equil3', title='Equilibration III')
 equil3.set_parameters(time=0.03)
 # equil3.promote_parameter("temperature", promoted_name="temperature")
 # equil3.promote_parameter("pressure", promoted_name="pressure")

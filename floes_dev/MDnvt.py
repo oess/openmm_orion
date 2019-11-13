@@ -46,6 +46,7 @@ ofs: Outputs the constant temperature and volume system
 """
 
 job.classification = [['NVT']]
+job.uuid = "f1ec27a4-63a6-4fba-9649-f0ba51a50faa"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = DatasetReaderCube("SystemReader", title="System Reader")

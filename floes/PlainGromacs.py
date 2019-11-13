@@ -54,6 +54,7 @@ OEFile Restart file (useless for the user)
 """
 
 job.classification = [['Molecular Dynamics']]
+job.uuid = "f092b164-7400-403d-8861-b25ff741cab5"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = InputGromacs("Input File", title="Input file")

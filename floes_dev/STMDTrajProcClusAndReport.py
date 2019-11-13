@@ -33,6 +33,8 @@ floe report: html page of the Analysis for each ligand.
 out (.oedb file): file of the Analysis results for all ligands.
 """
 
+job.uuid = "292ef2b7-4ea4-4567-aafa-48bc9650d559"
+
 ifs = DatasetReaderCube("ifs")
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")
 

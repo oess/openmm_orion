@@ -24,14 +24,18 @@ from floe.api import (parameter,
 
 from orionplatform.mixins import RecordPortsMixin
 
-from MDOrion.ProtPrep.utils import ss_bond_fix
+# from MDOrion.ProtPrep.utils import ss_bond_fix
 
 from openeye import oechem
+
+from oeommtools import utils
+
+from MDOrion.ForceField import utils as ffutils
 
 
 class ProteinSetting(RecordPortsMixin, ComputeCube):
     title = "Protein Setting"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["System Preparation"]]
     tags = ['Protein']
     description = """
@@ -50,6 +54,8 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
     -------
     oechem.OEDataRecord - Streamed-out of a single protein
     """
+
+    uuid = "66d29c80-493a-4057-88cc-2b93b1018011"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -70,10 +76,29 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
         help_text='Optional replacement for the protein title'
     )
 
+    protein_forcefield = parameter.StringParameter(
+        'protein_forcefield',
+        default=sorted(ffutils.proteinff)[0],
+        choices=sorted(ffutils.proteinff),
+        help_text='Force field parameters to be applied to the protein')
+
+    solvent_forcefield = parameter.StringParameter(
+        'solvent_forcefield',
+        default=sorted(ffutils.solventff)[0],
+        help_text='Force field parameters to be applied to the water')
+
+    other_forcefield = parameter.StringParameter(
+        'other_forcefield',
+        default=sorted(ffutils.otherff)[0],
+        choices=sorted(ffutils.otherff),
+        help_text='Force field used to parametrize other molecules not recognized by the '
+                  'protein force field like excipients')
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
         self.count=0
+        self.opt['CubeTitle'] = self.title
 
     def process(self, record, port):
         try:
@@ -91,6 +116,19 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
             oechem.OEDeleteInteractionsHintSerializationIds(protein)
             oechem.OEClearStyle(protein)
             oechem.OEClearPDBData(protein)
+
+            # Check Protein parametrization
+            protein_sp, ligand, water, others = utils.split(protein)
+
+            # Parametrization Checking
+            if protein_sp.NumAtoms() > 0:
+                ffutils.applyffProtein(protein_sp, self.opt)
+            else:
+                raise ValueError("The protein does not have any atoms")
+            if water.NumAtoms() > 0:
+                ffutils.applyffWater(water, self.opt)
+            if others.NumAtoms() > 0:
+                ffutils.applyffExcipients(others, self.opt)
 
             name = self.opt['protein_title']
 

@@ -41,6 +41,8 @@ Outputs:
 ofs (.oedb file): file of the MD results with Traj OEMols
 """
 
+job.uuid = "15543564-7170-49da-935a-03310876df61"
+
 ifs = DatasetReaderCube("ifs")
 
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")

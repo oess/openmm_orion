@@ -11,7 +11,7 @@ General Notice
 * A new automatic color style is applied to the clustering in the
   ``Short trajectory MD analysis``
 * Fixed a wrong setting in the ``Solvation Cube`` that was placing solvent molecules
-  too close to the solute. This could have produced un-realistic results for some system
+  too close to the solute. This could have produced un-realistic results for some systems
   where water molecules could have been placed inside proteins
 * Fixed a bug in the GAFF/GAFF2 force field where 1-4 interactions were
   not correctly scaled

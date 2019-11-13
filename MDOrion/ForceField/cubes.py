@@ -48,7 +48,7 @@ import os
 
 class ForceFieldCube(RecordPortsMixin, ComputeCube):
     title = "Force Field Application"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["Force Field"]]
     tags = ['ForceField']
     description = """
@@ -80,6 +80,8 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
     Each record will contain a new Parmed object that contain the 
     flask parametrization
     """
+
+    uuid = "aac0d06f-afd3-4801-ba50-2d703a07ab35"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -297,3 +299,5 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
 class ParallelForceFieldCube(ParallelMixin, ForceFieldCube):
     title = "Parallel " + ForceFieldCube.title
     description = "(Parallel) " + ForceFieldCube.description
+    uuid = "deb6b453-0ddf-4f1c-a709-cda1f3c47af1"
+

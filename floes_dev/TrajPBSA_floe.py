@@ -23,6 +23,8 @@ Outputs:
 ofs (.oedb file): file of the MD results with PBSA results.
 """
 
+job.uuid = "c25a9cdb-9f84-4cfe-828e-64300a4f8c64"
+
 ifs = DatasetReaderCube("ifs")
 
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")

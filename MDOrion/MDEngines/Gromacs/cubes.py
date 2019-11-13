@@ -55,6 +55,8 @@ from MDOrion.MDEngines.Gromacs.utils import gmx_run, gmx_steps
 
 
 class InputGromacs(SourceCube):
+    uuid = "734c4f6f-8ccf-4d78-b37e-8c1a5b143454"
+    version = "0.1.1"
     title = "InputTprGromacs"
     classification = [["Gromacs", "Reader"]]
     tags = ["OpenEye", "Gromacs", "MD"]
@@ -106,7 +108,8 @@ class InputGromacs(SourceCube):
 
 
 class GromacsProxyCube(RecordPortsMixin, ComputeCube):
-    version = "0.0.0"
+    uuid = "d04b093d-f710-4cdc-a62a-f901183c1847"
+    version = "0.1.1"
     title = "Gromacs Proxy Cube"
     description = """
     This cube is used to implement a cycle with the Gromacs running cube
@@ -177,7 +180,8 @@ class GromacsProxyCube(RecordPortsMixin, ComputeCube):
 
 
 class GromacsRunCube(RecordPortsMixin, ComputeCube):
-    version = "0.0.0"
+    uuid = "50310c8b-4e3a-4f9d-8853-4983363bc247"
+    version = "0.1.1"
     title = "Gromacs Run Cube"
     description = """
     This cube runs Gromacs 
@@ -241,10 +245,10 @@ class GromacsRunCube(RecordPortsMixin, ComputeCube):
 
 class WriterRecordCube(SinkCube):
     description = """A cube that takes records and writes them out to a single dataset"""
-
     title = "Dataset Writer"
     classification = [["I/O", "Writers"]]
     tags = ["I/O", "Writer", "OERecord", "Output"]
+    uuid = "7dad346a-70f8-4fd0-b452-7dc0b9b4673c"
 
     intake = RecordInputPort("intake")
 

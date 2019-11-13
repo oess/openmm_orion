@@ -35,7 +35,7 @@ from orionplatform.ports import RecordInputPort
 
 class ComplexPrepCube(RecordPortsMixin, ComputeCube):
     title = "Complex Preparation"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["System Preparation"]]
     tags = ['Complex', 'Ligand', 'Protein']
     description = """
@@ -60,6 +60,8 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
     -------
     oechem.OEDataRecord - Streamed-out of records with the generated complexes    
     """
+
+    uuid = "be2ac138-22ae-4412-9c38-886472c496b9"
 
     # Override defaults for some parameters
     parameter_overrides = {

@@ -34,7 +34,7 @@ from orionplatform.mixins import RecordPortsMixin
 
 class LigandChargeCube(RecordPortsMixin, ComputeCube):
     title = "Ligand Charge"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["System Preparation"]]
     tags = ["Ligand"]
     description = """
@@ -52,6 +52,8 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
     -------
     oechem.OEMCMol - Streamed-out of records with the charged molecules.
     """
+
+    uuid = "ea184f6e-feb8-46f1-a89a-6b87270063a3"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -83,22 +85,6 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
 
             ligand = record.get_value(Fields.primary_molecule)
 
-            if oechem.OECalculateMolecularWeight(ligand) > 900.0:  # Units are in Dalton
-                self.opt['Logger'].warn("[{}] The molecule {} seems to have a large molecular "
-                                        "weight for a ligand: {:.2f} Da"
-                                        .format(self.title,
-                                                ligand.GetTitle(),
-                                                oechem.OECalculateMolecularWeight(ligand)))
-
-            # Removing Interaction Hint Container, Style and PDB Data
-            oechem.OEDeleteInteractionsHintSerializationData(ligand)
-            oechem.OEDeleteInteractionsHintSerializationIds(ligand)
-            oechem.OEClearStyle(ligand)
-            oechem.OEClearPDBData(ligand)
-
-            # Ligand sanitation
-            ligand = oeommutils.sanitizeOEMolecule(ligand)
-
             # Charge the ligand
             if self.opt['charge_ligands']:
                 charged_ligand = ff_utils.assignELF10charges(ligand,
@@ -108,7 +94,6 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
 
                 # If the ligand has been charged then transfer the computed
                 # charges to the starting ligand
-
                 map_charges = {at.GetIdx(): at.GetPartialCharge() for at in charged_ligand.GetAtoms()}
                 for at in ligand.GetAtoms():
                     at.SetPartialCharge(map_charges[at.GetIdx()])
@@ -130,7 +115,7 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
 
 class LigandSetting(RecordPortsMixin, ComputeCube):
     title = "Ligand Setting"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["System Preparation"]]
     tags = ['Ligand']
     description = """
@@ -147,6 +132,8 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
     Data Record Stream - Streamed-out of records where each ligand has
     a new residue name.
     """
+
+    uuid = "fce16dd4-ce3a-4374-92f0-4ed24259d2f6"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -179,14 +166,15 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
                                         .format(self.title,
                                                 ligand.GetTitle(),
                                                 oechem.OECalculateMolecularWeight(ligand)))
-            # Check Atom Names
-            if any([atom.GetName() == '' for atom in ligand.GetAtoms()]):
-                oechem.OETriposAtomNames(ligand)
-                # Check names are unique; non-unique names will also cause a problem
 
-            atomnames = [atom.GetName() for atom in ligand.GetAtoms()]
-            if any(atomnames.count(atom.GetName()) > 1 for atom in ligand.GetAtoms()):
-                raise Exception("Error: Reference molecule must have unique atom names in order to create a Topology.")
+            # Removing Interaction Hint Container, Style and PDB Data
+            oechem.OEDeleteInteractionsHintSerializationData(ligand)
+            oechem.OEDeleteInteractionsHintSerializationIds(ligand)
+            oechem.OEClearStyle(ligand)
+            oechem.OEClearPDBData(ligand)
+
+            # Ligand sanitation
+            ligand = oeommutils.sanitizeOEMolecule(ligand)
 
             lig_title = ligand.GetTitle()
 
@@ -217,6 +205,7 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
 class ParallelLigandChargeCube(ParallelMixin, LigandChargeCube):
     title = "Parallel " + LigandChargeCube.title
     description = "(Parallel) " + LigandChargeCube.description
+    uuid = "5f26ca60-301b-4488-9eec-dfb5a760be26"
 
 
 # class ParallelLigandSetting(ParallelMixin, LigandSetting):

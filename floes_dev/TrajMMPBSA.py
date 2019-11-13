@@ -45,6 +45,8 @@ Outputs:
 out (.oedb file): file of the Analysis results for all ligands.
 """
 
+job.uuid = "2717cf39-5bdd-4a1e-880e-5208bb232959"
+
 job.classification = [['Analysis']]
 job.tags = [tag for lists in job.classification for tag in lists]
 

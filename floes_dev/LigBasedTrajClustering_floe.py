@@ -23,6 +23,8 @@ Outputs:
 ofs (.oedb file): file of the MD results with Ligand Clustering results.
 """
 
+job.uuid = "7cacc2af-cae7-4dc7-8956-fcf539861e3d"
+
 ifs = DatasetReaderCube("ifs")
 
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")

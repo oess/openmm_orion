@@ -48,7 +48,7 @@ from os import environ
 
 class IDSettingCube(RecordPortsMixin, ComputeCube):
     title = "Simulation Flask ID Setting"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["Simulation Flask Preparation"]]
     tags = ['Simulation', 'Complex', 'Protein', 'Ligand']
     description = """
@@ -66,6 +66,8 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
     -------
     Data record Stream - Streamed output of records, one per conformer, with title and ID.
     """
+
+    uuid = "d3c1dac4-544f-4273-8b17-1b75c058f4bd"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -140,7 +142,7 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
 
 class CollectionSetting(RecordPortsMixin, ComputeCube):
     title = "Collection Setting"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["System Preparation"]]
     tags = ['System', 'Complex', 'Protein', 'Ligand']
     description = """
@@ -157,6 +159,8 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
     -------
     Data Record Stream - Streamed-out of records each one with associated IDs
     """
+
+    uuid = "b3821952-a5ed-4028-867c-3f71185442aa"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -231,7 +235,7 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
 
 class SolvationCube(RecordPortsMixin, ComputeCube):
     title = "Solvation Packmol"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["System Preparation"]]
     tags = ['Complex', 'Protein', 'Ligand', 'Solvation']
     description = """
@@ -255,6 +259,8 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
     Data Record Stream - Streamed-out of records each with the solvated
     solute
     """
+
+    uuid = "2e6130f6-2cba-48a4-9ef3-351a2970258a"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -386,7 +392,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
 class RecordSizeCheck(RecordPortsMixin, ComputeCube):
     title = "Record Size Checking"
-    version = "0.1.0"
+    version = "0.1.1"
     classification = [["System Preparation"]]
     tags = ['System', 'Complex', 'Protein', 'Ligand']
     description = """
@@ -401,6 +407,8 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
     -------
     Data Record Stream - Streamed-out of records
     """
+
+    uuid = "0555ead8-0339-41f2-9876-3eb166e32772"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -457,8 +465,11 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
 class ParallelSolvationCube(ParallelMixin, SolvationCube):
     title = "Parallel " + SolvationCube.title
     description = "(Parallel) " + SolvationCube.description
+    uuid = "568ffd29-23e0-4d35-b37c-727596bedf92"
 
 
 class ParallelRecordSizeCheck(ParallelMixin, RecordSizeCheck):
     title = "Parallel " + RecordSizeCheck.title
     description = "(Parallel) " + RecordSizeCheck.description
+    uuid = "f93acfba-a9e8-482b-bcf7-e181e6cb6b09"
+

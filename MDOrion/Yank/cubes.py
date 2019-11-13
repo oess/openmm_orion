@@ -68,7 +68,7 @@ from MDOrion.Standards.mdrecord import MDDataRecord
 
 
 class YankSolvationFECube(RecordPortsMixin, ComputeCube):
-    version = "0.0.0"
+    version = "0.1.1"
     title = "YankSolvationFECube"
     description = """
     Compute the hydration free energy of a small molecule with YANK.
@@ -81,6 +81,8 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
     """
     classification = [["Free Energy"]]
     tags = ['Yank', 'Solvation', 'Ligand', "Free Energy"]
+
+    uuid = "370efe31-381a-4c93-9d37-1282c16f2f97"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -453,7 +455,7 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
 
 
 class SyncBindingFECube(RecordPortsMixin, ComputeCube):
-    version = "0.1.0"
+    version = "0.1.1"
     title = "SyncSolvationFECube"
     description = """
     This cube is used to synchronize the solvated ligands and the related
@@ -470,6 +472,8 @@ class SyncBindingFECube(RecordPortsMixin, ComputeCube):
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
+
+    uuid = "a314a201-82f1-402d-9dd9-6b17c2fbb23c"
 
     solvated_ligand_in_port = RecordInputPort("solvated_ligand_in_port")
 
@@ -557,8 +561,11 @@ class SyncBindingFECube(RecordPortsMixin, ComputeCube):
 
 
 class YankBindingFECube(RecordPortsMixin, ComputeCube):
-    version = "0.0.0"
+    version = "0.1.1"
     title = "YankBindingFECube"
+    classification = [["Free Energy"]]
+    tags = ["Ligand", "Protein", "Free Energy", "Yank"]
+
     description = """
     Compute the hydration free energy of a small molecule with YANK.
 
@@ -568,8 +575,8 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
 
     See http://getyank.org for more information about YANK.
     """
-    classification = [["Free Energy"]]
-    tags = ["Ligand", "Protein", "Free Energy", "Yank"]
+
+    uuid = "8189c5ca-8aeb-431a-ac1e-3c56bf85e07f"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -996,14 +1003,17 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
 
 
 class YankProxyCube(RecordPortsMixin, ComputeCube):
-    version = "0.0.0"
+    version = "0.1.1"
     title = "YankProxyCube"
+    classification = [["Free Energy"]]
+    tags = ["Ligand", "Protein", "Free Energy", "Yank"]
+
     description = """
     This cube is used to implement a cycle with the Yank Solvation FE and
     Yank Binding Cubes.
     """
-    classification = [["Free Energy"]]
-    tags = ["Ligand", "Protein", "Free Energy", "Yank"]
+
+    uuid = "39da799f-38ab-4be6-8518-6a0d6398346c"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -1084,8 +1094,11 @@ class YankProxyCube(RecordPortsMixin, ComputeCube):
 class ParallelYankSolvationFECube(ParallelMixin, YankSolvationFECube):
     title = "Parallel " + YankSolvationFECube.title
     description = "(Parallel) " + YankSolvationFECube.description
+    uuid = "e9ead250-f428-4e34-9621-4264f543191a"
 
 
 class ParallelYankBindingFECube(ParallelMixin, YankBindingFECube):
     title = "Parallel " + YankBindingFECube.title
     description = "(Parallel) " + YankBindingFECube.description
+    uuid = "2f9b2bf9-8f43-4821-a483-87e962a1ab74"
+

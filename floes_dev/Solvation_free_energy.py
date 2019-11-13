@@ -68,6 +68,7 @@ Outputs:
 """
 
 job.classification = [['Solvation Free Energy']]
+job.uuid = "ea97912b-7038-4510-9124-7431526eb187"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting

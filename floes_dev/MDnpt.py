@@ -47,6 +47,7 @@ ofs: Outputs the constant temperature and pressure system
 """
 
 job.classification = [['NPT']]
+job.uuid = "4ea1a8ab-5e8b-41c9-9317-3e36b72491fe"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = DatasetReaderCube("SystemReader", title="System Reader")
