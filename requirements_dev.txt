@@ -9,7 +9,7 @@ wcwidth==0.1.7
 # OE Stack
 # Leave this here to avoid pip install issues
 # OpenEye-orionplatform==2.0.1
-OpenEye-orionplatform==2.2.0b0
+OpenEye-orionplatform==2.2.0
 
 # OpenEye-Artemis==1.1.1
 OpenEye-ensemble2img==0.1.1
