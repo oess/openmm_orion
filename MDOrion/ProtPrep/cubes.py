@@ -35,7 +35,7 @@ from MDOrion.ForceField import utils as ffutils
 
 class ProteinSetting(RecordPortsMixin, ComputeCube):
     title = "Protein Setting"
-    version = "0.1.1"
+    version = "0.1.3"
     classification = [["System Preparation"]]
     tags = ['Protein']
     description = """
@@ -110,6 +110,9 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
                 raise ValueError("Missing Primary Molecule field")
 
             protein = record.get_value(Fields.primary_molecule)
+
+            with oechem.oemolostream("4yff.oeb") as ofs:
+                oechem.OEWriteConstMolecule(ofs, protein)
 
             # Removing Interaction Hint Container, Style and PDB Data
             oechem.OEDeleteInteractionsHintSerializationData(protein)

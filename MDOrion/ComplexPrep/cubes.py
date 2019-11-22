@@ -35,7 +35,7 @@ from orionplatform.ports import RecordInputPort
 
 class ComplexPrepCube(RecordPortsMixin, ComputeCube):
     title = "Complex Preparation"
-    version = "0.1.1"
+    version = "0.1.3"
     classification = [["System Preparation"]]
     tags = ['Complex', 'Ligand', 'Protein']
     description = """

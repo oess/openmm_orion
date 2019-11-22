@@ -34,7 +34,7 @@ from orionplatform.mixins import RecordPortsMixin
 
 class LigandChargeCube(RecordPortsMixin, ComputeCube):
     title = "Ligand Charge"
-    version = "0.1.1"
+    version = "0.1.3"
     classification = [["System Preparation"]]
     tags = ["Ligand"]
     description = """
@@ -115,7 +115,7 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
 
 class LigandSetting(RecordPortsMixin, ComputeCube):
     title = "Ligand Setting"
-    version = "0.1.1"
+    version = "0.1.3"
     classification = [["System Preparation"]]
     tags = ['Ligand']
     description = """

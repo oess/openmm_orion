@@ -33,7 +33,7 @@ from openeye import oechem
 
 from oeommtools import data_utils as pack_utils
 
-from MDOrion.Standards import MDStageTypes
+from MDOrion.Standards import MDStageNames, MDStageTypes
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
@@ -48,7 +48,7 @@ import os
 
 class ForceFieldCube(RecordPortsMixin, ComputeCube):
     title = "Force Field Application"
-    version = "0.1.1"
+    version = "0.1.3"
     classification = [["Force Field"]]
     tags = ['ForceField']
     description = """
@@ -259,15 +259,15 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             # Check if it is possible to create the OpenMM System
             if is_periodic:
                 omm_flask = flask_structure.createSystem(nonbondedMethod=app.CutoffPeriodic,
-                                                           nonbondedCutoff=10.0 * unit.angstroms,
-                                                           constraints=None,
-                                                           removeCMMotion=False,
-                                                           rigidWater=False)
+                                                         nonbondedCutoff=10.0 * unit.angstroms,
+                                                         constraints=None,
+                                                         removeCMMotion=False,
+                                                         rigidWater=False)
             else:
                 omm_flask = flask_structure.createSystem(nonbondedMethod=app.NoCutoff,
-                                                           constraints=None,
-                                                           removeCMMotion=False,
-                                                           rigidWater=False)
+                                                         constraints=None,
+                                                         removeCMMotion=False,
+                                                         rigidWater=False)
             mdrecord.set_title(flask_title)
             mdrecord.set_flask(flask_reassembled)
 
@@ -275,7 +275,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
 
             data_fn = os.path.basename(mdrecord.cwd) + '_' + flask_title+'_' + str(sys_id) + '-' + opt['suffix']+'.tar.gz'
   
-            if not mdrecord.add_new_stage(self.title,
+            if not mdrecord.add_new_stage(MDStageNames.ForceField,
                                           MDStageTypes.SETUP,
                                           flask_reassembled,
                                           MDState(flask_structure),

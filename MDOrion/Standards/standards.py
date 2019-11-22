@@ -38,6 +38,16 @@ class MDStageTypes:
     FEC = 'FEC'
 
 
+class MDStageNames:
+    ForceField = "System Parametrization"
+    Minimization = "System Minimization"
+    WarmUp = "WarmUp"
+    EquilibrationI = "EquilibrationI"
+    EquilibrationII = "EquilibrationII"
+    EquilibrationIII = "EquilibrationIII"
+    Production = "Production"
+
+
 # ------------ MD Engines ------------- #
 
 class MDEngines:

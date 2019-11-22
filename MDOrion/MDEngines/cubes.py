@@ -25,7 +25,7 @@ from floe.api import (ParallelMixin,
                       ComputeCube)
 
 from MDOrion.Standards import (MDStageTypes,
-                               MDEngines)
+                               MDEngines, MDStageNames)
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
@@ -41,7 +41,7 @@ import os
 class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     title = 'Minimization Cube'
 
-    version = "0.1.1"
+    version = "0.1.3"
     classification = [["MD Simulations"]]
     tags = ['OpenMM', 'Gromacs', 'Minimization']
 
@@ -229,7 +229,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
             mdstate = mdrecord.get_stage_state()
 
             if opt['restraint_to_reference']:
-                opt['reference_state'] = mdrecord.get_stage_state(stg_name='System Parametrization')
+                opt['reference_state'] = mdrecord.get_stage_state(stg_name=MDStageNames.ForceField)
 
             opt['out_directory'] = mdrecord.cwd
             opt['molecule'] = system
@@ -277,7 +277,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
 
 class MDNvtCube(RecordPortsMixin, ComputeCube):
     title = 'NVT Cube'
-    version = "0.1.1"
+    version = "0.1.3"
     classification = [["MD Simulations"]]
     tags = ['Gromacs', 'OpenMM', 'NVT']
 
@@ -490,7 +490,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
             mdstate = mdrecord.get_stage_state()
 
             if opt['restraint_to_reference']:
-                opt['reference_state'] = mdrecord.get_stage_state(stg_name='System Parametrization')
+                opt['reference_state'] = mdrecord.get_stage_state(stg_name=MDStageNames.ForceField)
 
             opt['out_directory'] = mdrecord.cwd
             opt['molecule'] = system
@@ -561,7 +561,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
 
 class MDNptCube(RecordPortsMixin, ComputeCube):
     title = 'NPT Cube'
-    version = "0.1.1"
+    version = "0.1.3"
     classification = [['MD Simulations']]
     tags = ['Gromacs', 'OpenMM', 'NPT']
 
@@ -774,7 +774,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
             mdstate = mdrecord.get_stage_state()
 
             if opt['restraint_to_reference']:
-                opt['reference_state'] = mdrecord.get_stage_state(stg_name='System Parametrization')
+                opt['reference_state'] = mdrecord.get_stage_state(stg_name=MDStageNames.ForceField)
 
             opt['out_directory'] = mdrecord.cwd
             opt['molecule'] = system

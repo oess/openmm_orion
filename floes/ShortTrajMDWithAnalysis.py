@@ -159,7 +159,7 @@ prod.set_parameters(suffix='prod')
 
 
 # Minimization
-minComplex = ParallelMDMinimizeCube('minComplex', title='System Minimization')
+minComplex = ParallelMDMinimizeCube('minComplex', title='Minimization')
 # minComplex.set_parameters(restraints="noh (ligand or protein)")
 # minComplex.set_parameters(restraintWt=5.0)
 minComplex.modify_parameter(minComplex.restraints, promoted=False, default="noh (ligand or protein)")
