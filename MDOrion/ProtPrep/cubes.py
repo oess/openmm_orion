@@ -111,9 +111,6 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
 
             protein = record.get_value(Fields.primary_molecule)
 
-            with oechem.oemolostream("4yff.oeb") as ofs:
-                oechem.OEWriteConstMolecule(ofs, protein)
-
             # Removing Interaction Hint Container, Style and PDB Data
             oechem.OEDeleteInteractionsHintSerializationData(protein)
             oechem.OEDeleteInteractionsHintSerializationIds(protein)
