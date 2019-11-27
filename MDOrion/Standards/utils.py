@@ -26,7 +26,7 @@ from MDOrion.MDEngines.utils import MDState
 
 import copy
 
-from orionclient.session import in_orion, APISession
+from orionclient.session import in_orion, APISession, OrionSession, get_session
 
 from orionclient.types import File
 
@@ -97,7 +97,22 @@ def upload_file(filename, orion_ui_name='OrionFile'):
 
     if in_orion():
 
-        session = APISession
+        # session = APISession
+
+        session = OrionSession(
+            requests_session=get_session(
+                retry_dict={
+                    403: 5,
+                    404: 20,
+                    409: 45,
+                    460: 15,
+                    500: 2,
+                    502: 45,
+                    503: 45,
+                    504: 45,
+                }
+            )
+        )
 
         file_upload = File.upload(session,
                                   orion_ui_name,
@@ -122,7 +137,22 @@ def download_file(file_id, filename):
 
     if in_orion():
 
-        session = APISession
+        # session = APISession
+
+        session = OrionSession(
+            requests_session=get_session(
+                retry_dict={
+                    403: 5,
+                    404: 20,
+                    409: 45,
+                    460: 15,
+                    500: 2,
+                    502: 45,
+                    503: 45,
+                    504: 45,
+                }
+            )
+        )
 
         resource = session.get_resource(File, file_id)
 
@@ -143,7 +173,22 @@ def delete_file(file_id):
 
     if in_orion():
 
-        session = APISession
+        # session = APISession
+
+        session = OrionSession(
+            requests_session=get_session(
+                retry_dict={
+                    403: 5,
+                    404: 20,
+                    409: 45,
+                    460: 15,
+                    500: 2,
+                    502: 45,
+                    503: 45,
+                    504: 45,
+                }
+            )
+        )
 
         resource = session.get_resource(File, file_id)
 
@@ -162,7 +207,22 @@ def upload_data(filename, collection_id=None, shard_name=""):
         if collection_id is None:
             raise ValueError("The Collection ID is None")
 
-        session = APISession
+        # session = APISession
+
+        session = OrionSession(
+            requests_session=get_session(
+                retry_dict={
+                    403: 5,
+                    404: 20,
+                    409: 45,
+                    460: 15,
+                    500: 2,
+                    502: 45,
+                    503: 45,
+                    504: 45,
+                }
+            )
+        )
 
         collection = session.get_resource(ShardCollection, collection_id)
 
@@ -185,7 +245,22 @@ def download_data(file_id, path, collection_id=None):
         if collection_id is None:
             raise ValueError("The Collection ID is None")
 
-        session = APISession
+        # session = APISession
+
+        session = OrionSession(
+            requests_session=get_session(
+                retry_dict={
+                    403: 5,
+                    404: 20,
+                    409: 45,
+                    460: 15,
+                    500: 2,
+                    502: 45,
+                    503: 45,
+                    504: 45,
+                }
+            )
+        )
 
         collection = session.get_resource(ShardCollection, collection_id)
 
@@ -215,7 +290,22 @@ def delete_data(file_id, collection_id=None):
         if collection_id is None:
             raise ValueError("The Collection ID is None")
 
-        session = APISession
+        # session = APISession
+
+        session = OrionSession(
+            requests_session=get_session(
+                retry_dict={
+                    403: 5,
+                    404: 20,
+                    409: 45,
+                    460: 15,
+                    500: 2,
+                    502: 45,
+                    503: 45,
+                    504: 45,
+                }
+            )
+        )
 
         collection = session.get_resource(ShardCollection, collection_id)
 

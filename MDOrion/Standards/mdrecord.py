@@ -32,7 +32,9 @@ from orionclient.types import (ShardCollection,
                                Shard)
 
 from orionclient.session import (in_orion,
-                                 APISession)
+                                 APISession,
+                                 OrionSession,
+                                 get_session)
 
 import glob
 
@@ -538,7 +540,22 @@ class MDDataRecord(object):
             if self.rec.has_field(Fields.collection):
                 raise ValueError("Collection field already present on the record")
 
-            session = APISession
+            # session = APISession
+
+            session = OrionSession(
+                requests_session=get_session(
+                    retry_dict={
+                        403: 5,
+                        404: 20,
+                        409: 45,
+                        460: 15,
+                        500: 2,
+                        502: 45,
+                        503: 45,
+                        504: 45,
+                    }
+                )
+            )
 
             collection = ShardCollection.create(session, name)
 
@@ -1097,7 +1114,22 @@ class MDDataRecord(object):
         pmd_structure = self.rec.get_value(Fields.pmd_structure)
 
         if in_orion():
-            session = APISession
+            # session = APISession
+
+            session = OrionSession(
+                requests_session=get_session(
+                    retry_dict={
+                        403: 5,
+                        404: 20,
+                        409: 45,
+                        460: 15,
+                        500: 2,
+                        502: 45,
+                        503: 45,
+                        504: 45,
+                    }
+                )
+            )
 
             if self.collection_id is None:
                 raise ValueError("The Collection ID is None")
@@ -1180,7 +1212,22 @@ class MDDataRecord(object):
                     fid = self.rec.get_value(Fields.pmd_structure)
                     utils.delete_data(fid, collection_id=self.collection_id)
 
-                session = APISession
+                # session = APISession
+
+                session = OrionSession(
+                    requests_session=get_session(
+                        retry_dict={
+                            403: 5,
+                            404: 20,
+                            409: 45,
+                            460: 15,
+                            500: 2,
+                            502: 45,
+                            503: 45,
+                            504: 45,
+                        }
+                    )
+                )
 
                 collection = session.get_resource(ShardCollection, self.collection_id)
 
@@ -1230,7 +1277,22 @@ class MDDataRecord(object):
             if self.collection_id is None:
                 raise ValueError("The Collection ID is None")
 
-            session = APISession
+            # session = APISession
+
+            session = OrionSession(
+                requests_session=get_session(
+                    retry_dict={
+                        403: 5,
+                        404: 20,
+                        409: 45,
+                        460: 15,
+                        500: 2,
+                        502: 45,
+                        503: 45,
+                        504: 45,
+                    }
+                )
+            )
 
             collection = session.get_resource(ShardCollection, self.collection_id)
 
@@ -1261,7 +1323,22 @@ class MDDataRecord(object):
 
         if in_orion():
 
-            session = APISession
+            # session = APISession
+
+            session = OrionSession(
+                requests_session=get_session(
+                    retry_dict={
+                        403: 5,
+                        404: 20,
+                        409: 45,
+                        460: 15,
+                        500: 2,
+                        502: 45,
+                        503: 45,
+                        504: 45,
+                    }
+                )
+            )
 
             if self.collection_id is None:
                 raise ValueError("The Collection ID is None")
@@ -1322,7 +1399,22 @@ class MDDataRecord(object):
                     fid = self.rec.get_value(Fields.protein_traj_confs)
                     utils.delete_data(fid, collection_id=self.collection_id)
 
-                session = APISession
+                # session = APISession
+
+                session = OrionSession(
+                    requests_session=get_session(
+                        retry_dict={
+                            403: 5,
+                            404: 20,
+                            409: 45,
+                            460: 15,
+                            500: 2,
+                            502: 45,
+                            503: 45,
+                            504: 45,
+                        }
+                    )
+                )
 
                 collection = session.get_resource(ShardCollection, self.collection_id)
 
