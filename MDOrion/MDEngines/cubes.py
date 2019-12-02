@@ -41,7 +41,7 @@ import os
 class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     title = 'Minimization Cube'
 
-    version = "0.1.3"
+    version = "0.1.4"
     classification = [["MD Simulations"]]
     tags = ['OpenMM', 'Gromacs', 'Minimization']
 
@@ -277,7 +277,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
 
 class MDNvtCube(RecordPortsMixin, ComputeCube):
     title = 'NVT Cube'
-    version = "0.1.3"
+    version = "0.1.4"
     classification = [["MD Simulations"]]
     tags = ['Gromacs', 'OpenMM', 'NVT']
 
@@ -561,7 +561,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
 
 class MDNptCube(RecordPortsMixin, ComputeCube):
     title = 'NPT Cube'
-    version = "0.1.3"
+    version = "0.1.4"
     classification = [['MD Simulations']]
     tags = ['Gromacs', 'OpenMM', 'NPT']
 

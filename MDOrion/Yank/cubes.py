@@ -68,7 +68,7 @@ from MDOrion.Standards.mdrecord import MDDataRecord
 
 
 class YankSolvationFECube(RecordPortsMixin, ComputeCube):
-    version = "0.1.3"
+    version = "0.1.4"
     title = "YankSolvationFECube"
     description = """
     Compute the hydration free energy of a small molecule with YANK.
@@ -455,7 +455,7 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
 
 
 class SyncBindingFECube(RecordPortsMixin, ComputeCube):
-    version = "0.1.3"
+    version = "0.1.4"
     title = "SyncSolvationFECube"
     description = """
     This cube is used to synchronize the solvated ligands and the related
@@ -561,7 +561,7 @@ class SyncBindingFECube(RecordPortsMixin, ComputeCube):
 
 
 class YankBindingFECube(RecordPortsMixin, ComputeCube):
-    version = "0.1.3"
+    version = "0.1.4"
     title = "YankBindingFECube"
     classification = [["Free Energy"]]
     tags = ["Ligand", "Protein", "Free Energy", "Yank"]
@@ -1003,7 +1003,7 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
 
 
 class YankProxyCube(RecordPortsMixin, ComputeCube):
-    version = "0.1.3"
+    version = "0.1.4"
     title = "YankProxyCube"
     classification = [["Free Energy"]]
     tags = ["Ligand", "Protein", "Free Energy", "Yank"]
