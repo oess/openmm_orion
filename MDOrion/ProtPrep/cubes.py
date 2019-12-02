@@ -128,6 +128,9 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
             if water.NumAtoms() > 0:
                 ffutils.applyffWater(water, self.opt)
             if others.NumAtoms() > 0:
+                # Unique prefix name used to output parametrization files
+                self.opt['prefix_name'] = 'protein' + '_' + str(0)
+
                 ffutils.applyffExcipients(others, self.opt)
 
             name = self.opt['protein_title']
