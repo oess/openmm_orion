@@ -274,6 +274,82 @@ class TestMDOrionFloes(FloeTestCase):
         # Check the out record list
         self.assertEqual(count, 1)
 
+    @pytest.mark.local
+    @pytest.mark.orion
+    def test_omm_STMD_large_sys_floe2(self):
+        workfloe = WorkFloeWrapper.get_workfloe(
+            os.path.join(FLOES_DEV_DIR, "ShortTrajMD.py"),
+            run_timeout=43200,
+            queue_timeout=2000
+        )
+
+        ligand_file = DatasetWrapper.get_dataset(
+            os.path.join(
+                FILE_DIR,
+                "4YFF_lig.oeb"
+            )
+        )
+
+        protein_file = DatasetWrapper.get_dataset(
+            os.path.join(
+                FILE_DIR,
+                "4YFF_prot.oeb"
+            )
+        )
+
+        output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+
+        if using_orion:
+            workfloe.start(
+                {
+                    "promoted": {
+                        "ligands": ligand_file.identifier,
+                        "protein": protein_file.identifier,
+                        "out": output_file.identifier,
+                        "fail": fail_output_file.identifier
+                    }
+                }
+            )
+        else:
+            workfloe.start(
+                {
+                    "promoted": {
+                        "ligands": ligand_file.identifier,
+                        "protein": protein_file.identifier,
+                        "out": output_file.identifier,
+                        "fail": fail_output_file.identifier
+                    },
+
+                    "mp": num_proc
+                }
+            )
+
+        self.assertWorkFloeComplete(workfloe)
+
+        fail_ifs = oechem.oeifstream()
+        records_fail = []
+
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
+
+        # Check output
+        ifs = oechem.oeifstream(output_file.path)
+        records = []
+
+        for rec in read_records(ifs):
+            records.append(rec)
+        ifs.close()
+
+        count = len(records)
+        # Check the out record list
+        self.assertEqual(count, 1)
+
     @pytest.mark.orion
     def test_omm_STMD_Analysis_large_sys_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(

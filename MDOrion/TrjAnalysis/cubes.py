@@ -58,7 +58,7 @@ from MDOrion.TrjAnalysis.TrajAnFloeReport_utils import (_clus_floe_report_header
 
 class MDFloeReportCube(RecordPortsMixin, ComputeCube):
     title = "MDFloeReportCube"
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["Analysis"]]
     tags = ['Report']
     description = """
@@ -234,7 +234,7 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
 
 class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
     title = 'Traj to OEMol Cube'
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["Analysis"]]
     tags = ['Trajectory', 'Ligand', 'Protein']
 
@@ -380,7 +380,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
 class TrajPBSACube(RecordPortsMixin, ComputeCube):
     title = "Trajectory Poisson-Boltzmann and Surface Area Energies"
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["Analysis"]]
     tags = ['OEChem', 'Zap', 'TrajAnalysis', 'MMPBSA']
     description = """
@@ -575,7 +575,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
 
 class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
     title = "Trajectory Interaction Energies"
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["Analysis"]]
     tags = ['OEChem', 'OpenMM', 'TrajAnalysis', 'MMPBSA']
     description = """
@@ -726,7 +726,7 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
 
 class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
     title = 'Cluster Protein-Ligand Traj OEMols'
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["Analysis"]]
     tags = ['Clustering', 'Ligand', 'Protein']
 
@@ -975,7 +975,7 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
 
 class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
     title = 'Extract relevant outputs of MD Traj Cluster  Analysis'
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["Analysis"]]
     tags = ['Ligand', 'Protein']
 
@@ -1199,7 +1199,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
 class ConformerGatheringData(RecordPortsMixin, ComputeCube):
     title = "MD Conformer Gathering Data"
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["Analysis"]]
     tags = ['Ligand', 'Protein']
 
@@ -1279,7 +1279,7 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
 
 class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
     title = "NMax Waters"
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["Analysis"]]
     tags = ['Ligand', 'Protein', 'Waters']
 
@@ -1458,7 +1458,7 @@ class ParallelMDTrajAnalysisClusterReport(ParallelMixin,  MDTrajAnalysisClusterR
 #
 # class SSTMapHsa(ParallelMixin, OERecordComputeCube):
 #
-#     version = "0.1.4"
+#     # version = "0.1.4"
 #
 #     title = "SSTMAP HSA Analysis"
 #
@@ -1745,7 +1745,7 @@ class ParallelMDTrajAnalysisClusterReport(ParallelMixin,  MDTrajAnalysisClusterR
 #     # Cube documentation.  This documentation for this cube, and all other cubes in this repository, can be converted
 #     # to html by calling 'invoke docs' from the root directory of this repository.  This documentation will also
 #     # appear in the Orion Floe editor.
-#     version = "0.1.4"
+#     # version = "0.1.4"
 #
 #     title = "SSTMAP GIST Analysis"
 #

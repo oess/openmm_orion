@@ -48,7 +48,7 @@ from os import environ
 
 class IDSettingCube(RecordPortsMixin, ComputeCube):
     title = "Simulation Flask ID Setting"
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["Simulation Flask Preparation"]]
     tags = ['Simulation', 'Complex', 'Protein', 'Ligand']
     description = """
@@ -142,7 +142,7 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
 
 class CollectionSetting(RecordPortsMixin, ComputeCube):
     title = "Collection Setting"
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["System Preparation"]]
     tags = ['System', 'Complex', 'Protein', 'Ligand']
     description = """
@@ -235,7 +235,7 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
 
 class SolvationCube(RecordPortsMixin, ComputeCube):
     title = "Solvation Packmol"
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["System Preparation"]]
     tags = ['Complex', 'Protein', 'Ligand', 'Solvation']
     description = """
@@ -392,7 +392,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
 class RecordSizeCheck(RecordPortsMixin, ComputeCube):
     title = "Record Size Checking"
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["System Preparation"]]
     tags = ['System', 'Complex', 'Protein', 'Ligand']
     description = """

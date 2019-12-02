@@ -35,7 +35,7 @@ from MDOrion.ForceField import utils as ffutils
 
 class ProteinSetting(RecordPortsMixin, ComputeCube):
     title = "Protein Setting"
-    version = "0.1.4"
+    # version = "0.1.4"
     classification = [["System Preparation"]]
     tags = ['Protein']
     description = """
