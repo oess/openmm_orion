@@ -274,11 +274,10 @@ class TestMDOrionFloes(FloeTestCase):
         # Check the out record list
         self.assertEqual(count, 1)
 
-    @pytest.mark.local
     @pytest.mark.orion
-    def test_omm_STMD_large_sys_floe2(self):
+    def test_omm_STMD_Analysis_large_sys_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
-            os.path.join(FLOES_DEV_DIR, "ShortTrajMD.py"),
+            os.path.join(FLOES_DIR, "ShortTrajMDWithAnalysis.py"),
             run_timeout=43200,
             queue_timeout=2000
         )
@@ -286,14 +285,14 @@ class TestMDOrionFloes(FloeTestCase):
         ligand_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
-                "4YFF_lig.oeb"
+                "Hunt13_lig13.oeb"
             )
         )
 
         protein_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
-                "4YFF_prot.oeb"
+                "4JOO_truncNoLig.pdb"
             )
         )
 
@@ -351,7 +350,7 @@ class TestMDOrionFloes(FloeTestCase):
         self.assertEqual(count, 1)
 
     @pytest.mark.orion
-    def test_omm_STMD_Analysis_large_sys_floe(self):
+    def test_omm_STMD_Analysis_large_sys_floe2(self):
         workfloe = WorkFloeWrapper.get_workfloe(
             os.path.join(FLOES_DIR, "ShortTrajMDWithAnalysis.py"),
             run_timeout=43200,
@@ -361,14 +360,14 @@ class TestMDOrionFloes(FloeTestCase):
         ligand_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
-                "Hunt13_lig13.oeb"
+                "4YFF_lig.oeb "
             )
         )
 
         protein_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
-                "4JOO_truncNoLig.pdb"
+                "4YFF_prot.oeb"
             )
         )
 
