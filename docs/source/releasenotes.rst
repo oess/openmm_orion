@@ -2,7 +2,7 @@
 Release Notes
 #############
 
-v0.9.5
+v0.9.6
 ======================
 
 General Notice
