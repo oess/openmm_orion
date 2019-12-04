@@ -360,7 +360,7 @@ class TestMDOrionFloes(FloeTestCase):
         ligand_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
-                "4YFF_lig.oeb "
+                "4YFF_lig.oeb"
             )
         )
 
