@@ -7,9 +7,10 @@ v0.9.6
 
 General Notice
 --------------------------------------------------------------------------------
-* Open force field 1.0.0 (parsley) support
+* Support for the two force fields from the Open Force Field Initiative:
+  Smirnof99Frosst and OpenFF 1.0.0 (parsley)
 * A new automatic color style is applied to the clustering in the
-  ``Short trajectory MD analysis``
+  ``Short trajectory MD analysis`` to match the cluster colors in the Floe Report
 * Fixed a wrong setting in the ``Solvation Cube`` that was placing solvent molecules
   too close to the solute. This could have produced un-realistic results for some systems
   where water molecules could have been placed inside proteins
