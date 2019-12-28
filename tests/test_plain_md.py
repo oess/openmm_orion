@@ -67,7 +67,7 @@ class TestMDOrionFloes(FloeTestCase):
             {
                 "promoted": {
                     "system": protein_file.identifier,
-                    "prod_ns": 1,
+                    "prod_ns": 0.1,
                     "out": output_file.identifier,
                     "fail": fail_output_file.identifier
                 }
