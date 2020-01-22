@@ -12,15 +12,15 @@
         "omnia",
         "OpenEye/label/Orion",
         "Solvationtools",
-        "nividic"
+        "jjdelany"
     ],
     "conda_dependencies": [
         "ambermini==16.16.0",
         "alchemy==1.2.3",
         "cerberus==1.1",
-        "cudatoolkit=10.1",
+        "cudatoolkit=10.0",
         "hdbscan==0.8.12",
-        "gromacs_p2",
+        "orion_gromacs_gpu",
         "matplotlib==3.0.3",
         "networkx==1.11",
         "numpy==1.14.2",
