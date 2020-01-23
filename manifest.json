@@ -43,7 +43,7 @@
         "yank==0.24.1"
     ],
     "name": "OpenEye MD Floes",
-    "python_version": "3.7.3",
+    "python_version": "3.6",
     "requirements": "requirements_dev.txt",
     "uuid": "8ad7e185-9b86-4112-a2e7-a367e5123e29",
     "version": "0.10.0a1",
