@@ -48,8 +48,8 @@ from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
                                        ParallelMDTrajAnalysisClusterReport,
                                        MDFloeReportCube)
 
-job = WorkFloe('Short Trajectory MD with Analysis',
-               title='Short Trajectory MD with Analysis')
+job = WorkFloe('Short Trajectory MD Test1',
+               title='Short Trajectory MD Test1')
 
 job.description = """
 The Short Trajectory MD (STMD) protocol performs MD simulations given
@@ -87,7 +87,7 @@ out (.oedb file): file of the Analysis results for all ligands.
 # python floes/ShortTrajMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
 
 job.classification = [['Molecular Dynamics']]
-job.uuid = "372e1890-d053-4027-970a-85b209e4676f"
+# job.uuid = "372e1890-d053-4027-970a-85b209e4676f"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
@@ -116,13 +116,12 @@ complx.set_parameters(lig_res_name='LIG')
 
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
 solvate = ParallelSolvationCube("Solvation", title="Solvation")
-# solvate.promote_parameter('density', promoted_name='density', default=1.03,
+solvate.modify_parameter(solvate.density, promoted=False, default=1.03)
 #                           description="Solution density in g/ml")
-# solvate.promote_parameter('salt_concentration', promoted_name='salt_concentration', default=50.0,
+solvate.modify_parameter(solvate.salt_concentration, promoted=False, default=50.0)
 #                           description='Salt concentration (Na+, Cl-) in millimolar')
 solvate.set_parameters(density=1.03)
 solvate.set_parameters(salt_concentration=50.0)
-# solvate.set_parameters(close_solvent=True)
 solvate.modify_parameter(solvate.close_solvent, promoted=False, default=False)
 
 # This cube is necessary for the correct work of collection and shard
@@ -131,60 +130,51 @@ coll_open.set_parameters(open=True)
 
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
-ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
+ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
 ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
-ff.set_parameters(lig_res_name='LIG')
+ff.modify_parameter(ff.lig_res_name, promoted=False, default='LIG')
 
 # Protein Setting
 protset = ProteinSetting("ProteinSetting", title="Protein Setting")
 protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
-protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber99SBildn')
+protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber14SB')
 protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='Gaff2')
 
 prod = ParallelMDNptCube("Production", title="Production")
 prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
                        description='Length of MD run in nanoseconds')
-# prod.promote_parameter('temperature', promoted_name='temperature', default=300.0,
-#                        description='Temperature (Kelvin)')
-# prod.promote_parameter('pressure', promoted_name='pressure', default=1.0, description='Pressure (atm)')
-prod.promote_parameter('trajectory_interval', promoted_name='prod_trajectory_interval', default=0.002,
+prod.promote_parameter('trajectory_interval', promoted_name='prod_trajectory_interval', default=0.004,
                        description='Trajectory saving interval in ns')
-prod.promote_parameter('hmr', title='Use Hydrogen Mass Repartitioning', default=False,
+prod.promote_parameter('hmr', title='Use Hydrogen Mass Repartitioning', default=True,
                        description='Give hydrogens more mass to speed up the MD')
-prod.promote_parameter('md_engine', promoted_name='md_engine', default='OpenMM',
-                       description='Select the MD Engine')
-prod.set_parameters(reporter_interval=0.002)
+prod.set_parameters(md_engine='OpenMM')
+prod.set_parameters(reporter_interval=0.004)
 prod.set_parameters(suffix='prod')
 
 
 # Minimization
 minComplex = ParallelMDMinimizeCube('minComplex', title='Minimization')
-# minComplex.set_parameters(restraints="noh (ligand or protein)")
-# minComplex.set_parameters(restraintWt=5.0)
 minComplex.modify_parameter(minComplex.restraints, promoted=False, default="noh (ligand or protein)")
 minComplex.modify_parameter(minComplex.restraintWt, promoted=False, default=5.0)
 minComplex.set_parameters(steps=0)
 minComplex.set_parameters(center=True)
 minComplex.set_parameters(save_md_stage=True)
-minComplex.promote_parameter("hmr", promoted_name="hmr")
-minComplex.promote_parameter("md_engine", promoted_name="md_engine")
-
+minComplex.set_parameters(hmr=False)
+minComplex.set_parameters(md_engine='OpenMM')
 
 # NVT simulation. Here the assembled system is warmed up to the final selected temperature
 warmup = ParallelMDNvtCube('warmup', title='Warm Up')
 warmup.set_parameters(time=0.01)
-# warmup.promote_parameter("temperature", promoted_name="temperature")
-# warmup.set_parameters(restraints="noh (ligand or protein)")
-# warmup.set_parameters(restraintWt=2.0)
 warmup.modify_parameter(warmup.restraints, promoted=False, default="noh (ligand or protein)")
 warmup.modify_parameter(warmup.restraintWt, promoted=False, default=2.0)
 warmup.set_parameters(trajectory_interval=0.0)
 warmup.set_parameters(reporter_interval=0.001)
 warmup.set_parameters(suffix='warmup')
-warmup.promote_parameter("hmr", promoted_name="hmr")
+# warmup.promote_parameter("hmr", promoted_name="hmr")
+warmup.set_parameters(hmr=False)
 warmup.set_parameters(save_md_stage=True)
-warmup.promote_parameter("md_engine", promoted_name="md_engine")
+warmup.set_parameters(md_engine='OpenMM')
 
 
 # The system is equilibrated at the right pressure and temperature in 3 stages
@@ -195,46 +185,37 @@ warmup.promote_parameter("md_engine", promoted_name="md_engine")
 # NPT Equilibration stage 1
 equil1 = ParallelMDNptCube('equil1', title='Equilibration I')
 equil1.set_parameters(time=0.01)
-# equil1.promote_parameter("temperature", promoted_name="temperature")
-# equil1.promote_parameter("pressure", promoted_name="pressure")
-equil1.promote_parameter("hmr", promoted_name="hmr")
-# equil1.set_parameters(restraints="noh (ligand or protein)")
-# equil1.set_parameters(restraintWt=2.0)
+equil1.set_parameters(hmr=False)
 equil1.modify_parameter(equil1.restraints, promoted=False, default="noh (ligand or protein)")
-equil1.modify_parameter(equil1.restraintWt, promoted=False, default=2.0)
+equil1.modify_parameter(equil1.restraintWt, promoted=False, default=1.0)
 equil1.set_parameters(trajectory_interval=0.0)
 equil1.set_parameters(reporter_interval=0.001)
 equil1.set_parameters(suffix='equil1')
-equil1.promote_parameter("md_engine", promoted_name="md_engine")
+equil1.set_parameters(md_engine='OpenMM')
 
 
 # NPT Equilibration stage 2
 equil2 = ParallelMDNptCube('equil2', title='Equilibration II')
 equil2.set_parameters(time=0.02)
-# equil2.promote_parameter("temperature", promoted_name="temperature")
-# equil2.promote_parameter("pressure", promoted_name="pressure")
-equil2.promote_parameter("hmr", promoted_name="hmr")
-# equil2.set_parameters(restraints="noh (ligand or protein)")
-# equil2.set_parameters(restraintWt=0.5)
+equil2.set_parameters(hmr=True)
 equil2.modify_parameter(equil2.restraints, promoted=False, default="noh (ligand or protein)")
 equil2.modify_parameter(equil2.restraintWt, promoted=False, default=0.5)
 equil2.set_parameters(trajectory_interval=0.0)
 equil2.set_parameters(reporter_interval=0.001)
 equil2.set_parameters(suffix='equil2')
-equil2.promote_parameter("md_engine", promoted_name="md_engine")
+equil2.set_parameters(md_engine='OpenMM')
 
 # NPT Equilibration stage 3
 equil3 = ParallelMDNptCube('equil3', title='Equilibration III')
-equil3.modify_parameter(equil3.time, promoted=False, default=0.03)
-# equil3.promote_parameter("temperature", promoted_name="temperature")
-# equil3.promote_parameter("pressure", promoted_name="pressure")
-equil3.promote_parameter("hmr", promoted_name="hmr")
-equil3.modify_parameter(equil3.restraints, promoted=False, default="ca_protein or (noh ligand)")
-equil3.modify_parameter(equil3.restraintWt, promoted=False, default=0.1)
+equil3.modify_parameter(equil3.time, promoted=False, default=0.1)
+equil3.set_parameters(hmr=True)
+# equil3.modify_parameter(equil3.restraints, promoted=False, default="ca_protein or (noh ligand)")
+equil3.modify_parameter(equil3.restraints, promoted=False, default="noh (ligand or protein)")
+equil3.modify_parameter(equil3.restraintWt, promoted=False, default=0.05)
 equil3.set_parameters(trajectory_interval=0.0)
-equil3.set_parameters(reporter_interval=0.001)
+equil3.set_parameters(reporter_interval=0.002)
 equil3.set_parameters(suffix='equil3')
-equil3.promote_parameter("md_engine", promoted_name="md_engine")
+equil3.set_parameters(md_engine='OpenMM')
 
 md_group = ParallelCubeGroup(cubes=[minComplex, warmup, equil1, equil2, equil3, prod])
 job.add_group(md_group)
