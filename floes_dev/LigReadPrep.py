@@ -37,11 +37,11 @@ from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
                                   ParallelRecordSizeCheck)
 
-job = WorkFloe('Complex prep for Short Trajectory MD',
-               title='Complex prep for Short Trajectory MD')
+job = WorkFloe('PL Complex formation for Short Trajectory MD',
+               title='PL Complex formation for Short Trajectory MD')
 
 job.description = """
-The prep steps for the Short Trajectory MD (STMD) protocol based on
+PL Complex formation for the Short Trajectory MD (STMD) protocol based on
 a prepared protein and a set of posed and prepared ligands as input.
 The ligands need to have coordinates, all atoms, and correct chemistry. Each
 ligand can have multiple conformers but each conformer will be run separately
@@ -52,8 +52,7 @@ protein loops resolved. Crystallographic internal waters should be retained wher
 possible. The parametrization of some common nonstandard residues is partially supported.
 Given the inputs of the protein and posed ligands,
 the complex is formed with each ligand/conformer
-separately, and the complex is solvated and parametrized according to the
-selected force fields.
+separately.
 
 Required Input Parameters:
 --------------------------
@@ -62,10 +61,10 @@ protein (file): dataset of the prepared protein structure.
 
 Outputs:
 --------
-out (.oedb file): file of the solvated complexes with parameters.
+out (.oedb file): file of the protein-ligand complexes with parameters.
 """
 # Locally the floe can be invoked by running the terminal command:
-# python floes/ShortTrajMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
+# python floes/LigReadPrep.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
 
 job.classification = [['Molecular Dynamics']]
 # job.uuid = "372e1890-d053-4027-970a-85b209e4676f"
@@ -94,20 +93,6 @@ iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input
 complx = ComplexPrepCube("Complex", title="Complex Preparation")
 complx.set_parameters(lig_res_name='LIG')
 
-# The solvation cube is used to solvate the system and define the ionic strength of the solution
-solvate = ParallelSolvationCube("Solvation", title="Solvation")
-solvate.set_parameters(density=1.03)
-solvate.set_parameters(salt_concentration=50.0)
-# solvate.set_parameters(close_solvent=True)
-solvate.modify_parameter(solvate.close_solvent, promoted=False, default=False)
-
-# Force Field Application
-ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
-ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
-ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
-ff.set_parameters(lig_res_name='LIG')
-
 # Protein Setting
 protset = ProteinSetting("ProteinSetting", title="Protein Setting")
 protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
@@ -123,7 +108,7 @@ fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
 job.add_cubes(iligs, ligset, ligid, iprot, protset, chargelig, complx,
-              solvate, ff, ofs, fail)
+              ofs, fail)
 
 iligs.success.connect(ligset.intake)
 ligset.success.connect(chargelig.intake)
@@ -131,10 +116,8 @@ chargelig.success.connect(ligid.intake)
 ligid.success.connect(complx.intake)
 iprot.success.connect(protset.intake)
 protset.success.connect(complx.protein_port)
-complx.success.connect(solvate.intake)
-solvate.success.connect(ff.intake)
-ff.success.connect(ofs.intake)
-ff.failure.connect(fail.intake)
+complx.success.connect(ofs.intake)
+complx.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()
