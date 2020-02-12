@@ -36,15 +36,14 @@
         "pymbar==3.0.3",
         "pyyaml==3.13",
         "pyparsing==2.3.0",
-        "python==3.6.6",
         "seaborn==0.8.1",
         "smirnoff99frosst=1.0.5",
         "sstmap==1.1.2",
         "yank==0.24.1"
     ],
     "name": "OpenEye MD Floes",
-    "python_version": "3.6",
+    "python_version": "3.6.6",
     "requirements": "requirements_dev.txt",
     "uuid": "8ad7e185-9b86-4112-a2e7-a367e5123e29",
-    "version": "0.9.7a3"
+    "version": "0.9.7a7"
 }
