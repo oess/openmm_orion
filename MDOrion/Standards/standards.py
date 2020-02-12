@@ -75,6 +75,9 @@ _metaProtHidden = OEFieldMeta(options=[Meta.Hints.Chem.Protein, Meta.Display.Hid
 # ---------------- Field Standards -------------- #
 class Fields:
 
+    # The LigInitialRecord Field is for the initial ligand record read in at the start
+    ligInit_rec = OEField("LigInitial", Types.Record, meta=_metaHidden)
+
     # The Title field is a string name for the flask which used to compose file names
     title = OEField("Title_OPLMD", Types.String, meta=_metaIDHidden)
 

@@ -1261,17 +1261,27 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
             # Conformers for each ligand are sorted based on their confid in each ligand record
             list_conf_rec.sort(key=lambda x: x.get_value(Fields.confid))
 
+            new_rec = OERecord()
+
             for rec in list_conf_rec:
 
                 if rec.get_value(Fields.confid) == 0:
                     lig_multi_conf = oechem.OEMol(rec.get_value(Fields.ligand))
+                    # copy all the initial fields in Fields.ligInit_rec up to the top level
+                    init_rec = rec.get_value(Fields.ligInit_rec)
+                    for field in init_rec.get_fields():
+                        new_rec.set_value(field, init_rec.get_value(field))
+
                 else:
                     lig_multi_conf.NewConf(rec.get_value(Fields.ligand))
 
-            new_rec = OERecord()
-
+            # get name of initial molecule
+            init_mol = new_rec.get_value(OEField('Molecule', Types.Chem.Mol))
+            lig_title = init_mol.GetTitle()
+            lig_multi_conf.SetTitle(lig_title)
+            # set other fields on the new record
             new_rec.set_value(Fields.ligand, lig_multi_conf)
-            new_rec.set_value(Fields.ligand_name, list_conf_rec[0].get_value(Fields.ligand_name))
+            new_rec.set_value(Fields.ligand_name, lig_title)
             new_rec.set_value(Fields.Analysis.oetrajconf_rec, list_conf_rec)
 
             self.success.emit(new_rec)
