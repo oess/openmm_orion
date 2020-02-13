@@ -820,8 +820,6 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             trajClus.set_value( Clusters_field, clusResults['ClusterVec'])
 
             # Generate simple plots for floe report
-            opt['Logger'].info('{} plotting RMSD histogram'.format(system_title) )
-            trajHistRMSD_svg = clusutl.ClusterLigTrajHistRMSD(clusResults)
             opt['Logger'].info('{} plotting cluster strip plot'.format(system_title) )
             trajClus_svg = clusutl.ClusterLigTrajClusPlot(clusResults)
 
@@ -835,8 +833,6 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             rmsdInit_svg = clusutl.RmsdFromInitialPosePlot( clusResults['ClusterVec'], vecRmsd)
 
             # Put simple plot results on trajClus record
-            HistSVG_field = OEField( 'HistSVG', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
-            trajClus.set_value( HistSVG_field, trajHistRMSD_svg)
             #
             rmsdInit_field = OEField( 'rmsdInitPose', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
             trajClus.set_value(rmsdInit_field, rmsdInit_svg)
@@ -1060,7 +1056,6 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             clusRecord = utl.RequestOEFieldType(record, Fields.Analysis.oeclus_rec)
 
             opt['Logger'].info('{} found TrajClus record'.format(system_title))
-            trajHistRMSD_svg = utl.RequestOEField(clusRecord, 'HistSVG', Types.String)
             trajClus_svg = utl.RequestOEField(clusRecord, 'ClusSVG', Types.String)
             rmsdInit_svg = utl.RequestOEField(clusRecord, 'rmsdInitPose', Types.String)
             clusTrajSVG = utl.RequestOEField(clusRecord, 'ClusTrajSVG', Types.StringVec)
@@ -1297,7 +1292,7 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
     This cube determines the max number of waters for all the ligands that
     fits between the protein and ligand molecular surfaces. The cutoff distance
     parameters determines the max distance used between the volume grid points
-    and the ligand-protein 
+    and the ligand-protein
 
     Input:
     -------
