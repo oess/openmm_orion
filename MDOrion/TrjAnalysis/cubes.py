@@ -793,9 +793,17 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'
                                .format(system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
 
-            # Cluster ligand traj into cluster OEMols with matching protein OEMols
-            opt['Logger'].info('{} starting clustering'.format(system_title) )
-            clusResults = clusutl.ClusterLigTraj( ligTraj)
+            # Cluster ligand trajs into a clustering results dictionary...
+            ligTrajConfs = [ ligTraj ]
+            # ... by all-by-all RMSDs of the traj coords themselves
+            #opt['Logger'].info('{} starting clustering all-by-all RMSD'.format(system_title) )
+            #clusResults = clusutl.ClusterLigTrajAllByAllRMSD( ligTrajConfs)
+            # ... by key RMSD and rotBond features
+            opt['Logger'].info('{} starting clustering by RMSD and rotBond features'.format(system_title) )
+            ligand = utl.RequestOEFieldType(record, Fields.ligand)
+            initLigConfs = [ ligand ]
+            clusResults = clusutl.ClusterLigTrajByTorsAndParentRMSD( initLigConfs, ligTrajConfs)
+
 
             # Create new record with trajClus results
             opt['Logger'].info('{} writing trajClus OERecord'.format(system_title) )
