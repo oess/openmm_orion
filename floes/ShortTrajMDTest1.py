@@ -211,13 +211,24 @@ equil3.modify_parameter(equil3.time, promoted=False, default=0.1)
 equil3.set_parameters(hmr=True)
 # equil3.modify_parameter(equil3.restraints, promoted=False, default="ca_protein or (noh ligand)")
 equil3.modify_parameter(equil3.restraints, promoted=False, default="noh (ligand or protein)")
-equil3.modify_parameter(equil3.restraintWt, promoted=False, default=0.1)
+equil3.modify_parameter(equil3.restraintWt, promoted=False, default=0.2)
 equil3.set_parameters(trajectory_interval=0.0)
 equil3.set_parameters(reporter_interval=0.002)
 equil3.set_parameters(suffix='equil3')
 equil3.set_parameters(md_engine='OpenMM')
 
-md_group = ParallelCubeGroup(cubes=[minComplex, warmup, equil1, equil2, equil3, prod])
+# NPT Equilibration stage 4
+equil4 = ParallelMDNptCube('equil4', title='Equilibration IV')
+equil4.modify_parameter(equil4.time, promoted=False, default=0.1)
+equil4.set_parameters(hmr=True)
+equil4.modify_parameter(equil4.restraints, promoted=False, default="ca_protein or (noh ligand)")
+equil4.modify_parameter(equil4.restraintWt, promoted=False, default=0.1)
+equil4.set_parameters(trajectory_interval=0.0)
+equil4.set_parameters(reporter_interval=0.002)
+equil4.set_parameters(suffix='equil4')
+equil4.set_parameters(md_engine='OpenMM')
+
+md_group = ParallelCubeGroup(cubes=[minComplex, warmup, equil1, equil2, equil3, equil4, prod])
 job.add_group(md_group)
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
@@ -247,7 +258,7 @@ check_rec = ParallelRecordSizeCheck("Record Check Success")
 
 job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx,
               solvate, coll_open, ff,
-              minComplex, warmup, equil1, equil2, equil3, prod,
+              minComplex, warmup, equil1, equil2, equil3, equil4, prod,
               trajCube, IntECube, PBSACube, clusCube, report_gen,
               report, coll_close, check_rec, ofs, fail)
 
@@ -266,7 +277,8 @@ minComplex.success.connect(warmup.intake)
 warmup.success.connect(equil1.intake)
 equil1.success.connect(equil2.intake)
 equil2.success.connect(equil3.intake)
-equil3.success.connect(prod.intake)
+equil3.success.connect(equil4.intake)
+equil4.success.connect(prod.intake)
 prod.success.connect(trajCube.intake)
 prod.failure.connect(check_rec.fail_in)
 # prod.success.connect(ofs.intake)

@@ -44,7 +44,10 @@ from MDOrion.System.cubes import (IDSettingCube,
 from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
                                        ParallelTrajInteractionEnergyCube,
                                        ParallelTrajPBSACube,
+                                       ConformerGatheringData,
                                        ParallelClusterOETrajCube,
+                                       ParallelMakeClusterTrajOEMols,
+                                       ParallelConcatenateTrajMMPBSACube,
                                        ParallelMDTrajAnalysisClusterReport,
                                        MDFloeReportCube)
 
@@ -242,10 +245,18 @@ fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
 trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
 IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
 PBSACube = ParallelTrajPBSACube("TrajPBSACube")
+
+trajproc_group = ParallelCubeGroup(cubes=[trajCube, IntECube, PBSACube])
+job.add_group(trajproc_group)
+
+confGather = ConformerGatheringData("Gathering Conformer Records")
+
 clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
+ligMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube')
+clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols')
 report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 
-analysis_group = ParallelCubeGroup(cubes=[trajCube, IntECube, PBSACube, clusCube, report_gen])
+analysis_group = ParallelCubeGroup(cubes=[clusCube, ligMMPBSA, clusOEMols, report_gen])
 job.add_group(analysis_group)
 
 report = MDFloeReportCube("report", title="Floe Report")
@@ -259,7 +270,8 @@ check_rec = ParallelRecordSizeCheck("Record Check Success")
 job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx,
               solvate, coll_open, ff,
               minComplex, warmup, equil1, equil2, equil3, equil4, prod,
-              trajCube, IntECube, PBSACube, clusCube, report_gen,
+              trajCube, IntECube, PBSACube, confGather,
+              clusCube, ligMMPBSA, clusOEMols, report_gen,
               report, coll_close, check_rec, ofs, fail)
 
 iligs.success.connect(ligset.intake)
@@ -281,15 +293,20 @@ equil3.success.connect(equil4.intake)
 equil4.success.connect(prod.intake)
 prod.success.connect(trajCube.intake)
 prod.failure.connect(check_rec.fail_in)
-# prod.success.connect(ofs.intake)
 trajCube.success.connect(IntECube.intake)
 trajCube.failure.connect(check_rec.fail_in)
 IntECube.success.connect(PBSACube.intake)
 IntECube.failure.connect(check_rec.fail_in)
-PBSACube.success.connect(clusCube.intake)
+PBSACube.success.connect(confGather.intake)
 PBSACube.failure.connect(check_rec.fail_in)
-clusCube.success.connect(report_gen.intake)
+confGather.success.connect(clusCube.intake)
+confGather.failure.connect(check_rec.fail_in)
+clusCube.success.connect(ligMMPBSA.intake)
 clusCube.failure.connect(check_rec.fail_in)
+ligMMPBSA.success.connect(clusOEMols.intake)
+ligMMPBSA.failure.connect(check_rec.fail_in)
+clusOEMols.success.connect(report_gen.intake)
+clusOEMols.failure.connect(check_rec.fail_in)
 report_gen.success.connect(report.intake)
 report_gen.failure.connect(check_rec.fail_in)
 report.failure.connect(check_rec.fail_in)

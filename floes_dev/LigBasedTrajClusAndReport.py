@@ -7,14 +7,16 @@ from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 from MDOrion.TrjAnalysis.cubes import (ConformerGatheringData,
                                        ParallelClusterOETrajCube,
                                        ParallelMakeClusterTrajOEMols,
-                                       ParallelConcatenateTrajMMPBSACube)
+                                       ParallelMDTrajAnalysisClusterReport,
+                                       ParallelConcatenateTrajMMPBSACube,
+                                       MDFloeReportCube)
 
-job = WorkFloe("Testing Traj OEMol Clustering on a ligand")
+job = WorkFloe("Testing Traj OEMol Clustering on a conformer")
 
 job.description = """
 Testing Ligand Clustering Floe on a conformer
 #
-Ex. python floes/LigBasedTrajClustering.py --in STMD_TrajOEMol.oedb  --out STMD_LigClus.oedb
+Ex. python floes/ConfBasedTrajClustering.py --in STMD_TrajOEMol.oedb  --out STMD_LigClus.oedb
 #
 Parameters:
 -----------
@@ -35,19 +37,23 @@ confGather = ConformerGatheringData("Gathering Conformer Records")
 clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
 clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols')
 trajMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube')
+report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
+report = MDFloeReportCube("report", title="Floe Report")
 
 ofs = DatasetWriterCube('ofs', title='OFS-Success')
 ofs.promote_parameter("data_out", promoted_name="out", title="System Output OERecord", description="OERecord file name")
 
 job.add_cubes(ifs, confGather,
-              clusCube, trajMMPBSA, clusOEMols,
+              clusCube, trajMMPBSA, clusOEMols, report_gen, report,
               ofs)
 
 ifs.success.connect(confGather.intake)
 confGather.success.connect(clusCube.intake)
 clusCube.success.connect(trajMMPBSA.intake)
 trajMMPBSA.success.connect(clusOEMols.intake)
-clusOEMols.success.connect(ofs.intake)
+clusOEMols.success.connect(report_gen.intake)
+report_gen.success.connect(report.intake)
+report.success.connect(ofs.intake)
 
 if __name__ == "__main__":
     job.run()
