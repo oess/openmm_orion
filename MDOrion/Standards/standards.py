@@ -175,6 +175,10 @@ class Fields:
         lig_traj_rmsd = OEField('LigTrajRMSD', Types.FloatVec,
                                    meta=OEFieldMeta().set_option(Meta.Units.Length.Ang))
 
+        # The mmpbsa Field contains the vector of per-frame mmpbsa values over the whole trajectory
+        zapMMPBSA_fld = OEField("OEZap_MMPBSA6_Bind", Types.FloatVec,
+                                  meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
+
         # mmpbsa ensemble average over the whole trajectory
         mmpbsa_traj_mean = OEField('MMPBSATrajMean', Types.Float,
                                    meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
