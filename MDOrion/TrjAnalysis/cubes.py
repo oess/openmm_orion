@@ -51,6 +51,7 @@ from MDOrion.TrjAnalysis.TrajAnFloeReport_utils import (_clus_floe_report_header
                                                         _clus_floe_report_midHtml0,
                                                         _clus_floe_report_midHtml1,
                                                         _clus_floe_report_midHtml2,
+                                                        _clus_floe_report_stripPlots,
                                                         _clus_floe_report_Trailer,
                                                         trim_svg,
                                                         MakeClusterInfoText)
@@ -110,7 +111,10 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             mdrecord = MDDataRecord(record)
 
             system_title = mdrecord.get_title
-            sort_key = (1000*mdrecord.get_lig_id) + mdrecord.get_conf_id
+            if mdrecord.has_conf_id:
+                sort_key = (1000*mdrecord.get_lig_id) + mdrecord.get_conf_id
+            else:
+                sort_key = mdrecord.get_lig_id
 
             if not record.has_value(Fields.floe_report):
                 raise ValueError("Missing the report field for the system {}".format(system_title))
@@ -311,19 +315,6 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'.format(
                 system_title, wtraj.NumAtoms(), wtraj.NumConfs()))
 
-            # Generate average and median protein and ligand OEMols from ptraj, ltraj
-            opt['Logger'].info('{} Generating protein and ligand median and average OEMols'.format(system_title))
-
-            ligMedian, protMedian, ligAverage, protAverage = oetrjutl.AnalyseProteinLigandTrajectoryOEMols(ltraj, ptraj)
-
-            # Generate interactive trajectory SVG
-            opt['Logger'].info('{} Generating interactive trajectory SVG'.format(system_title))
-            trajSVG = ensemble2img.run_ensemble2img(ligMedian, protMedian, ltraj, ptraj)
-
-            # Overwrite MDStages with only first (setup) and last (production) stages
-            # newMDStages = [md_stage0_record, md_stageLast_record]
-            # record.set_value(Fields.md_stages, newMDStages)
-
             # Create new record with OETraj results
             oetrajRecord = OERecord()
 
@@ -332,14 +323,6 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             if wtraj:
                 oetrajRecord.set_value(OEField('WatTraj', Types.Chem.Mol), wtraj)
 
-            oetrajRecord.set_value(OEField('LigMedian', Types.Chem.Mol), ligMedian)
-
-            oetrajRecord.set_value(OEField('ProtMedian', Types.Chem.Mol), protMedian)
-
-            oetrajRecord.set_value(OEField('LigAverage', Types.Chem.Mol), ligAverage)
-
-            oetrajRecord.set_value(OEField('ProtAverage', Types.Chem.Mol), protAverage)
-
             if in_orion():
                 oetrajRecord.set_value(Fields.collection, mdrecord.collection_id)
 
@@ -347,9 +330,6 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
             mdrecord_traj.set_protein_traj(ptraj, shard_name="ProteinTrajConfs_" + system_title + '_' + str(sys_id))
 
-            TrajSVG_field = OEField('TrajSVG', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
-
-            oetrajRecord.set_value(TrajSVG_field, trajSVG)
 
             record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
 
@@ -376,6 +356,120 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             self.failure.emit(record)
 
         return
+
+
+class ConcatenateTrajMMPBSACube(RecordPortsMixin, ComputeCube):
+    title = "Concatenate Trajectory MMPBSA Energy Components"
+    # version = "0.1.4"
+    classification = [["Analysis"]]
+    tags = ['OEChem', 'TrajAnalysis', 'MMPBSA']
+    description = """
+    Protein-ligand trajectory MMPBSA interaction energies are concatenated based on 
+    pre-existing per-conformer vectors.
+
+    Input:
+    -------
+    Data Record with the per-conformer trajectory MMPBSA interaction energy components.
+
+    Output:
+    -------
+    Data Record - The various energy components associated with the Poisson-Boltzmann and
+    Surface Area energies are attached to the record as per-frame vectors of floats.
+    The energy units are in kcal/mol.
+    """
+
+    # uuid = "f6c96295-51fd-42df-8763-0f3b6f6d0e0d"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 2000},
+        "spot_policy": {"default": "Allowed"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+
+    def process(self, record, port):
+        try:
+            opt = self.opt
+            # Logger string
+            opt['Logger'].info(' Beginning ConcatenateTrajMMPBSACube')
+            system_title = utl.RequestOEFieldType(record, Fields.title)
+            opt['Logger'].info('{} Attempting to concatenate per-conf MMPBSA energies'.format(system_title))
+
+            # Go find the trajPBSA record in each of the conformer records
+            if not record.has_field(Fields.Analysis.oetrajconf_rec):
+                raise ValueError('{} could not find the conformer record'.format(system_title))
+            else:
+                opt['Logger'].info('{} found the conformer record'.format(system_title))
+            list_conf_rec = record.get_value(Fields.Analysis.oetrajconf_rec)
+
+            # find the trajPBSA record from inside the first conf
+            rec0 = list_conf_rec[0]
+            confid = utl.RequestOEFieldType(rec0, Fields.confid)
+            if not rec0.has_field(Fields.Analysis.oepbsa_rec):
+                raise ValueError('{} could not find the trajPBSA record for confID {}'.format(system_title, confid))
+            trajPBSA_rec = rec0.get_value(Fields.Analysis.oepbsa_rec)
+            opt['Logger'].info('{}: found trajPBSA record for confID {}'.format(system_title, confid))
+
+            # make a list of all FloatVec fields from inside the trajPBSA_rec record of the first conf
+            floatVecFields = []
+            for field in trajPBSA_rec.get_fields():
+                if field.get_type() is Types.FloatVec:
+                    #opt['Logger'].info('ConcatenateTrajMMPBSACube adding FloatVec field {}'.format(field.get_name()))
+                    floatVecFields.append(field)
+                else:
+                    opt['Logger'].info('ConcatenateTrajMMPBSACube skipping field {}'.
+                                       format(field.get_name()))
+            if len(floatVecFields)<1:
+                raise ValueError('{} ConcatenateTrajMMPBSACube found no FloatVec Fields'.format(system_title))
+
+            # for each field, concatenate the floatvecs from all confs and put in new record
+            new_rec = OERecord()
+            for field in floatVecFields:
+                vec = []
+                for confrec in list_conf_rec:
+                    confid = utl.RequestOEFieldType(confrec, Fields.confid)
+                    if not confrec.has_field(Fields.Analysis.oepbsa_rec):
+                        raise ValueError('{} could not find the trajPBSA record for confid {}'.
+                                         format(system_title,confid))
+                    trajPBSA_rec = confrec.get_value(Fields.Analysis.oepbsa_rec)
+                    vec += trajPBSA_rec.get_value(field)
+                new_rec.set_value(field, vec)
+                #opt['Logger'].info('ConcatenateTrajMMPBSACube added FloatVec {} of size {}'.format(field.get_name(),len(vec)))
+
+            # Add the trajPBSA record to the parent record
+            record.set_value(Fields.Analysis.oepbsa_rec, new_rec)
+
+            # Get concatenated MMPBSA values for overall mean and std err
+            zapMMPBSA = new_rec.get_value(Fields.Analysis.zapMMPBSA_fld, vec)
+            # Clean average MMPBSA to avoid nans and high zap energy values
+            avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(zapMMPBSA)
+
+            # Add to the record the MMPBSA mean and std
+            record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
+            record.set_value(Fields.Analysis.mmpbsa_traj_serr, serr_mmpbsa)
+            # Add to the record the Average MMPBSA floe report label
+            record.set_value(Fields.floe_report_label, "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".
+                             format(avg_mmpbsa, serr_mmpbsa))
+
+            opt['Logger'].info('{} finished ConcatenateTrajMMPBSACube'.format(system_title))
+
+            self.success.emit(record)
+
+        except Exception as e:
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} in TrajPBSACube'.format(str(e)))
+            self.log.error(traceback.format_exc())
+            # Return failed mol
+            self.failure.emit(record)
+
+        return
+
+
 
 
 class TrajPBSACube(RecordPortsMixin, ComputeCube):
@@ -541,7 +635,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 zapMMPBSA = [eMMPB+eSA6 for eMMPB,eSA6 in zip(zapMMPB, zapBindSA6)]
                 zapMMPBSA_field = OEField("OEZap_MMPBSA6_Bind", Types.FloatVec,
                                           meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-                trajPBSA.set_value(zapMMPBSA_field, zapMMPBSA)
+                trajPBSA.set_value(Fields.Analysis.zapMMPBSA_fld, zapMMPBSA)
 
                 # Clean average MMPBSA to avoid nans and high zap energy values
                 avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(zapMMPBSA)
@@ -725,17 +819,17 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
 
 
 class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
-    title = 'Cluster Protein-Ligand Traj OEMols'
+    title = 'Cluster Ligand Traj OEMol'
     # version = "0.1.4"
     classification = [["Analysis"]]
     tags = ['Clustering', 'Ligand', 'Protein']
 
     description = """
-    Cluster  multiconf MD trajectory OEMols for Ligand and Protein
+    Cluster Ligand multiconf MD trajectory OEMol
 
-    This cube will take in the MD traj OEMols containing
-    the protein and ligand components of the complex and cluster
-    them based on ligand RMSD.
+    This cube will take in the MD traj OEMol containing
+    the ligand components of the complex and cluster
+    them based on RMSD and rotbond torsions features.
 
     Input parameters:
     -------
@@ -774,40 +868,49 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} Attempting to cluster MD Traj'
                 .format(system_title) )
 
-            # Check that the OETraj analysis has been done
-            analysesDone = utl.RequestOEFieldType(record, Fields.Analysis.analysesDone)
-            if 'OETraj' not in analysesDone:
-                raise ValueError('{} does not have OETraj analyses done'.format(system_title) )
+            # Go find the ligand and LigTraj fields in each of the conformer records
+            if not record.has_field(Fields.Analysis.oetrajconf_rec):
+                raise ValueError('{} could not find the conformer record'.format(system_title))
             else:
-                opt['Logger'].info('{} found OETraj analyses'.format(system_title) )
+                opt['Logger'].info('{} found the conformer record'.format(system_title))
 
-            # Extract the relevant traj OEMols from the OETraj record
-            oetrajRecord = utl.RequestOEFieldType( record, Fields.Analysis.oetraj_rec)
-            opt['Logger'].info('{} found OETraj record'.format(system_title))
-            ligTraj = utl.RequestOEField( oetrajRecord, 'LigTraj', Types.Chem.Mol)
-            opt['Logger'].info('{} #atoms, #confs in ligand traj OEMol: {}, {}'
-                               .format(system_title, ligTraj.NumAtoms(), ligTraj.NumConfs()) )
+            # set up ligand and LigTraj lists then loop over conformer records
+            confIdVec = []
+            initLigConfs = []
+            ligTrajConfs = []
+            list_conf_rec = record.get_value(Fields.Analysis.oetrajconf_rec)
+            for confrec in list_conf_rec:
+                confid = utl.RequestOEFieldType(confrec, Fields.confid)
+                ligand = utl.RequestOEFieldType(confrec, Fields.ligand)
+                initLigConfs.append(ligand)
+                opt['Logger'].info('{}: found confID {} with ligand {}'.format(
+                    system_title, confid, ligand.GetTitle()) )
 
-            mdtrajrecord = MDDataRecord(oetrajRecord)
-            protTraj = mdtrajrecord.get_protein_traj
-            opt['Logger'].info('{} #atoms, #confs in protein traj OEMol: {}, {}'
-                               .format(system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
+                if not confrec.has_field(Fields.Analysis.oetraj_rec):
+                    raise ValueError('{} confID {}: could not find traj record'.format(system_title,confid))
+                # Extract the ligand traj OEMol from the OETraj record
+                oetrajRecord = confrec.get_value(Fields.Analysis.oetraj_rec)
+                ligTraj = utl.RequestOEField( oetrajRecord, 'LigTraj', Types.Chem.Mol)
+                ligTrajConfs.append(ligTraj)
+                confIdVec += [confid]*ligTraj.NumConfs()
+                opt['Logger'].info('{} confID {}: adding ligTraj with {} atoms, {} confs'.format(
+                    system_title, confid, ligTraj.NumAtoms(), ligTraj.NumConfs()) )
 
             # Cluster ligand trajs into a clustering results dictionary...
-            ligTrajConfs = [ ligTraj ]
             # ... by all-by-all RMSDs of the traj coords themselves
             #opt['Logger'].info('{} starting clustering all-by-all RMSD'.format(system_title) )
             #clusResults = clusutl.ClusterLigTrajAllByAllRMSD( ligTrajConfs)
             # ... by key RMSD and rotBond features
             opt['Logger'].info('{} starting clustering by RMSD and rotBond features'.format(system_title) )
-            ligand = utl.RequestOEFieldType(record, Fields.ligand)
-            initLigConfs = [ ligand ]
             clusResults = clusutl.ClusterLigTrajByTorsAndParentRMSD( initLigConfs, ligTrajConfs)
 
 
             # Create new record with trajClus results
             opt['Logger'].info('{} writing trajClus OERecord'.format(system_title) )
             trajClus = OERecord()
+            #
+            confids_field = OEField( 'ConformerIDs', Types.IntVec)
+            trajClus.set_value( confids_field, confIdVec)
             #
             ClusterMethod_field = OEField( 'ClusterMethod', Types.String)
             trajClus.set_value( ClusterMethod_field, clusResults['ClusterMethod'])
@@ -824,7 +927,7 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             clusterCounts_field = OEField( 'ClusterCounts', Types.IntVec)
             trajClus.set_value( clusterCounts_field, clusResults['ClusterCounts'])
             #
-            Clusters_field = OEField( 'Clusters', Types.IntVec)
+            Clusters_field = OEField( 'ClusterVec', Types.IntVec)
             trajClus.set_value( Clusters_field, clusResults['ClusterVec'])
 
             # Generate simple plots for floe report
@@ -832,27 +935,181 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             trajClus_svg = clusutl.ClusterLigTrajClusPlot(clusResults)
 
             # Calculate RMSD of ligand traj from ligand initial pose
-            ligInitPose = utl.RequestOEFieldType(record, Fields.ligand)
-            vecRmsd = oechem.OEDoubleArray(ligTraj.GetMaxConfIdx())
+            #ligInitPose = utl.RequestOEFieldType(record, Fields.ligand)
+            #vecRmsd = oechem.OEDoubleArray(ligTraj.GetMaxConfIdx())
 
-            oechem.OERMSD(ligInitPose, ligTraj, vecRmsd)
-            trajClus.set_value(Fields.Analysis.lig_traj_rmsd, list(vecRmsd) )
-            opt['Logger'].info('{} plotting strip plot of ligand RMSD from initial pose'.format(system_title) )
-            rmsdInit_svg = clusutl.RmsdFromInitialPosePlot( clusResults['ClusterVec'], vecRmsd)
+            #oechem.OERMSD(ligInitPose, ligTraj, vecRmsd)
+            #trajClus.set_value(Fields.Analysis.lig_traj_rmsd, list(vecRmsd) )
+            #opt['Logger'].info('{} plotting strip plot of ligand RMSD from initial pose'.format(system_title) )
+            #rmsdInit_svg = clusutl.RmsdFromInitialPosePlot( clusResults['ClusterVec'], vecRmsd)
 
             # Put simple plot results on trajClus record
             #
-            rmsdInit_field = OEField( 'rmsdInitPose', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
-            trajClus.set_value(rmsdInit_field, rmsdInit_svg)
+            #rmsdInit_field = OEField( 'rmsdInitPose', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
+            #trajClus.set_value(rmsdInit_field, rmsdInit_svg)
             #
             ClusSVG_field = OEField( 'ClusSVG', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
             trajClus.set_value( ClusSVG_field, trajClus_svg)
 
+            # Set the TrajClus record on the top-level record
+            record.set_value(Fields.Analysis.oeclus_rec, trajClus)
+            opt['Logger'].info('{} finished writing trajClus OERecord'.format(system_title) )
+
+            self.success.emit(record)
+
+        except Exception as e:
+            print("Failed to complete", str(e), flush=True)
+            opt['Logger'].info('Exception {} in ClusterOETrajCube on {}'.format(str(e), system_title))
+            self.log.error(traceback.format_exc())
+            # Return failed mol
+            self.failure.emit(record)
+
+        return
+
+
+class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
+    title = 'Make Cluster Protein and Ligand average and median OEMols'
+    # version = "0.2.0"
+    classification = [["Analysis"]]
+    tags = ['Clustering', 'Ligand', 'Protein']
+
+    description = """
+    Make multiconf MD trajectory OEMols for Ligand and Protein by Cluster
+
+    This cube will use the clustering results in conjunction with the
+    MD trajectory OEMols for protein and ligand to generate per-cluster
+    protein and ligand average and median structures.
+
+    Input parameters:
+    -------
+    oechem.OEDataRecord - Dataset with clustering results and
+    the MD trajectory OEMols for protein and ligand
+
+    Output:
+    -------
+    oechem.OEDataRecord - Dataset including the cluster average and median
+    OEMols
+    """
+
+    # uuid = "b503c2f4-12e6-49c7-beb6-ee17da177ec2"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 6000},
+        "spot_policy": {"default": "Allowed"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+        return
+
+    def process(self, record, port):
+        try:
+            # The copy of the dictionary option as local variable
+            # is necessary to avoid filename collisions due to
+            # the parallel cube processes
+            opt = dict(self.opt)
+
+            # Logger string
+            opt['Logger'].info(' Beginning MakeClusterTrajOEMols Cube')
+            system_title = utl.RequestOEFieldType(record, Fields.title)
+            opt['Logger'].info('{} Attempting to make trajectory OEMols for Ligand and Protein by Cluster'
+                .format(system_title) )
+
+            # Get the cluster info off the TrajClus record
+            if not record.has_field(Fields.Analysis.oeclus_rec):
+                raise ValueError('{} could not find the TrajClus analyses record'.format(system_title))
+            else:
+                opt['Logger'].info('{} found the TrajClus analyses  record'.format(system_title))
+
+            # Extract the relevant clustering information from the TrajClus record
+            trajClusRecord = record.get_value(Fields.Analysis.oeclus_rec)
+            opt['Logger'].info('{} found TrajClus record'.format(system_title))
+            nFrames = utl.RequestOEField(trajClusRecord, 'nFrames', Types.Int)
+            clusterCounts = utl.RequestOEField(trajClusRecord, 'ClusterCounts', Types.IntVec)
+            clusterVec = utl.RequestOEField(trajClusRecord, 'ClusterVec', Types.IntVec)
+            opt['Logger'].info('{} retrieved Cluster info on {} frames giving {} clusters'
+                               .format(system_title, nFrames, len(clusterCounts)))
+
+            # set up ligTraj and protTraj lists then loop over conformer records
+            if not record.has_field(Fields.Analysis.oetrajconf_rec):
+                raise ValueError('{} could not find the conformer record'.format(system_title))
+            else:
+                opt['Logger'].info('{} found the conformer record'.format(system_title))
+
+            ligTrajConfs = []
+            protTrajConfs = []
+            list_conf_rec = record.get_value(Fields.Analysis.oetrajconf_rec)
+            for confrec in list_conf_rec:
+                confid = utl.RequestOEFieldType(confrec, Fields.confid)
+
+                if not confrec.has_field(Fields.Analysis.oetraj_rec):
+                    raise ValueError('{} confID {}: could not find traj record'.format(system_title,confid))
+                oetrajRecord = confrec.get_value(Fields.Analysis.oetraj_rec)
+
+                # Extract the ligTraj OEMol from the OETraj record
+                ligTraj = utl.RequestOEField( oetrajRecord, 'LigTraj', Types.Chem.Mol)
+                ligTrajConfs.append(ligTraj)
+                opt['Logger'].info('{} confID {}: adding ligTraj with {} atoms, {} confs'.format(
+                    system_title, confid, ligTraj.NumAtoms(), ligTraj.NumConfs()) )
+
+                # Extract the protTraj OEMol from the OETraj record
+                mdtrajrecord = MDDataRecord(oetrajRecord)
+                protTraj = mdtrajrecord.get_protein_traj
+                protTrajConfs.append(protTraj)
+                opt['Logger'].info('{} confID {}: adding protTraj with {} atoms, {} confs'.format(
+                    system_title, confid, protTraj.NumAtoms(), protTraj.NumConfs()) )
+                del mdtrajrecord
+
+            if len(ligTrajConfs)<1 or len(protTrajConfs)<1:
+                raise ValueError('{} empty list of lig or protein trajectory OEMols'.format(system_title))
+
+            ligTraj = oechem.OEMol(ligTrajConfs[0])
+            xyz = oechem.OEFloatArray(3*ligTraj.GetMaxAtomIdx())
+            for trajMol in ligTrajConfs[1:]:
+                for conf in trajMol.GetConfs():
+                    conf.GetCoords(xyz)
+                    ligTraj.NewConf(xyz)
+            opt['Logger'].info('{} composite ligTraj has {} atoms, {} confs'.format(
+                system_title, ligTraj.NumAtoms(), ligTraj.NumConfs()) )
+
+            protTraj = protTrajConfs[0]
+            xyz = oechem.OEFloatArray(3*protTraj.GetMaxAtomIdx())
+            for trajMol in protTrajConfs[1:]:
+                for conf in trajMol.GetConfs():
+                    conf.GetCoords(xyz)
+                    protTraj.NewConf(xyz)
+            opt['Logger'].info('{} composite protTraj has {} atoms, {} confs'.format(
+                system_title, protTraj.NumAtoms(), protTraj.NumConfs()) )
+
+            # Generate average and median protein and ligand OEMols from ligTraj, protTraj
+            opt['Logger'].info('{} Generating entire trajectory median and average OEMols for protein and ligand '.
+                               format(system_title))
+            ligMedian, protMedian, ligAverage, protAverage = oetrjutl.AnalyseProteinLigandTrajectoryOEMols(
+                ligTraj, protTraj)
+
+            # Create new record with OETraj results
+            oetrajRecord = OERecord()
+            oetrajRecord.set_value(OEField('LigMedian', Types.Chem.Mol), ligMedian)
+            oetrajRecord.set_value(OEField('ProtMedian', Types.Chem.Mol), protMedian)
+            oetrajRecord.set_value(OEField('LigAverage', Types.Chem.Mol), ligAverage)
+            oetrajRecord.set_value(OEField('ProtAverage', Types.Chem.Mol), protAverage)
+
+            # Generate interactive trajectory SVG for the whole trajectory and place on oetrajRecord
+            opt['Logger'].info('{} Generating entire trajectory interactive SVG'.format(system_title))
+            trajSVG = ensemble2img.run_ensemble2img(ligMedian, protMedian, ligTraj, protTraj)
+            TrajSVG_field = OEField('TrajSVG', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
+            oetrajRecord.set_value(TrajSVG_field, trajSVG)
+            record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
+
             # make a list of major clusters (major= 10% or more of traj)
             majorClusters = []
             nMajorClusters = 0
-            for clusID, count in enumerate(clusResults['ClusterCounts']):
-                if count/clusResults['nFrames'] >= 0.1:
+            for clusID, count in enumerate(clusterCounts):
+                if count/nFrames >= 0.1:
                     nMajorClusters += 1
                     majorClusters.append(clusID)
             opt['Logger'].info('Found {} major clusters for {}'.format(nMajorClusters, system_title))
@@ -872,9 +1129,9 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
                 # for each major cluster generate SVG and average and median for protein and ligand
                 for clusID in majorClusters:
                     opt['Logger'].info('Extracting cluster {} from {}'.format( clusID, system_title ))
-                    clusLig = clusutl.TrajOEMolFromCluster( ligTraj, clusResults['ClusterVec'], clusID)
+                    clusLig = clusutl.TrajOEMolFromCluster( ligTraj, clusterVec, clusID)
                     opt['Logger'].info( 'ligand cluster {} with {} confs'.format(clusID,clusLig.NumConfs()) )
-                    clusProt = clusutl.TrajOEMolFromCluster( protTraj, clusResults['ClusterVec'], clusID)
+                    clusProt = clusutl.TrajOEMolFromCluster( protTraj, clusterVec, clusID)
                     opt['Logger'].info('protein cluster {} with {} confs'.format(clusID,clusProt.NumConfs()) )
                     opt['Logger'].info('generating representative protein average and median confs')
                     #
@@ -897,14 +1154,14 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
                 clusLigAvgMol.SetTitle('Average '+clusLigAvgMol.GetTitle())
                 clusProtAvgMol.SetTitle('Average '+clusProtAvgMol.GetTitle())
                 utl.StyleTrajProteinLigandClusters(clusProtAvgMol,clusLigAvgMol)
-                trajClus.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
-                trajClus.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
+                trajClusRecord.set_value(Fields.Analysis.ClusLigAvg_fld, clusLigAvgMol)
+                trajClusRecord.set_value(Fields.Analysis.ClusProtAvg_fld, clusProtAvgMol)
                 #
                 clusLigMedMol.SetTitle('Median '+clusLigMedMol.GetTitle())
                 clusProtMedMol.SetTitle('Median '+clusProtMedMol.GetTitle())
                 utl.StyleTrajProteinLigandClusters(clusProtMedMol,clusLigMedMol)
-                trajClus.set_value(Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
-                trajClus.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
+                trajClusRecord.set_value(Fields.Analysis.ClusLigMed_fld, clusLigMedMol)
+                trajClusRecord.set_value(Fields.Analysis.ClusProtMed_fld, clusProtMedMol)
 
             # case when no major clusters are found
             else:  # number of clusters is zero
@@ -934,10 +1191,11 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             record.set_value(Fields.primary_molecule, primaryMol)
 
             ClusTrajSVG_field = OEField('ClusTrajSVG', Types.StringVec)
-            trajClus.set_value(ClusTrajSVG_field, clusTrajSVG)
+            trajClusRecord.set_value(ClusTrajSVG_field, clusTrajSVG)
 
             # Set the TrajClus record on the top-level record
-            record.set_value(Fields.Analysis.oeclus_rec, trajClus)
+            record.set_value(Fields.Analysis.oeclus_rec, trajClusRecord)
+            opt['Logger'].info('{} finished adding to trajClus OERecord'.format(system_title) )
 
             # Set the number of major clusters and revise label
             record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
@@ -950,22 +1208,8 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             floe_report_label = "# clusters: " + str(nMajorClusters) + "<br>" + floe_report_label
             record.set_value(Fields.floe_report_label, floe_report_label)
 
-            analysesDone.append('TrajClus')
-            record.set_value(Fields.Analysis.analysesDone, analysesDone)
-
-            opt['Logger'].info('{} finished writing trajClus OERecord'.format(system_title) )
-
-            # debug begin bayly 2019jul
-            #from MDOrion.Standards import getMetaAttributes
-            #cubename = 'ClusterOETrajCube'
-            #fieldName = Fields.sysid.get_name()
-            #fieldMetaDict = getMetaAttributes( record, fieldName)
-            #print('{}: field {} metaData: '.format(cubename,fieldName), fieldMetaDict)
-            # debug end bayly 2019jul
-
             self.success.emit(record)
 
-            del mdtrajrecord
 
         except Exception as e:
             print("Failed to complete", str(e), flush=True)
@@ -1028,19 +1272,14 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
             asiteSVG = utl.PoseInteractionsSVG(ligInitPose, protInitPose, width=400, height=265)
 
-            # Extract the traj SVG from the OETraj record
-            analysesDone = utl.RequestOEFieldType(record, Fields.Analysis.analysesDone)
-
-            if 'OETraj' not in analysesDone:
-                raise ValueError('{} does not have OETraj analyses done'.format(system_title) )
-            else:
-                opt['Logger'].info('{} found OETraj analyses'.format(system_title))
-
-            # Extract the relevant traj SVG from the OETraj record
+            # Extract the traj SVG and Ligand average Bfactor from the OETraj record
+            if not record.has_field(Fields.Analysis.oetraj_rec):
+                raise ValueError('{} does not have ligand OETraj record'.format(system_title) )
             oetrajRecord = utl.RequestOEFieldType(record, Fields.Analysis.oetraj_rec)
             opt['Logger'].info('{} found OETraj record'.format(system_title))
-
             trajSVG = utl.RequestOEField(oetrajRecord, 'TrajSVG', Types.String)
+            ligand_bfactor = utl.RequestOEField(oetrajRecord, 'LigAverage', Types.Chem.Mol)
+
 
             # Extract the label for the MMPBSA score for the whole trajectory
             if not record.has_value(Fields.Analysis.mmpbsa_traj_mean):
@@ -1051,21 +1290,15 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 mmpbsaLabelStr = "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".format(mmpbsa_traj_mean,
                                                                                                mmpbsa_traj_std)
 
-            # Extract Ligand average Bfactor
-            ligand_bfactor = utl.RequestOEField(oetrajRecord, 'LigAverage', Types.Chem.Mol)
 
             # Extract the three plots from the TrajClus record
-            if 'TrajClus' not in analysesDone:
-                raise ValueError('{} does not have TrajClus analyses done'.format(system_title))
-            else:
-                opt['Logger'].info('{} found TrajClus analyses'.format(system_title))
-
+            if not record.has_field(Fields.Analysis.oeclus_rec):
+                raise ValueError('{} does not have TrajClus record'.format(system_title))
             # Extract the relevant traj SVG from the TrajClus record
             clusRecord = utl.RequestOEFieldType(record, Fields.Analysis.oeclus_rec)
-
             opt['Logger'].info('{} found TrajClus record'.format(system_title))
             trajClus_svg = utl.RequestOEField(clusRecord, 'ClusSVG', Types.String)
-            rmsdInit_svg = utl.RequestOEField(clusRecord, 'rmsdInitPose', Types.String)
+            #rmsdInit_svg = utl.RequestOEField(clusRecord, 'rmsdInitPose', Types.String)
             clusTrajSVG = utl.RequestOEField(clusRecord, 'ClusTrajSVG', Types.StringVec)
 
             opt['Logger'].info('{} found the TrajClus plots'.format(system_title))
@@ -1077,7 +1310,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             clusData['ClusterMethod'] = utl.RequestOEField(clusRecord, 'ClusterMethod', Types.String)
             clusData['HDBSCAN_alpha'] = utl.RequestOEField(clusRecord, 'HDBSCAN_alpha', Types.Float)
             clusData['nClusters'] = utl.RequestOEField(clusRecord, 'nClusters', Types.Int)
-            clusData['ClusterVec'] = utl.RequestOEField(clusRecord, 'Clusters', Types.IntVec)
+            clusData['ClusterVec'] = utl.RequestOEField(clusRecord, 'ClusterVec', Types.IntVec)
             clusData['ClusterCounts'] = utl.RequestOEField(clusRecord, 'ClusterCounts', Types.IntVec)
 
             opt['Logger'].info('{} finished writing analysis files'.format(system_title))
@@ -1158,9 +1391,12 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
                 report_file.write(_clus_floe_report_midHtml2)
 
-                report_file.write(_clus_floe_report_Trailer.format(
-                    clusters=trim_svg(trajClus_svg),
-                    rmsdInit=trim_svg(rmsdInit_svg)))
+                report_file.write(_clus_floe_report_stripPlots.format(
+                    clusters=trim_svg(trajClus_svg)))
+                    #rmsdInit=trim_svg(rmsdInit_svg)))
+
+
+                report_file.write(_clus_floe_report_Trailer)
 
                 report_file.close()
 
@@ -1261,29 +1497,43 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
 
         for sys_id, list_conf_rec in self.lig_sys_ids.items():
 
-            # Conformers for each ligand are sorted based on their confid in each ligand record
-            list_conf_rec.sort(key=lambda x: x.get_value(Fields.confid))
+            # catch case where for some reason the conf list list_conf_rec is empty
+            if len(list_conf_rec)<1:
+                print('{} does not have any conformer data'.format(sys_id) )
+                continue
+            elif len(list_conf_rec)>1:
+                # Conformers for each ligand are sorted based on their confid in each ligand record
+                list_conf_rec.sort(key=lambda x: x.get_value(Fields.confid))
 
             new_rec = OERecord()
+            # move some data from inside the first conf up to the top level
+            rec0 = list_conf_rec[0]
+            lig_multi_conf = oechem.OEMol(rec0.get_value(Fields.ligand))
+            protein = rec0.get_value(Fields.protein)
+            protein_name = rec0.get_value(Fields.protein_name)
+            ligid = rec0.get_value(Fields.ligid)
+            # copy all the initial fields in Fields.ligInit_rec up to the top level
+            init_rec = rec0.get_value(Fields.ligInit_rec)
+            for field in init_rec.get_fields():
+                new_rec.set_value(field, init_rec.get_value(field))
 
-            for rec in list_conf_rec:
-
-                if rec.get_value(Fields.confid) == 0:
-                    lig_multi_conf = oechem.OEMol(rec.get_value(Fields.ligand))
-                    # copy all the initial fields in Fields.ligInit_rec up to the top level
-                    init_rec = rec.get_value(Fields.ligInit_rec)
-                    for field in init_rec.get_fields():
-                        new_rec.set_value(field, init_rec.get_value(field))
-
-                else:
-                    lig_multi_conf.NewConf(rec.get_value(Fields.ligand))
+            # if >1 confs, add their confs to the parent ligand at the top level
+            for rec in list_conf_rec[1:]:
+                lig_multi_conf.NewConf(rec.get_value(Fields.ligand))
 
             # get name of initial molecule
             init_mol = new_rec.get_value(OEField('Molecule', Types.Chem.Mol))
             lig_title = init_mol.GetTitle()
             lig_multi_conf.SetTitle(lig_title)
+            # regenerate protein-ligand title since all titles on conformers include conformer id
+            title = 'p' + protein_name + '_l' + lig_title
             # set other fields on the new record
+            new_rec.set_value(Fields.title, title)
             new_rec.set_value(Fields.ligand, lig_multi_conf)
+            new_rec.set_value(Fields.primary_molecule, lig_multi_conf)
+            new_rec.set_value(Fields.protein, protein)
+            new_rec.set_value(Fields.protein_name, protein_name)
+            new_rec.set_value(Fields.ligid, ligid)
             new_rec.set_value(Fields.ligand_name, lig_title)
             new_rec.set_value(Fields.Analysis.oetrajconf_rec, list_conf_rec)
 
@@ -1407,6 +1657,12 @@ class ParallelTrajInteractionEnergyCube(ParallelMixin, TrajInteractionEnergyCube
     uuid = "a6a11dbb-bc25-4548-bf1a-471bda2f0406"
 
 
+class ParallelConcatenateTrajMMPBSACube(ParallelMixin, ConcatenateTrajMMPBSACube):
+    title = "Parallel " + ConcatenateTrajMMPBSACube.title
+    description = "(Parallel) " + ConcatenateTrajMMPBSACube.description
+    #uuid = "a6a11dbb-bc25-4548-bf1a-471bda2f0406"
+
+
 class ParallelTrajPBSACube(ParallelMixin, TrajPBSACube):
     title = "Parallel " + TrajPBSACube.title
     description = "(Parallel) " + TrajPBSACube.description
@@ -1417,6 +1673,12 @@ class ParallelClusterOETrajCube(ParallelMixin, ClusterOETrajCube):
     title = "Parallel " + ClusterOETrajCube.title
     description = "(Parallel) " + ClusterOETrajCube.description
     uuid = "216973c9-5f13-46f9-b79d-dee9d90398e9"
+
+
+class ParallelMakeClusterTrajOEMols(ParallelMixin, MakeClusterTrajOEMols):
+    title = "Parallel " + MakeClusterTrajOEMols.title
+    description = "(Parallel) " + MakeClusterTrajOEMols.description
+    # uuid = "216973c9-5f13-46f9-b79d-dee9d90398e9"
 
 
 class ParallelMDTrajAnalysisClusterReport(ParallelMixin,  MDTrajAnalysisClusterReport):

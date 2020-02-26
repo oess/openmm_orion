@@ -190,16 +190,19 @@ _clus_floe_report_midHtml2 = """      </div>
     <div class="cb-floe-report__column cb-floe-report__sidebar">
 """
 
-_clus_floe_report_Trailer = """    </div>
+_clus_floe_report_stripPlots = """    </div>
 
     <div class="cb-floe-report__column cb-floe-report__content">
       <h3 class="cb-floe-report-element--header"> Cluster membership of ligand by Trajectory frame </h3>
       {clusters}
-      <h3 class="cb-floe-report-element--header"> RMSD of ligand compared to initial pose, colored by cluster </h3>
-      {rmsdInit}
     </div>
-  </div>
+  </div>"""
+# removed from _clus_floe_report_stripPlots but commented out here in case needed again
+#      <h3 class="cb-floe-report-element--header"> RMSD of ligand compared to initial pose, colored by cluster </h3>
+#      {rmsdInit}
 
+
+_clus_floe_report_Trailer = """
 </div>
 
 </body>
