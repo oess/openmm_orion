@@ -10,7 +10,7 @@ wcwidth==0.1.7
 # Leave this here to avoid pip install issues
 OpenEye-orionplatform==2.2.0
 
-# OpenEye-Artemis==1.1.1
+# OpenEye-Artemis
 OpenEye-ensemble2img==0.1.1
 OpenEye-floereport==0.1.5
 OpenEye_oetrajanalysis==0.5.0.0
