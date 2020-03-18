@@ -1,50 +1,54 @@
 {
-    "build_requirements": {
-        "gpu": 1,
-        "instance_tags": [
-            "cuda9"
-        ]
-    },
     "conda_channels": [
+        "anaconda",
         "conda-forge",
         "mobleylab",
-        "omnia/label/cuda90",
+        "nividic",
+        "omnia/label/cuda100",
         "omnia",
         "OpenEye/label/Orion",
+        "plotly",
         "Solvationtools",
-        "nividic"
+        "jjdelany"
     ],
     "conda_dependencies": [
         "ambermini==16.16.0",
         "alchemy==1.2.3",
         "cerberus==1.1",
+        "cudatoolkit==10.0.130",
+        "freeenergyframework==0.0.1",
+        "h5py==2.9.0",
         "hdbscan==0.8.12",
-        "gromacs_p2",
+        "orion_gromacs_gpu",
         "matplotlib==3.0.3",
-        "networkx==1.11",
+        "networkx==2.3",
         "numpy==1.14.2",
         "oeommtools==0.1.10",
         "openforcefield==0.5.1",
         "openforcefields==1.0.0",
-        "openmm==7.4.0",
+        "openmm==7.4.1",
         "openmmtools==0.18.3",
         "openmoltools==0.8.1",
         "packmol==18.169",
         "parmed==3.2.0",
         "pdbfixer==1.5",
         "pip==18.0",
+        "plotly==4.5.0",
+        "plotly-orca==1.2.1",
+        "pmxalchemical==0.0.2",
         "pymbar==3.0.3",
         "pyyaml==3.13",
         "pyparsing==2.3.0",
-        "python==3.6.6",
+        "scikit-learn==0.20.2",
         "seaborn==0.8.1",
         "smirnoff99frosst=1.0.5",
         "sstmap==1.1.2",
+        "tqdm==4.42.0",
         "yank==0.24.1"
     ],
     "name": "OpenEye MD Floes",
-    "python_version": "3.6",
+    "python_version": "3.6.6",
     "requirements": "requirements_dev.txt",
     "uuid": "8ad7e185-9b86-4112-a2e7-a367e5123e29",
-    "version": "0.9.6"
+    "version": "0.9.7b68"
 }
