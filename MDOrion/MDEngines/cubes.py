@@ -21,7 +21,7 @@ import traceback
 from orionplatform.mixins import RecordPortsMixin
 
 from floe.api import (ParallelMixin,
-                      parameter,
+                      parameters,
                       ComputeCube)
 
 from MDOrion.Standards import (MDStageTypes,
@@ -71,21 +71,20 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-        "memory_mb": {"default": 6000},
-        "instance_tags": {"default": "cuda9"},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    steps = parameter.IntegerParameter(
+    steps = parameters.IntegerParameter(
         'steps',
         default=0,
         help_text="""Number of minimization steps.
                   If 0 the minimization will continue
                   until convergence""")
 
-    restraints = parameter.StringParameter(
+    restraints = parameters.StringParameter(
         'restraints',
         default='',
         help_text=""""Mask selection to apply harmonic restraints. 
@@ -93,18 +92,18 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
         ca_protein, cofactors. The selection can be refined 
         by using logical tokens: not, noh, and, or, diff, around""")
 
-    restraintWt = parameter.DecimalParameter(
+    restraintWt = parameters.DecimalParameter(
         'restraintWt',
         default=5.0,
         help_text="Restraint weight for xyz atom restraints in kcal/(mol A^2)")
 
-    restraint_to_reference = parameter.BooleanParameter(
+    restraint_to_reference = parameters.BooleanParameter(
         'restraint_to_reference',
         default=True,
         help_text='If True the starting reference system coordinates will be used '
                   'to restraint the system')
 
-    freeze = parameter.StringParameter(
+    freeze = parameters.StringParameter(
         'freeze',
         default='',
         help_text="""Mask selection to freeze atoms along the MD
@@ -113,18 +112,18 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
         using logical tokens: not, noh, and, or, diff, around. NOTE:
         Not currently implemented in Gromacs""")
 
-    temperature = parameter.DecimalParameter(
+    temperature = parameters.DecimalParameter(
         'temperature',
         default=300,
         help_text="Temperature (Kelvin)")
 
-    nonbondedCutoff = parameter.DecimalParameter(
+    nonbondedCutoff = parameters.DecimalParameter(
         'nonbondedCutoff',
         default=10,
         help_text="""The non-bonded cutoff in angstroms.
         This is ignored if the non-bonded method is NoCutoff""")
 
-    constraints = parameter.StringParameter(
+    constraints = parameters.StringParameter(
         'constraints',
         default='H-Bonds',
         choices=['None', 'H-Bonds', 'H-Angles', 'All-Bonds'],
@@ -133,42 +132,42 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
         None means no bonds are constrained.
         H-Bonds means bonds with hydrogen are constrained, etc.""")
 
-    implicit_solvent = parameter.StringParameter(
+    implicit_solvent = parameters.StringParameter(
         'implicit_solvent',
         default='None',
         choices=['None', 'HCT', 'OBC1', 'OBC2', 'GBn', 'GBn2'],
         help_text="Implicit Solvent Model. NOTE:"
                   "Not currently implemented in Gromacs")
 
-    center = parameter.BooleanParameter(
+    center = parameters.BooleanParameter(
         'center',
         default=True,
         description='Center the system to the OpenMM and Gromacs unit cell')
 
-    verbose = parameter.BooleanParameter(
+    verbose = parameters.BooleanParameter(
         'verbose',
         default=True,
         description='Increase log file verbosity')
 
-    suffix = parameter.StringParameter(
+    suffix = parameters.StringParameter(
         'suffix',
         default='min',
         help_text='Filename suffix for output simulation files')
 
-    hmr = parameter.BooleanParameter(
+    hmr = parameters.BooleanParameter(
         'hmr',
         default=False,
         description='On enables Hydrogen Mass Repartitioning. NOTE:'
                     'Not currently implemented in Gromacs')
 
-    save_md_stage = parameter.BooleanParameter(
+    save_md_stage = parameters.BooleanParameter(
         'save_md_stage',
         default=True,
         help_text="""Save the MD simulation stage. If True the MD,
            simulation data will be appended to the md simulation stages 
            otherwise the last MD stage will be overwritten""")
 
-    md_engine = parameter.StringParameter(
+    md_engine = parameters.StringParameter(
         'md_engine',
         default='OpenMM',
         choices=['OpenMM', 'Gromacs'],
@@ -197,7 +196,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
 
                 if v.default is None:
                     tmp_default.default = 'None'
-                elif isinstance(v, parameter.BooleanParameter):
+                elif isinstance(v, parameters.BooleanParameter):
                     if v.default:
                         tmp_default.default = 'True'
                     else:
@@ -310,23 +309,22 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
     parameter_overrides = {
         "gpu_count": {"default": 1},
         "memory_mb": {"default": 6000},
-        "instance_tags": {"default": "cuda9"},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    temperature = parameter.DecimalParameter(
+    temperature = parameters.DecimalParameter(
         'temperature',
         default=300.0,
         help_text="Temperature (Kelvin)")
 
-    time = parameter.DecimalParameter(
+    time = parameters.DecimalParameter(
         'time',
         default=0.01,
         help_text="NVT simulation time in nanoseconds")
 
-    restraints = parameter.StringParameter(
+    restraints = parameters.StringParameter(
         'restraints',
         default='',
         help_text=""""Mask selection to apply harmonic restraints. 
@@ -334,18 +332,18 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
         ca_protein, cofactors. The selection can be refined 
         by using logical tokens: not, noh, and, or, diff, around""")
 
-    restraintWt = parameter.DecimalParameter(
+    restraintWt = parameters.DecimalParameter(
         'restraintWt',
         default=2.0,
         help_text="Restraint weight for xyz atom restraints in kcal/(mol A^2)")
 
-    restraint_to_reference = parameter.BooleanParameter(
+    restraint_to_reference = parameters.BooleanParameter(
         'restraint_to_reference',
         default=True,
         help_text='If True the starting reference system coordinates will be used '
                   'to restraint the system')
 
-    freeze = parameter.StringParameter(
+    freeze = parameters.StringParameter(
         'freeze',
         default='',
         help_text="""Mask selection to freeze atoms along the MD
@@ -354,13 +352,13 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
         using logical tokens: not, noh, and, or, diff, around. NOTE:
         Not currently implemented in Gromacs""")
 
-    nonbondedCutoff = parameter.DecimalParameter(
+    nonbondedCutoff = parameters.DecimalParameter(
         'nonbondedCutoff',
         default=10,
         help_text="""The non-bonded cutoff in angstroms.
         This is ignored if non-bonded method is NoCutoff.""")
 
-    constraints = parameter.StringParameter(
+    constraints = parameters.StringParameter(
         'constraints',
         default='H-Bonds',
         choices=['None', 'H-Bonds', 'H-Angles', 'All-Bonds'],
@@ -369,54 +367,54 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
         None means no bonds are constrained.
         HBonds means bonds with hydrogen are constrained, etc.""")
 
-    implicit_solvent = parameter.StringParameter(
+    implicit_solvent = parameters.StringParameter(
         'implicit_solvent',
         default='None',
         choices=['None', 'HCT', 'OBC1', 'OBC2', 'GBn', 'GBn2'],
         help_text="Implicit Solvent Model. NOTE:"
                   "Not currently implemented in Gromacs")
 
-    trajectory_interval = parameter.DecimalParameter(
+    trajectory_interval = parameters.DecimalParameter(
         'trajectory_interval',
         default=0.0,
         help_text="""Time interval for trajectory snapshots in ns. 
         If 0 the trajectory file will not be generated""")
 
-    reporter_interval = parameter.DecimalParameter(
+    reporter_interval = parameters.DecimalParameter(
         'reporter_interval',
         default=0.0,
         help_text="""Time interval for reporting data in ns. 
         If 0 the reporter file will not be generated""")
 
-    suffix = parameter.StringParameter(
+    suffix = parameters.StringParameter(
         'suffix',
         default='nvt',
         help_text='Filename suffix for output simulation files')
 
-    center = parameter.BooleanParameter(
+    center = parameters.BooleanParameter(
         'center',
         default=False,
         help_text='Center the system to the OpenMM unit cell')
 
-    verbose = parameter.BooleanParameter(
+    verbose = parameters.BooleanParameter(
         'verbose',
         default=True,
         help_text='Increase log file verbosity')
 
-    hmr = parameter.BooleanParameter(
+    hmr = parameters.BooleanParameter(
         'hmr',
         default=False,
         help_text='On enables Hydrogen Mass Repartitioning. NOTE: '
                   'Not currently implemented in Gromacs')
 
-    save_md_stage = parameter.BooleanParameter(
+    save_md_stage = parameters.BooleanParameter(
         'save_md_stage',
         default=False,
         help_text="""Save the MD simulation stage. If True the MD,
            simulation data will be appended to the md simulation stages 
            otherwise the last MD stage will be overwritten""")
 
-    md_engine = parameter.StringParameter(
+    md_engine = parameters.StringParameter(
         'md_engine',
         default='OpenMM',
         choices=['OpenMM', 'Gromacs'],
@@ -446,7 +444,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
 
                 if v.default is None:
                     tmp_default.default = 'None'
-                elif isinstance(v, parameter.BooleanParameter):
+                elif isinstance(v, parameters.BooleanParameter):
                     if v.default:
                         tmp_default.default = 'True'
                     else:
@@ -593,29 +591,28 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-        "memory_mb": {"default": 6000},
-        "instance_tags": {"default": "cuda9"},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    temperature = parameter.DecimalParameter(
+    temperature = parameters.DecimalParameter(
         'temperature',
         default=300.0,
         help_text="Temperature (Kelvin)")
 
-    pressure = parameter.DecimalParameter(
+    pressure = parameters.DecimalParameter(
         'pressure',
         default=1.0,
         help_text="Pressure (atm)")
 
-    time = parameter.DecimalParameter(
+    time = parameters.DecimalParameter(
         'time',
         default=0.01,
         help_text="NPT simulation time in nanoseconds")
 
-    restraints = parameter.StringParameter(
+    restraints = parameters.StringParameter(
         'restraints',
         default='',
         help_text=""""Mask selection to apply harmonic restraints. 
@@ -623,18 +620,18 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
         ca_protein, cofactors. The selection can be refined 
         by using logical tokens: not, noh, and, or, diff, around""")
 
-    restraintWt = parameter.DecimalParameter(
+    restraintWt = parameters.DecimalParameter(
         'restraintWt',
         default=2.0,
         help_text="Restraint weight for xyz atom restraints in kcal/(mol A^2)")
 
-    restraint_to_reference = parameter.BooleanParameter(
+    restraint_to_reference = parameters.BooleanParameter(
         'restraint_to_reference',
         default=True,
         help_text='If True the starting reference system coordinates will be used '
                   'to restraint the system')
 
-    freeze = parameter.StringParameter(
+    freeze = parameters.StringParameter(
         'freeze',
         default='',
         help_text="""Mask selection to freeze atoms along the MD simulation.
@@ -642,13 +639,13 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
         cofactors. The selection can be refined by using logical tokens:
         not, noh, and, or, diff, around. Not currently implemented in Gromacs""")
 
-    nonbondedCutoff = parameter.DecimalParameter(
+    nonbondedCutoff = parameters.DecimalParameter(
         'nonbondedCutoff',
         default=10,
         help_text="""The non-bonded cutoff in angstroms.
         This is ignored if non-bonded method is NoCutoff""")
 
-    constraints = parameter.StringParameter(
+    constraints = parameters.StringParameter(
         'constraints',
         default='H-Bonds',
         choices=['None', 'H-Bonds', 'H-Angles', 'All-Bonds'],
@@ -657,52 +654,52 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
         None means no bonds are constrained.
         HBonds means bonds with hydrogen are constrained, etc.""")
 
-    implicit_solvent = parameter.StringParameter(
+    implicit_solvent = parameters.StringParameter(
         'implicit_solvent',
         default='None',
         choices=['None', 'HCT', 'OBC1', 'OBC2', 'GBn', 'GBn2'],
         help_text="Implicit Solvent Model. Not Currently implemented in Gromacs")
 
-    trajectory_interval = parameter.DecimalParameter(
+    trajectory_interval = parameters.DecimalParameter(
         'trajectory_interval',
         default=0.0,
         help_text="""Time interval for trajectory snapshots in ns. 
         If 0 the trajectory file will not be generated""")
 
-    reporter_interval = parameter.DecimalParameter(
+    reporter_interval = parameters.DecimalParameter(
         'reporter_interval',
         default=0.0,
         help_text="""Time interval for reporting data in ns. 
         If 0 the reporter file will not be generated""")
 
-    suffix = parameter.StringParameter(
+    suffix = parameters.StringParameter(
         'suffix',
         default='npt',
         help_text='Filename suffix for output simulation files')
 
-    center = parameter.BooleanParameter(
+    center = parameters.BooleanParameter(
         'center',
         default=False,
         help_text='Center the system to the OpenMM unit cell')
 
-    verbose = parameter.BooleanParameter(
+    verbose = parameters.BooleanParameter(
         'verbose',
         default=True,
         help_text='Increase log file verbosity')
 
-    hmr = parameter.BooleanParameter(
+    hmr = parameters.BooleanParameter(
         'hmr',
         default=False,
         help_text='On enables Hydrogen Mass Repartitioning. Not currently implemented in Gromacs')
 
-    save_md_stage = parameter.BooleanParameter(
+    save_md_stage = parameters.BooleanParameter(
         'save_md_stage',
         default=False,
         help_text="""Save the MD simulation stage. If True the MD,
            simulation data will be appended to the md simulation stages 
            otherwise the last MD stage will be overwritten""")
 
-    md_engine = parameter.StringParameter(
+    md_engine = parameters.StringParameter(
         'md_engine',
         default='OpenMM',
         choices=['OpenMM', 'Gromacs'],
@@ -731,7 +728,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
 
                 if v.default is None:
                     tmp_default.default = 'None'
-                elif isinstance(v, parameter.BooleanParameter):
+                elif isinstance(v, parameters.BooleanParameter):
                     if v.default:
                         tmp_default.default = 'True'
                     else:

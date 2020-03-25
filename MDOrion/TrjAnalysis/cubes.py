@@ -1,7 +1,7 @@
 from orionplatform.mixins import RecordPortsMixin
 
 from floe.api import (ParallelMixin,
-                      parameter,
+                      parameters,
                       ComputeCube)
 
 from MDOrion.Standards import Fields, MDStageNames
@@ -80,13 +80,13 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 6000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    upload = parameter.BooleanParameter(
+    upload = parameters.BooleanParameter(
         'upload',
         default=False,
         help_text="Upload floe report to Amazon S3")
@@ -255,7 +255,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 6000},
+       "memory_mb": {"default": 64000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -404,13 +404,13 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    explicit_water = parameter.BooleanParameter(
+    explicit_water = parameters.BooleanParameter(
         'explicit_water',
         default=False,
         help_text="""Enable MMPBSA calculation with explicit water""")
@@ -602,7 +602,7 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -750,7 +750,7 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 6000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -991,7 +991,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 6000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -1219,7 +1219,7 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -1302,23 +1302,23 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    cutoff = parameter.DecimalParameter(
+    cutoff = parameters.DecimalParameter(
         'cutoff',
         default=5.0,
         help_text="Cutoff Distance between Volume grid points and ligand-protein in A")
 
-    explicit_water = parameter.BooleanParameter(
+    explicit_water = parameters.BooleanParameter(
         'explicit_water',
         default=False,
         help_text="""Enable MMPBSA calculation with explicit water""")
 
-    water_number = parameter.IntegerParameter(
+    water_number = parameters.IntegerParameter(
         'water_number',
         default=0,
         help_text="""If different from zero the selected water number will be used"""

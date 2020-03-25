@@ -26,7 +26,7 @@ from MDOrion.Standards import Fields
 
 from floe.constants import ADVANCED
 
-from floe.api import (parameter,
+from floe.api import (parameters,
                       ComputeCube)
 
 from orionplatform.mixins import RecordPortsMixin
@@ -65,17 +65,17 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
     # Ligand Residue Name
-    lig_res_name = parameter.StringParameter('lig_res_name',
-                                             default='LIG',
-                                             help_text='The ligand residue name',
-                                             level=ADVANCED)
+    lig_res_name = parameters.StringParameter('lig_res_name',
+                                              default='LIG',
+                                              help_text='The ligand residue name',
+                                              level=ADVANCED)
 
     protein_port = RecordInputPort("protein_port", initializer=True)
 

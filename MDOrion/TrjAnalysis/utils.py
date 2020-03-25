@@ -525,6 +525,8 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
         with contextlib.redirect_stderr(devnull):
             trjImaged = trj.image_molecules(inplace=False, anchor_molecules=[protligAtoms], make_whole=True)
 
+    #
+
     count = 0
     water_max_frames = []
 

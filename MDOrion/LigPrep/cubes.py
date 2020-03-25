@@ -19,7 +19,7 @@ import traceback
 
 from MDOrion.LigPrep import ff_utils
 
-from floe.api import (parameter,
+from floe.api import (parameters,
                       ComputeCube,
                       ParallelMixin)
 
@@ -57,18 +57,18 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    max_conformers = parameter.IntegerParameter(
+    max_conformers = parameters.IntegerParameter(
         'max_conformers',
         default=800,
         help_text="Max number of ligand conformers generated to charge the ligands")
 
-    charge_ligands = parameter.BooleanParameter(
+    charge_ligands = parameters.BooleanParameter(
         'charge_ligands',
         default=True,
         description='Flag used to set if charge the ligands or not')
@@ -144,7 +144,7 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
     }
 
     # Ligand Residue Name
-    lig_res_name = parameter.StringParameter('lig_res_name',
+    lig_res_name = parameters.StringParameter('lig_res_name',
                                              default='LIG',
                                              help_text='The new ligand residue name')
 

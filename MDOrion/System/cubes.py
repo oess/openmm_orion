@@ -32,7 +32,7 @@ from orionplatform.ports import (RecordInputPort,
 
 
 from floe.api import (ParallelMixin,
-                      parameter,
+                      parameters,
                       ComputeCube)
 
 from oeommtools import packmol
@@ -71,7 +71,7 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -164,13 +164,13 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    open = parameter.BooleanParameter(
+    open = parameters.BooleanParameter(
         'open',
         default=True,
         help_text='Open or Close a Collection')
@@ -264,69 +264,69 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 6000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    density = parameter.DecimalParameter(
+    density = parameters.DecimalParameter(
         'density',
         default=1.0,
         help_text="Solution density in g/ml")
 
-    padding_distance = parameter.DecimalParameter(
+    padding_distance = parameters.DecimalParameter(
         'padding_distance',
         default=8.0,
         help_text="The padding distance between the solute and the box edge in A")
 
-    distance_between_atoms = parameter.DecimalParameter(
+    distance_between_atoms = parameters.DecimalParameter(
         'distance_between_atoms',
         default=2.0,
         help_text="The minimum distance between atoms in A")
 
-    solvents = parameter.StringParameter(
+    solvents = parameters.StringParameter(
         'solvents',
         default='tip3p',
         help_text='Select solvents. The solvents are specified as comma separated smiles strings'
                   'e.g. [H]O[H], C(Cl)(Cl)Cl, CS(=O)C or special keywords like tip3p')
 
-    molar_fractions = parameter.StringParameter(
+    molar_fractions = parameters.StringParameter(
         'molar_fractions',
         default='1.0',
         help_text="Molar fractions of each solvent components. The molar fractions are specified"
                   "as comma separated molar fractions strings e.g. 0.5,0.2,0.3")
 
-    verbose = parameter.BooleanParameter(
+    verbose = parameters.BooleanParameter(
         'verbose',
         default=False,
         help_text='Output Packmol log')
 
-    geometry = parameter.StringParameter(
+    geometry = parameters.StringParameter(
         'geometry',
         default='box',
         choices=['box', 'sphere'],
         help_text="Geometry selection: box or sphere. Sphere cannot be used as periodic system "
                   "along with MD simulation")
 
-    close_solvent = parameter.BooleanParameter(
+    close_solvent = parameters.BooleanParameter(
         'close_solvent',
         default=False,
         help_text="If Checked/True solvent molecules will be placed very close to the solute")
 
-    salt = parameter.StringParameter(
+    salt = parameters.StringParameter(
         'salt',
         default='[Na+], [Cl-]',
         help_text='Salt type. The salt is specified as list of smiles strings. '
                   'Each smiles string is the salt component dissociated in the '
                   'solution e.g. Na+, Cl-')
 
-    salt_concentration = parameter.DecimalParameter(
+    salt_concentration = parameters.DecimalParameter(
         'salt_concentration',
         default=0.0,
         help_text="Salt concentration in millimolar")
 
-    neutralize_solute = parameter.BooleanParameter(
+    neutralize_solute = parameters.BooleanParameter(
         'neutralize_solute',
         default=True,
         help_text='Neutralize the solute by adding Na+ and Cl- counter-ions based on'
@@ -412,7 +412,7 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time

@@ -25,6 +25,7 @@ from MDOrion.MDEngines.Gromacs.cubes import (InputGromacs,
                                              GromacsRunCube,
                                              WriterRecordCube)
 
+from orionplatform.cubes import DatasetWriterCube
 
 job = WorkFloe('PlainGromacs', title='Plain Gromacs')
 
@@ -68,12 +69,22 @@ gmx.promote_parameter("verbose", promoted_name="verbose", default=False)
 
 ofs = WriterRecordCube("OutputRecords", title="Output Records")
 
-job.add_cubes(ifs, proxy, gmx, ofs)
+fail = DatasetWriterCube('fail', title='Failures')
+fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
+                       description="MD Dataset Failures out")
+
+
+job.add_cubes(ifs, proxy, gmx, ofs, fail)
 
 ifs.success.connect(proxy.intake)
 proxy.success.connect(gmx.intake)
 gmx.success.connect(proxy.intake)
 gmx.success.connect(ofs.intake)
+
+# Fail Connections
+ifs.failure.connect(fail.intake)
+proxy.failure.connect(fail.intake)
+gmx.failure.connect(fail.intake)
 
 
 if __name__ == "__main__":

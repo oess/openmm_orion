@@ -20,7 +20,7 @@ import traceback
 from orionplatform.mixins import RecordPortsMixin
 
 from floe.api import (ParallelMixin,
-                      parameter,
+                      parameters,
                       ComputeCube)
 
 from oeommtools import utils as oeommutils
@@ -85,40 +85,40 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    protein_forcefield = parameter.StringParameter(
+    protein_forcefield = parameters.StringParameter(
         'protein_forcefield',
         default=sorted(ffutils.proteinff)[0],
         choices=sorted(ffutils.proteinff),
         help_text='Force field parameters to be applied to the protein')
 
-    solvent_forcefield = parameter.StringParameter(
+    solvent_forcefield = parameters.StringParameter(
         'solvent_forcefield',
         default=sorted(ffutils.solventff)[0],
         help_text='Force field parameters to be applied to the water')
 
-    ligand_forcefield = parameter.StringParameter(
+    ligand_forcefield = parameters.StringParameter(
         'ligand_forcefield',
         default=sorted(ffutils.ligandff)[0],
         choices=sorted(ffutils.ligandff),
         help_text='Force field to be applied to the ligand')
 
-    lig_res_name = parameter.StringParameter(
+    lig_res_name = parameters.StringParameter(
         'lig_res_name',
         default='LIG',
         help_text='Ligand residue name. This is used during the spitting to identify the ligand')
 
-    suffix = parameter.StringParameter(
+    suffix = parameters.StringParameter(
         'suffix',
         default='prep',
         help_text='Filename suffix for output simulation files')
 
-    other_forcefield = parameter.StringParameter(
+    other_forcefield = parameters.StringParameter(
         'other_forcefield',
         default=sorted(ffutils.otherff)[0],
         choices=sorted(ffutils.otherff),

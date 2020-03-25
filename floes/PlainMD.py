@@ -86,7 +86,7 @@ solvate.promote_parameter('salt_concentration', promoted_name='salt_concentratio
 solvate.set_parameters(close_solvent=True)
 
 # This cube is necessary for the correct work of collection and shard
-coll_open = CollectionSetting("OpenCollection")
+coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
 # Force Field Application
@@ -186,7 +186,7 @@ md_group = ParallelCubeGroup(cubes=[minComplex, warmup, equil1, equil2, equil3, 
 job.add_group(md_group)
 
 # This cube is necessary for the correct working of collection and shard
-coll_close = CollectionSetting("CloseCollection")
+coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 
 rec_check = ParallelRecordSizeCheck("RecordCheck")
@@ -207,7 +207,6 @@ ifs.success.connect(sysid.intake)
 sysid.success.connect(solvate.intake)
 solvate.success.connect(coll_open.intake)
 coll_open.success.connect(ff.intake)
-coll_open.failure.connect(rec_check.fail_in)
 ff.success.connect(minComplex.intake)
 minComplex.success.connect(warmup.intake)
 warmup.success.connect(equil1.intake)
@@ -215,10 +214,21 @@ equil1.success.connect(equil2.intake)
 equil2.success.connect(equil3.intake)
 equil3.success.connect(prod.intake)
 prod.success.connect(coll_close.intake)
-prod.failure.connect(rec_check.fail_in)
 coll_close.success.connect(rec_check.intake)
-coll_close.failure.connect(rec_check.fail_in)
 rec_check.success.connect(ofs.intake)
+
+# Fail Connections
+sysid.failure.connect(rec_check.fail_in)
+solvate.failure.connect(rec_check.fail_in)
+coll_open.failure.connect(rec_check.fail_in)
+ff.failure.connect(rec_check.fail_in)
+minComplex.failure.connect(rec_check.fail_in)
+warmup.failure.connect(rec_check.fail_in)
+equil1.failure.connect(rec_check.fail_in)
+equil2.failure.connect(rec_check.fail_in)
+equil3.failure.connect(rec_check.fail_in)
+prod.failure.connect(rec_check.fail_in)
+coll_close.failure.connect(rec_check.fail_in)
 rec_check.failure.connect(fail.intake)
 
 if __name__ == "__main__":

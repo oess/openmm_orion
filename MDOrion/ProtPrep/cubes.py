@@ -19,7 +19,7 @@ import traceback
 
 from MDOrion.Standards import Fields
 
-from floe.api import (parameter,
+from floe.api import (parameters,
                       ComputeCube)
 
 from orionplatform.mixins import RecordPortsMixin
@@ -59,35 +59,35 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    multiple_protein = parameter.BooleanParameter(
+    multiple_protein = parameters.BooleanParameter(
         'multiple_protein',
         default=False,
         help_text="If Checked/True multiple protein will be allowed")
 
-    protein_title = parameter.StringParameter(
+    protein_title = parameters.StringParameter(
         'protein_title',
         default='',
         help_text='Optional replacement for the protein title'
     )
 
-    protein_forcefield = parameter.StringParameter(
+    protein_forcefield = parameters.StringParameter(
         'protein_forcefield',
         default=sorted(ffutils.proteinff)[0],
         choices=sorted(ffutils.proteinff),
         help_text='Force field parameters to be applied to the protein')
 
-    solvent_forcefield = parameter.StringParameter(
+    solvent_forcefield = parameters.StringParameter(
         'solvent_forcefield',
         default=sorted(ffutils.solventff)[0],
         help_text='Force field parameters to be applied to the water')
 
-    other_forcefield = parameter.StringParameter(
+    other_forcefield = parameters.StringParameter(
         'other_forcefield',
         default=sorted(ffutils.otherff)[0],
         choices=sorted(ffutils.otherff),

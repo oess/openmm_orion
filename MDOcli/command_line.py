@@ -17,10 +17,7 @@ from orionclient.types import File, Shard, ShardCollection
 
 import os
 
-from orionclient.session import (OrionSession,
-                                 get_profile_config,
-                                 get_session,
-                                 APISession)
+from orionclient.session import get_session
 
 import orionclient
 
@@ -75,13 +72,18 @@ def dataset(ctx, filename, id):
         records.append(rec)
     ifs.close()
 
-    if id == 'all':
+    if id == ('a', 'l', 'l'):
         ctx.obj['records'] = records
     else:
-        if int(id) < len(records):
-            ctx.obj['records'] = [records[int(id)]]
-        else:
-            raise ValueError("Wrong record number selection: {} > max = {}".format(int(id), len(records)))
+
+        list_rec = []
+        for idx in id:
+            if int(idx) < len(records):
+                list_rec.append(records[int(idx)])
+            else:
+                raise ValueError("Wrong record number selection: {} > max = {}".format(int(id), len(records)))
+
+        ctx.obj['records'] = list_rec
 
 
 @dataset.command("makelocal")

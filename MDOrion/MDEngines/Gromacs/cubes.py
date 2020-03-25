@@ -29,7 +29,7 @@ from floe.api import (ParallelMixin,
 from datarecord import OERecord
 from datarecord.utils import TemporaryPath
 
-from floe.api import parameter
+from floe.api import parameters
 
 from orionplatform.parameters import DatasetInputParameter, FileInputParameter
 
@@ -65,10 +65,10 @@ class InputGromacs(SourceCube):
     success = RecordOutputPort('success')
     failure = RecordOutputPort('failure')
 
-    prefix_name = parameter.StringParameter("prefix_name",
-                                            description="The system prefix name",
-                                            required=True,
-                                            default="PROT")
+    prefix_name = parameters.StringParameter("prefix_name",
+                                             description="The system prefix name",
+                                             required=True,
+                                             default="PROT")
 
     tpr = FileInputParameter("tpr",
                              title="Gromacs Tpr",
@@ -120,7 +120,7 @@ class GromacsProxyCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 6000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -192,20 +192,19 @@ class GromacsRunCube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-        "memory_mb": {"default": 6000},
-        "instance_tags": {"default": "cuda9"},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    cube_run_time = parameter.DecimalParameter("cube_run_time",
-                                               default=10.0,
-                                               help_text="Gromacs Max Cube Running Time in hrs")
+    cube_run_time = parameters.DecimalParameter("cube_run_time",
+                                                default=10.0,
+                                                help_text="Gromacs Max Cube Running Time in hrs")
 
-    verbose = parameter.BooleanParameter("verbose",
-                                         default=False,
-                                         help_text="Enable/Disable Gromacs Std Output")
+    verbose = parameters.BooleanParameter("verbose",
+                                          default=False,
+                                          help_text="Enable/Disable Gromacs Std Output")
 
     def begin(self):
         self.opt = vars(self.args)
