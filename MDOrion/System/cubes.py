@@ -412,7 +412,7 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-       "memory_mb": {"default": 14000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -447,7 +447,6 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
             print("Failed to complete", str(e), flush=True)
             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
             self.log.error(traceback.format_exc())
-            self.failure.emit(record)
 
         return
 

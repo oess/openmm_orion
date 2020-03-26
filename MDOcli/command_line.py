@@ -57,7 +57,7 @@ def main(ctx, profile):
 
 @main.group()
 @click.argument('filename', type=click.Path(exists=True))
-@click.option("--id", help="Record ID number", default="all")
+@click.option("--id", help="Record ID number", multiple=True, default="all")
 @click.pass_context
 def dataset(ctx, filename, id):
     """Records Extraction"""
