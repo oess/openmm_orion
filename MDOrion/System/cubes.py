@@ -427,26 +427,15 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
     def process(self, record, port):
         try:
             if in_orion():
-                # Create the MD record to use the MD Record API
-                mdrecord = MDDataRecord(record)
-
-                system = mdrecord.get_flask
-
-                if not mdrecord.has_title:
-                    self.log.warn("Missing record Title field")
-                    system_title = system.GetTitle()[0:12]
-                else:
-                    system_title = mdrecord.get_title
 
                 tot_size = 0
                 for field in record.get_fields():
                     tot_size += record.get_value_size(field)
 
                 if tot_size > 100 * 1024 * 1024:
-                    raise ValueError("The record size exceeds the 100 MB: {} = {}".format(system_title,
-                                                                                          get_human_readable(tot_size)))
+                    raise ValueError("The record size exceeds the 100 MB: {}".format(get_human_readable(tot_size)))
                 else:
-                    self.opt['Logger'].info("Record size: {} = {}".format(system_title, get_human_readable(tot_size)))
+                    self.opt['Logger'].info("Record size: {}".format(get_human_readable(tot_size)))
 
             if port == "intake":
                 self.success.emit(record)
@@ -458,6 +447,7 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
             print("Failed to complete", str(e), flush=True)
             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
             self.log.error(traceback.format_exc())
+            self.failure.emit(record)
 
         return
 
