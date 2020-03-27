@@ -260,6 +260,8 @@ def ligand_extraction(ctx):
 @click.pass_context
 def info_extraction(ctx):
 
+    rec_size = 0
+
     def GetHumanReadable(size, precision=2):
         suffixes = ['B', 'KB', 'MB', 'GB', 'TB']
         suffixIndex = 0
@@ -267,13 +269,22 @@ def info_extraction(ctx):
         while size > 1024 and suffixIndex < 4:
             suffixIndex += 1  # increment the index of the suffix
             size = size / 1024.0  # apply the division
-        return "%.*f %s" % (precision, size, suffixes[suffixIndex])
+
+        color = ""
+        if suffixIndex > 1:
+            color = "\033[33m"
+
+        return "%s %.*f %s \033[0;37;40m" % (color, precision, size, suffixes[suffixIndex])
 
     def recursive_record(record, level=0):
+
+        nonlocal rec_size
 
         for field in record.get_fields():
 
             field_type = field.get_type()
+
+            rec_size += record.get_value_size(field)
 
             blank = "       "
             print("{} |".format(blank * (level + 1)))
@@ -342,15 +353,16 @@ def info_extraction(ctx):
 
     for idx in range(0, len(ctx.obj['records'])):
         print(30 * "*" + " RECORD {}/{} ".format(idx + 1, len(ctx.obj['records'])) + 30 * "*")
+        rec_size = 0
         recursive_record(ctx.obj['records'][idx], 0)
-        print("\n" + 30 * "*" + " END RECORD ".format(idx + 1, len(ctx.obj['records'])) + 30 * "*" + "\n")
+        print("\n" + 22 * "*" + " END RECORD - SIZE {} ".format(GetHumanReadable(rec_size)) + 23 * "*" + "\n")
 
 
 @main.group()
 @click.argument('filename', type=click.Path(exists=True))
 @click.option("--id", help="Record ID number", default="all")
 @click.pass_context
-def analysis(ctx, filename, id, profile=None, max_retries=5):
+def analysis(ctx, filename, id):
     """Records Extraction"""
 
     ctx.obj['filename'] = filename
