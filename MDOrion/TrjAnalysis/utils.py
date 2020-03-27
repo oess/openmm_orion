@@ -623,6 +623,9 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
 
         # print(water_list_sorted_max)
 
+        # TODO The following solution to extract the waters do not
+        #  keep the water order
+
         # Mark the close water atoms and extract them
         bv = oechem.OEBitVector(nmax * 3)
         water_idx = []
@@ -640,6 +643,8 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
         water_nmax_reference = oechem.OEMol()
         oechem.OESubsetMol(water_nmax_reference, flask, pred_vec)
 
+        # TODO The following solution to extract the waters
+        #  keep the water order but is it seems extremely inefficient
 
         # water_list = []
         # for pair in water_list_sorted_max:
@@ -662,10 +667,9 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
         # # print(len(water_list))
         #
         # water_nmax_reference = oechem.OEMol()
-        # print(">>>>>>>>>>>>>>>>>>>>> Water List Start <<<<<<<<<<<<<<<<<<<<<<<", flush=True)
+
         # for w in water_list:
         #     oechem.OEAddMols(water_nmax_reference, w)
-        # print(">>>>>>>>>>>>>>>>>>>>> Water List End <<<<<<<<<<<<<<<<<<<<<<<", flush=True)
 
         # ligand and protein conf coordinates
         lig_xyz_list = [10 * frame[idx] for idx in lig_idx]
