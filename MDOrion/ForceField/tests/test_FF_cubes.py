@@ -102,8 +102,8 @@ class ForceFieldPrepTester(unittest.TestCase):
             pass
 
         # Selecting ligand and excipient parametrization
-        self.cube.args.ligand_forcefield = 'OpenFF_1.0.0'
-        self.cube.args.other_forcefield = 'OpenFF_1.0.0'
+        self.cube.args.ligand_forcefield = 'OpenFF_1.1.0'
+        self.cube.args.other_forcefield = 'OpenFF_1.1.0'
 
         # Process the molecules
         self.cube.process(record, self.cube.intake.name)
