@@ -52,9 +52,9 @@ from .TrjAnalysis.cubes import ParallelMDTrajAnalysisClusterReport
 from .TrjAnalysis.cubes import ParallelClusterOETrajCube
 from .TrjAnalysis.cubes import ConformerGatheringData
 
-from .Yank.cubes import YankSolvationFECube
-from .Yank.cubes import ParallelYankSolvationFECube
+# from .Yank.cubes import YankSolvationFECube
+# from .Yank.cubes import ParallelYankSolvationFECube
 
-from .Yank.cubes import YankBindingFECube
-from .Yank.cubes import ParallelYankBindingFECube
+# from .Yank.cubes import YankBindingFECube
+# from .Yank.cubes import ParallelYankBindingFECube
 
