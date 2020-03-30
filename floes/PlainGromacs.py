@@ -17,6 +17,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
+from os import path
 
 from floe.api import WorkFloe
 
@@ -29,38 +30,15 @@ from orionplatform.cubes import DatasetWriterCube
 
 job = WorkFloe('PlainGromacs', title='Plain Gromacs')
 
-job.description = """
-This Floe has been design to run Gromacs by using as
-input Gromacs .tpr files. The floe will run Gromacs
-for a max number of hours (10hrs default) outputting the produced 
-trajectory file and a recovery dataset. The Gromacs cube 
-runs in a cycle till the number of md steps specified in 
-the .tpr file are consumed. If the recovery dataset is 
-provided as input, Gromacs will recover and run from the last
-check point saved in the recovery dataset. If both .tpr 
-and recovery dataset files are provided the recovery dataset 
-will overwrite the .tpr file.
+job.description = open(path.join(path.dirname(__file__), 'PlainGromacs_desc.rst'), 'r').read()
 
-Required Input Parameters:
---------------------------
-tpr (file): Gromacs Tpr file
-dataset: The recovery Gromacs dataset
-
-Outputs:
---------
-
-OEDataset Recovery file
-OEFile Gromacs Trajectory files
-OEFile Restart file (useless for the user)
-"""
-
-job.classification = [['Molecular Dynamics']]
+job.classification = [['General MD']]
 job.uuid = "f092b164-7400-403d-8861-b25ff741cab5"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = InputGromacs("Input File", title="Input file")
 ifs.promote_parameter('tpr', promoted_name='tpr', default=None)
-ifs.promote_parameter("prefix_name", promoted_name="prefix", default="PROT")
+ifs.promote_parameter("prefix_name", promoted_name="Flask prefix", default="Flask")
 ifs.promote_parameter("data_in", promoted_name='in')
 
 proxy = GromacsProxyCube("GromacsProxy", title="Gromacs Proxy Cube")

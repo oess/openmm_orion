@@ -38,6 +38,7 @@ from oeommtools.utils import oemol_to_openmmTop
 ligandff = {'Gaff': 'GAFF',
             'Gaff2': 'GAFF2',
             'Smirnoff99Frosst': 'smirnoff99Frosst.offxml',
+            'OpenFF_1.0.0': "openff_unconstrained-1.0.0.offxml",
             'OpenFF_1.1.0': "openff_unconstrained-1.1.0.offxml"}
 
 
@@ -194,8 +195,7 @@ class ParamLigStructure(object):
             with open(fffn) as ffxml:
                 ff = ForceField(ffxml, allow_cosmetic_attributes=True)
 
-        elif self.forcefield == ligandff['OpenFF_1.1.0']:
-
+        elif self.forcefield in [ligandff['OpenFF_1.0.0'],  ligandff['OpenFF_1.1.0']]:
             ff = ForceField(self.forcefield, allow_cosmetic_attributes=True)
 
         else:
@@ -271,7 +271,7 @@ class ParamLigStructure(object):
 
     def parameterize(self):
 
-        if self.forcefield in [ligandff['OpenFF_1.1.0'], ligandff['Smirnoff99Frosst']]:
+        if self.forcefield in [ligandff['OpenFF_1.0.0'], ligandff['OpenFF_1.1.0'], ligandff['Smirnoff99Frosst']]:
             structure = self.getSmirnoffStructure()
 
         elif self.forcefield in ['GAFF', 'GAFF2']:

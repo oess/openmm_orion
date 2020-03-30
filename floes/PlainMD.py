@@ -17,6 +17,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
+from os import path
 
 from floe.api import (WorkFloe,
                       ParallelCubeGroup)
@@ -35,44 +36,20 @@ from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
                                   ParallelRecordSizeCheck)
 
-job = WorkFloe('Plain MD',
-               title='Plain MD')
+job = WorkFloe('Solvate and Run MD',
+               title='Solvate and Run MD')
 
-job.description = """
-The Plain MD protocol performs MD simulations given one or more
-complete molecular systems as input, each to be treated in its entirety as a solute.
-The solute need to have coordinates, all atoms, and correct chemistry.
-Each molecular system can have multiple conformers but each conformer will be
-run separately as a different solute.
-Proteins need to be prepared to an MD standard: protein chains must be capped,
-all atoms in protein residues (including hydrogens) must be present, and missing
-protein loops resolved. Crystallographic internal waters should be retained where
-possible. The parametrization of some common nonstandard residues is partially supported.
-The input system is solvated and parametrized according to the
-selected force fields. A minimization stage is performed on the system followed
-by a warm up (NVT ensemble) and three equilibration stages (NPT ensemble). In the
-minimization, warm up and equilibration stages positional harmonic restraints are
-applied. At the end of the equilibration stages a short
-(default 2ns) production run is performed on the unrestrained system.
-
-Required Input Parameters:
---------------------------
-system (file): dataset of prepared ligands posed in the protein active site.
-
-Outputs:
---------
-out:  OERecords
-"""
+job.description = open(path.join(path.dirname(__file__), 'PlainMD_desc.rst'), 'r').read()
 # Locally the floe can be invoked by running the terminal command:
-# python floes/ShortTrajMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
+# python floes/PlainMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
 
-job.classification = [['Molecular Dynamics']]
+job.classification = [['General MD']]
 job.uuid = "266481fc-b257-41e9-b2f9-a92bf028b701"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = DatasetReaderCube("SystemReader", title="System Reader")
-ifs.promote_parameter("data_in", promoted_name="system", title='System Input File',
-                      description="System input file")
+ifs.promote_parameter("data_in", promoted_name="solute", title='Solute Input File',
+                      description="Solute input file")
 
 sysid = IDSettingCube("System Ids")
 job.add_cube(sysid)
@@ -91,9 +68,9 @@ coll_open.set_parameters(open=True)
 
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
-ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
-ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
+ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.0.0')
+ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='OpenFF_1.0.0')
 ff.set_parameters(lig_res_name='LIG')
 
 prod = ParallelMDNptCube("Production", title="Production")

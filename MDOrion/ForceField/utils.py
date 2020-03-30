@@ -53,6 +53,7 @@ proteinff = {'Amber99SBildn': 'amber99sbildn.xml',
 ligandff = {'Gaff': 'GAFF',
             'Gaff2': 'GAFF2',
             'Smirnoff99Frosst': 'smirnoff99Frosst.offxml',
+            'OpenFF_1.0.0': "openff_unconstrained-1.0.0.offxml",
             'OpenFF_1.1.0': "openff_unconstrained-1.1.0.offxml"}
 
 solventff = {'Tip3p': 'tip3p.xml'}
@@ -60,6 +61,7 @@ solventff = {'Tip3p': 'tip3p.xml'}
 otherff = {'Gaff': 'GAFF',
            'Gaff2': 'GAFF2',
            'Smirnoff99Frosst': 'smirnoff99Frosst.offxml',
+           'OpenFF_1.0.0': "openff_unconstrained-1.0.0.offxml",
            'OpenFF_1.1.0': "openff_unconstrained-1.1.0.offxml"}
 
 
@@ -254,7 +256,7 @@ def applyffExcipients(excipients, opt):
         if opt['other_forcefield'] in ['GAFF', 'GAFF2']:
             ff_utils.ParamLigStructure(oechem.OEMol(), otherff[opt['other_forcefield']]).checkTleap
 
-        if otherff[opt['other_forcefield']] in ['Smirnoff99Frosst', 'OpenFF_1.1.0']:
+        if otherff[opt['other_forcefield']] in ['Smirnoff99Frosst', 'OpenFF_1.0.0', 'OpenFF_1.1.0']:
             oe_mol = oeommutils.sanitizeOEMolecule(oe_mol)
 
         # Parametrize the unrecognized excipient by using the selected FF

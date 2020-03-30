@@ -337,7 +337,7 @@ class OpenMMSimulations(MDSimulations):
             if box is not None:
                 simulation_reference.context.setPeriodicBoxVectors(box[0], box[1], box[2])
 
-            simulation_reference.minimizeEnergy(tolerance=1e5 * unit.kilojoule_per_mole)
+            simulation_reference.minimizeEnergy(tolerance=1e5 * unit.kilojoule_per_mole, maxIterations=self.opt['steps'])
 
             state_reference_end = simulation_reference.context.getState(getPositions=True)
 

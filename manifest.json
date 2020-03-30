@@ -13,20 +13,18 @@
     ],
     "conda_dependencies": [
         "ambermini==16.16.0",
-	    "ambertools==18.0",
-	    "alchemy==1.2.3",
+        "alchemy==1.2.3",
         "cerberus==1.1",
         "cudatoolkit==10.0.130",
         "freeenergyframework==0.0.1",
         "h5py==2.9.0",
         "hdbscan==0.8.12",
-	    "libgcc==4.8.5",
         "orion_gromacs_gpu",
         "matplotlib==3.0.3",
         "networkx==2.3",
         "numpy==1.14.2",
         "oeommtools==0.1.10",
-        "openforcefield==0.6.0",
+        "openforcefield==0.5.1",
         "openforcefields==1.1.0",
         "openmm==7.4.1",
         "openmmtools==0.18.3",
@@ -52,5 +50,5 @@
     "python_version": "3.6.6",
     "requirements": "requirements_dev.txt",
     "uuid": "8ad7e185-9b86-4112-a2e7-a367e5123e29",
-    "version": "1.0.0b4"
+    "version": "1.0.0b16"
 }

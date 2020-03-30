@@ -15,7 +15,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '1.0.0b4'
+__version__ = '1.0.0b16'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
@@ -51,9 +51,9 @@ from .TrjAnalysis.cubes import ParallelMDTrajAnalysisClusterReport
 from .TrjAnalysis.cubes import ParallelClusterOETrajCube
 from .TrjAnalysis.cubes import ConformerGatheringData
 
-from .Yank.cubes import YankSolvationFECube
-from .Yank.cubes import ParallelYankSolvationFECube
+# from .Yank.cubes import YankSolvationFECube
+# from .Yank.cubes import ParallelYankSolvationFECube
 
-from .Yank.cubes import YankBindingFECube
-from .Yank.cubes import ParallelYankBindingFECube
+# from .Yank.cubes import YankBindingFECube
+# from .Yank.cubes import ParallelYankBindingFECube
 

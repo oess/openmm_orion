@@ -17,6 +17,8 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
+from os import path
+
 from floe.api import (WorkFloe,
                       ParallelCubeGroup)
 
@@ -51,42 +53,11 @@ from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
 job = WorkFloe('Short Trajectory MD with Analysis',
                title='Short Trajectory MD with Analysis')
 
-job.description = """
-The Short Trajectory MD (STMD) protocol performs MD simulations given
-a prepared protein and a set of posed and prepared ligands as input.
-The ligands need to have coordinates, all atoms, and correct chemistry. Each
-ligand can have multiple conformers but each conformer will be run separately
-as a different ligand.
-The protein needs to be prepared to MD standards: protein chains must be capped,
-all atoms in protein residues (including hydrogens) must be present, and missing
-protein loops resolved. Crystallographic internal waters should be retained where
-possible. The parametrization of some common nonstandard residues is partially supported.
-Given the inputs of the protein and posed ligands,
-the complex is formed with each ligand/conformer
-separately, and the complex is solvated and parametrized according to the
-selected force fields. A minimization stage is peformed on the system followed
-by a warm up (NVT ensemble) and three equilibration stages (NPT ensemble). In the
-minimization, warm up, and equilibration stages, positional harmonic restraints are
-applied on the ligand and protein. At the end of the equilibration stages a short
-(default 2ns) production run is performed on the unrestrained system.
-The production run is then analyzed in terms of interactions between the
-ligand and the active site and in terms of ligand RMSD after fitting the trajectory
-based on active site C_alphas.
-
-Required Input Parameters:
---------------------------
-ligands (file): dataset of prepared ligands posed in the protein active site.
-protein (file): dataset of the prepared protein structure.
-
-Outputs:
---------
-floe report: html page of the Analysis of each ligand.
-out (.oedb file): file of the Analysis results for all ligands.
-"""
+job.description = open(path.join(path.dirname(__file__), 'ShortTrajMDWithAnalysis_desc.rst'), 'r').read()
 # Locally the floe can be invoked by running the terminal command:
 # python floes/ShortTrajMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
 
-job.classification = [['Molecular Dynamics']]
+job.classification = [['Specialized MD']]
 job.uuid = "372e1890-d053-4027-970a-85b209e4676f"
 job.tags = [tag for lists in job.classification for tag in lists]
 
@@ -131,16 +102,16 @@ coll_open.set_parameters(open=True)
 
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
-ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
-ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
+ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.0.0')
+ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='OpenFF_1.0.0')
 ff.set_parameters(lig_res_name='LIG')
 
 # Protein Setting
 protset = ProteinSetting("ProteinSetting", title="Protein Setting")
 protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
-protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber99SBildn')
-protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='Gaff2')
+protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber14SB')
+protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='OpenFF_1.0.0')
 
 prod = ParallelMDNptCube("Production", title="Production")
 prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
@@ -148,13 +119,13 @@ prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
 # prod.promote_parameter('temperature', promoted_name='temperature', default=300.0,
 #                        description='Temperature (Kelvin)')
 # prod.promote_parameter('pressure', promoted_name='pressure', default=1.0, description='Pressure (atm)')
-prod.promote_parameter('trajectory_interval', promoted_name='prod_trajectory_interval', default=0.002,
+prod.promote_parameter('trajectory_interval', promoted_name='prod_trajectory_interval', default=0.004,
                        description='Trajectory saving interval in ns')
-prod.promote_parameter('hmr', title='Use Hydrogen Mass Repartitioning', default=False,
+prod.promote_parameter('hmr', title='Use Hydrogen Mass Repartitioning', default=True,
                        description='Give hydrogens more mass to speed up the MD')
 prod.promote_parameter('md_engine', promoted_name='md_engine', default='OpenMM',
                        description='Select the MD Engine')
-prod.set_parameters(reporter_interval=0.002)
+prod.set_parameters(reporter_interval=0.004)
 prod.set_parameters(suffix='prod')
 
 
@@ -322,8 +293,6 @@ report_gen.failure.connect(check_rec.fail_in)
 report.failure.connect(check_rec.fail_in)
 coll_close.failure.connect(check_rec.fail_in)
 check_rec.failure.connect(fail.intake)
-
-
 
 if __name__ == "__main__":
     job.run()
