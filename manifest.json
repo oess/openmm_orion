@@ -1,8 +1,8 @@
 {
     "build_requirements": {
-    "memory_mb": 4096
+    "memory": 4096
   },
-    
+
     "conda_channels": [
         "anaconda",
         "conda-forge",
