@@ -66,7 +66,7 @@ class TestMDOrionFloes(FloeTestCase):
         workfloe.start(
             {
                 "promoted": {
-                    "system": protein_file.identifier,
+                    "solute": protein_file.identifier,
                     "prod_ns": 1,
                     "out": output_file.identifier,
                     "fail": fail_output_file.identifier
@@ -121,7 +121,7 @@ class TestMDOrionFloes(FloeTestCase):
         workfloe.start(
             {
                 "promoted": {
-                    "system": protein_file.identifier,
+                    "solute": protein_file.identifier,
                     "md_engine": "Gromacs",
                     "prod_ns": 1,
                     "out": output_file.identifier,
@@ -172,10 +172,13 @@ class TestMDOrionFloes(FloeTestCase):
             )
         )
 
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+
         workfloe.start(
             {
                 "promoted": {
                     "tpr": user_tpr_file.identifier,
+                    "fail": fail_output_file.identifier
                 },
 
                 "cube": {
@@ -187,3 +190,14 @@ class TestMDOrionFloes(FloeTestCase):
         )
 
         self.assertWorkFloeComplete(workfloe)
+
+        fail_ifs = oechem.oeifstream()
+        records_fail = []
+
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)

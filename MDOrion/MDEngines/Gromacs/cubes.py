@@ -79,7 +79,7 @@ class InputGromacs(SourceCube):
     data_in = DatasetInputParameter(
         "data_in",
         title="Input Dataset",
-        description="The Dataset used for restarting",
+        description="The Dataset used for restarting. OPTIONAL",
         required=False,
         default=None)
 

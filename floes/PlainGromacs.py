@@ -60,7 +60,6 @@ gmx.success.connect(proxy.intake)
 gmx.success.connect(ofs.intake)
 
 # Fail Connections
-ifs.failure.connect(fail.intake)
 proxy.failure.connect(fail.intake)
 gmx.failure.connect(fail.intake)
 
