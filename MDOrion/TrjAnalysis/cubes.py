@@ -261,6 +261,12 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
+    water_cutoff = parameters.DecimalParameter(
+        'water_cutoff',
+        default=15.0,
+        help_text="""The cutoff distance in angstroms to select waters around the
+        protein-ligand binding site for each trajectory frame""")
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -300,7 +306,8 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
             flask = mdrecord.get_flask
 
-            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, flask, traj_fn, opt)
+            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, flask, traj_fn, opt,
+                                                                        water_cutoff=opt['water_cutoff'])
             ltraj.SetTitle(record.get_value(Fields.ligand_name))
             ptraj.SetTitle(record.get_value(Fields.protein_name))
 

@@ -434,7 +434,7 @@ def ExtractProtLigActsiteResNums(mol, fromLigCutoff=5.0):
 #     return multi_conf_protein, multi_conf_ligand, multi_conf_water
 
 
-def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, water_cutoff=10.0):
+def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, water_cutoff=15.0):
     """
     Extracts the aligned protein trajectory and aligned ligand trajectory and aligned
     Water trajectory from a MD trajectory of a larger system that includes other
