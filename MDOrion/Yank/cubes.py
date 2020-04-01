@@ -87,8 +87,8 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-       "memory_mb": {"default": 14000},
-        "instance_tags": {"default": "cuda9"},
+        "instance_type": {"default": "!g4"},  # Gpu Family selection
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -581,8 +581,8 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-       "memory_mb": {"default": 14000},
-        "instance_tags": {"default": "cuda9"},
+        "instance_type": {"default": "!g4"},  # Gpu Family selection
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
