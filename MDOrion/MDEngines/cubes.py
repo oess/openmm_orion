@@ -308,7 +308,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-        "memory_mb": {"default": 6000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -591,7 +591,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-       "memory_mb": {"default": 14000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
