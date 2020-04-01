@@ -7,8 +7,10 @@ The Molecular Dynamics Orion package provides capability to run certain kinds of
 ..  toctree::
     :maxdepth: 2
 
-    cubes/cubes.rst
+    intro.rst
+    tutorials.rst
     floes/floes.rst
+    cubes/cubes.rst
     releasenotes.rst
 
 *   :ref:`genindex`
