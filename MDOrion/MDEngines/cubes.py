@@ -311,7 +311,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
     parameter_overrides = {
         "gpu_count": {"default": 1},
         "instance_type": {"default": "!g4"},  # Gpu Family selection
-        "memory_mb": {"default": 6000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
