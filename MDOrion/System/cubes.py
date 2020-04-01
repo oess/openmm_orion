@@ -57,14 +57,6 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
     on a record has multiple conformers these are split into singles each with 
     its own ID. If a complex will be formed, this cube should be used on ligands
     before forming the complex.
-    
-    Input:
-    -------
-    Data record Stream - Streamed input of ligands, one per record
-
-    Output:
-    -------
-    Data record Stream - Streamed output of records, one per conformer, with title and ID.
     """
 
     uuid = "d3c1dac4-544f-4273-8b17-1b75c058f4bd"
@@ -146,18 +138,10 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['System', 'Complex', 'Protein', 'Ligand']
     description = """
-    This cube set a record collection state in open or closed for safety by
+    This cube sets a record collection state in open or closed for safety by
     using the cube bool parameter open. A True value will open the record
-    collection enabling the shard writing and deleting. If on the record
-    the collection field is not present one will be created.
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of systems such as ligands
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records each one with associated IDs
+    collection enabling the shard writing and deleting. If necessary a
+    collection field will be created on the record.
     """
 
     uuid = "b3821952-a5ed-4028-867c-3f71185442aa"
@@ -239,7 +223,8 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['Complex', 'Protein', 'Ligand', 'Solvation']
     description = """
-    The solvation cube solvates a given solute input system in a
+    The solvation cube solvates a given solute input system by a
+    periodic box of a solvent or a
     selected mixture of solvents. The solvents can be specified by
     comma separated smiles strings of each solvent component or
     selected keywords like tip3p for tip3p water geometry. For each
@@ -248,16 +233,6 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
     the ionic solution strength can be set adding salt. The cube
     requires a record as input with a solute molecule to solvate
     and produces an output record with the solvated solute.
-
-
-     Input:
-    -------
-    Data record Stream - Streamed-in of system solutes to solvate
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records each with the solvated
-    solute
     """
 
     uuid = "2e6130f6-2cba-48a4-9ef3-351a2970258a"
@@ -397,15 +372,8 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
     tags = ['System', 'Complex', 'Protein', 'Ligand']
     description = """
     This cube checks if the size of the incoming record is less than 100MB
-    to avoid Orion database size issues. Locally does not have any effect.
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of system records
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records
+    to avoid Orion database size issues. Records exceeding size 100 Mb are directed
+    to the failure port.
     """
 
     uuid = "0555ead8-0339-41f2-9876-3eb166e32772"

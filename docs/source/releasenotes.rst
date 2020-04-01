@@ -36,6 +36,7 @@ Cube Updates
 * The force field parametrization cube now support open force field 1.0.0 (parsley)
 * The trajectory to multi conformer cube is now adding to the record protein-ligand binding site
   close waters. These are used to perform MMPBSA calculations with explicit water
+
 ======================
 
 
@@ -54,6 +55,7 @@ New Floes
    floes now.
 
 * The calculation of MMPBSA can now be also performed by using explicit waters (still experimental)
+
 --------------------------------------------------------------------------------
 
 Floe Updates
@@ -92,4 +94,5 @@ Cube Updates
 
 * The Trajectory to OEMol, Interaction Energies and PBSA calculation cubes have been updated to account for the explicit
     water in the new MMPBSA calculation
+
 ======================
