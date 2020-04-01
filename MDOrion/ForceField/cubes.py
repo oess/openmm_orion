@@ -69,16 +69,6 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
     residue name. The default one is “LIG” and can be changed by using 
     the provided cube parameter. Water is currently parametrized by 
     using TIP3P force field water model only.
-
-    Input:
-    -------
-    oechem.OEDataRecord - Streamed-in record of the flasks to parametrize
-
-    Output:
-    -------
-    oechem.OEDataRecord - Streamed-out of records with the parametrized flasks.
-    Each record will contain a new Parmed object that contain the 
-    flask parametrization
     """
 
     uuid = "aac0d06f-afd3-4801-ba50-2d703a07ab35"

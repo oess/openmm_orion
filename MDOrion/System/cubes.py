@@ -57,14 +57,6 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
     on a record has multiple conformers these are split into singles each with 
     its own ID. If a complex will be formed, this cube should be used on ligands
     before forming the complex.
-    
-    Input:
-    -------
-    Data record Stream - Streamed input of ligands, one per record
-
-    Output:
-    -------
-    Data record Stream - Streamed output of records, one per conformer, with title and ID.
     """
 
     uuid = "d3c1dac4-544f-4273-8b17-1b75c058f4bd"
@@ -148,16 +140,8 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
     description = """
     This cube set a record collection state in open or closed for safety by
     using the cube bool parameter open. A True value will open the record
-    collection enabling the shard writing and deleting. If on the record
+    collection enabling the shard writing and deleting. In Orion if on the record
     the collection field is not present one will be created.
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of systems such as ligands
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records each one with associated IDs
     """
 
     uuid = "b3821952-a5ed-4028-867c-3f71185442aa"
@@ -248,16 +232,6 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
     the ionic solution strength can be set adding salt. The cube
     requires a record as input with a solute molecule to solvate
     and produces an output record with the solvated solute.
-
-
-     Input:
-    -------
-    Data record Stream - Streamed-in of system solutes to solvate
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records each with the solvated
-    solute
     """
 
     uuid = "2e6130f6-2cba-48a4-9ef3-351a2970258a"
@@ -398,14 +372,6 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
     description = """
     This cube checks if the size of the incoming record is less than 100MB
     to avoid Orion database size issues. Locally does not have any effect.
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of system records
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records
     """
 
     uuid = "0555ead8-0339-41f2-9876-3eb166e32772"

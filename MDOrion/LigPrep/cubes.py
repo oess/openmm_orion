@@ -43,14 +43,6 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
     like to skip this stage the cube parameter “charge_ligand” can be used. 
     The cube requires a record as input with small organic molecules to be charged 
     and produces a new record with the charged molecules.
-
-    Input:
-    -------
-    oechem.OEMCMol - Streamed-in of molecule to be charged 
-
-    Output:
-    -------
-    oechem.OEMCMol - Streamed-out of records with the charged molecules.
     """
 
     uuid = "ea184f6e-feb8-46f1-a89a-6b87270063a3"
@@ -122,15 +114,6 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
     This cube is used to set the ligand residue name as the cube parameter
     “lig_res_name” (default: “LIG”). This is necessary to facilitate the
     identification of system components during a system splitting.
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of the ligand molecules
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records where each ligand has
-    a new residue name.
     """
 
     uuid = "fce16dd4-ce3a-4374-92f0-4ed24259d2f6"

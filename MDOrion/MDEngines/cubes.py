@@ -55,15 +55,6 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     and constraints can be used as well. Currently implicit solvent models can 
     be used in OpenMM only. The cube requires a record as input and produces 
     a new record with the minimized system.
-    
-    Input:
-    -------
-    oechem.OEDataRecord - Streamed-in of the systems to minimize
-
-    Output:
-    -------
-    oechem.OEDataRecord - Streamed-out of records with the systems energy 
-    minimized.
     """
 
     uuid = "bdfeaabe-f93b-4a14-9754-d6ca0c18a009"
@@ -294,15 +285,6 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
     system. The total sampling time can be set by using the “time” cube parameter 
     while the trajectory snapshots can be set by using the “trajectory_interval” cube 
     parameter.
-
-
-    Input:
-    -------
-    oechem.OEDataRecord - Streamed-in of the systems to NVT sample
-
-    Output:
-    -------
-    oechem.OEDataRecord - Streamed-out of records with the systems NVT time evolved
     """
 
     uuid = "94962b93-bf32-4b5e-b324-dbe8b9350266"
@@ -578,15 +560,6 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
     system. The total sampling time can be set by using the “time” cube parameter 
     while the trajectory snapshots can be set by using the “trajectory_interval” cube 
     parameter.
-
-
-    Input:
-    -------
-    oechem.OEDataRecord - Streamed-in of the systems to NVT sample
-
-    Output:
-    -------
-    oechem.OEDataRecord - Streamed-out of records with the systems NPT time evolved
     """
 
     uuid = "602d397b-d8a5-4388-a94a-ac3a54ff3bad"

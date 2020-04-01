@@ -66,14 +66,6 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
     Each input record must have ligand ID, ligand title, ligand name, the ligand
     depiction as svg string, the html report string linked to the ligand and
     optionally the ligand report label.
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of ligands to be tiled in the Orion floe report
-
-    Output:
-    -------
-    None
     """
 
     uuid = "58a012d2-69e9-4d15-ba17-66f65c55dec5"
@@ -239,16 +231,10 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
     tags = ['Trajectory', 'Ligand', 'Protein']
 
     description = """
-    Converting MD Traj into multiconf OEMols for Ligand and Protein
+    Converting MD Traj into multiconf OEMols for Ligand and Protein.
     This cube will take in the MD traj file containing
     the solvated protein:ligand complex and extract
     multiconf OEMols for Ligand and Protein.
-    Input parameters:
-    -------
-    oechem.OEDataRecord - Streamed-in MD results for input
-    Output:
-    -------
-    oechem.OEDataRecord - Stream of output data with trajectory OEMols
     """
 
     uuid = "3ad0e991-712f-4a87-903e-4e0edc774bb3"
@@ -394,15 +380,7 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
     Protein-ligand interaction solvation energies are calculated on an existing MD trajectory.
     The trajectory is taken from pre-existing protein and ligand trajectory OEMols.
     The Poisson-Boltzmann and Surface Area methods in the OEZap toolkits are  used.
-
-    Input:
-    -------
-    Data Record with the ligand and Protein trajectory OEMols; the trajectory frames are
-    included as conformers on the molecule.
-
-    Output:
-    -------
-    Data Record - The various energy components associated with the Poisson-Boltzmann and
+    The various energy components associated with the Poisson-Boltzmann and
     Surface Area energies are attached to the record as per-frame vectors of floats.
     The energy units are in kcal/mol.
     """
@@ -589,17 +567,7 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
     Protein-ligand interaction energies are calculated on an existing MD trajectory.
     The trajectory is taken from pre-existing protein and ligand trajectory OEMols.
     The forcefield used is taken from the parmed object associated with the trajectory
-    OEMols.
-
-    Input:
-    -------
-    Data Record with the ligand and Protein trajectory OEMols; the trajectory frames are
-    included as conformers on the molecule. The associated parmed object is also on the
-    record.
-
-    Output:
-    -------
-    Data Record - The various energy components associated with the protein-ligand
+    OEMols. The various energy components associated with the protein-ligand
     interaction energies are attached to the record as per-frame vectors of floats.
     This includes the MM interaction potential energies and their ligand, protein
     and complex components. The energy units are in kcal/mol.
@@ -743,14 +711,6 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
     This cube will take in the MD traj OEMols containing
     the protein and ligand components of the complex and cluster
     them based on ligand RMSD.
-
-    Input parameters:
-    -------
-    oechem.OEDataRecord - Streamed-in input data for the system to cluster
-
-    Output:
-    -------
-    oechem.OEDataRecord - Stream of output data for the clustered system
     """
 
     uuid = "b503c2f4-12e6-49c7-beb6-ee17da177ec2"
@@ -1212,16 +1172,7 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
 
     description = """
     This cube gathers together conformers related to the same ligand and their information
-    in a new record containing the multi conformer ligand and each conformer record info
-
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of systems records
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records for each ligand with related conformers info
+    in a new record containing the multi conformer ligand and each conformer record info.
     """
 
     # Override defaults for some parameters
@@ -1294,15 +1245,7 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
     This cube determines the max number of waters for all the ligands that
     fits between the protein and ligand molecular surfaces. The cutoff distance
     parameters determines the max distance used between the volume grid points
-    and the ligand-protein 
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of systems records
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records for each ligand with related conformers info
+    and the ligand-protein.
     """
 
     uuid = "c8608012-dc09-47de-8d23-fe2338419ff3"

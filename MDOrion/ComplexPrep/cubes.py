@@ -49,16 +49,6 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
     the target protein, the water molecules that clashes with the docked ligands 
     will be removed. The ligand is identified by the ligand residue name that 
     can be set by using the cube parameter. 
-    
-    Input:
-    -------
-    oechem.OEDataRecord - Streamed-in of the ligands
-    oechem.OEDataRecord - Streamed-in of a single target protein
-    
-
-    Output:
-    -------
-    oechem.OEDataRecord - Streamed-out of records with the generated complexes    
     """
 
     uuid = "be2ac138-22ae-4412-9c38-886472c496b9"
