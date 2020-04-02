@@ -5,6 +5,11 @@ Introduction
 This package is for running MD simulations useful for drug discovery,
 with floes geared towards MD experts (General MD)
 and floes also suitable for MD non-experts (Specialized MD).
+Aside from the most general floes, the underlying design of the
+floes is towards simulating complexes between a protein and a set
+of small-molecule ligands in explicit water, with periodic boundary
+conditions. The solutes are assumed to be prepared and ready for
+such physics-based modeling.
 
 Specialized MD
 --------------

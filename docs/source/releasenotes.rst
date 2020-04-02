@@ -7,8 +7,8 @@ v1.0.0
 
 General Notice
 --------------------------------------------------------------------------------
-* Support for the Open Force Field Initiative OpenFF 1.1.0 (parsley)
-* Cuda 10.0 support
+* Support for OpenFF 1.1.0 (Parsley), the March 2020 release from the Open Force Field Initiative
+* Support for Cuda 10.0
 * Exposed a new parameter in the ``TrajToOEMol Cube`` to set the water cutoff
   distance. This distance is used to select water molecules around the protein-ligand
   binding site for each trajectory frame and producing a multi conformer water molecule

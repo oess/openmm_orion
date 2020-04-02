@@ -196,7 +196,7 @@ equil2.promote_parameter("md_engine", promoted_name="md_engine")
 
 # NPT Equilibration stage 3
 equil3 = ParallelMDNptCube('equil3', title='Equilibration III')
-equil3.set_parameters(time=0.03)
+equil3.set_parameters(time=0.07)
 # equil3.promote_parameter("temperature", promoted_name="temperature")
 # equil3.promote_parameter("pressure", promoted_name="pressure")
 equil3.promote_parameter("hmr", promoted_name="hmr")

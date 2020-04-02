@@ -79,13 +79,13 @@ prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
 prod.promote_parameter('temperature', promoted_name='temperature', default=300.0,
                        description='Temperature (Kelvin)')
 prod.promote_parameter('pressure', promoted_name='pressure', default=1.0, description='Pressure (atm)')
-prod.promote_parameter('trajectory_interval', promoted_name='prod_trajectory_interval', default=0.002,
+prod.promote_parameter('trajectory_interval', promoted_name='prod_trajectory_interval', default=0.004,
                        description='Trajectory saving interval in ns')
 prod.promote_parameter('hmr', title='Use Hydrogen Mass Repartitioning', default=False,
                        description='Give hydrogens more mass to speed up the MD')
 prod.promote_parameter('md_engine', promoted_name='md_engine', default='OpenMM',
                        description='Select the MD Engine')
-prod.set_parameters(reporter_interval=0.002)
+prod.set_parameters(reporter_interval=0.004)
 prod.set_parameters(suffix='prod')
 
 
