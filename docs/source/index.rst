@@ -1,6 +1,6 @@
-######################
+##############################################
 Molecular Dynamics Orion Package Documentation
-######################
+##############################################
 
 The Molecular Dynamics Orion package provides capability to run certain kinds of MD simulations in Orion.
 
