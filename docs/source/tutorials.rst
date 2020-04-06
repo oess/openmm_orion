@@ -11,14 +11,12 @@ Short Trajectory MD with Analysis
 
 The Floe *Short Trajectory MD with Analysis* (STMD) is for pose validation.
 You should start with a ligand already well posed in the active site,
-with correct chemistry (including formal charges)
-and all atoms (including explicit hydrogens, which determines a
-specific tautomer). As such, this pose represents an hypothesis for
-ligand binding, with protein-ligand interactions in place, which will
-be evaluated by this floe to be validated (or not) as a good pose.
-This floe is not primarily asking the question "what is the pose?"
-but rather "is this a good pose?", seeking an answer by running a
-short MD trajectory and assessing the ligand pose especially by
+which serves as an hypothesis for
+ligand binding, with protein-ligand interactions in place.
+This pose will be evaluated by this floe to be validated (or not) as a good pose.
+We are not primarily asking the question "what is the pose for this ligand?"
+but rather "is this a good pose for this ligand?", seeking an answer by running a
+short MD trajectory and assessing the effect on the ligand pose especially by
 comparison to the starting (input) pose.
 
 Ligand Input
@@ -31,8 +29,7 @@ If the ligands already have good atomic partial charges
 (we recommend RESP or AM1-BCC_ELF10 charges),
 we recommend using these for STMD as opposed to re-charging
 them in the STMD floe.
-Given that this floe only runs a very short timescale (default 2 ns)
-to evaluate the input pose,
+Given that this floe only runs a very short timescale (default 2 ns),
 it is preferable that the input pose be well refined.
 Although bad clashes
 (or poor positioning for interactions which you know need to be there)
@@ -46,8 +43,9 @@ subsequently minimized in the active site **before input to STMD**.
 This will resolve high gradients
 (usually clashes) with the protein and to allow protein-ligand
 interactions to optimize in the context of a good force field.
-It is possible that even with this, docked-pose starting points
-could be triaged prior to the extra effort and expense of STMD.
+It is possible that even with this pre-MD refinement,
+the docked-pose starting points could be re-evaluated and
+triaged prior to the extra effort and expense of STMD.
 
 Protein Input
 -------------
@@ -62,7 +60,7 @@ Additionally, cofactors and structured internal waters are also important to inc
 not only those in the immediate vicinity of the ligand and active site
 but also distally because they can have an important effect on the
 protein structure and dynamics over the course of the MD.
-We **strongly recommend** using an appropriate *Spruce* floe for protein preparation.
+We **strongly recommend** using *Spruce* for protein preparation.
 
 .. warning::
 
@@ -75,13 +73,16 @@ The structure of the STMD floe is shown in figure
 Given the inputs of the protein and posed ligands,
 the complex is formed with each ligand/conformer separately,
 and the complex is solvated and parametrized according to
-the selected force fields.
-A minimization stage is performed on the system followed by
+the selected force fields. 
+We refer to this ready-to-run molecular assembly as a "flask"
+by analogy to experiment: all the components are combined into
+the flask, upon which we run our experiment.
+A minimization stage is performed on the flask followed by
 a warm up (NVT ensemble) and three equilibration stages (NPT ensemble).
 In the minimization, warm up, and equilibration stages,
 positional harmonic restraints are applied on the ligand and protein.
 At the end of the equilibration stages a short (default 2ns) production run
-is performed on the unrestrained system.
+is performed on the unrestrained flask.
 The production run is then analyzed in terms of interactions between
 the ligand and the active site and in terms of ligand RMSD,
 after fitting the trajectory based on active site C_alphas.
@@ -265,7 +266,7 @@ in matching color, binding the average ligand for each cluster.
 This way we can compare the initial bound pose to the representative
 average for each cluster, helping us to evaluate and prioritize that ligand.
 To call up the detailed MD analysis once again, go to the spreadsheet
-roq for ligand 30, and under the column titled `Floe_report_URL`
+row for ligand 30, and under the column titled `Floe_report_URL`
 clicked on the little square will open up another tab in your
 browser with the same detailed analysis floe report for ligand 30.
 
