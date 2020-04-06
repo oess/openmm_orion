@@ -666,7 +666,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
 
     hmr = parameters.BooleanParameter(
         'hmr',
-        default=False,
+        default=True,
         help_text='On enables Hydrogen Mass Repartitioning. Not currently implemented in Gromacs')
 
     save_md_stage = parameters.BooleanParameter(
