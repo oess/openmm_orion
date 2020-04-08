@@ -132,20 +132,20 @@ The left panel contains the usual orion job information from the run,
 and the right panel has two tabs at the top if the run was not successful
 or three tabs at the top if it was... we will focus on success here!
 Selecting the third tab called *FLOE REPORT* should give you a
-page looking similar to Figure `STMD Job results page for the MCL1 Dataset`.
+page looking similar to Figure `STMD Job results page for the Thrombin Dataset`.
 
 .. figure_STMD_jobResults:
 
 .. figure:: ./images/STMD_jobResults.png
    :width: 1000px
    :align: center
-   :alt: STMD Job results page for the MCL1 Dataset
+   :alt: STMD Job results page for the Thrombin Dataset
 
-   **STMD Job results page for the MCL1 Dataset**
+   **STMD Job results page for the Thrombin Dataset**
 
 The floe report shows a tile for each MD simulation, here there was
 only one conformer for each ligand in the input file.
-This run was on 11 ligands in a MCL1 dataset; in the figure 8 of the
+This run was on 11 ligands in a Thrombin dataset; in the figure 8 of the
 11 are shown (to see the other 3 would require scrolling down).
 The atom colors correspond to calculated B-factors, similar to Xray
 B-factors, depicting the mobility of those atoms in the active site
@@ -158,31 +158,31 @@ fragments hanging out in water of even a tightly bound inhibitor will be expecte
 to be more mobile than the buried parts.
 Other information on each tile is:
 
-    * The ligand name; in the MCL1 case in the figure these are simply integers.
+    * The ligand name.
 
     * The number of clusters formed by clustering the ligand positions in the MD trajectory.
 
     * The ensemble average MMPBSA score for ligand binding over the whole MD trajectory.
 
 Clicking on a tile drills down into the detailed analysis of that simulation.
-As an example, clicking on the top left tile, for ligand 30 with 3 clusters,
-results in Figure `Detailed results for ligand 30`:
+As an example, clicking on the top left tile, for ligand 1b with 2 clusters,
+results in Figure `Detailed results for ligand 1b`:
 
 
-.. figure_STMD_lig30interactiveSVG:
+.. figure_STMD_lig1b_interactiveSVG:
 
-.. figure:: ./images/STMD_lig30interactiveSVG.png
+.. figure:: ./images/STMD_lig1b_interactiveSVG.png
    :width: 1000px
    :align: center
-   :alt: Detailed results for ligand 30
+   :alt: Detailed results for ligand 1b
 
-   **Detailed results for ligand 30**
+   **Detailed results for ligand 1b**
 
 In the graphic we see a 2D representation of the ligand binding
 interactions for the whole trajectory, with the default display
 of the `Overall` tab at the top of the graphic. It is an interactive
-graphic: selecting the `Cluster 0` tab in blue, the `Cluster 1` tab
-in green, or the `Cluster 2` tab in orange, will change the binding
+graphic: selecting the `Cluster 0` tab in blue or the `Cluster 1` tab
+in green will change the binding
 interaction representation to that corresponding to the selected cluster.
 Hovering over one of the interaction in the diagram lights up a
 strip chart on the right-hand side grey arrow showing the occupancy
@@ -198,77 +198,76 @@ amino acid close to the ligand. To the right of the graphic is
 information about the clustering of the ligand trajectory.
 
 Scrolling down exposes two strip charts detailing two relevant
-analyses of the trajectory, as shown for ligand 30
-in Figure `Strip Chart results for ligand 30`:
+analyses of the trajectory, as shown for ligand 1b
+in Figure `Strip Chart results for ligand 1b`:
 
-.. figure_STMD_lig30stripCharts:
+.. figure_STMD_lig1b_stripCharts:
 
-.. figure:: ./images/STMD_lig30stripCharts.png
+.. figure:: ./images/STMD_lig1b_stripCharts.png
    :width: 800px
    :align: center
-   :alt: Strip Chart results for ligand 30
+   :alt: Strip Chart results for ligand 1b
 
-   **Strip Chart results for ligand 30**
+   **Strip Chart results for ligand 1b**
 
 Both strip charts show a time course over the MD trajectory,
 maintaining always the same color scheme as in the interactive graphic:
-blue, green, and orange for cluster 0, 1, and 2, respectively.
+blue and green for cluster 0 and 1, respectively.
 Additionally, cluster outliers, which are ligand configurations
 determined by HDBSCAN clustering to not belong to any cluster,
 are shown in black.
 The top strip chart simply shows the cluster occupancy of each frame,
-telling us that the trajectory started out in the orange Cluster 2,
-then transitioned gradually to the blue Cluster 0, then occupying
-green Cluster 1 for a while before reverting back to Cluster 0.
+telling us that the trajectory started out in the green Cluster 1,
+then transitioned quickly to the blue Cluster 0, where it remained
+for the rest of the trajectory.
 From this sampling, it appears Cluster 0 is the predominant and
 preferred cluster.
 The lower strip chart shows how closely the ligand stays to the
 initial input ligand pose over the course of the trajectory,
 colored by cluster.
-The green Cluster 1 includes comprises configuration straying
-around 2 |A| away from the initial pose, but blue Cluster 0
-sticks fairly closely to the initial pose at around 1 |A|,
-while orange Cluster 2 hovers in between.
+The green Cluster 1 comprises configurations sticking closely
+to the initial pose (< 2 |A| RMSD), but blue Cluster 0
+fluctuates between 1.5 to 2 |A| away.
 This tells us the predominant and preferred blue Cluster 0
-stays close to the initial pose: the initial pose is stable.
+stays slightly away from the initial pose.
 
 Moving now to the other way of viewing the results, we go to
 Orion's `Data` page for our project and select the output dataset
 for our job, and then move to Orion's `Analyze` page as shown in
-Figure `Analyze page for ligand 30`:
+Figure `Analyze page for ligand 1b`:
 
-.. figure_STMD_lig30analyze:
+.. figure_STMD_lig1b_analyze:
 
-.. figure:: ./images/STMD_lig30analyze.png
+.. figure:: ./images/STMD_lig1b_analyze.png
    :width: 1000px
    :align: center
-   :alt: Analyze page for ligand 30
+   :alt: Analyze page for ligand 1b
 
-   **Analyze page for ligand 30**
+   **Analyze page for ligand 1b**
 
-There is a lot of results showing in this page, encompassing
+There are a lot of results showing in this page, encompassing
 both numerical and 3D information. The 3D info is brought in by
 selecting `Analyze 3D` under the `Layout` pull-down menu at the
 top right. The axes of the scatterplot were selected to display
 the experimental deltaG (included as an SD tag on the input
 ligands) on the x axis and the trajectory MMPBSA mean on the y axis.
-Scrolling down the spreadsheet to ligand 30 and selecting that
+Scrolling down the spreadsheet to ligand 1b and selecting that
 row, the 3D visualizer jumps to a series of entries relating to
-ligand 30 and the point in the scatter plot corresponding to
-ligand 30 is highlighted.
-In the 3D window, the initial input pose for ligand 30 is shown in gold.
-Expanding the menu under `Average 30` allows us to turn on the
-average structure for each of Clusters 0, 1, and 2, again maintaining
-the colors for each of blue, green, and orange, respectively.
-Underneath `Average 30` is `Average MCL1`, expanding this allows
+ligand 1b and the point in the scatter plot corresponding to
+ligand 1b is highlighted.
+In the 3D window, the initial input pose for ligand 1b is shown in gold.
+Expanding the menu under `Average 1b` allows us to turn on the
+average structure for Clusters 0 and 1, again maintaining
+the colors for each of blue and green, respectively.
+Underneath `Average 1b` is `Average Thrmb`, expanding this allows
 us to examine the corresponding average protein structure,
 in matching color, binding the average ligand for each cluster.
 This way we can compare the initial bound pose to the representative
 average for each cluster, helping us to evaluate and prioritize that ligand.
 To call up the detailed MD analysis once again, go to the spreadsheet
-row for ligand 30, and under the column titled `Floe_report_URL`
+row for ligand 1b, and under the column titled `Floe_report_URL`
 clicked on the little square will open up another tab in your
-browser with the same detailed analysis floe report for ligand 30.
+browser with the same detailed analysis floe report for ligand 1b.
 
 There is a lot of information to look at in the results from
 the *Short Trajectory MD with Analysis* floe, but this should get
