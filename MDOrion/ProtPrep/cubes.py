@@ -65,26 +65,7 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
     protein_title = parameters.StringParameter(
         'protein_title',
         default='',
-        help_text='Optional replacement for the protein title'
-    )
-
-    protein_forcefield = parameters.StringParameter(
-        'protein_forcefield',
-        default=sorted(ffutils.proteinff)[0],
-        choices=sorted(ffutils.proteinff),
-        help_text='Force field parameters to be applied to the protein')
-
-    solvent_forcefield = parameters.StringParameter(
-        'solvent_forcefield',
-        default=sorted(ffutils.solventff)[0],
-        help_text='Force field parameters to be applied to the water')
-
-    other_forcefield = parameters.StringParameter(
-        'other_forcefield',
-        default=sorted(ffutils.otherff)[0],
-        choices=sorted(ffutils.otherff),
-        help_text='Force field used to parametrize other molecules not recognized by the '
-                  'protein force field like excipients')
+        help_text='Optional replacement for the protein title')
 
     def begin(self):
         self.opt = vars(self.args)
@@ -98,32 +79,49 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
             if self.count > 0 and not self.opt['multiple_protein']:
                 raise ValueError("Multiple Proteins have been Detected")
 
-            if not record.has_value(Fields.primary_molecule):
-                raise ValueError("Missing Primary Molecule field")
+            if record.has_value(Fields.design_unit):
 
-            protein = record.get_value(Fields.primary_molecule)
+                du = record.get_value(Fields.design_unit)
 
-            # Removing Interaction Hint Container, Style and PDB Data
-            oechem.OEDeleteInteractionsHintSerializationData(protein)
-            oechem.OEDeleteInteractionsHintSerializationIds(protein)
-            oechem.OEClearStyle(protein)
-            oechem.OEClearPDBData(protein)
+                # Clean the Design Unit from the Interaction Hints
+                for pair in du.GetTaggedComponents():
 
-            # Check Protein parametrization
-            protein_sp, ligand, water, others = utils.split(protein)
+                    # Take from the DU the component name and ID
+                    comp_name = pair[0]
 
-            # Parametrization Checking
-            if protein_sp.NumAtoms() > 0:
-                ffutils.applyffProtein(protein_sp, self.opt)
-            else:
-                raise ValueError("The protein does not have any atoms")
-            if water.NumAtoms() > 0:
-                ffutils.applyffWater(water, self.opt)
-            if others.NumAtoms() > 0:
-                # Unique prefix name used to output parametrization files
-                self.opt['prefix_name'] = 'protein' + '_' + str(0)
+                    comp_id = du.GetComponentID(comp_name)
 
-                ffutils.applyffExcipients(others, self.opt)
+                    # Extract the OEMol Component
+                    component = pair[1]
+
+                    if comp_id == oechem.OEDesignUnitComponents_Protein:
+                        protein = component
+
+                    # Removing Interaction Hint Container and  Style
+                    oechem.OEDeleteInteractionsHintSerializationData(component)
+                    oechem.OEDeleteInteractionsHintSerializationIds(component)
+                    oechem.OEClearStyle(component)
+
+                    if not oechem.OEUpdateDesignUnit(du, component, comp_id):
+                        raise ValueError("Could not add the clean component to the Design Unit")
+
+                du.SetTitle(protein.GetTitle()[0:12])
+                record.set_value(Fields.design_unit, du)
+
+            else:  # The extended protein is already prepared to MD standard
+
+                if not record.has_value(Fields.primary_molecule):
+                    raise ValueError("Missing Primary Molecule field")
+
+                protein = record.get_value(Fields.primary_molecule)
+
+                # Removing Interaction Hint Container and Style
+                oechem.OEDeleteInteractionsHintSerializationData(protein)
+                oechem.OEDeleteInteractionsHintSerializationIds(protein)
+                oechem.OEClearStyle(protein)
+
+                record.set_value(Fields.primary_molecule, protein)
+                record.set_value(Fields.flask, protein)
 
             name = self.opt['protein_title']
 
@@ -134,15 +132,8 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
                 else:
                     name = 'protein'
 
-            # protein_ss_fix = ss_bond_fix(protein)
-
             record.set_value(Fields.title, name)
             record.set_value(Fields.flaskid, self.count)
-            # record.set_value(Fields.primary_molecule, protein_ss_fix)
-            # record.set_value(Fields.flask, protein_ss_fix)
-
-            record.set_value(Fields.primary_molecule, protein)
-            record.set_value(Fields.flask, protein)
 
             self.count += 1
 

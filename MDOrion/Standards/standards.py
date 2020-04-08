@@ -17,7 +17,7 @@
 
 from floe.api.orion import in_orion
 
-from MDOrion.Standards.utils import ParmedData, MDStateData
+from MDOrion.Standards.utils import ParmedData, MDStateData, DesignUnit
 
 from datarecord import OEPrimaryMolField
 
@@ -133,6 +133,12 @@ class Fields:
     # MD State
     md_state = OEField("MDState_OPLMD", MDStateData)
 
+    # Design Unit Field
+    design_unit = OEField('Design_Unit_OPLMD', DesignUnit)
+
+    # Design Unit Field from Spruce
+    design_unit_from_spruce = OEField('du_single', Types.Blob)
+
     # Collection is used to offload data from the record which must be < 100Mb
     collection = OEField("Collection_ID_OPLMD", Types.Int, meta=_metaHidden)
 
@@ -170,7 +176,7 @@ class Fields:
 
         # The vector of ligand Traj RMSDs from the initial pose
         lig_traj_rmsd = OEField('LigTrajRMSD', Types.FloatVec,
-                                   meta=OEFieldMeta().set_option(Meta.Units.Length.Ang))
+                                meta=OEFieldMeta().set_option(Meta.Units.Length.Ang))
 
         # mmpbsa ensemble average over the whole trajectory
         mmpbsa_traj_mean = OEField('MMPBSATrajMean', Types.Float,

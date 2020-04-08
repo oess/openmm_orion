@@ -26,7 +26,7 @@ from MDOrion.MDEngines.utils import MDState
 
 import copy
 
-from orionclient.session import in_orion, APISession, OrionSession, get_session
+from orionclient.session import in_orion, OrionSession, get_session
 
 from orionclient.types import File
 
@@ -39,6 +39,9 @@ from orionclient.types import (Shard,
 
 from orionclient.helpers.collections import (try_hard_to_create_shard,
                                              try_hard_to_download_shard)
+
+
+from openeye import oechem
 
 
 class ParmedData(CustomHandler):
@@ -91,6 +94,35 @@ class MDStateData(CustomHandler):
     def deserialize(data):
         new_state = pickle.loads(bytes(data))
         return new_state
+
+
+class DesignUnit(CustomHandler):
+
+    @staticmethod
+    def get_name():
+        return 'DesignUnit'
+
+    @classmethod
+    def validate(cls, value):
+        return isinstance(value, oechem.OEDesignUnit)
+
+    @classmethod
+    def copy(cls, value):
+        return copy.deepcopy(value)
+
+    @staticmethod
+    def serialize(du):
+        return oechem.OEWriteDesignUnitToBytes(du)
+
+    @staticmethod
+    def deserialize(du_bytes):
+
+        design_unit = oechem.OEDesignUnit()
+
+        if not oechem.OEReadDesignUnitFromBytes(design_unit, du_bytes):
+            raise ValueError("It was not possible to deserialize the Design Unit")
+
+        return design_unit
 
 
 def upload_file(filename, orion_ui_name='OrionFile'):

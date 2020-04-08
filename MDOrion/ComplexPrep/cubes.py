@@ -32,6 +32,8 @@ from floe.api import (parameters,
 from orionplatform.mixins import RecordPortsMixin
 from orionplatform.ports import RecordInputPort
 
+from openeye import oespruce
+
 
 class ComplexPrepCube(RecordPortsMixin, ComputeCube):
     title = "Complex Preparation"
@@ -55,39 +57,42 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-       "memory_mb": {"default": 14000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    # Ligand Residue Name
-    lig_res_name = parameters.StringParameter('lig_res_name',
-                                              default='LIG',
-                                              help_text='The ligand residue name',
-                                              level=ADVANCED)
-
     protein_port = RecordInputPort("protein_port", initializer=True)
 
     def begin(self):
         for record in self.protein_port:
+
             self.opt = vars(self.args)
             self.opt['Logger'] = self.log
 
-            if not record.has_value(Fields.flask):
-                self.log.error("Missing Protein flask field")
-                self.failure.emit(record)
-                return
+            if record.has_value(Fields.design_unit):
+                du = record.get_value(Fields.design_unit)
+                protein_flask = oechem.OEMol()
+                if not self.du.GetProtein(protein_flask):
+                    raise ValueError("The protein cannot be extracted from the Design Unit")
+                self.du = du
+            else:
 
-            protein = record.get_value(Fields.flask)
+                if not record.has_value(Fields.flask):
+                    self.log.error("Missing Protein flask field")
+                    self.failure.emit(record)
+                    return
+
+                protein_flask = record.get_value(Fields.flask)
 
             if not record.has_value(Fields.title):
                 self.log.warn("Missing Protein Title field")
-                self.protein_title = protein.GetTitle()[0:12]
+                self.protein_flask_title = protein_flask.GetTitle()[0:12]
             else:
-                self.protein_title = record.get_value(Fields.title)
+                self.protein_flask_title = record.get_value(Fields.title)
 
-            self.protein = protein
+            self.protein_flask = protein_flask
             return
 
     def process(self, record, port):
@@ -109,59 +114,135 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 else:
                     ligand_title = record.get_value(Fields.title)
 
-                self.log.info("[{}] forming complex between protein {} and ligand: {}".format(self.title,
-                                                                        self.protein_title, ligand_title))
+                # Create a Design Unit
+                if not record.has_value(Fields.design_unit):
 
-                if not record.has_value(Fields.flaskid):
-                    raise ValueError("Missing flask ID for flask {} ".format(Fields.flaskid.get_name()))
+                    du = oechem.OEDesignUnit()
 
-                flask_id = record.get_value(Fields.flaskid)
+                    build_opts = oespruce.OEDesignUnitBuildOptions()
+                    build_opts.SetBuildSidechains(False)
+                    build_opts.SetBuildLoops(False)
+                    build_opts.SetCapCTermini(False)
+                    build_opts.SetCapNTermini(False)
+                    build_opts.SetDeleteClashingSolvent(False)
 
-                complx = self.protein.CreateCopy()
-                oechem.OEAddMols(complx, ligand)
+                    enum_opts = oespruce.OEDesignUnitEnumerateSitesOptions()
+                    enum_opts.SetAddInteractionHints(False)
+                    enum_opts.SetAddStyle(False)
 
-                # Split the complex in components
-                protein_split, ligand_split, water, excipients = oeommutils.split(complx,
-                                                                                  ligand_res_name=self.opt['lig_res_name'])
+                    prep_opts = oespruce.OEDesignUnitPrepOptions()
+                    prep_opts.SetProtonate(False)
+                    prep_opts.SetAssignPartialChargesAndRadii(False)
+                    prep_opts.SetBuildOptions(build_opts)
+                    prep_opts.SetEnumerateSitesOptions(enum_opts)
+
+                    split_opts = oespruce.OEDesignUnitSplitOptions()
+                    split_opts.SetMakePackingResidues(False)
+
+                    bio_opts = oespruce.OEBioUnitExtractionOptions()
+                    bio_opts.SetSuperpose(False)
+
+                    du_opts = oespruce.OEMakeDesignUnitOptions(split_opts, prep_opts, bio_opts)
+
+                    if not oespruce.OEMakeDesignUnit(du, self.protein_flask, ligand, du_opts):
+                        raise ValueError("It was not possible to generate the Design Unit")
+
+                    flask_from_du = oechem.OEMol()
+
+                    if not du.GetComponents(flask_from_du, oechem.OEDesignUnitComponents_All ^ oechem.OEDesignUnitComponents_Ligand):
+                        raise ValueError("Recovering all the Design Unit Components Failed")
+
+                    if flask_from_du.NumAtoms() != self.protein_flask.NumAtoms():
+                        raise ValueError("Flask Design Unit and User protein flask number "
+                                         "of atoms mismatch: {} vs {}".format(flask_from_du.NumAtoms(),
+                                                                              self.protein_flask.NumAtoms()))
+                    self.du = du
+
+                else:  # Update the Design Unit Ligand Component
+                    if not oechem.OEUpdateDesignUnit(self.du, ligand, oechem.OEDesignUnitComponents_Ligand):
+                        raise ValueError("Could not add the ligand to the Design Unit")
+
+                protein_comp = oechem.OEMol()
+                ligand_comp = oechem.OEMol()
+
+                # Ligand and Protein component Check
+                if not self.du.GetProtein(protein_comp):
+                    raise ValueError("The protein cannot be extracted from the Design Unit")
+
+                if not self.du.GetLigand(ligand_comp):
+                    raise ValueError("The ligand cannot be extracted from the Design Unit")
 
                 # If the protein does not contain any atom emit a failure
-                if not protein_split.NumAtoms():  # Error: protein molecule is empty
-                    raise ValueError("The protein molecule does not contains atoms")
+                if not protein_comp.NumAtoms():  # Error: protein molecule is empty
+                    raise ValueError("The Protein component does not contains atoms")
 
                 # If the ligand does not contain any atom emit a failure
-                if not ligand_split.NumAtoms():  # Error: ligand molecule is empty
-                    raise ValueError("The Ligand molecule does not contains atoms")
+                if not ligand_comp.NumAtoms():  # Error: ligand molecule is empty
+                    raise ValueError("The Ligand component does not contains atoms")
 
                 # Check if the ligand is inside the binding site. Cutoff distance 3A
-                if not oeommutils.check_shell(ligand_split, protein_split, 3):
-                    raise ValueError("The ligand is probably outside the protein binding site")
+                if not oeommutils.check_shell(ligand_comp, protein_comp, 3):
+                    raise ValueError("The Ligand is probably outside the Protein binding site")
 
-                # Removing possible clashes between the ligand and water or excipients
-                if water.NumAtoms():
-                    water_del = oeommutils.delete_shell(ligand, water, 1.5, in_out='in')
+                # Remove Steric Clashes between the ligand and the other System components
+                for pair in self.du.GetTaggedComponents():
 
-                if excipients.NumAtoms():
-                    excipient_del = oeommutils.delete_shell(ligand, excipients, 1.5, in_out='in')
+                    comp_name = pair[0]
+                    comp_id = self.du.GetComponentID(comp_name)
+                    comp = pair[1]
 
-                # Reassemble the complex
-                new_complex = protein_split.CreateCopy()
-                oechem.OEAddMols(new_complex, ligand_split)
-                if excipients.NumAtoms():
-                    oechem.OEAddMols(new_complex, excipient_del)
-                if water.NumAtoms():
-                    oechem.OEAddMols(new_complex, water_del)
+                    # Skip clashes between the ligand itself and the protein
+                    if comp_id == oechem.OEDesignUnitComponents_Protein \
+                            or comp_id == oechem.OEDesignUnitComponents_Ligand:
+                        continue
 
-                complex_title = 'p' + self.protein_title + '_l' + ligand_title
+                    # Remove Metal clashes if the distance between the metal and the ligand
+                    # is less than 1A
+                    elif comp_id == oechem.OEDesignUnitComponents_Metals:
+                        metal_del = oeommutils.delete_shell(ligand_comp, comp, 1.0, in_out='in')
 
-                new_complex.SetTitle(ligand.GetTitle())
+                        if metal_del.NumAtoms() != comp.NumAtoms():
+                            self.opt['Logger'].info(
+                                "Detected steric-clashes between the ligand {} and metals".format(ligand_title))
 
+                        if not oechem.OEUpdateDesignUnit(self.du, metal_del,
+                                                         oechem.OEDesignUnitComponents_Metals):
+                            raise ValueError("Could not add the un-clashed Metals to the Design Unit")
+
+                    # Remove  clashes if the distance between the selected component and the ligand
+                    # is less than 1.5A
+                    else:
+                        comp_del = oeommutils.delete_shell(ligand_comp, comp, 1.5, in_out='in')
+
+                        if comp_del.NumAtoms() != comp.NumAtoms():
+                            self.opt['Logger'].info(
+                                "Detected steric-clashes between the ligand {} and component {}".format(
+                                    ligand_title,
+                                    comp_name))
+                        if not oechem.OEUpdateDesignUnit(self.du, comp_del, comp_id):
+                            raise ValueError("Could not add the un-clashed component to the Design Unit")
+
+                # TODO check parametrization at this stage on the DU components
+
+                flask = oechem.OEMol()
+
+                if not self.du.GetComponents(flask, oechem.OEDesignUnitComponents_All):
+                    raise ValueError("Recovering all the Design Unit Components Failed")
+
+                complex_title = 'p' + self.protein_flask_title + '_l' + ligand_title
+                self.du.SetTitle(complex_title)
+
+                flask.SetTitle(complex_title)
+
+                # the ligand is the primary molecule
                 new_record = OERecord(record)
 
-                new_record.set_value(Fields.flask, new_complex)
+                new_record.set_value(Fields.flask, flask)
                 new_record.set_value(Fields.title, complex_title)
                 new_record.set_value(Fields.ligand, ligand)
-                new_record.set_value(Fields.protein, self.protein)
-                new_record.set_value(Fields.protein_name, self.protein_title)
+                new_record.set_value(Fields.protein, protein_comp)
+                new_record.set_value(Fields.protein_name, self.protein_flask_title)
+                new_record.set_value(Fields.design_unit, self.du)
 
                 self.success.emit(new_record)
 
