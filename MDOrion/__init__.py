@@ -15,7 +15,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '1.0.0rc4'
+__version__ = '1.0.0'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
