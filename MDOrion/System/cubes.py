@@ -140,13 +140,8 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
     description = """
     This cube sets a record collection state in open or closed for safety by
     using the cube bool parameter open. A True value will open the record
-<<<<<<< HEAD
     collection enabling the shard writing and deleting. In Orion if on the record
     the collection field is not present one will be created.
-=======
-    collection enabling the shard writing and deleting. If necessary a
-    collection field will be created on the record.
->>>>>>> 4e4cba09747165699bf168d50eac2a5eaf45d5da
     """
 
     uuid = "b3821952-a5ed-4028-867c-3f71185442aa"
