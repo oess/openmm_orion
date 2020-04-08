@@ -24,10 +24,7 @@ from oeommtools import utils as oeommutils
 
 from MDOrion.Standards import Fields
 
-from floe.constants import ADVANCED
-
-from floe.api import (parameters,
-                      ComputeCube)
+from floe.api import ComputeCube
 
 from orionplatform.mixins import RecordPortsMixin
 from orionplatform.ports import RecordInputPort
@@ -71,14 +68,15 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
             self.opt = vars(self.args)
             self.opt['Logger'] = self.log
 
+            self.du = None
+
             if record.has_value(Fields.design_unit):
                 du = record.get_value(Fields.design_unit)
                 protein_flask = oechem.OEMol()
-                if not self.du.GetProtein(protein_flask):
+                if not du.GetProtein(protein_flask):
                     raise ValueError("The protein cannot be extracted from the Design Unit")
                 self.du = du
             else:
-
                 if not record.has_value(Fields.flask):
                     self.log.error("Missing Protein flask field")
                     self.failure.emit(record)
@@ -93,6 +91,7 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 self.protein_flask_title = record.get_value(Fields.title)
 
             self.protein_flask = protein_flask
+
             return
 
     def process(self, record, port):
@@ -115,10 +114,11 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                     ligand_title = record.get_value(Fields.title)
 
                 # Create a Design Unit
-                if not record.has_value(Fields.design_unit):
-
+                if self.du is None:
                     du = oechem.OEDesignUnit()
 
+                    # Set Options to create the design unit starting
+                    # from the ligand and the protein
                     build_opts = oespruce.OEDesignUnitBuildOptions()
                     build_opts.SetBuildSidechains(False)
                     build_opts.SetBuildLoops(False)
@@ -129,6 +129,9 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                     enum_opts = oespruce.OEDesignUnitEnumerateSitesOptions()
                     enum_opts.SetAddInteractionHints(False)
                     enum_opts.SetAddStyle(False)
+                    enum_opts.SetEnumerateCofactorSites(False)
+                    enum_opts.SetDuplicateRemoval(False)
+                    enum_opts.SetCollapseNonSiteAlts(False)
 
                     prep_opts = oespruce.OEDesignUnitPrepOptions()
                     prep_opts.SetProtonate(False)
@@ -222,7 +225,8 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                         if not oechem.OEUpdateDesignUnit(self.du, comp_del, comp_id):
                             raise ValueError("Could not add the un-clashed component to the Design Unit")
 
-                # TODO check parametrization at this stage on the DU components
+                # TODO At this stage check parametrization on the DU components for early failures
+                #  This must be done after the FF cube has been improved
 
                 flask = oechem.OEMol()
 

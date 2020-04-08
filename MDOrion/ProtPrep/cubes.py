@@ -24,14 +24,7 @@ from floe.api import (parameters,
 
 from orionplatform.mixins import RecordPortsMixin
 
-# from MDOrion.ProtPrep.utils import ss_bond_fix
-
 from openeye import oechem
-
-from oeommtools import utils
-
-from MDOrion.ForceField import utils as ffutils
-
 
 class ProteinSetting(RecordPortsMixin, ComputeCube):
     title = "Protein Setting"
@@ -79,16 +72,20 @@ class ProteinSetting(RecordPortsMixin, ComputeCube):
             if self.count > 0 and not self.opt['multiple_protein']:
                 raise ValueError("Multiple Proteins have been Detected")
 
-            if record.has_value(Fields.design_unit):
+            if record.has_value(Fields.design_unit_from_spruce):
 
-                du = record.get_value(Fields.design_unit)
+                du = oechem.OEDesignUnit()
+
+                if not oechem.OEReadDesignUnitFromBytes(du, record.get_value(Fields.design_unit_from_spruce)):
+                    raise ValueError("It was not possible Reading the Design Unit from the record")
+
+                self.opt['Logger'].info("[{}] Design Unit Detected".format(self.title))
 
                 # Clean the Design Unit from the Interaction Hints
                 for pair in du.GetTaggedComponents():
 
                     # Take from the DU the component name and ID
                     comp_name = pair[0]
-
                     comp_id = du.GetComponentID(comp_name)
 
                     # Extract the OEMol Component
