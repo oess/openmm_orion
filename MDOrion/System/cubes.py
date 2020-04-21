@@ -338,14 +338,60 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
                                                                                                 solute.GetTitle(),
                                                                                                 field_name,
                                                                                                 rec_value))
+            # Set the flag to return the solvent molecule components
+            opt['return_components'] = True
+
             # Solvate the system
-            sol_system = packmol.oesolvate(solute, **opt)
+            sol_system, solvent_comp, salt_comp, counter_ions_comp = packmol.oesolvate(solute, **opt)
 
             self.log.info("[{}] Solvated simulation flask {} yielding {} atoms overall".format(self.title,
                                                                                                solute_title,
                                                                                                sol_system.NumAtoms()))
+
             sol_system.SetTitle(solute.GetTitle())
 
+            if salt_comp is not None and counter_ions_comp is not None:
+                if not oechem.OEAddMols(counter_ions_comp, salt_comp):
+                    raise ValueError("Cannot add the salt component and the counter ion component")
+            elif salt_comp is not None:
+                counter_ions_comp = salt_comp
+            else:
+                pass
+
+            if not record.has_value(Fields.design_unit):
+                raise ValueError("The Design Unit is not present on the record")
+
+            du = record.get_value(Fields.design_unit)
+            # Update the Design unit solvent and counter ion components
+            if du.HasSolvent():
+                solvent_du = oechem.OEMol()
+                if not du.GetSolvent(solvent_du):
+                    raise ValueError("The Solvent cannot be extracted from the Design Unit")
+                if not oechem.OEAddMols(solvent_du, solvent_comp):
+                    raise ValueError("Cannot add the DU solvent and the Packmol Solvent")
+
+            else:
+                solvent_du = solvent_comp
+
+            if not oechem.OEUpdateDesignUnit(du, solvent_du, oechem.OEDesignUnitComponents_Solvent):
+                raise ValueError("Could not add the Solvent Component to the Design Unit")
+
+            if counter_ions_comp is not None:
+
+                if du.HasComponent(oechem.OEDesignUnitComponents_CounterIons):
+                    counter_ion_du = oechem.OEMol()
+                    if not du.GetComponents(counter_ion_du, oechem.OEDesignUnitComponents_CounterIons):
+                        raise ValueError("The Counter Ions cannot be extracted from the Design Unit")
+                    if not oechem.OEAddMols(counter_ion_du, counter_ions_comp):
+                        raise ValueError("Cannot add the DU counter ions and the Packmol counter ions")
+
+                else:
+                    counter_ion_du = counter_ions_comp
+
+                if not oechem.OEUpdateDesignUnit(du, counter_ion_du, oechem.OEDesignUnitComponents_CounterIons):
+                    raise ValueError("Could not add the Counter Ion Component to the Design Unit")
+
+            record.set_value(Fields.design_unit, du)
             record.set_value(Fields.flask, sol_system)
             record.set_value(Fields.title, solute_title)
 
