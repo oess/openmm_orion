@@ -24,6 +24,10 @@ from MDOrion.ForceField.ffutils import (ParamMolStructure,
                                         parametrize_unknown_component)
 import parmed
 
+from oeommtools import utils as oeommutils
+
+from simtk.openmm import app
+
 
 class ParametrizeDU:
     def __init__(self, design_unit, opt):
@@ -37,6 +41,9 @@ class ParametrizeDU:
         self.ligand_ff = ff_library.ligandff[opt['ligand_forcefield']]
         self.protein_ff = ff_library.proteinff[opt['protein_forcefield']]
 
+        # Extended Force Field
+        self.protein_extended_ff = ff_library.protein_extended_ff[opt['protein_forcefield']]
+
         # Force Field to use: Default
         self.counter_ions_ff = ff_library.counter_ionsff['Counter_ions']
         self.metals_ff = ff_library.metals_ff['Metals']
@@ -44,7 +51,7 @@ class ParametrizeDU:
         self.solvent_ff = ff_library.solventff['Tip3p']
         self.cofactors_ff = ff_library.cofactors_ff['Cofactors']
         self.lipids_ff = ff_library.lipids_ff['Lipids']
-        self.nucleics_ff = ff_library['Nucleics']
+        self.nucleics_ff = ff_library.nucleics_ff['Nucleics']
 
         # What to parametrize
         self.protein = None
@@ -96,16 +103,46 @@ class ParametrizeDU:
             elif comp_id == oechem.OEDesignUnitComponents_OtherNucleics:
                 self.other_nucleics = comp
             else:
-                opt['Logger'].warn("The component {} parametrization is not currently supported".
-                                   format(comp_name))
+                self.opt['Logger'].warn("The following component parametrization is not currently supported: {}".format(comp_name))
         if not self.components:
             raise ValueError("None of the DU components cannot be parametrized")
 
+    @property
     def parametrize_protein(self):
-        # if self.protein:
-        #     pmd_protein, unrec_prot = parametrize_component(self.protein, self.protein_ff)
-        # else:
-        #     raise ValueError("Protein is not present in the DU")
+        if self.protein:
+
+            # oechem.OEPerceiveResidues(self.protein, oechem.OEPreserveResInfo_All)
+
+            # for oe_res in oechem.OEGetResidues(self.protein):
+            #     print(oe_res.GetName(), oe_res.GetResidueNumber())
+            #     for oe_at in oechem.OEGetResidueAtoms(self.protein, oe_res, oechem.OEAssumption_BondedResidue +
+            #                         oechem.OEAssumption_ResPerceived +
+            #                        oechem.OEAssumption_PDBOrder):
+            #         print("\t {}".format(oe_at))
+
+            # OpenMM topology and positions from OEMol
+            topology, positions = oeommutils.oemol_to_openmmTop(self.protein)
+
+            # Try to apply the selected FF on the Protein
+            forcefield = app.ForceField(self.protein_ff)
+
+            if not forcefield.getUnmatchedResidues(topology):
+                omm_protein = forcefield.createSystem(topology, rigidWater=False, constraints=None)
+                protein_pmd = parmed.openmm.load_topology(topology, omm_protein, xyz=positions)
+                return protein_pmd
+            else:
+                # Try to apply the extended FF to the Protein
+                forcefield = app.ForceField(self.protein_extended_ff)
+                unmatched_res_list = forcefield.getUnmatchedResidues(topology)
+                if unmatched_res_list:
+                    raise ValueError("The following residues cannot be parametrized by the selected FF {}\n{}".
+                                     format(self.opt['protein_forcefield'], unmatched_res_list))
+                else:
+                    omm_protein = forcefield.createSystem(topology, rigidWater=False, constraints=None)
+                    protein_pmd = parmed.openmm.load_topology(topology, omm_protein, xyz=positions)
+                    return protein_pmd
+        else:
+            raise ValueError("Protein is not present in the DU")
         pass
 
     @property
@@ -143,8 +180,8 @@ class ParametrizeDU:
                     unk_ions_pmd = parametrize_unknown_component(unrec_ions, self.other_ff)
                     counter_ions_pmd += unk_ions_pmd
 
-                    # self.opt['Logger'].warn("Some Counter Ions have  been parametrized by using the ff: {}".
-                    #                         format(self.other_ff))
+                    self.opt['Logger'].warn("Some Counter Ions have  been parametrized by using the ff: {}".
+                                            format(self.other_ff))
 
                 return counter_ions_pmd
             else:
@@ -165,8 +202,8 @@ class ParametrizeDU:
                     unk_metals_pmd = parametrize_unknown_component(unrec_metals, self.other_ff)
                     metals_pmd += unk_metals_pmd
 
-                    # self.opt['Logger'].warn("Some Metal Ions have been parametrized by using the ff: {}".
-                    #                         format(self.other_ff))
+                    self.opt['Logger'].warn("Some Metal Ions have been parametrized by using the ff: {}".
+                                            format(self.other_ff))
                 return metals_pmd
             else:
                 raise ValueError("Metals cannot be parametrized by using the FF: {}".format(self.metals_ff))
@@ -185,8 +222,8 @@ class ParametrizeDU:
                     unk_exc_pmd = parametrize_unknown_component(unrec_exc, self.other_ff)
                     excipients_pmd += unk_exc_pmd
 
-                    # self.opt['Logger'].warn("Some Excipients have been parametrized by using the ff: {}".
-                    #                         format(self.other_ff))
+                    self.opt['Logger'].warn("Some Excipients have been parametrized by using the ff: {}".
+                                            format(self.other_ff))
                 return excipients_pmd
             else:
                 raise ValueError("Excipients cannot be parametrized by using the FF: {}".format(self.excipients_ff))
@@ -198,10 +235,12 @@ class ParametrizeDU:
 
         if self.solvent:
 
+            oechem.OEPerceiveResidues(self.solvent, oechem.OEPreserveResInfo_All)
+
             # PDB_Order Error. Call Perceive Residue for the wrong PDB Atom Order
-            # for oe_res in oechem.OEGetResidues(component_copy):
+            # for oe_res in oechem.OEGetResidues(self.solvent):
             #     print(oe_res.GetName(), oe_res.GetResidueNumber())
-            #     for oe_at in oechem.OEGetResidueAtoms(component, oe_res, oechem.OEAssumption_BondedResidue +
+            #     for oe_at in oechem.OEGetResidueAtoms(self.solvent, oe_res, oechem.OEAssumption_BondedResidue +
             #                         oechem.OEAssumption_ResPerceived +
             #                        oechem.OEAssumption_PDBOrder):
             #         print("\t {}".format(oe_at))
@@ -217,8 +256,8 @@ class ParametrizeDU:
                     unk_solvent_pmd = parametrize_unknown_component(unrec_solvent, self.other_ff)
                     solvent_pmd += unk_solvent_pmd
 
-                # self.opt['Logger'].warn("Some Solvent molecules have been parametrized by using the ff: {}".
-                #                         format(self.other_ff))
+                    self.opt['Logger'].warn("Some Solvent molecules have been parametrized by using the ff: {}".
+                                            format(self.other_ff))
                 return solvent_pmd
             else:
                 raise ValueError("Solvent cannot be parametrized by using the FF: {}".format(self.solvent_ff))
@@ -321,7 +360,7 @@ class ParametrizeDU:
             comp_id = self.du.GetComponentID(comp_name)
 
             if comp_id == oechem.OEDesignUnitComponents_Protein:
-                continue
+                du_pmd += self.parametrize_protein
             elif comp_id == oechem.OEDesignUnitComponents_Ligand:
                 du_pmd += self.parametrize_ligand
             elif comp_id == oechem.OEDesignUnitComponents_OtherLigands:

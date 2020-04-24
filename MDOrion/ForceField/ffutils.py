@@ -40,8 +40,6 @@ from pkg_resources import resource_filename
 
 from openforcefield.topology import Topology, Molecule
 
-from oeommtools.utils import oemol_to_openmmTop
-
 from MDOrion.LigPrep.ff_utils import assignELF10charges
 
 from MDOrion.ForceField.ff_library import ff_library
@@ -122,7 +120,7 @@ class ParamMolStructure(object):
         # omm_top = generateTopologyFromOEMol(molecule)
         # positions = mol_off.conformers[0]
 
-        omm_top, positions = oemol_to_openmmTop(molecule)
+        omm_top, positions = oeommutils.oemol_to_openmmTop(molecule)
 
         pmd_structure = parmed.openmm.load_topology(omm_top, omm_sys, xyz=positions)
 
@@ -211,6 +209,7 @@ def parametrize_component(component, component_ff):
         components_pmd = parmed.openmm.load_topology(topology, omm_components, xyz=positions)
         return components_pmd, None
 
+    # TODO This do not work for protein
     numparts, partlist = oechem.OEDetermineComponents(component_copy)
     pred = oechem.OEPartPredAtom(partlist)
 
@@ -251,7 +250,7 @@ def parametrize_component(component, component_ff):
                 res_omm_system = forcefield.createSystem(res_top, rigidWater=False, constraints=None)
                 res_pmd = parmed.openmm.load_topology(res_top, res_omm_system, xyz=res_pos)
             except:
-                raise ValueError("Error in the recognised other residue parametrization {}".format(res))
+                raise ValueError("Error in the recognised residue parametrization {}".format(res))
 
             map_template_to_pmd[template] = res_pmd
             map_omm_res_to_pmd[res] = res_pmd

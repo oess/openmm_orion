@@ -12,6 +12,8 @@ proteinff = {'Amber99SBildn': 'amber99sbildn.xml',
              'Amber14SB': 'amber14/protein.ff14SB.xml',
              'AmberFB15': 'amberfb15.xml'}
 
+protein_extended_ff = {'Amber14SB': os.path.join(PACKAGE_DIR, 'MDOrion/ForceField/ffext/amber14SB_extendend.xml')}
+
 ligandff = {'Gaff': 'GAFF',
             'Gaff2': 'GAFF2',
             'Smirnoff99Frosst': 'smirnoff99Frosst.offxml',
