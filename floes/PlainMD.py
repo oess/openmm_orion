@@ -17,6 +17,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
+from os import path
 
 from floe.api import (WorkFloe,
                       ParallelCubeGroup)
@@ -35,44 +36,20 @@ from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
                                   ParallelRecordSizeCheck)
 
-job = WorkFloe('Plain MD',
-               title='Plain MD')
+job = WorkFloe('Solvate and Run MD',
+               title='Solvate and Run MD')
 
-job.description = """
-The Plain MD protocol performs MD simulations given one or more
-complete molecular systems as input, each to be treated in its entirety as a solute.
-The solute need to have coordinates, all atoms, and correct chemistry.
-Each molecular system can have multiple conformers but each conformer will be
-run separately as a different solute.
-Proteins need to be prepared to an MD standard: protein chains must be capped,
-all atoms in protein residues (including hydrogens) must be present, and missing
-protein loops resolved. Crystallographic internal waters should be retained where
-possible. The parametrization of some common nonstandard residues is partially supported.
-The input system is solvated and parametrized according to the
-selected force fields. A minimization stage is performed on the system followed
-by a warm up (NVT ensemble) and three equilibration stages (NPT ensemble). In the
-minimization, warm up and equilibration stages positional harmonic restraints are
-applied. At the end of the equilibration stages a short
-(default 2ns) production run is performed on the unrestrained system.
-
-Required Input Parameters:
---------------------------
-system (file): dataset of prepared ligands posed in the protein active site.
-
-Outputs:
---------
-out:  OERecords
-"""
+job.description = open(path.join(path.dirname(__file__), 'PlainMD_desc.rst'), 'r').read()
 # Locally the floe can be invoked by running the terminal command:
-# python floes/ShortTrajMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
+# python floes/PlainMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
 
-job.classification = [['Molecular Dynamics']]
+job.classification = [['General MD']]
 job.uuid = "266481fc-b257-41e9-b2f9-a92bf028b701"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = DatasetReaderCube("SystemReader", title="System Reader")
-ifs.promote_parameter("data_in", promoted_name="system", title='System Input File',
-                      description="System input file")
+ifs.promote_parameter("data_in", promoted_name="solute", title='Solute Input File',
+                      description="Solute input file")
 
 sysid = IDSettingCube("System Ids")
 job.add_cube(sysid)
@@ -86,14 +63,14 @@ solvate.promote_parameter('salt_concentration', promoted_name='salt_concentratio
 solvate.set_parameters(close_solvent=True)
 
 # This cube is necessary for the correct work of collection and shard
-coll_open = CollectionSetting("OpenCollection")
+coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
-ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
-ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
+ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.0.0')
+ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='OpenFF_1.0.0')
 ff.set_parameters(lig_res_name='LIG')
 
 prod = ParallelMDNptCube("Production", title="Production")
@@ -102,13 +79,13 @@ prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
 prod.promote_parameter('temperature', promoted_name='temperature', default=300.0,
                        description='Temperature (Kelvin)')
 prod.promote_parameter('pressure', promoted_name='pressure', default=1.0, description='Pressure (atm)')
-prod.promote_parameter('trajectory_interval', promoted_name='prod_trajectory_interval', default=0.002,
+prod.promote_parameter('trajectory_interval', promoted_name='prod_trajectory_interval', default=0.004,
                        description='Trajectory saving interval in ns')
 prod.promote_parameter('hmr', title='Use Hydrogen Mass Repartitioning', default=False,
                        description='Give hydrogens more mass to speed up the MD')
 prod.promote_parameter('md_engine', promoted_name='md_engine', default='OpenMM',
                        description='Select the MD Engine')
-prod.set_parameters(reporter_interval=0.002)
+prod.set_parameters(reporter_interval=0.004)
 prod.set_parameters(suffix='prod')
 
 
@@ -186,7 +163,7 @@ md_group = ParallelCubeGroup(cubes=[minComplex, warmup, equil1, equil2, equil3, 
 job.add_group(md_group)
 
 # This cube is necessary for the correct working of collection and shard
-coll_close = CollectionSetting("CloseCollection")
+coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 
 rec_check = ParallelRecordSizeCheck("RecordCheck")
@@ -207,7 +184,6 @@ ifs.success.connect(sysid.intake)
 sysid.success.connect(solvate.intake)
 solvate.success.connect(coll_open.intake)
 coll_open.success.connect(ff.intake)
-coll_open.failure.connect(rec_check.fail_in)
 ff.success.connect(minComplex.intake)
 minComplex.success.connect(warmup.intake)
 warmup.success.connect(equil1.intake)
@@ -215,10 +191,21 @@ equil1.success.connect(equil2.intake)
 equil2.success.connect(equil3.intake)
 equil3.success.connect(prod.intake)
 prod.success.connect(coll_close.intake)
-prod.failure.connect(rec_check.fail_in)
 coll_close.success.connect(rec_check.intake)
-coll_close.failure.connect(rec_check.fail_in)
 rec_check.success.connect(ofs.intake)
+
+# Fail Connections
+sysid.failure.connect(rec_check.fail_in)
+solvate.failure.connect(rec_check.fail_in)
+coll_open.failure.connect(rec_check.fail_in)
+ff.failure.connect(rec_check.fail_in)
+minComplex.failure.connect(rec_check.fail_in)
+warmup.failure.connect(rec_check.fail_in)
+equil1.failure.connect(rec_check.fail_in)
+equil2.failure.connect(rec_check.fail_in)
+equil3.failure.connect(rec_check.fail_in)
+prod.failure.connect(rec_check.fail_in)
+coll_close.failure.connect(rec_check.fail_in)
 rec_check.failure.connect(fail.intake)
 
 if __name__ == "__main__":

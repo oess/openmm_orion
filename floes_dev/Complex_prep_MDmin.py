@@ -100,7 +100,7 @@ protset.promote_parameter("other_forcefield", promoted_name="other_ff", default=
 
 # Minimization
 minimize = ParallelMDMinimizeCube('minComplex', title="System Minimization")
-minimize.promote_parameter('steps', promoted_name='steps', default=0)
+minimize.promote_parameter('steps', promoted_name='steps', default=2000)
 minimize.promote_parameter('md_engine', promoted_name='md_engine', default='OpenMM',
                            description='Select the MD Engine')
 

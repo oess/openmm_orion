@@ -26,7 +26,7 @@ from MDOrion.Standards import Fields
 
 from floe.constants import ADVANCED
 
-from floe.api import (parameter,
+from floe.api import (parameters,
                       ComputeCube)
 
 from orionplatform.mixins import RecordPortsMixin
@@ -49,33 +49,23 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
     the target protein, the water molecules that clashes with the docked ligands 
     will be removed. The ligand is identified by the ligand residue name that 
     can be set by using the cube parameter. 
-    
-    Input:
-    -------
-    oechem.OEDataRecord - Streamed-in of the ligands
-    oechem.OEDataRecord - Streamed-in of a single target protein
-    
-
-    Output:
-    -------
-    oechem.OEDataRecord - Streamed-out of records with the generated complexes    
     """
 
     uuid = "be2ac138-22ae-4412-9c38-886472c496b9"
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+       "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
     # Ligand Residue Name
-    lig_res_name = parameter.StringParameter('lig_res_name',
-                                             default='LIG',
-                                             help_text='The ligand residue name',
-                                             level=ADVANCED)
+    lig_res_name = parameters.StringParameter('lig_res_name',
+                                              default='LIG',
+                                              help_text='The ligand residue name',
+                                              level=ADVANCED)
 
     protein_port = RecordInputPort("protein_port", initializer=True)
 

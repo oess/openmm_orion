@@ -74,7 +74,7 @@ def ExtractProtLigActsiteResNums(mol, fromLigCutoff=5.0):
     return protein, ligand, actSiteResNums
 
 
-def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, water_cutoff=10.0):
+def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, water_cutoff=15.0):
     """
     Extracts the aligned protein trajectory and aligned ligand trajectory and aligned
     Water trajectory from a MD trajectory of a larger system that includes other
@@ -168,10 +168,11 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
     count = 0
     water_max_frames = []
 
+    # TODO DEBUG
     # trjImaged = trjImaged[:10]
 
     for frame in trjImaged:
-        # print(count)
+        # print(count, flush=True)
 
         # Water oxygen binding site indexes
         water_O_bs_idx = md.compute_neighbors(frame,
@@ -240,6 +241,9 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
     # Fitting
     trjImaged.superpose(trj_reference, 0, ca_bs_idx)
 
+    # Delete Original Trajectory to save memory
+    del trj
+
     # Molecule copies
     ligand_reference = oechem.OEMol(ligand)
     protein_reference = oechem.OEMol(protein)
@@ -248,7 +252,7 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
 
     # Create the multi conformer protein, ligand and water molecules
     for frame in trjImaged.xyz:
-        # print(count)
+        # print("Trj Image loop", count, flush=True)
 
         # Extract coordinates in A
         xyz = frame * 10
@@ -257,10 +261,17 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
         flask.SetCoords(xyz.flatten())
         water_list_sorted_max = water_max_frames[count]
 
-        water_list = []
+        # print(water_list_sorted_max)
+
+        # TODO The following solution to extract the waters do not
+        #  keep the water order
+
+        # Mark the close water atoms and extract them
+        bv = oechem.OEBitVector(nmax * 3)
+        water_idx = []
+
         for pair in water_list_sorted_max:
-            bv = oechem.OEBitVector(3)
-            water_idx = []
+
             ow = flask.GetAtom(oechem.OEHasAtomIdx(pair[0]))
 
             # Select the whole water molecule
@@ -268,18 +279,37 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
                 bv.SetBitOn(atw.GetIdx())
                 water_idx.append(atw.GetIdx())
 
-            pred_vec = oechem.OEAtomIdxSelected(bv)
-            water = oechem.OEMol()
-            oechem.OESubsetMol(water, flask, pred_vec)
-
-            water_list.append(water)
-
-        # print(len(water_list))
-
+        pred_vec = oechem.OEAtomIdxSelected(bv)
         water_nmax_reference = oechem.OEMol()
+        oechem.OESubsetMol(water_nmax_reference, flask, pred_vec)
 
-        for w in water_list:
-            oechem.OEAddMols(water_nmax_reference, w)
+        # TODO The following solution to extract the waters
+        #  keep the water order but is it seems extremely inefficient
+
+        # water_list = []
+        # for pair in water_list_sorted_max:
+        #     bv = oechem.OEBitVector(3)
+        #     water_idx = []
+        #     ow = flask.GetAtom(oechem.OEHasAtomIdx(pair[0]))
+        #
+        #     # Select the whole water molecule
+        #     for atw in oechem.OEGetResidueAtoms(ow):
+        #         bv.SetBitOn(atw.GetIdx())
+        #         water_idx.append(atw.GetIdx())
+        #
+        #     pred_vec = oechem.OEAtomIdxSelected(bv)
+        #     water = oechem.OEMol()
+        #     oechem.OESubsetMol(water, flask, pred_vec)
+        #
+        #     water_list.append(water)
+        #
+        #
+        # # print(len(water_list))
+        #
+        # water_nmax_reference = oechem.OEMol()
+
+        # for w in water_list:
+        #     oechem.OEAddMols(water_nmax_reference, w)
 
         # ligand and protein conf coordinates
         lig_xyz_list = [10 * frame[idx] for idx in lig_idx]
@@ -317,6 +347,7 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
             protein_reference.SetCoords(prot_confxyz)
             multi_conf_ligand = oechem.OEMol(ligand_reference)
             multi_conf_protein = oechem.OEMol(protein_reference)
+
         # Attach the conformers on the multi conformer protein, ligand and water molecules
         else:
             water_confxyz = oechem.OEFloatArray(water_nmax_reference.NumAtoms() * 3)

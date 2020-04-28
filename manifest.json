@@ -1,4 +1,7 @@
 {
+    "build_requirements": {
+        "memory": 8192
+    },
     "conda_channels": [
         "anaconda",
         "conda-forge",
@@ -25,7 +28,7 @@
         "numpy==1.14.2",
         "oeommtools==0.1.10",
         "openforcefield==0.5.1",
-        "openforcefields==1.0.0",
+        "openforcefields==1.1.0",
         "openmm==7.4.1",
         "openmmtools==0.18.3",
         "openmoltools==0.8.1",
@@ -50,5 +53,5 @@
     "python_version": "3.6.6",
     "requirements": "requirements_dev.txt",
     "uuid": "8ad7e185-9b86-4112-a2e7-a367e5123e29",
-    "version": "0.10.0a7"
+    "version": "2.0.0a1"
 }

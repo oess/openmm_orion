@@ -32,7 +32,7 @@ from orionplatform.ports import (RecordInputPort,
 
 
 from floe.api import (ParallelMixin,
-                      parameter,
+                      parameters,
                       ComputeCube)
 
 from oeommtools import packmol
@@ -57,21 +57,13 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
     on a record has multiple conformers these are split into singles each with 
     its own ID. If a complex will be formed, this cube should be used on ligands
     before forming the complex.
-    
-    Input:
-    -------
-    Data record Stream - Streamed input of ligands, one per record
-
-    Output:
-    -------
-    Data record Stream - Streamed output of records, one per conformer, with title and ID.
     """
 
     uuid = "d3c1dac4-544f-4273-8b17-1b75c058f4bd"
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -146,31 +138,23 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['System', 'Complex', 'Protein', 'Ligand']
     description = """
-    This cube set a record collection state in open or closed for safety by
+    This cube sets a record collection state in open or closed for safety by
     using the cube bool parameter open. A True value will open the record
-    collection enabling the shard writing and deleting. If on the record
+    collection enabling the shard writing and deleting. In Orion if on the record
     the collection field is not present one will be created.
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of systems such as ligands
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records each one with associated IDs
     """
 
     uuid = "b3821952-a5ed-4028-867c-3f71185442aa"
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    open = parameter.BooleanParameter(
+    open = parameters.BooleanParameter(
         'open',
         default=True,
         help_text='Open or Close a Collection')
@@ -239,7 +223,8 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['Complex', 'Protein', 'Ligand', 'Solvation']
     description = """
-    The solvation cube solvates a given solute input system in a
+    The solvation cube solvates a given solute input system by a
+    periodic box of a solvent or a
     selected mixture of solvents. The solvents can be specified by
     comma separated smiles strings of each solvent component or
     selected keywords like tip3p for tip3p water geometry. For each
@@ -248,85 +233,75 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
     the ionic solution strength can be set adding salt. The cube
     requires a record as input with a solute molecule to solvate
     and produces an output record with the solvated solute.
-
-
-     Input:
-    -------
-    Data record Stream - Streamed-in of system solutes to solvate
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records each with the solvated
-    solute
     """
 
     uuid = "2e6130f6-2cba-48a4-9ef3-351a2970258a"
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 6000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    density = parameter.DecimalParameter(
+    density = parameters.DecimalParameter(
         'density',
         default=1.0,
         help_text="Solution density in g/ml")
 
-    padding_distance = parameter.DecimalParameter(
+    padding_distance = parameters.DecimalParameter(
         'padding_distance',
         default=8.0,
         help_text="The padding distance between the solute and the box edge in A")
 
-    distance_between_atoms = parameter.DecimalParameter(
+    distance_between_atoms = parameters.DecimalParameter(
         'distance_between_atoms',
         default=2.0,
         help_text="The minimum distance between atoms in A")
 
-    solvents = parameter.StringParameter(
+    solvents = parameters.StringParameter(
         'solvents',
         default='tip3p',
         help_text='Select solvents. The solvents are specified as comma separated smiles strings'
                   'e.g. [H]O[H], C(Cl)(Cl)Cl, CS(=O)C or special keywords like tip3p')
 
-    molar_fractions = parameter.StringParameter(
+    molar_fractions = parameters.StringParameter(
         'molar_fractions',
         default='1.0',
         help_text="Molar fractions of each solvent components. The molar fractions are specified"
                   "as comma separated molar fractions strings e.g. 0.5,0.2,0.3")
 
-    verbose = parameter.BooleanParameter(
+    verbose = parameters.BooleanParameter(
         'verbose',
         default=False,
         help_text='Output Packmol log')
 
-    geometry = parameter.StringParameter(
+    geometry = parameters.StringParameter(
         'geometry',
         default='box',
         choices=['box', 'sphere'],
         help_text="Geometry selection: box or sphere. Sphere cannot be used as periodic system "
                   "along with MD simulation")
 
-    close_solvent = parameter.BooleanParameter(
+    close_solvent = parameters.BooleanParameter(
         'close_solvent',
         default=False,
         help_text="If Checked/True solvent molecules will be placed very close to the solute")
 
-    salt = parameter.StringParameter(
+    salt = parameters.StringParameter(
         'salt',
         default='[Na+], [Cl-]',
         help_text='Salt type. The salt is specified as list of smiles strings. '
                   'Each smiles string is the salt component dissociated in the '
                   'solution e.g. Na+, Cl-')
 
-    salt_concentration = parameter.DecimalParameter(
+    salt_concentration = parameters.DecimalParameter(
         'salt_concentration',
         default=0.0,
         help_text="Salt concentration in millimolar")
 
-    neutralize_solute = parameter.BooleanParameter(
+    neutralize_solute = parameters.BooleanParameter(
         'neutralize_solute',
         default=True,
         help_text='Neutralize the solute by adding Na+ and Cl- counter-ions based on'
@@ -398,21 +373,13 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
     description = """
     This cube checks if the size of the incoming record is less than 100MB
     to avoid Orion database size issues. Locally does not have any effect.
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of system records
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records
     """
 
     uuid = "0555ead8-0339-41f2-9876-3eb166e32772"
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -427,25 +394,14 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
     def process(self, record, port):
         try:
             if in_orion():
-                # Create the MD record to use the MD Record API
-                mdrecord = MDDataRecord(record)
-
-                if not mdrecord.has_title:
-                    self.log.warn("Missing record Title field")
-                    system = mdrecord.get_flask
-                    title = system.GetTitle()[0:12]
-                else:
-                    title = mdrecord.get_title
 
                 tot_size = 0
                 for field in record.get_fields():
                     tot_size += record.get_value_size(field)
-
                 if tot_size > 100 * 1024 * 1024:
-                    raise ValueError("The record size exceeds the 100 MB: {} = {}".format(title,
-                                                                                          get_human_readable(tot_size)))
+                    raise ValueError("The record size exceeds the 100 MB: {}".format(get_human_readable(tot_size)))
                 else:
-                    self.opt['Logger'].info("Record size: {} = {}".format(title, get_human_readable(tot_size)))
+                    self.opt['Logger'].info("Record size: {}".format(get_human_readable(tot_size)))
 
             if port == "intake":
                 self.success.emit(record)

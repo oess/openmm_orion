@@ -18,7 +18,7 @@
 import traceback
 from floe.api import (ParallelMixin,
                       ComputeCube,
-                      parameter)
+                      parameters)
 
 from orionplatform.mixins import RecordPortsMixin
 
@@ -87,60 +87,60 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-        "memory_mb": {"default": 6000},
-        "instance_tags": {"default": "cuda9"},
+        "instance_type": {"default": "!g4"},  # Gpu Family selection
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    temperature = parameter.DecimalParameter(
+    temperature = parameters.DecimalParameter(
         'temperature',
         default=300.0,
         help_text="Temperature (Kelvin)")
 
-    pressure = parameter.DecimalParameter(
+    pressure = parameters.DecimalParameter(
         'pressure',
         default=1.0,
         help_text="Pressure (atm)")
 
-    iterations = parameter.IntegerParameter(
+    iterations = parameters.IntegerParameter(
         'iterations',
         default=1000,
         help_text="Total Number of Yank iterations for the entire floe. "
                   "A Yank iteration is 500 MD steps")
 
-    nsteps_per_iteration = parameter.IntegerParameter(
+    nsteps_per_iteration = parameters.IntegerParameter(
         'nsteps_per_iteration',
         default=500,
         help_text="Number of MD steps per iteration")
 
-    checkpoint_interval = parameter.IntegerParameter(
+    checkpoint_interval = parameters.IntegerParameter(
         'checkpoint_interval',
         default=50,
         help_text="Save Yank info every specified Yank iterations")
 
-    nonbondedCutoff = parameter.DecimalParameter(
+    nonbondedCutoff = parameters.DecimalParameter(
         'nonbondedCutoff',
         default=10.0,
         help_text="The non-bonded cutoff in angstroms")
 
-    lig_res_name = parameter.StringParameter(
+    lig_res_name = parameters.StringParameter(
         'lig_res_name',
         default='LIG',
         help_text='Ligand residue name')
 
-    verbose = parameter.BooleanParameter(
+    verbose = parameters.BooleanParameter(
         'verbose',
         default=False,
         help_text="Print verbose YANK logging output")
 
-    hmr = parameter.BooleanParameter(
+    hmr = parameters.BooleanParameter(
         'hmr',
         default=False,
         description='On enables Hydrogen Mass Repartitioning')
 
-    suffix = parameter.StringParameter(
+    suffix = parameters.StringParameter(
         'suffix',
         default='yank',
         help_text='Filename suffix for output simulation files')
@@ -173,7 +173,7 @@ class YankSolvationFECube(RecordPortsMixin, ComputeCube):
 
                 if v.default is None:
                     tmp_default.default = 'None'
-                elif isinstance(v, parameter.BooleanParameter):
+                elif isinstance(v, parameters.BooleanParameter):
                     if v.default:
                         tmp_default.default = 'True'
                     else:
@@ -467,7 +467,7 @@ class SyncBindingFECube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 6000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -581,97 +581,97 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-        "memory_mb": {"default": 6000},
-        "instance_tags": {"default": "cuda9"},
+        "instance_type": {"default": "!g4"},  # Gpu Family selection
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    temperature = parameter.DecimalParameter(
+    temperature = parameters.DecimalParameter(
         'temperature',
         default=300.0,
         help_text="Temperature (Kelvin)")
 
-    pressure = parameter.DecimalParameter(
+    pressure = parameters.DecimalParameter(
         'pressure',
         default=1.0,
         help_text="Pressure (atm)")
 
-    iterations = parameter.IntegerParameter(
+    iterations = parameters.IntegerParameter(
         'iterations',
         default=1000,
         help_text="Total Number of Yank iterations for the entire floe. "
                   "A Yank iteration is 500 MD steps")
 
-    nsteps_per_iteration = parameter.IntegerParameter(
+    nsteps_per_iteration = parameters.IntegerParameter(
         'nsteps_per_iteration',
         default=500,
         help_text="Number of MD steps per iteration")
 
-    checkpoint_interval = parameter.IntegerParameter(
+    checkpoint_interval = parameters.IntegerParameter(
         'checkpoint_interval',
         default=50,
         help_text="Save Yank info every specified Yank iterations")
 
-    timestep = parameter.DecimalParameter(
+    timestep = parameters.DecimalParameter(
         'timestep',
         default=2.0,
         help_text="Timestep (fs)")
 
-    nonbondedCutoff = parameter.DecimalParameter(
+    nonbondedCutoff = parameters.DecimalParameter(
         'nonbondedCutoff',
         default=10.0,
         help_text="The non-bonded cutoff in angstroms")
 
-    lig_res_name = parameter.StringParameter(
+    lig_res_name = parameters.StringParameter(
         'lig_res_name',
         default='LIG',
         help_text='The decoupling ligand residue name')
 
-    verbose = parameter.BooleanParameter(
+    verbose = parameters.BooleanParameter(
         'verbose',
         default=False,
         help_text="Print verbose YANK logging output")
 
-    hmr = parameter.BooleanParameter(
+    hmr = parameters.BooleanParameter(
         'hmr',
         default=False,
         description='On enables Hydrogen Mass Repartitioning')
 
-    suffix = parameter.StringParameter(
+    suffix = parameters.StringParameter(
         'suffix',
         default='yank',
         help_text='Filename suffix for output simulation files')
 
-    sampler = parameter.StringParameter(
+    sampler = parameters.StringParameter(
         'sampler',
         default='repex',
         choices=['repex', 'sams'],
         help_text='Yank Sampling mode: REPEX Replica Exchange and SAMS Self-Adjusted Mixture Sampling')
 
-    restraints = parameter.StringParameter(
+    restraints = parameters.StringParameter(
         'restraints',
         default='boresch',
         choices=['harmonic', 'boresch'],
         help_text='Select the restraint types to apply to the ligand during the '
                   'alchemical decoupling. Choices: harmonic, boresch')
 
-    protocol_repex = parameter.StringParameter(
+    protocol_repex = parameters.StringParameter(
         'protocol_repex',
         default='windows_29',
         choices=['auto_protocol',
                  'windows_29'],
         help_text='Select the repex protocol type')
 
-    protocol_sams = parameter.StringParameter(
+    protocol_sams = parameters.StringParameter(
         'protocol_sams',
         default='windows_sams',
         choices=['auto_protocol',
                  'windows_sams'],
         help_text='Select the sams protocol type')
 
-    user_yank_yaml_file = parameter.FileInputParameter(
+    user_yank_yaml_file = parameters.FileInputParameter(
         'user_yank_yaml_file',
         default=None,
         required=True,
@@ -704,7 +704,7 @@ class YankBindingFECube(RecordPortsMixin, ComputeCube):
 
                 if v.default is None:
                     tmp_default.default = 'None'
-                elif isinstance(v, parameter.BooleanParameter):
+                elif isinstance(v, parameters.BooleanParameter):
                     if v.default:
                         tmp_default.default = 'True'
                     else:
@@ -1017,13 +1017,13 @@ class YankProxyCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 6000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    iterations = parameter.IntegerParameter(
+    iterations = parameters.IntegerParameter(
         'iterations',
         default=1000,
         help_text="Total number of iterations")

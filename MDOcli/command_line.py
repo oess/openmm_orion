@@ -17,10 +17,9 @@ from orionclient.types import File, Shard, ShardCollection
 
 import os
 
-from orionclient.session import (OrionSession,
-                                 get_profile_config,
-                                 get_session,
-                                 APISession)
+from orionclient.session import get_session
+
+import orionclient
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
@@ -30,6 +29,7 @@ import pickle
 
 import parmed
 
+from tqdm import tqdm
 
 @click.group(
     context_settings={
@@ -37,16 +37,29 @@ import parmed
     }
 )
 @click.pass_context
-def main(ctx):
+@click.option("--profile", help="OCLI profile name", default="default")
+def main(ctx, profile):
     ctx.obj = dict()
+    ctx.obj['session'] = orionclient.session.OrionSession(orionclient.session.get_profile_config(profile=profile),
+                                                          requests_session=get_session(
+                                                              retry_dict={
+                                                                  403: 5,
+                                                                  404: 20,
+                                                                  409: 45,
+                                                                  460: 15,
+                                                                  500: 2,
+                                                                  502: 45,
+                                                                  503: 45,
+                                                                  504: 45,
+                                                              }
+                                                          ))
 
 
 @main.group()
 @click.argument('filename', type=click.Path(exists=True))
-@click.option("--id", help="Record ID number", default="all")
-@click.option("--profile", help="OCLI profile name", default="default")
+@click.option("--id", help="Record ID number", multiple=True, default="all")
 @click.pass_context
-def dataset(ctx, filename, id, profile=None, max_retries=5):
+def dataset(ctx, filename, id):
     """Records Extraction"""
 
     ctx.obj['filename'] = filename
@@ -59,30 +72,18 @@ def dataset(ctx, filename, id, profile=None, max_retries=5):
         records.append(rec)
     ifs.close()
 
-    if id == 'all':
+    if id == ('a', 'l', 'l'):
         ctx.obj['records'] = records
     else:
-        if int(id) < len(records):
-            ctx.obj['records'] = [records[int(id)]]
-        else:
-            raise ValueError("Wrong record number selection: {} > max = {}".format(int(id), len(records)))
-    # TODO
-    if profile == "default" and os.environ.get("ORION_PROFILE") is not None:
-        profile = os.environ["ORION_PROFILE"]
 
-    profile_config = get_profile_config(profile=profile)
+        list_rec = []
+        for idx in id:
+            if int(idx) < len(records):
+                list_rec.append(records[int(idx)])
+            else:
+                raise ValueError("Wrong record number selection: {} > max = {}".format(int(id), len(records)))
 
-    ctx.obj['profile'] = profile
-    ctx.obj['session'] = OrionSession(
-            config=profile_config,
-            requests_session=get_session({404: max_retries}))
-
-    ctx.obj['credentials'] = profile_config
-
-    if ctx.obj["credentials"] is not None:
-        ctx.obj['session'].config = ctx.obj["credentials"]
-    else:
-        click.secho("Unable to find credentials", fg='red', err=True)
+        ctx.obj['records'] = list_rec
 
 
 @dataset.command("makelocal")
@@ -90,9 +91,11 @@ def dataset(ctx, filename, id, profile=None, max_retries=5):
 @click.pass_context
 def data_trajectory_extraction(ctx, name):
 
-    new_records = []
+    session = ctx.obj['session']
 
-    for record in ctx.obj['records']:
+    ofs = oechem.oeofstream(name)
+
+    for record in tqdm(ctx.obj['records']):
 
         mdrecord = MDDataRecord(record)
 
@@ -100,8 +103,6 @@ def data_trajectory_extraction(ctx, name):
 
         if not record.has_field(Fields.collection):
             raise ValueError("No Collection field has been found in the record")
-
-        session = APISession
 
         collection_id = record.get_value(Fields.collection)
 
@@ -125,6 +126,8 @@ def data_trajectory_extraction(ctx, name):
 
                 shard = session.get_resource(Shard(collection=collection), shard_id)
                 shard.download_to_file(data_fn)
+
+                new_stage.delete_field(OEField("MDData_OPLMD", Types.Int))
                 new_stage.set_value(Fields.mddata, data_fn)
 
                 if stage.has_field(OEField("Trajectory_OPLMD", Types.Int)):
@@ -144,6 +147,7 @@ def data_trajectory_extraction(ctx, name):
                     trj_meta.set_attribute(Meta.Annotation.Description, md_engine)
                     new_trj_field = OEField(Fields.trajectory.get_name(), Fields.trajectory.get_type(), meta=trj_meta)
 
+                    new_stage.delete_field(OEField("Trajectory_OPLMD", Types.Int))
                     new_stage.set_value(new_trj_field, trj_fn)
 
             new_stages.append(new_stage)
@@ -165,6 +169,7 @@ def data_trajectory_extraction(ctx, name):
                 pmd_structure = parmed.structure.Structure()
                 pmd_structure.__setstate__(parm_dic)
 
+            new_record.delete_field(OEField('Structure_Parmed_OPLMD', Types.Int))
             new_record.set_value(Fields.pmd_structure, pmd_structure)
 
         if record.has_field(OEField('OETraj', Types.Record)):
@@ -185,18 +190,16 @@ def data_trajectory_extraction(ctx, name):
                 with oechem.oemolistream(protein_fn) as ifs:
                     oechem.OEReadMolecule(ifs, protein_conf)
 
+            oetrajrec.delete_field(OEField('ProtTraj_OPLMD', Types.Int))
             oetrajrec.set_value(Fields.protein_traj_confs, protein_conf)
 
             new_record.set_value(OEField('OETraj', Types.Record), oetrajrec)
 
         new_record.delete_field(Fields.collection)
 
-        new_records.append(new_record)
+        OEWriteRecord(ofs, new_record, fmt='binary')
 
-    ofs = oechem.oeofstream(name)
-
-    for rec in new_records:
-        OEWriteRecord(ofs, rec, fmt='binary')
+    ofs.close()
 
 
 @dataset.command("logs")
@@ -257,6 +260,8 @@ def ligand_extraction(ctx):
 @click.pass_context
 def info_extraction(ctx):
 
+    rec_size = 0
+
     def GetHumanReadable(size, precision=2):
         suffixes = ['B', 'KB', 'MB', 'GB', 'TB']
         suffixIndex = 0
@@ -264,13 +269,22 @@ def info_extraction(ctx):
         while size > 1024 and suffixIndex < 4:
             suffixIndex += 1  # increment the index of the suffix
             size = size / 1024.0  # apply the division
-        return "%.*f %s" % (precision, size, suffixes[suffixIndex])
+
+        color = ""
+        if suffixIndex > 1:
+            color = "\033[33m"
+
+        return "%s %.*f %s \033[0;37;40m" % (color, precision, size, suffixes[suffixIndex])
 
     def recursive_record(record, level=0):
+
+        nonlocal rec_size
 
         for field in record.get_fields():
 
             field_type = field.get_type()
+
+            rec_size += record.get_value_size(field)
 
             blank = "       "
             print("{} |".format(blank * (level + 1)))
@@ -339,18 +353,16 @@ def info_extraction(ctx):
 
     for idx in range(0, len(ctx.obj['records'])):
         print(30 * "*" + " RECORD {}/{} ".format(idx + 1, len(ctx.obj['records'])) + 30 * "*")
+        rec_size = 0
         recursive_record(ctx.obj['records'][idx], 0)
-        print("\n" + 30 * "*" + " END RECORD ".format(idx + 1, len(ctx.obj['records'])) + 30 * "*" + "\n")
+        print("\n" + 22 * "*" + " END RECORD - SIZE {} ".format(GetHumanReadable(rec_size)) + 23 * "*" + "\n")
 
 
-
-
-#############
 @main.group()
 @click.argument('filename', type=click.Path(exists=True))
 @click.option("--id", help="Record ID number", default="all")
 @click.pass_context
-def analysis(ctx, filename, id, profile=None, max_retries=5):
+def analysis(ctx, filename, id):
     """Records Extraction"""
 
     ctx.obj['filename'] = filename

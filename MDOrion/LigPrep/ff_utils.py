@@ -35,8 +35,11 @@ from openforcefield.topology import Topology, Molecule
 
 from oeommtools.utils import oemol_to_openmmTop
 
-
-from simtk import openmm
+ligandff = {'Gaff': 'GAFF',
+            'Gaff2': 'GAFF2',
+            'Smirnoff99Frosst': 'smirnoff99Frosst.offxml',
+            'OpenFF_1.0.0': "openff_unconstrained-1.0.0.offxml",
+            'OpenFF_1.1.0': "openff_unconstrained-1.1.0.offxml"}
 
 
 def assignELF10charges(molecule, max_confs=800, strictStereo=True, opt=None):
@@ -137,8 +140,9 @@ class ParamLigStructure(object):
     """
 
     def __init__(self, molecule, forcefield, prefix_name='ligand', delete_out_files=True):
-        if not forcefield in ['smirnoff99Frosst.offxml', 'openff_unconstrained-1.0.0.offxml', 'GAFF', 'GAFF2']:
-            raise RuntimeError('Selected forcefield %s is not GAFF/GAFF2/Smirnoff99Frosst/OpenFF_1.0' % forcefield)
+        if not forcefield in list(ligandff.values()):
+            raise RuntimeError('The selected ligand force field is not '
+                               'supported {}. Available {}'.format(forcefield, list(ligandff.keys())))
         else:
             self.molecule = molecule
             self.forcefield = str(forcefield).strip()
@@ -173,7 +177,6 @@ class ParamLigStructure(object):
 
         if not molecule:
             molecule = self.molecule
-
         try:
             self.checkCharges(molecule)
         except:
@@ -181,7 +184,7 @@ class ParamLigStructure(object):
 
             molecule = assignELF10charges(molecule)
 
-        if self.forcefield == 'smirnoff99Frosst.offxml':
+        if self.forcefield == ligandff['Smirnoff99Frosst']:
 
             fffn = resource_filename('openforcefield', os.path.join('data', 'test_forcefields/' + self.forcefield))
 
@@ -192,8 +195,7 @@ class ParamLigStructure(object):
             with open(fffn) as ffxml:
                 ff = ForceField(ffxml, allow_cosmetic_attributes=True)
 
-        elif self.forcefield == 'openff_unconstrained-1.0.0.offxml':
-
+        elif self.forcefield in [ligandff['OpenFF_1.0.0'],  ligandff['OpenFF_1.1.0']]:
             ff = ForceField(self.forcefield, allow_cosmetic_attributes=True)
 
         else:
@@ -269,7 +271,7 @@ class ParamLigStructure(object):
 
     def parameterize(self):
 
-        if self.forcefield in ['smirnoff99Frosst.offxml', 'openff_unconstrained-1.0.0.offxml']:
+        if self.forcefield in [ligandff['OpenFF_1.0.0'], ligandff['OpenFF_1.1.0'], ligandff['Smirnoff99Frosst']]:
             structure = self.getSmirnoffStructure()
 
         elif self.forcefield in ['GAFF', 'GAFF2']:

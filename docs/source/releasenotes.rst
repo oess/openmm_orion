@@ -2,6 +2,37 @@
 Release Notes
 #############
 
+v1.0.0
+======================
+
+General Notice
+--------------------------------------------------------------------------------
+* Support for OpenFF 1.1.0 (Parsley), the March 2020 release from the Open Force Field Initiative
+* Support for Cuda 10.0
+* Exposed a new parameter in the ``TrajToOEMol Cube`` to set the water cutoff
+  distance. This distance is used to select water molecules around the protein-ligand
+  binding site for each trajectory frame and producing a multi conformer water molecule
+* Improved Documentation
+
+New Floes
+--------------------------------------------------------------------------------
+* None
+
+Floe Updates
+--------------------------------------------------------------------------------
+* New default parameters have been set on the STMDA floe
+
+New Cubes
+--------------------------------------------------------------------------------
+* None
+
+Cube Updates
+--------------------------------------------------------------------------------
+* None
+
+======================
+
+
 v0.9.6
 ======================
 
@@ -36,6 +67,7 @@ Cube Updates
 * The force field parametrization cube now support open force field 1.0.0 (parsley)
 * The trajectory to multi conformer cube is now adding to the record protein-ligand binding site
   close waters. These are used to perform MMPBSA calculations with explicit water
+
 ======================
 
 
@@ -54,6 +86,7 @@ New Floes
    floes now.
 
 * The calculation of MMPBSA can now be also performed by using explicit waters (still experimental)
+
 --------------------------------------------------------------------------------
 
 Floe Updates
@@ -92,4 +125,5 @@ Cube Updates
 
 * The Trajectory to OEMol, Interaction Energies and PBSA calculation cubes have been updated to account for the explicit
     water in the new MMPBSA calculation
+
 ======================
