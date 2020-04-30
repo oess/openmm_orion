@@ -29,10 +29,10 @@ install:
 
 script:
 # Test cubes
-- py.test -v -s PlatformTestCubes
-- py.test -v -s LigPrepCubes
-- py.test -v -s -m "not slow" OpenMMCubes 
-- py.test -v -s ComplexPrepCubes
-#- py.test -v -s YankCubes
+#- py.test -v -s PlatformTestCubes
+#- py.test -v -s LigPrep
+#- py.test -v -s -m "not slow" OpenMMCubes
+#- py.test -v -s ComplexPrep
+#- py.test -v -s Yank
 # Test floes
 #- py.test -v -s -m "not slow" floes/floe_tests/

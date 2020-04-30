@@ -1,10 +1,8 @@
-include README.md
 include manifest.json
-include requirements.txt
-recursive-include examples *
-recursive-include floes *.py
-recursive-include PlatformTestCubes *.py *.pdb
-recursive-include OpenMMCubes *.py
-recursive-include LigPrepCubes *.py
-recursive-include YankCubes *.py
-recursive-include ComplexPrepCubes *
+include README.md
+include requirements_dev.txt
+include env.yaml
+include tasks.py
+
+graft floes
+graft MDOrion/ForceField

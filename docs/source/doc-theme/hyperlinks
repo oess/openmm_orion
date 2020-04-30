@@ -1,0 +1,413 @@
+
+.. _PIL:         https://www.pythonware.com/products/pil/
+.. _Flask:       https://flask.pocoo.org/
+.. _numpy:       https://www.numpy.org/
+.. _matplotlib:  https://matplotlib.org/
+.. _XlsxWriter:  https://pypi.python.org/pypi/XlsxWriter
+
+.. _OpenEye:                  https://www.eyesopen.com
+.. _OpenEye toolkits:         https://www.eyesopen.com/toolkits
+.. _OpenEye toolkit manuals:  https://docs.eyesopen.com
+
+.. _Iridium database: https://www.eyesopen.com/iridium
+.. _AFITT:            https://www.eyesopen.com/afitt
+
+.. _OEChem TK:        https://www.eyesopen.com/oechem-tk
+.. _OEGrid TK:        https://docs.eyesopen.com/toolkits/python/oechemtk#oegrid-theory
+.. _MolProp TK:       https://www.eyesopen.com/molprop-tk
+.. _OEDepict TK:      https://www.eyesopen.com/oedepict-tk
+.. _Grapheme TK:      https://www.eyesopen.com/grapheme-tk
+.. _Shape TK:         https://www.eyesopen.com/shape-tk
+.. _GraphSim TK:      https://www.eyesopen.com/graphsim-tk
+.. _Omega TK:         https://www.eyesopen.com/omega-tk
+.. _OEMedChem TK:     https://docs.eyesopen.com/toolkits/python/medchemtk/
+.. _Quacpac TK:       https://www.eyesopen.com/quacpac-tk
+
+.. #########################################################################
+.. # OESYSTEM
+.. #########################################################################
+
+.. OESYSTEM CLASS HYPERLINKS
+
+.. _OEScalarGrid:          https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemClasses/OEScalarGrid.html
+.. _OEUnaryPredicate:      https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemClasses/OEUnaryPredicate.html
+
+.. OESYSTEM FUNCTION HYPERLINKS
+
+.. _OEMakeRegularSubGrid: https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemFunctions.html#OESystem::OEMakeRegularSubGrid
+
+
+.. _OEGetContrastColors:  https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemFunctions.html#OESystem::OEGetContrastColors
+.. _OEGetTag:             https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemFunctions.html#OESystem::OEGetTag
+
+
+.. OESYSTEM CONSTANTS HYPERLINKS
+
+.. _OEColor:               https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemClasses/OEColor.html
+.. _OEColorStop:           https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemClasses/OEColorStop.html
+.. _OELinearColorGradient: https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemClasses/OELinearColorGradient.html
+.. _OETransparentColor:    https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemConstants/OESystem.html#oeconst-OESystem::OESystem::OETransparentColor
+.. _OEWhite:               https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemConstants/OESystem.html#oeconst-OESystem::OESystem::OEWhite
+
+
+.. #########################################################################
+.. # OEPLATFORM
+.. #########################################################################
+
+.. OEPLATFORM CLASS HYPERLINKS
+
+.. _oeofstream: https://docs.eyesopen.com/toolkits/python/oechemtk/OEPlatformClasses/oeofstream.html
+.. _oeosstream: https://docs.eyesopen.com/toolkits/python/oechemtk/OEPlatformClasses/oeosstream.html
+
+.. #########################################################################
+.. # OECHEM
+.. #########################################################################
+
+
+.. OECHEM CLASS HYPERLINKS
+
+.. _OEAtomBase:     https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEAtomBase.html
+.. _OEAtomBondSet:  https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEAtomBondSet.html
+.. _OECSVHeader:    https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OECSVHeader.html
+.. _OEGraphMol:     https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEGraphMol.html
+.. _OEGroupBase:    https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEGroupBase.html
+.. _OEMatch:        https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMatch.html
+.. _OEMCSSearch:    https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMCSSearch.html
+.. _OEMolBase:      https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolBase.html
+.. _OEMolDatabase:  https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolDatabase.html
+.. _OENearestNbrs:  https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OENearestNbrs.html
+.. _OELibrarygen:   https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OELibraryGen.html
+.. _OEQMol:         https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEQMol.html
+.. _OEResidue:      https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEResidue.html
+.. _OESubSearch:    https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OESubSearch.html
+
+
+.. OECHEM METHOD HYPERLINKS
+
+.. _OEAtomBase.GetMapIdx:        https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEAtomBase.html#OEChem::OEAtomBase::GetMapIdx
+.. _OEAtomBase.GetSymmetryClass: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEAtomBase.html#OEChem::OEAtomBase::GetSymmetryClass
+.. _OEAtomBase.SetImplicitHCount: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEAtomBase.html#OEChem::OEAtomBase::SetImplicitHCount
+.. _OEMolBase.NewGroup:          https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolBase.html#OEChem::OEMolBase::NewGroup
+.. _OEMolBase.GetGroups:         https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolBase.html#OEChem::OEMolBase::GetGroups
+.. _OEMolBase.Sweep:             https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolBase.html#OEChem::OEMolBase::Sweep
+
+.. _OEMolDatabase.NumMols:     https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolDatabase.html#OEChem::OEMolDatabase::NumMols
+.. _OEMolDatabase.GetMaxMolIdx: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolDatabase.html#OEChem::OEMolDatabase::GetMaxMolIdx
+.. _OEMolDatabase.GetMolecule: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolDatabase.html#OEChem::OEMolDatabase::GetMolecule
+.. _OEMolDatabase.GetTitle:    https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolDatabase.html#OEChem::OEMolDatabase::GetTitle
+.. _OEMolDatabase.Order:       https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolDatabase.html#OEChem::OEMolDatabase::Order
+.. _OEMolDatabase.Save:        https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolDatabase.html#OEChem::OEMolDatabase::Save
+.. _OEMolDatabase.WriteMolecule: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEMolDatabase.html#OEChem::OEMolDatabase::WriteMolecule
+.. _OELibrarygen.AddStartingMaterial: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OELibraryGen.html#OEChem::OELibraryGen::AddStartingMaterial
+.. _OESubSearch.SetMaxMatches:        https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OESubSearch.html#OEChem::OESubSearch::SetMaxMatches
+
+
+.. OECHEM NAMESPACES
+
+.. _OEExprOpts: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemConstants/OEExprOpts.html
+
+
+.. OECHEM NAMESPACE CONSTANTS
+
+.. _OEExprOpts_DefaultAtoms: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemConstants/OEExprOpts.html#oeconst-OEChem::OEExprOpts::DefaultAtoms
+.. _OEExprOpts_DefaultBonds: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemConstants/OEExprOpts.html#oeconst-OEChem::OEExprOpts::DefaultBonds
+.. _OEExprOpts_EqAromatic:   https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemConstants/OEExprOpts.html#oeconst-OEChem::OEExprOpts::EqAromatic
+
+
+.. OECHEM FUNCTOR HYPERLINKS
+
+.. _OEAtomIsInReactant:   https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEAtomIsInReactant.html
+.. _OEAtomIsInProduct:    https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEAtomIsInProduct.html
+.. _OEHasGroupType:       https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEHasGroupType.html
+.. _OEHasMapIdx:          https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEHasMapIdx.html
+.. _OEIsAtomMember:       https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEIsMemberPtr.html
+.. _OEIsBondMember:       https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEIsMemberPtr.html
+.. _OEIsCarbon:           https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEIsCarbon.html
+.. _OEIsHeavy:            https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEIsHeavy.html
+.. _OENotAtom:            https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemClasses/OENot.html
+.. _OENotBond:            https://docs.eyesopen.com/toolkits/python/oechemtk/OESystemClasses/OENot.html
+.. _OEPartPredAtom:       https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OEPartPredT.html
+.. _OESetSDData:          https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemClasses/OESetSDData.html
+
+
+.. OECHEM FUNCTION HYPERLINKS
+
+.. _OEAddExplicitHydrogens:     https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEAddExplicitHydrogens.html
+.. _OEAtomGetResidue:           https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEAtomGetResidue.html
+.. _OEAtomGetSmallestRingSize:  https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEAtomGetSmallestRingSize.html
+.. _OEAtomIsInRingSize:         https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEAtomIsInRingSize.html
+.. _OEAtomIsInAromaticRingSize: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEAtomIsInAromaticRingSize.html
+.. _OEBondGetSmallestRingSize:  https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEBondGetSmallestRingSize.html
+.. _OEBondIsInRingSize:         https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEBondIsInRingSize.html
+.. _OEBondIsInAromaticRingSize: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEBondIsInAromaticRingSize.html
+.. _OEBuildMDLQueryExpressions: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEBuildMDLQueryExpressions.html
+.. _OECreateCanSmiString:       https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OECreateCanSmiString.html
+.. _OECreateIsoSmiString:       https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OECreateIsoSmiString.html
+.. _OECreateMolDatabaseIdx:     https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OECreateMolDatabaseIdx.html
+.. _OEDetermineRingSystems:     https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEDetermineRingSystems.html
+.. _OEDetermineAromaticRingSystems: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEDetermineAromaticRingSystems.html
+.. _OEFindRingAtomsAndBonds:    https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEFindRingAtomsAndBonds.html
+.. _OEGetMolDatabaseIdxFileName: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEGetMolDatabaseIdxFileName.html
+.. _OEGetResidueIndex:          https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEGetResidueIndex.html
+.. _OEBuildMDLQueryExpressions: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEBuildMDLQueryExpressions.html
+.. _OEDetermineComponents:      https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEDetermineComponents.html
+.. _OEFindRingAtomsAndBonds:    https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEFindRingAtomsAndBonds.html
+.. _OEGetFileExtension:         https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEGetFileExtension.html
+.. _OEGetSDData:                https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEGetSDData.html
+.. _OEGetSDDataIter:            https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEGetSDDataIter.html
+.. _OEGetSDDataPairs:           https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEGetSDDataPairs.html
+.. _OEHasResidue:               https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEHasResidue.html
+.. _OEHasSDData:                https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEHasSDData.html
+.. _OEMMFFAtomTypes:            https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEMMFFAtomTypes.html
+.. _OEMMFF94PartialCharges:     https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEMMFF94PartialCharges.html
+.. _OEMolToSmiles:              https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEMolToSmiles.html
+.. _OEPerceiveSymmetry:         https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEPerceiveSymmetry.html
+.. _OESubsetMol:                https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OESubsetMol.html
+.. _OESuppressHydrogens:        https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OESuppressHydrogens.html
+.. _OEReadMDLQueryFile:         https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEReadMDLQueryFile.html
+.. _OEReadMDLReactionQueryFile: https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEReadMDLReactionQueryFile.html
+.. _OETriposAtomTypeNames:      https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OETriposAtomNames.html
+.. _OESmilesToMol:              https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OESmilesToMol.html
+.. _OEReadMolecule:             https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEReadMolecule.html
+.. _OEWriteMolecule:            https://docs.eyesopen.com/toolkits/python/oechemtk/OEChemFunctions/OEWriteMolecule.html
+
+.. #########################################################################
+.. # OEBIO
+.. #########################################################################
+
+.. OEBIO CLASS HYPERLINKS
+
+.. _OEChelatorInteractionHint:    https://docs.eyesopen.com/toolkits/python/oechemtk/OEBioClasses/OEChelatorInteractionHint.html
+.. _OEClashInteractionHint:       https://docs.eyesopen.com/toolkits/python/oechemtk/OEBioClasses/OEClashInteractionHint.html
+.. _OEContactInteractionHint:     https://docs.eyesopen.com/toolkits/python/oechemtk/OEBioClasses/OEContactInteractionHint.html
+.. _OEHalogenBondInteractionHint: https://docs.eyesopen.com/toolkits/python/oechemtk/OEBioClasses/OEHalogenBondInteractionHint.html
+.. _OEHBondInteractionHint:       https://docs.eyesopen.com/toolkits/python/oechemtk/OEBioClasses/OEHBondInteractionHint.html
+.. _OESaltBridgeInteractionHint:  https://docs.eyesopen.com/toolkits/python/oechemtk/OEBioClasses/OESaltBridgeInteractionHint.html
+.. _OEStackingInteractionHint:    https://docs.eyesopen.com/toolkits/python/oechemtk/OEBioClasses/OEStackingInteractionHint.html
+
+.. _OEInteractionHintContainer:   https://docs.eyesopen.com/toolkits/python/oechemtk/OEBioClasses/OEInteractionHintContainer.html
+.. _OEPerceiveInteractionOptions: https://docs.eyesopen.com/toolkits/python/oechemtk/OEBioClasses/OEPerceiveInteractionOptions.html
+
+
+.. OEBIO FUNCTION HYPERLINKS
+
+.. _OEPerceiveInteractionHints:   https://docs.eyesopen.com/toolkits/python/oechemtk/OEBioFunctions/OEPerceiveInteractionHints.html
+
+.. #########################################################################
+.. # GRAPHSIM
+.. #########################################################################
+
+.. GRAPHSIM CLASS HYPERLINKS
+
+.. _OECreateFastFPDatabaseOptions: https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OECreateFastFPDatabaseOptions.html
+.. _OEFastFPDatabase:       https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFastFPDatabase.html
+.. _OEFastFPDatabaseParams: https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFastFPDatabaseParams.html
+.. _OEFingerPrint:          https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFingerPrint.html
+.. _OEFPDatabase:           https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFPDatabase.html
+.. _OEFPDatabaseOptions:    https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFPDatabaseOptions.html
+.. _OESimScore:             https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OESimScore.html
+
+.. GRAPHSIM METHOD HYPERLINKS
+
+.. _OEFPDatabase.GetScores:  https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFPDatabase.html#OEGraphSim::OEFPDatabase::GetScores
+.. _OEFPDatabase.GetSortedScores:  https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFPDatabase.html#OEGraphSim::OEFPDatabase::GetSortedScores
+
+.. _OEFastFPDatabase.GetSortedScores: https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFPDatabase.html#OEGraphSim::OEFastFPDatabase::GetSortedScores
+
+.. _OEFPDatabaseOptions.SetSimFunc:
+ https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFPDatabaseOptions.html#OEGraphSim::OEFPDatabaseOptions::SetSimFunc
+.. _OEFPDatabaseOptions.SetDescendingOrder:
+ https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFPDatabaseOptions.html#OEGraphSim::OEFPDatabaseOptions::SetDescendingOrder
+.. _OEFPDatabaseOptions.SetLimit:
+ https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFPDatabaseOptions.html#OEGraphSim::OEFPDatabaseOptions::SetLimit
+.. _OEFPDatabaseOptions.SetCutoff:
+ https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimClasses/OEFPDatabaseOptions.html#OEGraphSim::OEFPDatabaseOptions::SetCutoff
+
+.. GRAPHSIM FUNCTION HYPERLINKS
+
+.. _OEAreCompatibleDatabases:   https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OEAreCompatibleDatabases.html
+.. _OEConfigureFingerPrint:     https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OEConfigureFingerPrint.html
+.. _OEConfigureFPDatabaseOptions: https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OEConfigureFPDatabaseOptions.html
+.. _OECreateFastFPDatabaseFile: https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OECreateFastFPDatabaseFile.html
+.. _OEGetFPCoverage:            https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OEGetFPCoverage.html
+.. _OEGetFPOverlap:             https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OEGetFPOverlap.html
+.. _OEGetFPType:                https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OEGetFPType.html
+.. _OEMakeFP:                   https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OEMakeFP.html
+.. _OESetupFingerPrint:         https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OESetupFingerPrint.html
+.. _OESetupFPDatabaseOptions:   https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OESetupFPDatabaseOptions.html
+
+.. _OECosine:           https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OECosine.html
+.. _OEDice:             https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OEDice.html
+.. _OEEuclidean:        https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OEEuclidean.html
+.. _OEManhattan:        https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OEManhattan.html
+.. _OETanimoto:         https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OETanimoto.html
+.. _OETversky:          https://docs.eyesopen.com/toolkits/python/graphsimtk/OEGraphSimFunctions/OETversky.html
+
+.. _path:            https://docs.eyesopen.com/toolkits/python/graphsimtk/fingerprint.html#path
+.. _circular:        https://docs.eyesopen.com/toolkits/python/graphsimtk/fingerprint.html#circular
+.. _tree:            https://docs.eyesopen.com/toolkits/python/graphsimtk/fingerprint.html#tree
+.. _MACCS key:       https://docs.eyesopen.com/toolkits/python/graphsimtk/fingerprint.html#maccs
+
+.. #########################################################################
+.. # MOLPROP
+.. #########################################################################
+
+.. MOLPROP FUNCTION HYPERLINKS
+
+.. _OEGet2dPSA:  https://docs.eyesopen.com/toolkits/python/molproptk/OEMolPropFunctions/OEGet2dPSA.html
+.. _OEGetXLogP:  https://docs.eyesopen.com/toolkits/python/molproptk/OEMolPropFunctions/OEGetXLogP.html
+
+
+.. #########################################################################
+.. # OEDEPICT
+.. #########################################################################
+
+.. OEDEPICT CLASS HYPERLINKS
+
+.. _OE2DMolDisplayOptions:     https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html
+.. _OE2DMolDisplay:            https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplay.html
+.. _OE2DPoint:                 https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DPoint.html
+.. _OEDisplayAtomIdx:          https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEDisplayAtomIdx.html
+.. _OEDisplayAtomPropBase:     https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEDisplayAtomPropBase.html
+.. _OEDisplayBondIdx:          https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEDisplayBondIdx.html
+.. _OEDisplayBondPropBase:     https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEDisplayBondPropBase.html
+.. _OEFont:                    https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEFont.html
+.. _OEHighlightOverlayByBallAndStick: https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEHighlightOverlayByBallAndStick.html
+.. _OEHighlightByBallAndStick: https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEHighlightByBallAndStick.html
+.. _OEHighlightByCogwheel:     https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEHighlightByCogwheel.html
+.. _OEHighlightByColor:        https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEHighlightByColor.html
+.. _OEHighlightByStick:        https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEHighlightByStick.html
+.. _OEImage:                   https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEImage.html
+.. _OEImageFrame:              https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEImageFrame.html
+.. _OEImageGrid:               https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEImageGrid.html
+.. _OEPen:                     https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEPen.html
+.. _OEPrepareDepictionOptions: https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEPrepareDepictionOptions.html
+.. _OEReport:                  https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OEReport.html
+
+
+.. OEDEPICT METHOD NAMESPACES
+
+.. _OEAromaticStyle:    https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictConstants/OEAromaticStyle.html#OEDepict::OEAromaticStyle
+.. _OEAtomColorStyle:   https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictConstants/OEAtomColorStyle.html
+.. _OEAtomStereoStyle:  https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictConstants/OEAtomStereoStyle.html
+.. _OEBondStereoStyle:  https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictConstants/OEBondStereoStyle.html
+.. _OELayerPosition:    https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictConstants/OELayerPosition.html#OEDepict::OELayerPosition
+.. _OESuperAtomStyle:   https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictConstants/OESuperAtomStyle.html
+.. _OETitleLocation:    https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictConstants/OETitleLocation.html#OEDepict::OETitleLocation
+
+
+.. OEDEPICT METHOD HYPERLINKS
+
+.. _OE2DMolDisplay.GetLayer:           https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplay.html#OEDepict::OE2DMolDisplay::GetLayer
+
+
+.. _OE2DMolDisplayOptions.SetAromaticStyle:       https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetAromaticStyle
+.. _OE2DMolDisplayOptions.SetAtomColorStyle:      https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetAtomColorStyle
+.. _OE2DMolDisplayOptions.SetAtomStereoStyle:     https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetAtomStereoStyle
+.. _OE2DMolDisplayOptions.SetBondStereoStyle:     https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetBondStereoStyle
+.. _OE2DMolDisplayOptions.SetSuperAtomStyle:      https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetSuperAtomStyle
+.. _OE2DMolDisplayOptions.SetAtomPropertyFunctor: https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetAtomPropertyFunctor
+.. _OE2DMolDisplayOptions.SetAtomPropLabelFont:   https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetAtomPropLabelFont
+.. _OE2DMolDisplayOptions.SetBondPropertyFunctor: https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetBondPropertyFunctor
+.. _OE2DMolDisplayOptions.SetBondPropLabelFont:   https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetBondPropLabelFont
+.. _OE2DMolDisplayOptions.SetTitleLocation:       https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetTitleLocation
+.. _OE2DMolDisplayOptions.SetTitleFont:           https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictClasses/OE2DMolDisplayOptions.html#OEDepict::OE2DMolDisplayOptions::SetTitleFont
+
+
+.. OEDEPICT FUNCTION HYPERLINKS
+
+.. _OEAddDepictionHydrogens:           https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEAddDepictionHydrogens.html
+.. _OEAddHighlighting:                 https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEAddHighlighting.html
+.. _OEAddHighlightOverlay:             https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEAddHighlightOverlay.html
+.. _OEDrawBorder:                      https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEDrawBorder.html
+.. _OEDrawSVGHoverText:                https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEDrawSVGHoverText.html
+.. _OEDrawSVGToggleText:               https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEDrawSVGToggleText.html
+.. _OEDrawCurvedBorder:                https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEDrawCurvedBorder.html
+.. _OEEstimateTextWidth:               https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEEstimateTextWidth.html
+.. _OEGetMoleculeScale:                https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEGetMoleculeScale.html
+.. _OEGetSupportedImageFileExtensions: https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEGetSupportedImageFileExtensions.html
+.. _OEIsRegisteredImageFile:           https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEIsRegisteredImageFile.html
+.. _OEPrepareAlignedDepiction:         https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEPrepareAlignedDepiction.html
+.. _OEPrepareDepiction:                https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEPrepareDepiction.html
+.. _OEPrepareMultiAlignedDepiction:    https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEPrepareMultiAlignedDepiction.html
+.. _OERenderMolecule:                  https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OERenderMolecule.html
+.. _OERenderMoleculeToString:          https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OERenderMoleculeToString.html
+.. _OEWriteImage:                      https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEWriteImage.html
+.. _OEWriteImageToString:              https://docs.eyesopen.com/toolkits/python/depicttk/OEDepictFunctions/OEWriteImageToString.html
+
+.. #########################################################################
+.. # GRAPHEME
+.. #########################################################################
+
+
+.. GRAPHEME CLASS HYPERLINKS
+
+.. _OE2DActiveSiteDisplay:         https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OE2DActiveSiteDisplay.html
+.. _OE2DActiveSiteDisplayOptions:  https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OE2DActiveSiteDisplayOptions.html
+.. _OE2DActiveSiteLegendDisplayOptions : https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OE2DActiveSiteLegendDisplayOptions.html
+.. _OE2DPropMap:                   https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OE2DPropMap.html
+.. _OEAtomGlyphBase:               https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OEAtomGlyphBase.html
+.. _OEAtomGlyphCircle:             https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OEAtomGlyphCircle.html
+.. _OEBondGlyphBase:               https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OEBondGlyphBase.html
+.. _OEColorGradientDisplayOptions: https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OEColorGradientDisplayOptions.html
+.. _OEPeptideDisplayOptions:       https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OEPeptideDisplayOptions.html
+.. _OESurfaceArc:                  https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OESurfaceArc.html
+.. _OESurfaceArcFxnBase:           https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OESurfaceArcFxnBase.html
+
+.. GRAPHEME METHOD NAMESPACES
+
+.. _OEPeptideLabelStyle:   https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeConstants/OEPeptideLabelStyle.html
+
+.. GRAPHEME METHOD HYPERLINKS
+
+.. _OE2DPropMap.Render:             https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OE2DPropMap.html#OEGrapheme::OE2DPropMap::Render
+.. _OE2DPropMap.SetLegendLocation:  https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeClasses/OE2DPropMap.html#OEGrapheme::OE2DPropMap::SetLegendLocation
+
+
+.. GRAPHEME FUNCTION HYPERLINKS
+
+
+.. _OEAddGlyph:                   https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEAddGlyph.html
+.. _OEDraw2DSurface:              https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEDraw2DSurface.html
+.. _OEDrawActiveSiteLegend:       https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEDrawActiveSiteLegend.html
+.. _OEDrawCircle:                 https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEDrawCircle.html
+.. _OEDrawColorGradient:          https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEDrawColorGradient.html
+.. _OEDrawDefaultSurfaceArc:      https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEDrawDefaultSurfaceArc.html
+.. _OEDrawEyelashSurfaceArc:      https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEDrawEyelashSurfaceArc.html
+.. _OEDrawPeptide:                https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEDrawPeptide.html
+.. _OEGetMoleculeSurfaceScale:    https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEGetMoleculeSurfaceScale.html
+.. _OEPrepareActiveSiteDepiction: https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEPrepareActiveSiteDepiction.html
+.. _OEPrepareDepictionFrom3D:     https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OEPrepareDepictionFrom3D.html
+.. _OERenderActiveSite:           https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OERenderActiveSite.html
+.. _OERenderContactMap:           https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OERenderContactMap.html
+.. _OESetSurfaceArcFxn:           https://docs.eyesopen.com/toolkits/python/graphemetk/OEGraphemeFunctions/OESetSurfaceArcFxn.html
+
+.. #########################################################################
+.. # SHAPE
+.. #########################################################################
+
+.. _OEOverlap:        https://docs.eyesopen.com/toolkits/python/shapetk/OEShapeClasses/OEOverlap.html
+.. _OEOverlapResults: https://docs.eyesopen.com/toolkits/python/shapetk/OEShapeClasses/OEOverlapResults.html
+
+.. #########################################################################
+.. # OEMEDCHEM
+.. #########################################################################
+
+.. _OEGetFuncGroupFragments:           https://docs.eyesopen.com/toolkits/python/medchemtk/OEMedChemFunctions.html#OEMedChem::OEGetFuncGroupFragments
+.. _OEGetRingChainFragments:           https://docs.eyesopen.com/toolkits/python/medchemtk/OEMedChemFunctions.html#OEMedChem::OEGetRingChainFragments
+.. _OEGetRingLinkerSideChainFragments: https://docs.eyesopen.com/toolkits/python/medchemtk/OEMedChemFunctions.html#OEMedChem::OEGetRingLinkerSideChainFragments
+.. _OETotalMolecularComplexity:        https://docs.eyesopen.com/toolkits/python/medchemtk/OEMedChemFunctions.html#OEMedChem::OETotalMolecularComplexity
+
+.. #########################################################################
+.. # OEMEGA
+.. #########################################################################
+
+.. _Omega:  https://docs.eyesopen.com/toolkits/python/omegatk/OEConfGenClasses/OEOmega.html
+
+
+.. #########################################################################
+.. # QUACPAC
+.. #########################################################################
+
+.. _OEAssignPartialCharges: https://docs.eyesopen.com/toolkits/python/quacpactk/OEProtonFunctions.html#OEProton::OEAssignPartialCharges
+
