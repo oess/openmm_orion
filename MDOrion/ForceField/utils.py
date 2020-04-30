@@ -864,10 +864,10 @@ class MDComponents:
             return False
 
     @property
-    def get_components_title(self):
+    def get_title(self):
         return self._components_title
 
-    def set_components_title(self, title):
+    def set_title(self, title):
         self._components_title = title
 
     @property

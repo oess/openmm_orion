@@ -103,7 +103,7 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                     raise ValueError("The Ligand is probably outside the Protein binding site")
 
                 # Remove Steric Clashes between the ligand and the other System components
-                for comp_name, comp in self.md_components.items():
+                for comp_name, comp in self.md_components.get_components.items():
 
                     # Skip clashes between the ligand itself and the protein
                     if comp_name in ['ligand', 'protein']:

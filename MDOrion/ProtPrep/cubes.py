@@ -219,6 +219,10 @@ class MDSetting(RecordPortsMixin, ComputeCube):
 
                 md_components = MDComponents(molecules, components_title=name)
 
+
+            print(md_components)
+
+
             record.set_value(Fields.md_components, md_components)
             record.set_value(Fields.title, name)
             record.set_value(Fields.flaskid, self.count)
