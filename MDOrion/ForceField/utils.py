@@ -670,6 +670,13 @@ class MDComponents:
         self._protein = protein
 
     @property
+    def has_protein(self):
+        if self._protein is not None:
+            return True
+        else:
+            return False
+
+    @property
     def get_ligand(self):
         if self._ligand is not None:
             return self._ligand
@@ -678,6 +685,13 @@ class MDComponents:
 
     def set_ligand(self, ligand):
         self._ligand = ligand
+
+    @property
+    def has_ligand(self):
+        if self._ligand is not None:
+            return True
+        else:
+            return False
 
     @property
     def get_other_ligands(self):
@@ -690,6 +704,13 @@ class MDComponents:
         self._other_ligands = other_ligands
 
     @property
+    def has_other_ligands(self):
+        if self._other_ligands is not None:
+            return True
+        else:
+            return False
+
+    @property
     def get_counter_ions(self):
         if self._counter_ions is not None:
             return self._counter_ions
@@ -698,6 +719,13 @@ class MDComponents:
 
     def set_counter_ions(self, counter_ions):
         self._counter_ions = counter_ions
+
+    @property
+    def has_counter_ions(self):
+        if self._counter_ions is not None:
+            return True
+        else:
+            return False
 
     @property
     def get_metals(self):
@@ -710,6 +738,13 @@ class MDComponents:
         self._metals = metals
 
     @property
+    def has_metals(self):
+        if self._metals is not None:
+            return True
+        else:
+            return False
+
+    @property
     def get_excipients(self):
         if self._excipients is not None:
             return self._excipients
@@ -718,6 +753,13 @@ class MDComponents:
 
     def set_excipients(self, excipients):
         self._excipients = excipients
+
+    @property
+    def has_excipients(self):
+        if self._excipients is not None:
+            return True
+        else:
+            return False
 
     @property
     def get_solvent(self):
@@ -730,6 +772,13 @@ class MDComponents:
         self._solvent = solvent
 
     @property
+    def has_solvent(self):
+        if self._solvent is not None:
+            return True
+        else:
+            return False
+
+    @property
     def get_cofactors(self):
         if self._cofactors is not None:
             return self._cofactors
@@ -738,6 +787,13 @@ class MDComponents:
 
     def set_cofactors(self, cofactors):
         self._cofactors = cofactors
+
+    @property
+    def has_cofactors(self):
+        if self._cofactors is not None:
+            return True
+        else:
+            return False
 
     @property
     def get_other_cofactors(self):
@@ -750,6 +806,13 @@ class MDComponents:
         self._other_cofactors = other_cofactors
 
     @property
+    def has_other_cofactors(self):
+        if self._other_cofactors is not None:
+            return True
+        else:
+            return False
+
+    @property
     def get_lipids(self):
         if self._lipids is not None:
             return self._lipids
@@ -758,6 +821,13 @@ class MDComponents:
 
     def set_lipids(self, lipids):
         self._lipids = lipids
+
+    @property
+    def has_lipids(self):
+        if self._lipids is not None:
+            return True
+        else:
+            return False
 
     @property
     def get_nucleics(self):
@@ -770,6 +840,13 @@ class MDComponents:
         self._nucleics = nucleics
 
     @property
+    def has_nucleids(self):
+        if self._nucleics is not None:
+            return True
+        else:
+            return False
+
+    @property
     def get_other_nucleics(self):
         if self._other_nucleics is not None:
             return self._other_nucleics
@@ -778,6 +855,13 @@ class MDComponents:
 
     def set_other_nucleics(self, other_nucleics):
         self._other_nucleics = other_nucleics
+
+    @property
+    def has_other_nucleids(self):
+        if self._other_nucleics is not None:
+            return True
+        else:
+            return False
 
     @property
     def get_components_title(self):
