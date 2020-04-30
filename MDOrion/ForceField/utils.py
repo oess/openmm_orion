@@ -422,12 +422,17 @@ class MDComponents:
         self._nucleics = None
         self._other_nucleics = None
 
+        self._component_names = ['protein', 'ligand',
+                                 'other_ligands', 'counter_ions',
+                                 'metals', 'excipients',
+                                 'solvent', 'cofactors',
+                                 'other_cofactors', 'lipids',
+                                 'nucleics', 'other_nucleics']
+
         # Components found in the system_representation
         self._components = dict()
 
         self._components_title = components_title
-
-        self._total_atoms = 0
 
         if du is not None:
             self._initialize_from_du(du)
@@ -440,13 +445,12 @@ class MDComponents:
         for comp_name, comp in self._components.items():
             ret_str += "{:<20} {:>7}\n".format(comp_name, comp.NumAtoms())
         ret_str += 28 * "-" + "\n"
-        ret_str += "{:<20} {:>7}\n".format("Total_Atoms", self._total_atoms)
+        ret_str += "{:<20} {:>7}\n".format("Total_Atoms", self.num_atoms)
 
         return ret_str
 
     def _initialize_from_du(self, du):
 
-        tot_atoms = 0
         for pair in du.GetTaggedComponents():
 
             comp_name = pair[0]
@@ -460,57 +464,44 @@ class MDComponents:
 
             if comp_id == oechem.OEDesignUnitComponents_Protein:
                 self._protein = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['protein'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Ligand:
                 self._ligand = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['ligand'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_OtherLigands:
                 self._other_ligand = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['other_ligands'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_CounterIons:
                 self._counter_ions = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['counter_ions'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Metals:
                 self._metals = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['metals'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Excipients:
                 self.excipients = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['excipients'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Solvent:
                 self._solvent = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['solvent'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Cofactors:
                 self._cofactors = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['cofactors'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_OtherCofactors:
                 self._other_cofactors = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['other_cofactors'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Lipids:
                 self._lipids = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['lipids'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Nucleic:
                 self._nucleics = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['nucleics'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_OtherNucleics:
                 self._other_nucleics = comp
-                self._components[comp_name] = comp
-                tot_atoms += comp.NumAtoms()
+                self._components['other_nucleics'] = comp
             else:
                 print("WARNING: The following component is not currently supported: {}".format(comp_name))
         if not self._components:
             raise ValueError("None of the DU components cannot recognized")
-        self._total_atoms = tot_atoms
 
     def _initialize_from_molecules(self, molecules):
 
@@ -557,33 +548,28 @@ class MDComponents:
             # Split the complex in components
             protein, ligand, water, excipients = oeommutils.split(molecules,
                                                                   ligand_res_name='LIG')
-            solvents = oechem.OEMol()
-            tot_atoms = 0
+            solvent = oechem.OEMol()
+
             if protein.NumAtoms():
                 protein = clean_tags(protein)
                 self._protein = protein
                 self._components['protein'] = protein
-                tot_atoms += protein.NumAtoms()
             if ligand.NumAtoms():
                 ligand = clean_tags(ligand)
                 self._ligand = ligand
                 self._components['ligand'] = ligand
-                tot_atoms += ligand.NumAtoms()
             if water.NumAtoms():
                 water = clean_tags(water)
-                oechem.OEAddMols(solvents, water)
+                oechem.OEAddMols(solvent, water)
             if excipients.NumAtoms():
                 excipients = clean_tags(excipients)
-                oechem.OEAddMols(solvents, excipients)
-            if solvents.NumAtoms():
-                self._solvent = solvents
-                self._components['solvent'] = solvents
-                tot_atoms += solvents.NumAtoms()
+                oechem.OEAddMols(solvent, excipients)
+            if solvent.NumAtoms():
+                self._solvent = solvent
+                self._components['solvent'] = solvent
 
-            self._total_atoms = tot_atoms
-
-        if self._total_atoms != molecules.NumAtoms():
-            raise ValueError("Atom number mismatch: {} vs {}".format(self._total_atoms, molecules.NumAstoms()))
+        if self.num_atoms != molecules.NumAtoms():
+            raise ValueError("Atom number mismatch: {} vs {}".format(self.num_atoms, molecules.NumAstoms()))
 
     def __getstate__(self):
 
@@ -653,8 +639,16 @@ class MDComponents:
                 raise ValueError("Cannot Deserialize Component {}".format(comp_name))
 
             if mol:
-                self._total_atoms += mol.NumAtoms()
                 self._components[comp_name] = mol
+
+    @property
+    def num_atoms(self):
+
+        tot_atoms = 0
+        for comp_name, comp in self._components.items():
+            tot_atoms += comp.NumAtoms()
+
+        return tot_atoms
 
     @property
     def create_flask(self):
@@ -673,9 +667,6 @@ class MDComponents:
             raise ValueError("Protein Component has not been found")
 
     def set_protein(self, protein):
-        if self._protein is not None:
-            self._total_atoms += protein.NumAtoms() - self._protein.NumAtoms()
-
         self._protein = protein
 
     @property
@@ -686,9 +677,6 @@ class MDComponents:
             raise ValueError("Ligand Component has not been found")
 
     def set_ligand(self, ligand):
-        if self._ligand is not None:
-            self._total_atoms += ligand.NumAtoms() - self._ligand.NumAtoms()
-
         self._ligand = ligand
 
     @property
@@ -699,9 +687,6 @@ class MDComponents:
             raise ValueError("Other Ligand Component has not been found")
 
     def set_other_ligands(self, other_ligands):
-        if self._other_ligands is not None:
-            self._total_atoms += other_ligands.NumAtoms() - self._other_ligands.NumAtoms()
-
         self._other_ligands = other_ligands
 
     @property
@@ -712,9 +697,6 @@ class MDComponents:
             raise ValueError("Counter Ions Component has not been found")
 
     def set_counter_ions(self, counter_ions):
-        if self._counter_ions is not None:
-            self._total_atoms += counter_ions.NumAtoms() - self._counter_ions.NumAtoms()
-
         self._counter_ions = counter_ions
 
     @property
@@ -725,9 +707,6 @@ class MDComponents:
             raise ValueError("Metals Component has not been found")
 
     def set_metals(self, metals):
-        if self._metals is not None:
-            self._total_atoms += metals.NumAtoms() - self._metals.NumAtoms()
-
         self._metals = metals
 
     @property
@@ -738,9 +717,6 @@ class MDComponents:
             raise ValueError("Excipients Component has not been found")
 
     def set_excipients(self, excipients):
-        if self._excipients is not None:
-            self._total_atoms += excipients.NumAtoms() - self._excipients.NumAtoms()
-
         self._excipients = excipients
 
     @property
@@ -751,9 +727,6 @@ class MDComponents:
             raise ValueError("Solvent Component has not been found")
 
     def set_solvent(self, solvent):
-        if self._solvent is not None:
-            self._total_atoms += solvent.NumAtoms() - self._solvent.NumAtoms()
-
         self._solvent = solvent
 
     @property
@@ -764,9 +737,6 @@ class MDComponents:
             raise ValueError("Cofactors Component has not been found")
 
     def set_cofactors(self, cofactors):
-        if self._cofactors is not None:
-            self._total_atoms += cofactors.NumAtoms() - self._cofactors.NumAtoms()
-
         self._cofactors = cofactors
 
     @property
@@ -777,9 +747,6 @@ class MDComponents:
             raise ValueError("Other Cofactors Component has not been found")
 
     def set_other_cofactors(self, other_cofactors):
-        if self._other_cofactors is not None:
-            self._total_atoms += other_cofactors.NumAtoms() - self._other_cofactors.NumAtoms()
-
         self._other_cofactors = other_cofactors
 
     @property
@@ -790,9 +757,6 @@ class MDComponents:
             raise ValueError("Lipids Component has not been found")
 
     def set_lipids(self, lipids):
-        if self._lipids is not None:
-            self._total_atoms += lipids.NumAtoms() - self._lipids.NumAtoms()
-
         self._lipids = lipids
 
     @property
@@ -803,9 +767,6 @@ class MDComponents:
             raise ValueError("Nucleics Component has not been found")
 
     def set_nucleics(self, nucleics):
-        if self._nucleics is not None:
-            self._total_atoms += nucleics.NumAtoms() - self._nucleics.NumAtoms()
-
         self._nucleics = nucleics
 
     @property
@@ -816,15 +777,22 @@ class MDComponents:
             raise ValueError("Other Nucleics Component has not been found")
 
     def set_other_nucleics(self, other_nucleics):
-        if self._other_nucleics is not None:
-            self._total_atoms += other_nucleics.NumAtoms() - self._other_nucleics.NumAtoms()
-
         self._other_nucleics = other_nucleics
 
     @property
     def get_components_title(self):
         return self._components_title
 
+    def set_components_title(self, title):
+        self._components_title = title
+
     @property
     def get_components(self):
         return self._components
+
+    def set_component_by_name(self, comp_name, comp):
+
+        if comp_name not in self._component_names:
+            raise ValueError("The component name {} is not supported. Allowed: {}".format(comp_name,
+                                                                                          self._component_names))
+        self._components[comp_name] = comp

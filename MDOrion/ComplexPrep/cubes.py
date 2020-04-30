@@ -73,7 +73,7 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
 
             self.md_components = record.get_value(Fields.md_components)
 
-            return
+        return
 
     def process(self, record, port):
         try:
@@ -103,76 +103,45 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                     raise ValueError("The Ligand is probably outside the Protein binding site")
 
                 # Remove Steric Clashes between the ligand and the other System components
-
-
-                for 
-
-
-
-
-
-
-
-
-                for pair in self.du.GetTaggedComponents():
-
-                    comp_name = pair[0]
-                    comp_id = self.du.GetComponentID(comp_name)
-                    comp = pair[1]
+                for comp_name, comp in self.md_components.items():
 
                     # Skip clashes between the ligand itself and the protein
-                    if comp_id == oechem.OEDesignUnitComponents_Protein \
-                            or comp_id == oechem.OEDesignUnitComponents_Ligand:
+                    if comp_name in ['ligand', 'protein']:
                         continue
 
                     # Remove Metal clashes if the distance between the metal and the ligand
                     # is less than 1A
-                    elif comp_id == oechem.OEDesignUnitComponents_Metals:
-                        metal_del = oeommutils.delete_shell(ligand_comp, comp, 1.0, in_out='in')
+                    elif comp_name == 'metals':
+                        metal_del = oeommutils.delete_shell(ligand, comp, 1.0, in_out='in')
 
                         if metal_del.NumAtoms() != comp.NumAtoms():
                             self.opt['Logger'].info(
                                 "Detected steric-clashes between the ligand {} and metals".format(ligand_title))
 
-                        if not oechem.OEUpdateDesignUnit(self.du, metal_del,
-                                                         oechem.OEDesignUnitComponents_Metals):
-                            raise ValueError("Could not add the un-clashed Metals to the Design Unit")
-
-                    # Remove  clashes if the distance between the selected component and the ligand
-                    # is less than 1.5A
+                            self.md_components.set_metals(metal_del)
+                            # Remove  clashes if the distance between the selected component and the ligand
+                            # is less than 1.5A
                     else:
-                        comp_del = oeommutils.delete_shell(ligand_comp, comp, 1.5, in_out='in')
+                        comp_del = oeommutils.delete_shell(ligand, comp, 1.5, in_out='in')
 
                         if comp_del.NumAtoms() != comp.NumAtoms():
                             self.opt['Logger'].info(
                                 "Detected steric-clashes between the ligand {} and component {}".format(
                                     ligand_title,
                                     comp_name))
-                        if not oechem.OEUpdateDesignUnit(self.du, comp_del, comp_id):
-                            raise ValueError("Could not add the un-clashed component to the Design Unit")
 
-                # TODO At this stage check parametrization on the DU components for early failures
-                #  This must be done after the FF cube has been improved
+                            self.md_components.set_component_by_name(comp_name, comp)
 
-                flask = oechem.OEMol()
-
-                if not self.du.GetComponents(flask, oechem.OEDesignUnitComponents_All):
-                    raise ValueError("Recovering all the Design Unit Components Failed")
-
-                complex_title = 'p' + self.protein_flask_title + '_l' + ligand_title
-                self.du.SetTitle(complex_title)
-
-                flask.SetTitle(complex_title)
+                complex_title = 'p' + self.md_components.get_title + '_l' + ligand_title
 
                 # the ligand is the primary molecule
                 new_record = OERecord(record)
 
-                new_record.set_value(Fields.flask, flask)
                 new_record.set_value(Fields.title, complex_title)
                 new_record.set_value(Fields.ligand, ligand)
-                new_record.set_value(Fields.protein, protein_comp)
-                new_record.set_value(Fields.protein_name, self.protein_flask_title)
-                new_record.set_value(Fields.design_unit, self.du)
+                new_record.set_value(Fields.protein, protein)
+                new_record.set_value(Fields.protein_name, protein.GetTitle())
+                new_record.set_value(Fields.md_components, self.md_components)
 
                 self.success.emit(new_record)
 
