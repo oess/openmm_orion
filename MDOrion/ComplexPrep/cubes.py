@@ -68,29 +68,10 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
             self.opt = vars(self.args)
             self.opt['Logger'] = self.log
 
-            self.du = None
+            if not record.has_value(Fields.md_components):
+                raise ValueError("MD Components Field is missing")
 
-            if record.has_value(Fields.design_unit):
-                du = record.get_value(Fields.design_unit)
-                protein_flask = oechem.OEMol()
-                if not du.GetProtein(protein_flask):
-                    raise ValueError("The protein cannot be extracted from the Design Unit")
-                self.du = du
-            else:
-                if not record.has_value(Fields.flask):
-                    self.log.error("Missing Protein flask field")
-                    self.failure.emit(record)
-                    return
-
-                protein_flask = record.get_value(Fields.flask)
-
-            if not record.has_value(Fields.title):
-                self.log.warn("Missing Protein Title field")
-                self.protein_flask_title = protein_flask.GetTitle()[0:12]
-            else:
-                self.protein_flask_title = record.get_value(Fields.title)
-
-            self.protein_flask = protein_flask
+            self.md_components = record.get_value(Fields.md_components)
 
             return
 
@@ -98,10 +79,10 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
         try:
             if port == 'intake':
 
-                if not record.has_value(Fields.flask):
-                    raise ValueError("Missing the ligand flask field")
+                if not record.has_value(Fields.primary_molecule):
+                    raise ValueError("Missing the ligand primary molecule field")
 
-                ligand = record.get_value(Fields.flask)
+                ligand = record.get_value(Fields.primary_molecule)
 
                 if ligand.NumConfs() > 1:
                     raise ValueError("The ligand {} has multiple conformers: {}".format(ligand.GetTitle(),
@@ -113,81 +94,26 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 else:
                     ligand_title = record.get_value(Fields.title)
 
-                # Create a Design Unit
-                if self.du is None:
-                    du = oechem.OEDesignUnit()
+                protein = self.md_components.get_protein
 
-                    # Set Options to create the design unit starting
-                    # from the ligand and the protein
-                    build_opts = oespruce.OEDesignUnitBuildOptions()
-                    build_opts.SetBuildSidechains(False)
-                    build_opts.SetBuildLoops(False)
-                    build_opts.SetCapCTermini(False)
-                    build_opts.SetCapNTermini(False)
-                    build_opts.SetDeleteClashingSolvent(False)
-
-                    enum_opts = oespruce.OEDesignUnitEnumerateSitesOptions()
-                    enum_opts.SetAddInteractionHints(False)
-                    enum_opts.SetAddStyle(False)
-                    enum_opts.SetEnumerateCofactorSites(False)
-                    enum_opts.SetDuplicateRemoval(False)
-                    enum_opts.SetCollapseNonSiteAlts(False)
-
-                    prep_opts = oespruce.OEDesignUnitPrepOptions()
-                    prep_opts.SetProtonate(False)
-                    prep_opts.SetAssignPartialChargesAndRadii(False)
-                    prep_opts.SetBuildOptions(build_opts)
-                    prep_opts.SetEnumerateSitesOptions(enum_opts)
-
-                    split_opts = oespruce.OEDesignUnitSplitOptions()
-                    split_opts.SetMakePackingResidues(False)
-
-                    bio_opts = oespruce.OEBioUnitExtractionOptions()
-                    bio_opts.SetSuperpose(False)
-
-                    du_opts = oespruce.OEMakeDesignUnitOptions(split_opts, prep_opts, bio_opts)
-
-                    if not oespruce.OEMakeDesignUnit(du, self.protein_flask, ligand, du_opts):
-                        raise ValueError("It was not possible to generate the Design Unit")
-
-                    flask_from_du = oechem.OEMol()
-
-                    if not du.GetComponents(flask_from_du, oechem.OEDesignUnitComponents_All ^ oechem.OEDesignUnitComponents_Ligand):
-                        raise ValueError("Recovering all the Design Unit Components Failed")
-
-                    if flask_from_du.NumAtoms() != self.protein_flask.NumAtoms():
-                        raise ValueError("Flask Design Unit and User protein flask number "
-                                         "of atoms mismatch: {} vs {}".format(flask_from_du.NumAtoms(),
-                                                                              self.protein_flask.NumAtoms()))
-                    self.du = du
-
-                else:  # Update the Design Unit Ligand Component
-                    if not oechem.OEUpdateDesignUnit(self.du, ligand, oechem.OEDesignUnitComponents_Ligand):
-                        raise ValueError("Could not add the ligand to the Design Unit")
-
-                protein_comp = oechem.OEMol()
-                ligand_comp = oechem.OEMol()
-
-                # Ligand and Protein component Check
-                if not self.du.GetProtein(protein_comp):
-                    raise ValueError("The protein cannot be extracted from the Design Unit")
-
-                if not self.du.GetLigand(ligand_comp):
-                    raise ValueError("The ligand cannot be extracted from the Design Unit")
-
-                # If the protein does not contain any atom emit a failure
-                if not protein_comp.NumAtoms():  # Error: protein molecule is empty
-                    raise ValueError("The Protein component does not contains atoms")
-
-                # If the ligand does not contain any atom emit a failure
-                if not ligand_comp.NumAtoms():  # Error: ligand molecule is empty
-                    raise ValueError("The Ligand component does not contains atoms")
+                self.md_components.set_ligand(ligand)
 
                 # Check if the ligand is inside the binding site. Cutoff distance 3A
-                if not oeommutils.check_shell(ligand_comp, protein_comp, 3):
+                if not oeommutils.check_shell(ligand, protein, 3):
                     raise ValueError("The Ligand is probably outside the Protein binding site")
 
                 # Remove Steric Clashes between the ligand and the other System components
+
+
+                for 
+
+
+
+
+
+
+
+
                 for pair in self.du.GetTaggedComponents():
 
                     comp_name = pair[0]

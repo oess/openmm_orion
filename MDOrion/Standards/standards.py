@@ -17,7 +17,7 @@
 
 from floe.api.orion import in_orion
 
-from MDOrion.Standards.utils import ParmedData, MDStateData, DesignUnit
+from MDOrion.Standards.utils import ParmedData, MDStateData, DesignUnit, MDComponentData
 
 from datarecord import OEPrimaryMolField
 
@@ -138,6 +138,9 @@ class Fields:
 
     # Design Unit Field from Spruce
     design_unit_from_spruce = OEField('du_single', Types.Blob)
+
+    # MD Components
+    md_components = OEField('MDComponents_OPLMD', MDComponentData)
 
     # Collection is used to offload data from the record which must be < 100Mb
     collection = OEField("Collection_ID_OPLMD", Types.Int, meta=_metaHidden)

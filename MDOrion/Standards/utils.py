@@ -24,6 +24,8 @@ import parmed
 
 from MDOrion.MDEngines.utils import MDState
 
+from MDOrion.ForceField.utils import MDComponents
+
 import copy
 
 from orionclient.session import in_orion, OrionSession, get_session
@@ -94,6 +96,31 @@ class MDStateData(CustomHandler):
     def deserialize(data):
         new_state = pickle.loads(bytes(data))
         return new_state
+
+
+class MDComponentData(CustomHandler):
+
+    @staticmethod
+    def get_name():
+        return 'MDComponents'
+
+    @classmethod
+    def validate(cls, value):
+        return isinstance(value, MDComponents)
+
+    @classmethod
+    def copy(cls, components):
+        return copy.deepcopy(components)
+
+    @staticmethod
+    def serialize(components):
+        pkl_obj = pickle.dumps(components)
+        return bytes(pkl_obj)
+
+    @staticmethod
+    def deserialize(components):
+        new_components = pickle.loads(bytes(components))
+        return new_components
 
 
 class DesignUnit(CustomHandler):
