@@ -321,7 +321,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
             mdrecord_traj = MDDataRecord(oetrajRecord)
 
-            mdrecord_traj.set_protein_traj(ptraj, shard_name="ProteinTrajConfs_" + system_title + '_' + str(sys_id))
+            mdrecord_traj.set_protein_traj(ptraj, shard_name="ProteinTrajConfs_")
 
 
             record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
@@ -357,7 +357,7 @@ class ConcatenateTrajMMPBSACube(RecordPortsMixin, ComputeCube):
     classification = [["Analysis"]]
     tags = ['OEChem', 'TrajAnalysis', 'MMPBSA']
     description = """
-    Protein-ligand trajectory MMPBSA interaction energies are concatenated based on 
+    Protein-ligand trajectory MMPBSA interaction energies are concatenated based on
     pre-existing per-conformer vectors.
 
     Input:
@@ -786,6 +786,148 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
         except Exception as e:
             print("Failed to complete", str(e), flush=True)
             opt['Logger'].info('Exception {} in TrajInteractionEnergyCube on {}'.format(str(e),system_title) )
+            self.log.error(traceback.format_exc())
+            # Return failed mol
+            self.failure.emit(record)
+
+        return
+
+
+class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
+    title = 'Conf Trajs To Ligand Traj'
+    # version = "0.1.4"
+    classification = [["Analysis"]]
+    tags = ['Clustering', 'Ligand', 'Protein']
+
+    description = """
+    Combine individual conformer trajectory OEMols into single ligand OEMol
+
+    This cube will read in and combine the individual MD traj OEMols for each conformer
+    into a single MD traj OEMol for the whole ligand, in preparation for clistering.
+    It will do this for both the protein and ligand components of the complex.
+    """
+
+    #uuid = "b503c2f4-12e6-49c7-beb6-ee17da177ec2"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 14000},
+        "spot_policy": {"default": "Allowed"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+        return
+
+    def process(self, record, port):
+        try:
+            # The copy of the dictionary option as local variable
+            # is necessary to avoid filename collisions due to
+            # the parallel cube processes
+            opt = dict(self.opt)
+
+            # Logger string
+            opt['Logger'].info(' Beginning ConfTrajsToLigTraj')
+            system_title = utl.RequestOEFieldType(record, Fields.title)
+            opt['Logger'].info('{} Attempting to combine conf traj OEMols into ligand traj OEMol'
+                .format(system_title) )
+
+            # Go find the ligand and LigTraj fields in each of the conformer records
+            if not record.has_field(Fields.Analysis.oetrajconf_rec):
+                raise ValueError('{} could not find the conformer record'.format(system_title))
+            else:
+                opt['Logger'].info('{} found the conformer record'.format(system_title))
+
+            # set up ligand and LigTraj lists then loop over conformer records
+            confIdVec = []
+            initLigConfs = []
+            ligTrajConfs = []
+            protTrajConfs = []
+            watTrajConfs = []
+            list_conf_rec = record.get_value(Fields.Analysis.oetrajconf_rec)
+            for confrec in list_conf_rec:
+                confid = utl.RequestOEFieldType(confrec, Fields.confid)
+                ligand = utl.RequestOEFieldType(confrec, Fields.ligand)
+                initLigConfs.append(ligand)
+                opt['Logger'].info('{}: found confID {} with ligand {}'.format(
+                    system_title, confid, ligand.GetTitle()) )
+
+                if not confrec.has_field(Fields.Analysis.oetraj_rec):
+                    raise ValueError('{} confID {}: could not find traj record'.format(system_title,confid))
+                oetrajRecord = confrec.get_value(Fields.Analysis.oetraj_rec)
+
+                # Extract the ligand traj OEMol from the OETraj record
+                ligTraj = utl.RequestOEField( oetrajRecord, 'LigTraj', Types.Chem.Mol)
+                confIdVec += [confid]*ligTraj.NumConfs()
+                ligTrajConfs.append(ligTraj)
+                opt['Logger'].info('{} confID {}: adding ligTraj with {} atoms, {} confs'.format(
+                    system_title, confid, ligTraj.NumAtoms(), ligTraj.NumConfs()) )
+
+                # Extract the activeSite water traj OEMol from the OETraj record
+                watTraj = utl.RequestOEField( oetrajRecord, 'WatTraj', Types.Chem.Mol)
+                watTrajConfs.append(watTraj)
+                opt['Logger'].info('{} confID {}: adding watTraj with {} atoms, {} confs'.format(
+                    system_title, confid, watTraj.NumAtoms(), watTraj.NumConfs()) )
+
+                # Extract the protTraj OEMol from the OETraj record
+                mdtrajrecord = MDDataRecord(oetrajRecord)
+                protTraj = mdtrajrecord.get_protein_traj
+                protTrajConfs.append(protTraj)
+                opt['Logger'].info('{} confID {}: adding protTraj with {} atoms, {} confs'.format(
+                    system_title, confid, protTraj.NumAtoms(), protTraj.NumConfs()) )
+                del mdtrajrecord
+
+            if len(ligTrajConfs)<1 or len(protTrajConfs)<1:
+                raise ValueError('{} empty list of lig or protein trajectory OEMols'.format(system_title))
+
+            ligTraj = oechem.OEMol(ligTrajConfs[0])
+            xyz = oechem.OEFloatArray(3*ligTraj.GetMaxAtomIdx())
+            for trajMol in ligTrajConfs[1:]:
+                for conf in trajMol.GetConfs():
+                    conf.GetCoords(xyz)
+                    ligTraj.NewConf(xyz)
+            opt['Logger'].info('{} composite ligTraj has {} atoms, {} confs'.format(
+                system_title, ligTraj.NumAtoms(), ligTraj.NumConfs()) )
+
+            protTraj = protTrajConfs[0]
+            xyz = oechem.OEFloatArray(3*protTraj.GetMaxAtomIdx())
+            for trajMol in protTrajConfs[1:]:
+                for conf in trajMol.GetConfs():
+                    conf.GetCoords(xyz)
+                    protTraj.NewConf(xyz)
+            opt['Logger'].info('{} composite protTraj has {} atoms, {} confs'.format(
+                system_title, protTraj.NumAtoms(), protTraj.NumConfs()) )
+
+
+            # Create new record with OETraj results
+            oetrajRecord = OERecord()
+
+            oetrajRecord.set_value(OEField('ConfIdVec', Types.IntVec), confIdVec)
+
+            oetrajRecord.set_value(OEField('LigTraj', Types.Chem.Mol), ligTraj)
+
+            if watTraj:
+                oetrajRecord.set_value(OEField('WatTraj', Types.Chem.Mol), watTraj)
+
+            if in_orion():
+                oetrajRecord.set_value(Fields.collection, mdrecord.collection_id)
+
+            mdrecord_traj = MDDataRecord(oetrajRecord)
+            mdrecord_traj.set_protein_traj(protTraj, shard_name="ProteinTrajConfs_")
+
+            record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
+
+
+
+
+            self.success.emit(record)
+
+        except Exception as e:
+            print("Failed to complete", str(e), flush=True)
+            opt['Logger'].info('Exception {} in ConfTrajsToLigTraj on {}'.format(str(e), system_title))
             self.log.error(traceback.format_exc())
             # Return failed mol
             self.failure.emit(record)
@@ -1605,6 +1747,12 @@ class ParallelTrajInteractionEnergyCube(ParallelMixin, TrajInteractionEnergyCube
     title = "Parallel " + TrajInteractionEnergyCube.title
     description = "(Parallel) " + TrajInteractionEnergyCube.description
     uuid = "a6a11dbb-bc25-4548-bf1a-471bda2f0406"
+
+
+class ParallelConfTrajsToLigTraj(ParallelMixin, ConfTrajsToLigTraj):
+    title = "Parallel " + ConfTrajsToLigTraj.title
+    description = "(Parallel) " + ConfTrajsToLigTraj.description
+    # uuid = "a6a11dbb-bc25-4548-bf1a-471bda2f0406"
 
 
 class ParallelConcatenateTrajMMPBSACube(ParallelMixin, ConcatenateTrajMMPBSACube):
