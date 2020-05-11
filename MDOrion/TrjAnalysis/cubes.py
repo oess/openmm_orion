@@ -843,17 +843,12 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
 
             # set up ligand and LigTraj lists then loop over conformer records
             confIdVec = []
-            initLigConfs = []
             ligTrajConfs = []
             protTrajConfs = []
             watTrajConfs = []
             list_conf_rec = record.get_value(Fields.Analysis.oetrajconf_rec)
             for confrec in list_conf_rec:
                 confid = utl.RequestOEFieldType(confrec, Fields.confid)
-                ligand = utl.RequestOEFieldType(confrec, Fields.ligand)
-                initLigConfs.append(ligand)
-                opt['Logger'].info('{}: found confID {} with ligand {}'.format(
-                    system_title, confid, ligand.GetTitle()) )
 
                 if not confrec.has_field(Fields.Analysis.oetraj_rec):
                     raise ValueError('{} confID {}: could not find traj record'.format(system_title,confid))
@@ -892,6 +887,15 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} composite ligTraj has {} atoms, {} confs'.format(
                 system_title, ligTraj.NumAtoms(), ligTraj.NumConfs()) )
 
+            watTraj = oechem.OEMol(watTrajConfs[0])
+            xyz = oechem.OEFloatArray(3*watTraj.GetMaxAtomIdx())
+            for trajMol in watTrajConfs[1:]:
+                for conf in trajMol.GetConfs():
+                    conf.GetCoords(xyz)
+                    watTraj.NewConf(xyz)
+            opt['Logger'].info('{} composite watTraj has {} atoms, {} confs'.format(
+                system_title, watTraj.NumAtoms(), watTraj.NumConfs()) )
+
             protTraj = protTrajConfs[0]
             xyz = oechem.OEFloatArray(3*protTraj.GetMaxAtomIdx())
             for trajMol in protTrajConfs[1:]:
@@ -902,26 +906,20 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
                 system_title, protTraj.NumAtoms(), protTraj.NumConfs()) )
 
 
+            record.set_value(OEField('ConfIdVec', Types.IntVec), confIdVec)
+
             # Create new record with OETraj results
             oetrajRecord = OERecord()
-
-            oetrajRecord.set_value(OEField('ConfIdVec', Types.IntVec), confIdVec)
-
             oetrajRecord.set_value(OEField('LigTraj', Types.Chem.Mol), ligTraj)
-
             if watTraj:
                 oetrajRecord.set_value(OEField('WatTraj', Types.Chem.Mol), watTraj)
 
             if in_orion():
                 oetrajRecord.set_value(Fields.collection, mdrecord.collection_id)
-
             mdrecord_traj = MDDataRecord(oetrajRecord)
             mdrecord_traj.set_protein_traj(protTraj, shard_name="ProteinTrajConfs_")
 
             record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
-
-
-
 
             self.success.emit(record)
 
