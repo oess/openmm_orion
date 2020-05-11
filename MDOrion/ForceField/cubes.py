@@ -47,6 +47,8 @@ from simtk import unit
 
 import os
 
+from MDOrion.ForceField.utils import ParametrizeMDComponents
+
 
 class ForceFieldCube(RecordPortsMixin, ComputeCube):
     title = "Force Field Application"
@@ -89,21 +91,11 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
         choices=sorted(ff_library.proteinff),
         help_text='Force field parameters to be applied to the protein')
 
-    solvent_forcefield = parameters.StringParameter(
-        'solvent_forcefield',
-        default=sorted(ff_library.solventff)[0],
-        help_text='Force field parameters to be applied to the water')
-
     ligand_forcefield = parameters.StringParameter(
         'ligand_forcefield',
         default=sorted(ff_library.ligandff)[0],
         choices=sorted(ff_library.ligandff),
         help_text='Force field to be applied to the ligand')
-
-    suffix = parameters.StringParameter(
-        'suffix',
-        default='prep',
-        help_text='Filename suffix for output simulation files')
 
     other_forcefield = parameters.StringParameter(
         'other_forcefield',
@@ -111,6 +103,11 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
         choices=sorted(ff_library.otherff),
         help_text='Force field used to parametrize other molecules not recognized by the '
                   'protein force field like excipients')
+
+    suffix = parameters.StringParameter(
+        'suffix',
+        default='prep',
+        help_text='Filename suffix for output simulation files')
 
     def begin(self):
         self.opt = vars(self.args)
@@ -121,175 +118,88 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             opt = self.opt
             opt['CubeTitle'] = self.title
 
-            if not record.has_value(Fields.design_unit):
-                raise ValueError("The Design Unit is not present on the record")
+            if not record.has_value(Fields.md_components):
+                raise ValueError("MD Components Field is missing")
 
-            du = record.get_value(Fields.design_unit)
+            md_components = record.get_value(Fields.md_components)
+            flask = md_components.create_flask
 
-            # Design Unit Parametrization
-            utils.parametrize_du(du, opt)
+            opt['Logger'].info(md_components.get_info)
 
+            if not record.has_value(Fields.title):
+                self.log.warn("Missing record Title field")
+                flask_title = flask.GetTitle()[0:12]
+            else:
+                flask_title = record.get_value(Fields.title)
 
+            # Parametrize the whole flask
+            flask_structure = ParametrizeMDComponents(md_components,
+                                                      protein_ff=opt['protein_forcefield'],
+                                                      ligand_ff=opt['ligand_forcefield'],
+                                                      other_ff=opt['other_forcefield'])
+            flask_pmd_structure = flask_structure.parametrize_components
 
+            # Set Parmed structure box_vectors
+            is_periodic = True
+            try:
+                solvent = md_components.get_solvent
+                vec_data = pack_utils.getData(solvent, tag='box_vectors')
+                vec = pack_utils.decodePyObj(vec_data)
+                flask_pmd_structure.box_vectors = vec
+            except:
+                is_periodic = False
+                self.log.warn("Flask {} has been parametrize without periodic box vectors ".format(flask_title))
 
+            if flask.NumAtoms() != flask_pmd_structure.topology.getNumAtoms():
+                raise ValueError("The flask {} and the generated Parmed structure "
+                                 "have mismatch atom numbers: {} vs {}".
+                                 format(flask_title,
+                                        flask.NumAtoms(),
+                                        flask_pmd_structure.topology.getNumAtoms()))
 
+            # Check Formal vs Partial charges
+            flask_formal_charge = 0
+            for at in flask.GetAtoms():
+                flask_formal_charge += at.GetFormalCharge()
 
+            flask_partial_charge = 0.0
+            for at in flask_pmd_structure.atoms:
+                flask_partial_charge += at.charge
 
+            if abs(flask_formal_charge - flask_partial_charge) > 0.01:
+                raise ValueError("Flask Formal charge and flask Partial charge mismatch: {} vs {}".format(
+                    flask_formal_charge, flask_partial_charge))
 
+            # Check if it is possible to create the OpenMM System
+            if is_periodic:
+                omm_flask = flask_pmd_structure.createSystem(nonbondedMethod=app.CutoffPeriodic,
+                                                             nonbondedCutoff=10.0 * unit.angstroms,
+                                                             constraints=None,
+                                                             removeCMMotion=False,
+                                                             rigidWater=False)
+            else:
+                omm_flask = flask_pmd_structure.createSystem(nonbondedMethod=app.NoCutoff,
+                                                             constraints=None,
+                                                             removeCMMotion=False,
+                                                             rigidWater=False)
 
+            mdrecord = MDDataRecord(record)
+            sys_id = mdrecord.get_flask_id
 
+            mdrecord.set_parmed(flask_pmd_structure, shard_name="Parmed_" + flask_title + '_' + str(sys_id))
 
-            # # Create the MD record to use the MD Record API
-            # mdrecord = MDDataRecord(record)
-            #
-            # flask = mdrecord.get_flask
-            #
-            # if not mdrecord.has_title:
-            #     self.log.warn("Missing record Title field")
-            #     flask_title = flask.GetTitle()[0:12]
-            # else:
-            #     flask_title = mdrecord.get_title
-            #
-            # # Split the complex in components in order to apply the FF
-            # protein, ligand, water, excipients = oeommutils.split(flask, ligand_res_name=opt['lig_res_name'])
-            #
-            # self.log.info("[{}] Components of flask {}:\n  Protein atoms = {}\n  Ligand atoms = {}\n"
-            #               "  Water atoms = {}\n  Excipients atoms = {}".format(opt['CubeTitle'],
-            #                                                                    flask_title,
-            #                                                                    protein.NumAtoms(),
-            #                                                                    ligand.NumAtoms(),
-            #                                                                    water.NumAtoms(),
-            #                                                                    excipients.NumAtoms()))
-            # protein = ffutils.clean_tags(protein)
-            # ligand = ffutils.clean_tags(ligand)
-            # water = ffutils.clean_tags(water)
-            # excipients = ffutils.clean_tags(excipients)
-            #
-            # sys_id = mdrecord.get_flask_id
-            #
-            # # Unique prefix name used to output parametrization files
-            # opt['prefix_name'] = flask_title + '_'+str(sys_id)
-            #
-            # oe_mol_list = []
-            # par_mol_list = []
-            #
-            # # Apply FF to the Protein
-            # if protein.NumAtoms():
-            #     oe_mol_list.append(protein)
-            #     protein_structure = ffutils.applyffProtein(protein, opt)
-            #     par_mol_list.append(protein_structure)
-            #
-            # # Apply FF to the ligand
-            # if ligand.NumAtoms():
-            #     oe_mol_list.append(ligand)
-            #     ligand_structure = ffutils.applyffLigand(ligand, opt)
-            #     par_mol_list.append(ligand_structure)
-            #
-            # # Apply FF to water molecules
-            # if water.NumAtoms():
-            #     oe_mol_list.append(water)
-            #     water_structure = ffutils.applyffWater(water, opt)
-            #     par_mol_list.append(water_structure)
-            #
-            # # Apply FF to the excipients
-            # if excipients.NumAtoms():
-            #     oe_mol_list.append(excipients)
-            #     excipient_structure = ffutils.applyffExcipients(excipients, opt)
-            #     par_mol_list.append(excipient_structure)
-            #
-            # # Build the overall Parmed structure
-            # flask_structure = parmed.Structure()
-            #
-            # for struc in par_mol_list:
-            #     flask_structure = flask_structure + struc
-            #
-            # flask_reassembled = oe_mol_list[0].CreateCopy()
-            # num_atom_flask = flask_reassembled.NumAtoms()
-            #
-            # for idx in range(1, len(oe_mol_list)):
-            #     oechem.OEAddMols(flask_reassembled, oe_mol_list[idx])
-            #     num_atom_flask += oe_mol_list[idx].NumAtoms()
-            #
-            # if not num_atom_flask == flask_structure.topology.getNumAtoms():
-            #     raise ValueError("Parmed and OE topologies mismatch atom number {} vs {}"
-            #                      .format(num_atom_flask, flask_structure.topology.getNumAtoms()))
-            #
-            # flask_reassembled.SetTitle(flask.GetTitle())
-            #
-            # # Set Parmed structure box_vectors
-            # is_periodic = True
-            #
-            # try:
-            #     vec_data = pack_utils.getData(flask_reassembled, tag='box_vectors')
-            #     vec = pack_utils.decodePyObj(vec_data)
-            #     flask_structure.box_vectors = vec
-            # except:
-            #     is_periodic = False
-            #     self.log.warn("flask {} has been parametrize without periodic box vectors ".format(flask_title))
-            #
-            # # Set atom serial numbers, Ligand name and HETATM flag
-            # for at in flask_reassembled.GetAtoms():
-            #     thisRes = oechem.OEAtomGetResidue(at)
-            #     thisRes.SetSerialNumber(at.GetIdx())
-            #     if thisRes.GetName() == 'UNL':
-            #         # thisRes.SetName("LIG")
-            #         thisRes.SetHetAtom(True)
-            #     oechem.OEAtomSetResidue(at, thisRes)
-            #
-            # if flask_reassembled.NumAtoms() != flask_structure.topology.getNumAtoms():
-            #     raise ValueError("OEMol flask {} and generated Parmed structure "
-            #                      "mismatch atom numbers".format(flask_title))
-            #
-            # flask_formal_charge = 0
-            # for at in flask_reassembled.GetAtoms():
-            #     flask_formal_charge += at.GetFormalCharge()
-            #
-            # flask_partial_charge = 0.0
-            # for at in flask_structure.atoms:
-            #     flask_partial_charge += at.charge
-            #
-            # if abs(flask_formal_charge - flask_partial_charge) > 0.01:
-            #     raise ValueError("flask Formal charge and flask Partial charge mismatch: {} vs {}".format(
-            #         flask_formal_charge, flask_partial_charge))
-            #
-            # # Copying the charges between the parmed structure and the oemol
-            # for parm_at, oe_at in zip(flask_structure.atoms, flask_reassembled.GetAtoms()):
-            #
-            #     if parm_at.atomic_number != oe_at.GetAtomicNum():
-            #         raise ValueError("Atomic number mismatch between the Parmed and the OpenEye topologies: {} - {}".
-            #                          format(parm_at.atomic_number, oe_at.GetAtomicNum()))
-            #
-            #     oe_at.SetPartialCharge(parm_at.charge)
-            #
-            # # Check if it is possible to create the OpenMM System
-            # if is_periodic:
-            #     omm_flask = flask_structure.createSystem(nonbondedMethod=app.CutoffPeriodic,
-            #                                              nonbondedCutoff=10.0 * unit.angstroms,
-            #                                              constraints=None,
-            #                                              removeCMMotion=False,
-            #                                              rigidWater=False)
-            # else:
-            #     omm_flask = flask_structure.createSystem(nonbondedMethod=app.NoCutoff,
-            #                                              constraints=None,
-            #                                              removeCMMotion=False,
-            #                                              rigidWater=False)
-            # mdrecord.set_title(flask_title)
-            # mdrecord.set_flask(flask_reassembled)
-            #
-            # mdrecord.set_parmed(flask_structure, shard_name="Parmed_" + flask_title + '_' + str(sys_id))
-            #
-            # data_fn = os.path.basename(mdrecord.cwd) + '_' + flask_title+'_' + str(sys_id) + '-' + opt['suffix']+'.tar.gz'
-            #
-            # if not mdrecord.add_new_stage(MDStageNames.ForceField,
-            #                               MDStageTypes.SETUP,
-            #                               flask_reassembled,
-            #                               MDState(flask_structure),
-            #                               data_fn):
-            #     raise ValueError("Problems adding the new Parametrization Stage")
-            #
-            # self.success.emit(mdrecord.get_record)
-            #
-            # del mdrecord
+            data_fn = os.path.basename(mdrecord.cwd) + '_' + flask_title+'_' + str(sys_id) + '-' + opt['suffix']+'.tar.gz'
+
+            if not mdrecord.add_new_stage(MDStageNames.ForceField,
+                                          MDStageTypes.SETUP,
+                                          flask,
+                                          MDState(flask_pmd_structure),
+                                          data_fn):
+                raise ValueError("Problems adding the new Parametrization Stage")
+
+            self.success.emit(mdrecord.get_record)
+
+            del mdrecord
 
         except Exception as e:
 

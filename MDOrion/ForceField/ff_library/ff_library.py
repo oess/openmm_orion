@@ -40,3 +40,11 @@ cofactors_ff = {'Cofactors': [f for f in glob.glob(COFACTOR_DIR+"/*.xml")]}
 lipids_ff = {'Lipids': 'amber14/lipid17.xml'}
 
 nucleics_ff = {'Nucleics': 'amber14-all.xml'}
+
+
+protein_standard_residue_names = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS',
+                                  'GLN', 'GLU', 'GLY', 'HIS', 'ILE',
+                                  'LEU', 'LYS', 'MET', 'PHE', 'PRO',
+                                  'SER', 'THR', 'TRP', 'TYR', 'VAL',
+                                  'ASX', 'GLX', 'CYX', 'CYH', 'HID',
+                                  'HIE', 'HIP']

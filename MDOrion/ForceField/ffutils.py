@@ -65,7 +65,7 @@ class ParamMolStructure(object):
     """
 
     def __init__(self, molecule, forcefield, prefix_name='ligand', delete_out_files=True):
-        if not forcefield in list(ff_library.ligandff.values()):
+        if forcefield not in list(ff_library.ligandff.values()):
             raise RuntimeError('The selected ligand force field is not '
                                'supported {}. Available {}'.format(forcefield, list(ff_library.ligandff.keys())))
         else:
@@ -88,6 +88,7 @@ class ParamMolStructure(object):
 
         if not molecule:
             molecule = self.molecule
+
         try:
             self.checkCharges(molecule)
         except:

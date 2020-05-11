@@ -219,9 +219,7 @@ class MDSetting(RecordPortsMixin, ComputeCube):
 
                 md_components = MDComponents(molecules, components_title=name)
 
-
-            print(md_components)
-
+            self.opt['Logger'].info(md_components.get_info)
 
             record.set_value(Fields.md_components, md_components)
             record.set_value(Fields.title, name)

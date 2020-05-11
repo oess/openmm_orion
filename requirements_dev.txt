@@ -5,6 +5,7 @@ pip==18.0
 pytest==3.10.1
 six==1.12.0
 wcwidth==0.1.7
+lxml==4.5.0
 
 # OE Stack
 # Leave this here to avoid pip install issues
