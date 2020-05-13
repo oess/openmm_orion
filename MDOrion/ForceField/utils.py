@@ -573,7 +573,7 @@ class ParametrizeMDComponents:
     @property
     def parametrize_protein(self):
         if self.md_components.has_protein:
-            print("Protein Parametrized by using the ff: {]".format(self.protein_ff))
+            print("Protein Parametrized by using the ff: {}".format(self.protein_ff))
             protein = self.md_components.get_protein
 
             # OpenMM topology and positions from OEMol

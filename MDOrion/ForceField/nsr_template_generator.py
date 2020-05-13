@@ -29,6 +29,8 @@ from io import StringIO
 
 from lxml import etree
 
+from simtk.openmm.app.forcefield import NonbondedGenerator
+
 
 def nsr_template_generator(protein, omm_topology, omm_forcefield):
 
@@ -178,6 +180,25 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield):
         for at in protein_ff_template.atoms:
             protein_ff_backbone_atype[at.name] = at.type
             protein_ff_backbone_parameters[at.name] = at.parameters
+
+        # Charges can be present in the Non Bonded Section and not in the loaded Residue Template
+        charge_from_non_bonded = False
+        for d in protein_ff_backbone_parameters.values():
+            if 'charge' not in d:
+                charge_from_non_bonded = True
+                break
+
+        if charge_from_non_bonded:
+            non_bonded_gen = None
+            for gen in omm_forcefield._forces:
+                if isinstance(gen, NonbondedGenerator):
+                    non_bonded_gen = gen
+                    break
+            if non_bonded_gen:
+                for at_name, at_type in protein_ff_backbone_atype.items():
+                    protein_ff_backbone_parameters[at_name] = non_bonded_gen.params.paramsForType[at_type]
+            else:
+                raise ValueError("Cannot Find the Non Bonded Generator for the selected Force Field")
 
         # Atom Types Assignment
         new_atom_type_dic = dict()
@@ -435,8 +456,8 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield):
 
         ffxml_contents = etree.tostring(root, pretty_print=True, encoding='utf-8').decode()
 
-        # with open(nsr_name+".xml", 'w') as f:
-        #     f.write(ffxml_contents)
+        with open(nsr_name+".xml", 'w') as f:
+            f.write(ffxml_contents)
 
         ffmxl_template_list.append(ffxml_contents)
 

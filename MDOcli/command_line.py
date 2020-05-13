@@ -274,7 +274,7 @@ def info_extraction(ctx):
         if suffixIndex > 1:
             color = "\033[33m"
 
-        return "%s %.*f %s \033[0;37;40m" % (color, precision, size, suffixes[suffixIndex])
+        return "%s %.*f %s \033[00m" % (color, precision, size, suffixes[suffixIndex])
 
     def recursive_record(record, level=0):
 
