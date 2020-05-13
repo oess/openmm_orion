@@ -60,7 +60,7 @@ min.set_parameters(save_md_stage=True)
 # Restraints
 min.set_parameters(restraints='noh (ligand or protein)')
 min.set_parameters(restraintWt=5.0)
-min.set_parameters(suffix='nvt')
+min.set_parameters(suffix='min')
 
 
 ofs = DatasetWriterCube('ofs', title='Out')

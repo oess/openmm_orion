@@ -72,7 +72,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
 
     steps = parameters.IntegerParameter(
         'steps',
-        default=0,
+        default=2000,
         help_text="""Number of minimization steps.
                   If 0 the minimization will continue
                   until convergence""")
@@ -206,25 +206,19 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_flask
-
-            if not mdrecord.has_title:
-                opt['Logger'].warn("Missing record Title field")
-                system_title = system.GetTitle()[0:12]
-            else:
-                system_title = mdrecord.get_title
+            system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
             opt['system_id'] = mdrecord.get_flask_id
 
-            system = mdrecord.get_stage_topology()
+            flask = mdrecord.get_stage_topology()
             mdstate = mdrecord.get_stage_state()
 
             if opt['restraint_to_reference']:
                 opt['reference_state'] = mdrecord.get_stage_state(stg_name=MDStageNames.ForceField)
 
             opt['out_directory'] = mdrecord.cwd
-            opt['molecule'] = system
+            opt['molecule'] = flask
             opt['str_logger'] = str_logger
             opt['Logger'].info('[{}] MINIMIZING System: {}'.format(opt['CubeTitle'], system_title))
 
@@ -234,24 +228,21 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
             # Run the MD simulation
             new_mdstate = md_simulation(mdstate, parmed_structure, opt)
 
-            # Update the system coordinates
-            system.SetCoords(new_mdstate.get_oe_positions())
-            mdrecord.set_flask(system)
+            # Update the flask coordinates
+            flask.SetCoords(new_mdstate.get_oe_positions())
+            mdrecord.set_flask(flask)
 
             data_fn = os.path.basename(mdrecord.cwd) + '_' + opt['system_title'] + '_' + str(opt['system_id']) + '-' + opt['suffix'] + '.tar.gz'
 
             if not mdrecord.add_new_stage(self.title,
                                           MDStageTypes.MINIMIZATION,
-                                          system,
+                                          flask,
                                           new_mdstate,
                                           data_fn,
                                           append=opt['save_md_stage'],
                                           log=opt['str_logger']):
 
                 raise ValueError("Problems adding the new Minimization Stage")
-
-            # Synchronize the added Parmed structure with the last MD stage state
-            # mdrecord.set_parmed(parmed_structure, sync_stage_name='last')
 
             self.success.emit(mdrecord.get_record)
 
@@ -446,18 +437,13 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_flask
-
-            if not mdrecord.has_title:
-                opt['Logger'].warn("Missing record Title field")
-                system_title = system.GetTitle()[0:12]
-            else:
-                system_title = mdrecord.get_title
+            system_title = mdrecord.get_title
 
             opt['system_title'] = system_title
             opt['system_id'] = mdrecord.get_flask_id
 
-            system = mdrecord.get_stage_topology()
+            flask = mdrecord.get_stage_topology()
+            mdstate = mdrecord.get_stage_state()
 
             # Update cube simulation parameters
             for field in record.get_fields(include_meta=True):
@@ -466,17 +452,15 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
                     rec_value = record.get_value(field)
                     opt[field_name] = rec_value
                     opt['Logger'].info("{} Updating parameters for molecule: {} {} = {}".format(self.title,
-                                                                                                system.GetTitle(),
+                                                                                                system_title,
                                                                                                 field_name,
                                                                                                 rec_value))
-
-            mdstate = mdrecord.get_stage_state()
 
             if opt['restraint_to_reference']:
                 opt['reference_state'] = mdrecord.get_stage_state(stg_name=MDStageNames.ForceField)
 
             opt['out_directory'] = mdrecord.cwd
-            opt['molecule'] = system
+            opt['molecule'] = flask
             opt['str_logger'] = str_logger
             opt['Logger'].info('[{}] START NVT SIMULATION: {}'.format(opt['CubeTitle'], system_title))
 
@@ -495,8 +479,8 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
             new_mdstate = md_simulation(mdstate, parmed_structure, opt)
 
             # Update the system coordinates
-            system.SetCoords(new_mdstate.get_oe_positions())
-            mdrecord.set_flask(system)
+            flask.SetCoords(new_mdstate.get_oe_positions())
+            mdrecord.set_flask(flask)
 
             # Trajectory
             if opt['trajectory_interval']:
@@ -513,7 +497,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
 
             if not mdrecord.add_new_stage(self.title,
                                           MDStageTypes.NVT,
-                                          system,
+                                          flask,
                                           new_mdstate,
                                           data_fn,
                                           append=opt['save_md_stage'],
@@ -722,7 +706,13 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 
-            system = mdrecord.get_flask
+            system_title = mdrecord.get_title
+
+            opt['system_title'] = system_title
+            opt['system_id'] = mdrecord.get_flask_id
+
+            flask = mdrecord.get_stage_topology()
+            mdstate = mdrecord.get_stage_state()
 
             # Update cube simulation parameters
             for field in record.get_fields(include_meta=True):
@@ -731,27 +721,15 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
                     rec_value = record.get_value(field)
                     opt[field_name] = rec_value
                     opt['Logger'].info("{} Updating parameters for molecule: {} {} = {}".format(self.title,
-                                                                                                system.GetTitle(),
+                                                                                                system_title,
                                                                                                 field_name,
                                                                                                 rec_value))
-
-            if not mdrecord.has_title:
-                opt['Logger'].warn("Missing record Title field")
-                system_title = system.GetTitle()[0:12]
-            else:
-                system_title = mdrecord.get_title
-
-            opt['system_title'] = system_title
-            opt['system_id'] = mdrecord.get_flask_id
-
-            system = mdrecord.get_stage_topology()
-            mdstate = mdrecord.get_stage_state()
 
             if opt['restraint_to_reference']:
                 opt['reference_state'] = mdrecord.get_stage_state(stg_name=MDStageNames.ForceField)
 
             opt['out_directory'] = mdrecord.cwd
-            opt['molecule'] = system
+            opt['molecule'] = flask
             opt['str_logger'] = str_logger
             opt['Logger'].info('[{}] START NPT SIMULATION: {}'.format(opt['CubeTitle'], system_title))
 
@@ -770,8 +748,8 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
             new_mdstate = md_simulation(mdstate, parmed_structure, opt)
 
             # Update the system coordinates
-            system.SetCoords(new_mdstate.get_oe_positions())
-            mdrecord.set_flask(system)
+            flask.SetCoords(new_mdstate.get_oe_positions())
+            mdrecord.set_flask(flask)
 
             # Trajectory
             if opt['trajectory_interval']:
@@ -789,7 +767,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
 
             if not mdrecord.add_new_stage(self.title,
                                           MDStageTypes.NPT,
-                                          system,
+                                          flask,
                                           new_mdstate,
                                           data_fn,
                                           append=opt['save_md_stage'],

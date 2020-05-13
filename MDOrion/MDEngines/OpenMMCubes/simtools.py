@@ -323,38 +323,25 @@ class OpenMMSimulations(MDSimulations):
 
         if self.opt['SimType'] == 'min':
 
-            # Run a first minimization on the Reference platform
-            platform_reference = openmm.Platform.getPlatformByName('Reference')
-            integrator_reference = openmm.LangevinIntegrator(self.opt['temperature'] * unit.kelvin,
-                                                             1 / unit.picoseconds, self.stepLen)
-            simulation_reference = app.Simulation(topology, self.system, integrator_reference, platform=platform_reference)
-            # Set starting positions and velocities
-            simulation_reference.context.setPositions(positions)
-
-            state_reference_start = simulation_reference.context.getState(getEnergy=True)
-
-            # Set Box dimensions
-            if box is not None:
-                simulation_reference.context.setPeriodicBoxVectors(box[0], box[1], box[2])
-
-            simulation_reference.minimizeEnergy(tolerance=1e5 * unit.kilojoule_per_mole, maxIterations=self.opt['steps'])
-
-            state_reference_end = simulation_reference.context.getState(getPositions=True)
-
             # Start minimization on the selected platform
             if self.opt['steps'] == 0:
                 self.opt['Logger'].info('[{}] Minimization steps: until convergence is found'.format(self.opt['CubeTitle']))
             else:
                 self.opt['Logger'].info('[{}] Minimization steps: {steps}'.format(self.opt['CubeTitle'], **self.opt))
 
+            if box is not None:
+                self.omm_simulation.context.setPeriodicBoxVectors(box[0], box[1], box[2])
+
             # Set positions after minimization on the Reference Platform
-            self.omm_simulation.context.setPositions(state_reference_end.getPositions())
+            self.omm_simulation.context.setPositions(positions)
+
+            state_start = self.omm_simulation.context.getState(getEnergy=True)
 
             self.omm_simulation.minimizeEnergy(maxIterations=self.opt['steps'])
 
             state = self.omm_simulation.context.getState(getPositions=True, getEnergy=True)
 
-            ie = '{:<25} = {:<10}'.format('Initial Potential Energy', str(state_reference_start.getPotentialEnergy().
+            ie = '{:<25} = {:<10}'.format('Initial Potential Energy', str(state_start.getPotentialEnergy().
                                                                           in_units_of(unit.kilocalorie_per_mole)))
             fe = '{:<25} = {:<10}'.format('Minimized Potential Energy', str(state.getPotentialEnergy().
                                                                             in_units_of(unit.kilocalorie_per_mole)))

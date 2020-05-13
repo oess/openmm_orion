@@ -611,7 +611,7 @@ class ParametrizeMDComponents:
     def parametrize_ligand(self):
 
         if self.md_components.has_ligand:
-            print("Ligand Parametrized by using the ff: {]".format(self.ligand_ff))
+            print("Ligand Parametrized by using the ff: {}".format(self.ligand_ff))
             prefix_name = 'LIG'
             pmd = ParamMolStructure(self.md_components.get_ligand, self.ligand_ff, prefix_name=prefix_name)
             ligand_pmd = pmd.parameterize()
@@ -622,7 +622,7 @@ class ParametrizeMDComponents:
 
     @property
     def parametrize_other_ligands(self):
-        print("Other Ligands Parametrized by using the ff: {]".format(self.ligand_ff))
+        print("Other Ligands Parametrized by using the ff: {}".format(self.ligand_ff))
         if self.md_components.has_other_ligands:
             ligand_pmd = parametrize_unknown_component(self.md_components.get_other_ligands, self.ligand_ff)
             return ligand_pmd

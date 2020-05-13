@@ -456,8 +456,8 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield):
 
         ffxml_contents = etree.tostring(root, pretty_print=True, encoding='utf-8').decode()
 
-        with open(nsr_name+".xml", 'w') as f:
-            f.write(ffxml_contents)
+        # with open(nsr_name+".xml", 'w') as f:
+        #     f.write(ffxml_contents)
 
         ffmxl_template_list.append(ffxml_contents)
 
