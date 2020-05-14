@@ -68,6 +68,8 @@ npt.promote_parameter('md_engine', promoted_name='md_engine', default='OpenMM',
 npt.set_parameters(restraints="ca_protein or (noh ligand)")
 npt.set_parameters(restraintWt=5.0)
 npt.set_parameters(suffix='npt')
+npt.set_parameters(hmr=False)
+
 
 # Trajectory and logging info frequency intervals
 npt.promote_parameter('trajectory_interval', promoted_name='trajectory_interval', default=0.0005,
