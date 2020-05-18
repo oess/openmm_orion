@@ -64,7 +64,7 @@ class ParamMolStructure(object):
         Openeye molecule with the ParmEd Structure attached.
     """
 
-    def __init__(self, molecule, forcefield, prefix_name='ligand', delete_out_files=True):
+    def __init__(self, molecule, forcefield, prefix_name='ligand', delete_out_files=True, force_charge=False):
         if forcefield not in list(ff_library.ligandff.values()):
             raise RuntimeError('The selected ligand force field is not '
                                'supported {}. Available {}'.format(forcefield, list(ff_library.ligandff.keys())))
@@ -74,6 +74,7 @@ class ParamMolStructure(object):
             self.structure = None
             self.prefix_name = prefix_name
             self.delete_out_files = delete_out_files
+            self.force_charge = force_charge
 
     def checkCharges(self, molecule):
         # Check that molecule is charged.
@@ -81,11 +82,14 @@ class ParamMolStructure(object):
         for atom in molecule.GetAtoms():
             if atom.GetPartialCharge() != 0.0:
                 is_charged = True
+
+        if is_charged and self.force_charge:
+            is_charged = False
+
         if not is_charged:
             raise Exception('Molecule {} has no charges; input molecules must be charged.' .format(molecule.GetTitle()))
 
     def getSmirnoffStructure(self, molecule=None):
-
         if not molecule:
             molecule = self.molecule
 
@@ -93,7 +97,6 @@ class ParamMolStructure(object):
             self.checkCharges(molecule)
         except:
             print("WARNING: Missing Charges, assigning elf10 charges to molecule")
-
             molecule = assignELF10charges(molecule)
 
         if self.forcefield == ff_library.ligandff['Smirnoff99Frosst']:

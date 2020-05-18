@@ -19,7 +19,6 @@
 import traceback
 from datarecord import OERecord
 
-from openeye import oechem
 from oeommtools import utils as oeommutils
 
 from MDOrion.Standards import Fields
@@ -28,8 +27,6 @@ from floe.api import ComputeCube
 
 from orionplatform.mixins import RecordPortsMixin
 from orionplatform.ports import RecordInputPort
-
-from openeye import oespruce
 
 
 class ComplexPrepCube(RecordPortsMixin, ComputeCube):

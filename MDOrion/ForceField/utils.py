@@ -35,8 +35,6 @@ import parmed
 
 from MDOrion.ForceField.nsr_template_generator import nsr_template_generator
 
-from lxml import etree
-
 from io import StringIO
 
 
@@ -82,6 +80,7 @@ class MDComponents:
         self._components_title = components_title
 
         if du is not None:
+            print("Found DU")
             self._initialize_from_du(du)
         else:
             self._initialize_from_molecules(molecules)
@@ -559,7 +558,7 @@ class ParametrizeMDComponents:
         self.other_ff = ff_library.otherff[other_ff]
 
         # Extended Force Field
-        self.protein_extended_ff = ff_library.protein_extended_ff[protein_ff]
+        # self.protein_extended_ff = ff_library.protein_extended_ff[protein_ff]
 
         # Force Field to use: Default
         self.counter_ions_ff = ff_library.counter_ionsff['Counter_ions']

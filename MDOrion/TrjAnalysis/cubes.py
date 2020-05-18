@@ -624,11 +624,11 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} #atoms, #confs in water traj OEMol: {}, {}'
                                .format(system_title, water_traj.NumAtoms(), water_traj.NumConfs()))
 
-            prmed = mdrecord.get_parmed(sync_stage_name='last')
+            parmed = mdrecord.get_parmed(sync_stage_name='last')
 
             # Compute interaction energies for the protein, ligand, complex and water subsystems
             intE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE = mmpbsa.ProtLigWatInteractionEFromParmedOETraj(
-                prmed, ligTraj, protTraj, water_traj, opt)
+                parmed, ligTraj, protTraj, water_traj, opt)
 
             if intE is None:
                 raise ValueError('{} Calculation of Interaction Energies failed'.format(system_title))

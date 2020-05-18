@@ -23,14 +23,7 @@ from floe.api import (ParallelMixin,
                       parameters,
                       ComputeCube)
 
-from oeommtools import utils as oeommutils
-
 from MDOrion.ForceField.ff_library import ff_library
-from MDOrion.ForceField import utils
-
-import parmed
-
-from openeye import oechem
 
 from oeommtools import data_utils as pack_utils
 
@@ -97,13 +90,6 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
         choices=sorted(ff_library.ligandff),
         help_text='Force field to be applied to the ligand')
 
-    other_forcefield = parameters.StringParameter(
-        'other_forcefield',
-        default=sorted(ff_library.otherff)[0],
-        choices=sorted(ff_library.otherff),
-        help_text='Force field used to parametrize other molecules not recognized by the '
-                  'protein force field like excipients')
-
     suffix = parameters.StringParameter(
         'suffix',
         default='prep',
@@ -135,8 +121,8 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             # Parametrize the whole flask
             flask_structure = ParametrizeMDComponents(md_components,
                                                       protein_ff=opt['protein_forcefield'],
-                                                      ligand_ff=opt['ligand_forcefield'],
-                                                      other_ff=opt['other_forcefield'])
+                                                      ligand_ff=opt['ligand_forcefield'])
+
             flask_pmd_structure = flask_structure.parametrize_components
 
             # Set Parmed structure box_vectors
@@ -169,6 +155,16 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
             if abs(flask_formal_charge - flask_partial_charge) > 0.01:
                 raise ValueError("Flask Formal charge and flask Partial charge mismatch: {} vs {}".format(
                     flask_formal_charge, flask_partial_charge))
+
+            # Copying the charges between the parmed structure and the oemol
+            for parm_at, oe_at in zip(flask_pmd_structure.atoms, flask.GetAtoms()):
+
+                if parm_at.atomic_number != oe_at.GetAtomicNum():
+                    raise ValueError(
+                        "Atomic number mismatch between the Parmed and the OpenEye topologies: {} - {}".
+                        format(parm_at.atomic_number, oe_at.GetAtomicNum()))
+
+                oe_at.SetPartialCharge(parm_at.charge)
 
             # Check if it is possible to create the OpenMM System
             if is_periodic:

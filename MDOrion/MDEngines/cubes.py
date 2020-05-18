@@ -509,9 +509,6 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
 
                 raise ValueError("Problems adding in the new NVT Stage")
 
-            # Synchronize the added Parmed structure with the last MD stage state
-            # mdrecord.set_parmed(parmed_structure, sync_stage_name='last')
-
             self.success.emit(mdrecord.get_record)
 
             del mdrecord
@@ -778,9 +775,6 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
                                           ):
 
                 raise ValueError("Problems adding in the new NPT Stage")
-
-            # Synchronize the added Parmed structure with the last MD stage state
-            # mdrecord.set_parmed(parmed_structure, sync_stage_name='last')
 
             self.success.emit(mdrecord.get_record)
 

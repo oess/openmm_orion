@@ -138,10 +138,14 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield):
         for atom in oe_nsr_caps.GetAtoms(oechem.OEAndAtom(nsr_caps_pred_NME, oechem.OEIsNitrogen())):
             C_ACE_or_N_NME_atoms.append(atom)
 
+        # with oechem.oemolostream("nsr_caps.oeb") as ofs:
+        #     oechem.OEWriteConstMolecule(ofs, oe_nsr_caps)
+
         # Generate NSR Parametrization
         pmd = ParamMolStructure(oe_nsr_caps,
                                 ff_library.ligandff['OpenFF_1.0.0'],
-                                prefix_name=nsr_name)
+                                prefix_name=nsr_name,
+                                force_charge=True)
 
         nsr_pmd = pmd.parameterize()
 

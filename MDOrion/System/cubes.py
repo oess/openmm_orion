@@ -73,14 +73,10 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
 
     def process(self, record, port):
         try:
-            if not record.has_value(Fields.flask):
-                if not record.has_value(Fields.primary_molecule):
-                    raise ValueError("Primary Molecule is missing")
-                flask = record.get_value(Fields.primary_molecule)
 
-                record.set_value(Fields.flask, flask)
-
-            flask = record.get_value(Fields.flask)
+            if not record.has_value(Fields.primary_molecule):
+                raise ValueError("Primary Molecule is missing")
+            flask = record.get_value(Fields.primary_molecule)
 
             # There should be a ligid; if not, increment the last one
             if not record.has_value(Fields.ligid):
@@ -111,7 +107,7 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
                 record.set_value(Fields.flaskid, self.total_count)
                 record.set_value(Fields.confid, num_conf_counter)
                 record.set_value(Fields.title, flask_title)
-                record.set_value(Fields.flask, conf_mol)
+                record.set_value(Fields.primary_molecule, conf_mol)
 
                 num_conf_counter += 1
 
