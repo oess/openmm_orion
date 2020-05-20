@@ -24,8 +24,9 @@ from MDOrion.ForceField.ffutils import (ParamMolStructure,
                                         parametrize_unknown_component,
                                         clean_tags)
 
-
 from oeommtools import utils as oeommutils
+
+from oeommtools import data_utils
 
 from simtk.openmm import app
 
@@ -36,6 +37,8 @@ import parmed
 from MDOrion.ForceField.nsr_template_generator import nsr_template_generator
 
 from io import StringIO
+
+from oeommtools.utils import sanitizeOEMolecule
 
 
 class MDComponents:
@@ -61,6 +64,7 @@ class MDComponents:
         self._metals = None
         self._excipients = None
         self._solvent = None
+        self._water = None
         self._cofactors = None
         self._other_cofactors = None
         self._lipids = None
@@ -70,7 +74,7 @@ class MDComponents:
         self._component_names = ['protein', 'ligand',
                                  'other_ligands', 'counter_ions',
                                  'metals', 'excipients',
-                                 'solvent', 'cofactors',
+                                 'solvent', 'water', 'cofactors',
                                  'other_cofactors', 'lipids',
                                  'nucleics', 'other_nucleics']
 
@@ -78,6 +82,8 @@ class MDComponents:
         self._components = dict()
 
         self._components_title = components_title
+
+        self._box_vectors = None
 
         if du is not None:
             print("Found DU")
@@ -130,8 +136,22 @@ class MDComponents:
                 self.excipients = comp
                 self._components['excipients'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Solvent:
-                self._solvent = comp
-                self._components['solvent'] = comp
+                # Separate Water from Spruce Solvent
+                pred_water = oechem.OEIsWater(checkHydrogens=True)
+                water = oechem.OEMol()
+                oechem.OESubsetMol(water, comp, pred_water)
+                if water.NumAtoms():
+                    self._water = water
+                    self._components['water'] = water
+                    pred_not_water = oechem.OENotAtom(oechem.OEIsWater(checkHydrogens=True))
+                    solvent_not_water = oechem.OEMol()
+                    oechem.OESubsetMol(solvent_not_water, comp, pred_not_water)
+                    if solvent_not_water.NumAtoms():
+                        self._solvent = solvent_not_water
+                        self._components['solvent'] = solvent_not_water
+                else:
+                    self._solvent = comp
+                    self._components['solvent'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Cofactors:
                 self._cofactors = comp
                 self._components['cofactors'] = comp
@@ -198,8 +218,6 @@ class MDComponents:
             # Split the complex in components
             protein, ligand, water, excipients = oeommutils.split(molecules,
                                                                   ligand_res_name='LIG')
-            solvent = oechem.OEMol()
-
             if protein.NumAtoms():
                 protein = clean_tags(protein)
                 oechem.OEPDBOrderAtoms(protein, False)
@@ -207,21 +225,21 @@ class MDComponents:
                 self._components['protein'] = protein
             if ligand.NumAtoms():
                 ligand = clean_tags(ligand)
+                ligand = sanitizeOEMolecule(ligand)
                 oechem.OEPDBOrderAtoms(ligand, False)
                 self._ligand = ligand
                 self._components['ligand'] = ligand
             if water.NumAtoms():
                 water = clean_tags(water)
                 oechem.OEPDBOrderAtoms(water, False)
-                oechem.OEAddMols(solvent, water)
+                self._water = water
+                self._components['water'] = water
             if excipients.NumAtoms():
                 excipients = clean_tags(excipients)
-                oechem.OEAddMols(solvent, excipients)
-            if solvent.NumAtoms():
-                solvent = clean_tags(solvent)
-                oechem.OEPDBOrderAtoms(solvent, False)
-                self._solvent = solvent
-                self._components['solvent'] = solvent
+                excipients = sanitizeOEMolecule(excipients)
+                oechem.OEPDBOrderAtoms(excipients, False)
+                self._excipients = excipients
+                self._components['excipients'] = excipients
 
             print("Design Unit Built from Molecule")
 
@@ -240,12 +258,14 @@ class MDComponents:
                      metals=mol_to_bytes(self._metals) if self._metals else None,
                      excipients=mol_to_bytes(self._excipients) if self._excipients else None,
                      solvent=mol_to_bytes(self._solvent) if self._solvent else None,
+                     water=mol_to_bytes(self._water) if self._water else None,
                      cofactors=mol_to_bytes(self._cofactors) if self._cofactors else None,
                      other_cofactors=mol_to_bytes(self._other_cofactors) if self._other_cofactors else None,
                      lipids=mol_to_bytes(self._lipids) if self._lipids else None,
                      nucleics=mol_to_bytes(self._nucleics) if self._nucleics else None,
                      other_nucleics=mol_to_bytes(self._other_nucleics) if self._other_nucleics else None,
-                     components_title=self._components_title
+                     components_title=self._components_title,
+                     box_vectors=data_utils.encodePyObj(self._box_vectors) if self._box_vectors else None
                      )
 
         return state
@@ -266,6 +286,14 @@ class MDComponents:
                 self._components_title = comp
                 continue
 
+            if comp_name == 'box_vectors':
+                if comp is not None:
+                    box_vec = data_utils.decodePyObj(comp)
+                    self._box_vectors = box_vec
+                else:
+                    self._box_vectors = None
+                continue
+
             mol = mol_from_bytes(comp) if comp else None
 
             if comp_name == 'protein':
@@ -282,6 +310,8 @@ class MDComponents:
                 self._excipients = mol
             elif comp_name == 'solvent':
                 self._solvent = mol
+            elif comp_name == 'water':
+                self._water = mol
             elif comp_name == 'cofactors':
                 self._cofactors = mol
             elif comp_name == 'other_cofactors':
@@ -436,6 +466,23 @@ class MDComponents:
             return False
 
     @property
+    def get_water(self):
+        if self._water is not None:
+            return self._water
+        else:
+            raise ValueError("Water Component has not been found")
+
+    def set_water(self, water):
+        self._water = water
+
+    @property
+    def has_water(self):
+        if self._water is not None:
+            return True
+        else:
+            return False
+
+    @property
     def get_cofactors(self):
         if self._cofactors is not None:
             return self._cofactors
@@ -521,6 +568,23 @@ class MDComponents:
             return False
 
     @property
+    def has_box_vectors(self):
+        if self._box_vectors is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_box_vectors(self):
+        if self._box_vectors is not None:
+            return self._box_vectors
+        else:
+            raise ValueError("Box Vectors has not been found")
+
+    def set_box_vectors(self, box_vectors):
+        self._box_vectors = box_vectors
+
+    @property
     def get_title(self):
         return self._components_title
 
@@ -541,6 +605,20 @@ class MDComponents:
             raise ValueError("The component name {} is not supported. Allowed: {}".format(comp_name,
                                                                                           self._component_names))
         self._components[comp_name] = comp
+
+    def parametrize_components(self, protein_ff='Amber14SB',
+                               ligand_ff='OpenFF_1.0.0',
+                               other_ff='OpenFF_1.0.0'):
+
+        ParamMDComp = ParametrizeMDComponents(self, protein_ff, ligand_ff, other_ff)
+        pmd = ParamMDComp.parametrize_components
+
+        if self.has_box_vectors:
+            pmd.box_vectors = self.get_box_vectors
+
+        self.ParamMDComp = ParamMDComp
+
+        return pmd
 
 
 class ParametrizeMDComponents:
@@ -604,7 +682,7 @@ class ParametrizeMDComponents:
                 #     protein_pmd = parmed.openmm.load_topology(topology, omm_protein, xyz=positions)
                 #     return protein_pmd
         else:
-            raise ValueError("Protein is not present in the DU")
+            raise ValueError("Protein is not present in the MDComponents")
 
     @property
     def parametrize_ligand(self):
@@ -617,7 +695,7 @@ class ParametrizeMDComponents:
             ligand_pmd.residues[0].name = prefix_name
             return ligand_pmd
         else:
-            raise ValueError("Ligand is not present in the DU")
+            raise ValueError("Ligand is not present in the MDComponents")
 
     @property
     def parametrize_other_ligands(self):
@@ -626,180 +704,133 @@ class ParametrizeMDComponents:
             ligand_pmd = parametrize_unknown_component(self.md_components.get_other_ligands, self.ligand_ff)
             return ligand_pmd
         else:
-            raise ValueError("Other Ligands are not present in the DU")
+            raise ValueError("Other Ligands are not present in the MDComponents")
 
     @property
     def parametrize_counter_ions(self):
 
         if self.md_components.has_counter_ions:
-
-            counter_ions_pmd, unrec_ions = parametrize_component(self.md_components.get_counter_ions,
-                                                                 self.counter_ions_ff)
-
-            if counter_ions_pmd is not None:
-
-                if unrec_ions is not None:
-
-                    unk_ions_pmd = parametrize_unknown_component(unrec_ions, self.other_ff)
-                    counter_ions_pmd += unk_ions_pmd
-
-                    print("WARNING: Some Counter Ions have  been parametrized by using the ff: {}".format(self.other_ff))
-
-                return counter_ions_pmd
-            else:
-                raise ValueError("Counter Ions cannot be parametrized by using the FF: {}".format(self.counter_ions_ff))
+            counter_ions_pmd = parametrize_component(self.md_components.get_counter_ions,
+                                                     self.counter_ions_ff,
+                                                     self.other_ff)
+            return counter_ions_pmd
         else:
-            raise ValueError("Counter Ions are not present in the DU")
+            raise ValueError("Counter Ions are not present in the MDComponents")
 
     @property
     def parametrize_metals(self):
 
         if self.md_components.has_metals:
-            metals_pmd, unrec_metals = parametrize_component(self.md_components.get_metals, self.metals_ff)
-
-            if metals_pmd is not None:
-
-                if unrec_metals is not None:
-
-                    unk_metals_pmd = parametrize_unknown_component(unrec_metals, self.other_ff)
-                    metals_pmd += unk_metals_pmd
-
-                    print("WARNING: Some Metal Ions have been parametrized by using the ff: {}".format(self.other_ff))
-                return metals_pmd
-            else:
-                raise ValueError("Metals cannot be parametrized by using the FF: {}".format(self.metals_ff))
+            metals_pmd = parametrize_component(self.md_components.get_metals,
+                                               self.metals_ff,
+                                               self.other_ff)
+            return metals_pmd
         else:
-            raise ValueError("Metals are not present in the DU")
+            raise ValueError("Metals are not present in the MDComponents")
 
     @property
     def parametrize_excipients(self):
 
         if self.md_components.has_excipients:
-            excipients_pmd, unrec_exc = parametrize_component(self.md_components.get_excipients, self.excipients_ff)
+            excipients_pmd = parametrize_component(self.md_components.get_excipients,
+                                                   self.excipients_ff,
+                                                   self.other_ff)
+            return excipients_pmd
 
-            if excipients_pmd is not None:
-
-                if unrec_exc is not None:
-                    unk_exc_pmd = parametrize_unknown_component(unrec_exc, self.other_ff)
-                    excipients_pmd += unk_exc_pmd
-
-                    print("WARNING: Some Excipients have been parametrized by using the ff: {}".
-                          format(self.other_ff))
-                return excipients_pmd
-            else:
-                raise ValueError("Excipients cannot be parametrized by using the FF: {}".format(self.excipients_ff))
         else:
-            raise ValueError("Excipients are not present in the DU")
+            raise ValueError("Excipients are not present in the MDComponents")
 
     @property
     def parametrize_solvent(self):
 
         if self.md_components.has_solvent:
 
-            solvent_pmd, unrec_solvent = parametrize_component(self.md_components.get_solvent, self.solvent_ff)
+            solvent_pmd = parametrize_component(self.md_components.get_solvent,
+                                                self.solvent_ff,
+                                                self.other_ff)
+            return solvent_pmd
 
-            if solvent_pmd is not None:
-
-                if unrec_solvent is not None:
-
-                    unk_solvent_pmd = parametrize_unknown_component(unrec_solvent, self.other_ff)
-                    solvent_pmd += unk_solvent_pmd
-
-                    print("WARNING: Some Solvent molecules have been parametrized by using the ff: {}".
-                          format(self.other_ff))
-                return solvent_pmd
-            else:
-                raise ValueError("Solvent cannot be parametrized by using the FF: {}".format(self.solvent_ff))
         else:
-            raise ValueError("Solvent is not present in the DU")
+            raise ValueError("Solvent is not present in the MDComponents")
+
+    @property
+    def parametrize_water(self):
+        if self.md_components.has_water:
+
+            # OpenMM topology and positions from OEMol
+            topology, positions = oeommutils.oemol_to_openmmTop(self.md_components.get_water)
+
+            # Try to apply the selected FF on the component
+            forcefield = app.ForceField(self.solvent_ff)
+
+            # List of the unrecognized component
+            unmatched_res_list = forcefield.getUnmatchedResidues(topology)
+
+            if not unmatched_res_list:
+                omm_components = forcefield.createSystem(topology, rigidWater=False, constraints=None)
+                components_pmd = parmed.openmm.load_topology(topology, omm_components, xyz=positions)
+                return components_pmd
+
+            else:
+                raise ValueError("Water cannot be parametrized by using the FF: {}\n Problematic Residues are: {}".
+                                 format(self.solvent_ff, unmatched_res_list))
+        else:
+            raise ValueError("Water is not present in the MDComponents")
 
     @property
     def parametrize_cofactors(self):
 
         if self.md_components.has_cofactors:
-            cofactors_pmd = parmed.Structure()
-            unrecognized_cofactors = oechem.OEMol(self.md_components.get_cofactors)
-
-            for idx in range(0, len(self.cofactors_ff)):
-                cof_ff = self.cofactors_ff[idx]
-
-                rec_cofactors_pmd, unrecognized_cofactors = parametrize_component(unrecognized_cofactors, cof_ff)
-
-                if rec_cofactors_pmd is not None:
-                    cofactors_pmd += rec_cofactors_pmd
-
-            if unrecognized_cofactors is not None:
-                unk_cof_pmd = parametrize_unknown_component(unrecognized_cofactors, self.other_ff)
-                cofactors_pmd += unk_cof_pmd
-
+            cofactors_pmd = parametrize_component(self.md_components.get_cofactors,
+                                                  self.cofactors_ff,
+                                                  self.other_ff)
             return cofactors_pmd
         else:
-            raise ValueError("Cofactors are not present in the DU")
+            raise ValueError("Cofactors are not present in the MDComponents")
 
     @property
     def parametrize_other_cofactors(self):
 
         if self.md_components.has_other_cofactors:
-            other_cofactors_pmd = parmed.Structure()
-            unrecognized_other_cofactors = oechem.OEMol(self.md_components.get_other_cofactors)
-
-            for idx in range(0, len(self.cofactors_ff)):
-                cof_ff = self.cofactors_ff[idx]
-                rec_other_cofactors_pmd, unrecognized_other_cofactors = parametrize_component(
-                    unrecognized_other_cofactors, cof_ff)
-
-                if rec_other_cofactors_pmd is not None:
-                    other_cofactors_pmd += rec_other_cofactors_pmd
-
-                if unrecognized_other_cofactors is None:
-                    break
-
-            if unrecognized_other_cofactors is not None:
-                unk_other_cof_pmd = parametrize_unknown_component(unrecognized_other_cofactors, self.other_ff)
-                other_cofactors_pmd += unk_other_cof_pmd
-
+            other_cofactors_pmd = parametrize_component(self.md_components.get_other_cofactors,
+                                                        self.cofactors_ff,
+                                                        self.other_ff)
             return other_cofactors_pmd
         else:
-            raise ValueError("Other Cofactors are not present in the DU")
+            raise ValueError("Other Cofactors not present in the MDComponents")
 
     @property
     def parametrize_lipids(self):
 
         if self.md_components.has_lipinds:
-            lipids_pmd, unrec_lipids = parametrize_component(self.md_components.get_lipids, self.lipids_ff)
-
-            if unrec_lipids is not None:
-                raise ValueError("Some lipid molecule cannot be parametrized by the FF: {}".format(self.lipids_ff))
-            else:
-                return lipids_pmd
+            lipids_pmd = parametrize_component(self.md_components.get_lipids,
+                                               self.lipids_ff,
+                                               self.other_ff)
+            return lipids_pmd
         else:
-            raise ValueError("Lipids are not present in the DU")
+            raise ValueError("Lipids are not present in the MDComponents")
 
     @property
     def parametrize_nucleics(self):
 
         if self.md_components.has_nucleics:
-            nucleics_pmd, unrec_nucleics = parametrize_component(self.md_components.get_nucleics, self.nucleics_ff)
-
-            if unrec_nucleics is not None:
-                raise ValueError("Some Nucleics molecule cannot be parametrized by the FF: {}".format(self.nucleics_ff))
-            else:
-                return nucleics_pmd
+            nucleics_pmd = parametrize_component(self.md_components.get_nucleics,
+                                                 self.nucleics_ff,
+                                                 self.other_ff)
+            return nucleics_pmd
         else:
-            raise ValueError("Nucleics molecule are not present in the DU")
+            raise ValueError("Nucleics molecule not present in the MDComponents")
 
     @property
     def parametrize_other_nucleics(self):
 
         if self.md_components.has_other_nucleics:
-            other_nucleics_pmd, other_unrec_nucleics = parametrize_component(self.md_components.get_other_nucleics,
-                                                                             self.nucleics_ff)
-            if other_unrec_nucleics is not None:
-                raise ValueError("Some Other Nucleics molecules cannot be parametrized by the FF: {}".format(self.nucleics_ff))
-            else:
-                return other_nucleics_pmd
+            other_nucleics_pmd = parametrize_component(self.md_components.get_other_nucleics,
+                                                       self.nucleics_ff,
+                                                       self.other_ff)
+            return other_nucleics_pmd
         else:
-            raise ValueError("Other Nucleics molecules are not present in the DU")
+            raise ValueError("Other Nucleics molecules are not present in the MDComponents")
 
     @property
     def parametrize_components(self):
@@ -822,6 +853,8 @@ class ParametrizeMDComponents:
                 flask_pmd += self.parametrize_excipients
             elif comp_name == 'solvent':
                 flask_pmd += self.parametrize_solvent
+            elif comp_name == 'water':
+                flask_pmd += self.parametrize_water
             elif comp_name == 'cofactors':
                 flask_pmd += self.parametrize_cofactors
             elif comp_name == 'other_cofactors':

@@ -45,7 +45,8 @@ metals_ff = {'Metals': 'amber14/tip3p.xml'}
 
 excipients_ff = {'Excipients': 'amber14/tip3p.xml'}
 
-cofactors_ff = {'Cofactors': [f for f in glob.glob(COFACTOR_DIR+"/*.xml")]}
+# cofactors_ff = {'Cofactors': [f for f in glob.glob(COFACTOR_DIR+"/*.xml")]}
+cofactors_ff = {'Cofactors': os.path.join(COFACTOR_DIR, 'cofactors.xml')}
 
 lipids_ff = {'Lipids': 'amber14/lipid17.xml'}
 

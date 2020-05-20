@@ -128,8 +128,8 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
 
     # Ligand Residue Name
     lig_res_name = parameters.StringParameter('lig_res_name',
-                                             default='LIG',
-                                             help_text='The new ligand residue name')
+                                              default='LIG',
+                                              help_text='The new ligand residue name')
 
     def begin(self):
         self.opt = vars(self.args)

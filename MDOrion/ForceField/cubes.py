@@ -119,20 +119,14 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                 flask_title = record.get_value(Fields.title)
 
             # Parametrize the whole flask
-            flask_structure = ParametrizeMDComponents(md_components,
-                                                      protein_ff=opt['protein_forcefield'],
-                                                      ligand_ff=opt['ligand_forcefield'])
-
-            flask_pmd_structure = flask_structure.parametrize_components
+            flask_pmd_structure = md_components.parametrize_components(protein_ff=opt['protein_forcefield'],
+                                                                       ligand_ff=opt['ligand_forcefield'])
 
             # Set Parmed structure box_vectors
             is_periodic = True
-            try:
-                solvent = md_components.get_solvent
-                vec_data = pack_utils.getData(solvent, tag='box_vectors')
-                vec = pack_utils.decodePyObj(vec_data)
-                flask_pmd_structure.box_vectors = vec
-            except:
+            if md_components.get_box_vectors is not None:
+                flask_pmd_structure.box_vectors = md_components.get_box_vectors
+            else:
                 is_periodic = False
                 self.log.warn("Flask {} has been parametrize without periodic box vectors ".format(flask_title))
 
@@ -181,6 +175,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
 
             mdrecord = MDDataRecord(record)
             sys_id = mdrecord.get_flask_id
+            mdrecord.set_flask(flask)
 
             mdrecord.set_parmed(flask_pmd_structure, shard_name="Parmed_" + flask_title + '_' + str(sys_id))
 

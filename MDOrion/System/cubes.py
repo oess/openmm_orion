@@ -41,6 +41,8 @@ from orionclient.session import (in_orion,
 
 from os import environ
 
+from oeommtools import data_utils as pack_utils
+
 
 class IDSettingCube(RecordPortsMixin, ComputeCube):
     title = "Simulation Flask ID Setting"
@@ -342,6 +344,33 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
             # Solvate the system
             sol_system, solvent, salt, counter_ions = packmol.oesolvate(solute, **opt)
 
+            # Separate the Water from the solvent
+            pred_water = oechem.OEIsWater(checkHydrogens=True)
+            water = oechem.OEMol()
+            oechem.OESubsetMol(water, solvent, pred_water)
+
+            if water.NumAtoms():
+                if md_components.has_water:
+
+                    water_comp = md_components.get_water
+
+                    if not oechem.OEAddMols(water_comp, water):
+                        raise ValueError("Cannot add the MD Component Water and the Packmol Water")
+
+                    md_components.set_water(water_comp)
+
+                else:
+                    md_components.set_water(water)
+
+                pred_not_water = oechem.OENotAtom(oechem.OEIsWater(checkHydrogens=True))
+                solvent_not_water = oechem.OEMol()
+                oechem.OESubsetMol(solvent_not_water, solvent, pred_not_water)
+
+                if solvent_not_water.NumAtoms():
+                    solvent = solvent_not_water
+                else:
+                    solvent = oechem.OEMol()
+
             self.log.info("[{}] Solvated simulation flask {} yielding {} atoms overall".format(self.title,
                                                                                                solute_title,
                                                                                                sol_system.NumAtoms()))
@@ -362,7 +391,8 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
             else:
                 solvent_comp = solvent
 
-            md_components.set_solvent(solvent_comp)
+            if solvent_comp.NumAtoms():
+                md_components.set_solvent(solvent_comp)
 
             if counter_ions is not None:
                 if md_components.has_counter_ions:
@@ -374,7 +404,13 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
                 md_components.set_counter_ions(counter_ions_comp)
 
+            # Set Box Vectors
+            vec_data = pack_utils.getData(sol_system, tag='box_vectors')
+            box_vec = pack_utils.decodePyObj(vec_data)
+            md_components.set_box_vectors(box_vec)
+
             record.set_value(Fields.md_components, md_components)
+            record.set_value(Fields.flask, md_components.create_flask)
             record.set_value(Fields.title, solute_title)
 
             self.success.emit(record)

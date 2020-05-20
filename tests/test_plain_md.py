@@ -47,7 +47,7 @@ class TestMDOrionFloes(FloeTestCase):
 
     @pytest.mark.local
     @pytest.mark.orion
-    def test_omm_PlainMD(self):
+    def test_omm_PlainMD_protein_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
             os.path.join(FLOES_DIR, "PlainMD.py"),
             run_timeout=43200,
@@ -101,7 +101,61 @@ class TestMDOrionFloes(FloeTestCase):
 
     @pytest.mark.local
     @pytest.mark.orion
-    def test_gmx_PlainMD_floe(self):
+    def test_omm_PlainMD_small_molecule_floe(self):
+        workfloe = WorkFloeWrapper.get_workfloe(
+            os.path.join(FLOES_DIR, "PlainMD.py"),
+            run_timeout=43200,
+            queue_timeout=2000
+        )
+        protein_file = DatasetWrapper.get_dataset(
+            os.path.join(
+                FILE_DIR,
+                "MCL1_lig26.oeb"
+            )
+        )
+
+        output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+
+        workfloe.start(
+            {
+                "promoted": {
+                    "solute": protein_file.identifier,
+                    "prod_ns": 1,
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
+                }
+            }
+        )
+
+        self.assertWorkFloeComplete(workfloe)
+
+        fail_ifs = oechem.oeifstream()
+        records_fail = []
+
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
+
+        # Check output
+        ifs = oechem.oeifstream(output_file.path)
+        records = []
+
+        for rec in read_records(ifs):
+            records.append(rec)
+        ifs.close()
+
+        count = len(records)
+        # Check the out record list
+        self.assertEqual(count, 1)
+
+    @pytest.mark.local
+    @pytest.mark.orion
+    def test_gmx_PlainMD_protein_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
             os.path.join(FLOES_DIR, "PlainMD.py"),
             run_timeout=43200,
