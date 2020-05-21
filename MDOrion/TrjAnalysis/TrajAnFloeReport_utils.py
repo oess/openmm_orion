@@ -218,7 +218,7 @@ def MakeClusterInfoText(dataDict, rgbVec):
       <div class="cb-floe-report-element--analysis">""")
     text.append('Clustering by ligand RMSD after alignment by active site C_alphas:\n' )
     text.append('        <br>- Cluster method {}\n'.format( dataDict['ClusterMethod']) )
-    text.append('        <br>- Using alpha={:.2f}\n'.format( dataDict['HDBSCAN_alpha']))
+    #text.append('        <br>- Using alpha={:.2f}\n'.format( dataDict['HDBSCAN_alpha']))
     text.append('        <br>- Clustered {} frames\n'.format(nFrames) )
     #
     if dataDict['nClusters']<2:
