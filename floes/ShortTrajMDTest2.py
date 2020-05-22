@@ -272,7 +272,7 @@ job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx,
               solvate, coll_open, ff,
               minComplex, warmup, equil1, equil2, equil3, equil4, prod,
               trajCube, IntECube, PBSACube, confGather,
-              catLigTraj, catLigMMPBSA, clusCube, ligMMPBSA, clusOEMols, report_gen, report,
+              catLigTraj, catLigMMPBSA, clusCube, clusOEMols, report_gen, report,
               coll_close, check_rec, ofs, fail)
 
 iligs.success.connect(ligset.intake)
