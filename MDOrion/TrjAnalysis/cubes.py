@@ -915,7 +915,8 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
                 oetrajRecord.set_value(OEField('WatTraj', Types.Chem.Mol), watTraj)
 
             if in_orion():
-                oetrajRecord.set_value(Fields.collection, mdrecord.collection_id)
+                collection_id = utl.RequestOEFieldType(record, Fields.collection)
+                oetrajRecord.set_value(Fields.collection, collection_id)
             mdrecord_traj = MDDataRecord(oetrajRecord)
             mdrecord_traj.set_protein_traj(protTraj, shard_name="ProteinTrajConfs_")
 
@@ -1561,16 +1562,24 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
                 list_conf_rec.sort(key=lambda x: x.get_value(Fields.confid))
 
             new_rec = OERecord()
-            # move some data from inside the first conf up to the top level
+            new_rec.set_value(Fields.Analysis.oetrajconf_rec, list_conf_rec)
+            # Get the first conf to move some general ligand data up to the top level
             rec0 = list_conf_rec[0]
-            lig_multi_conf = oechem.OEMol(rec0.get_value(Fields.ligand))
-            protein = rec0.get_value(Fields.protein)
-            protein_name = rec0.get_value(Fields.protein_name)
-            ligid = rec0.get_value(Fields.ligid)
-            # copy all the initial fields in Fields.ligInit_rec up to the top level
+            #   copy all the initial fields in Fields.ligInit_rec up to the top level
             init_rec = rec0.get_value(Fields.ligInit_rec)
             for field in init_rec.get_fields():
                 new_rec.set_value(field, init_rec.get_value(field))
+            #   next, fields that will simply be copied and not further used here
+            protein = rec0.get_value(Fields.protein)
+            new_rec.set_value(Fields.protein, protein)
+            ligid = rec0.get_value(Fields.ligid)
+            new_rec.set_value(Fields.ligid, ligid)
+            if in_orion():
+                collection_id = rec0.get_value(Fields.collection)
+                new_rec.set_value(Fields.collection, collection_id)
+            #   finally, fields that will be copied and also further used here
+            lig_multi_conf = oechem.OEMol(rec0.get_value(Fields.ligand))
+            protein_name = rec0.get_value(Fields.protein_name)
 
             # if >1 confs, add their confs to the parent ligand at the top level
             for rec in list_conf_rec[1:]:
@@ -1586,11 +1595,8 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
             new_rec.set_value(Fields.title, title)
             new_rec.set_value(Fields.ligand, lig_multi_conf)
             new_rec.set_value(Fields.primary_molecule, lig_multi_conf)
-            new_rec.set_value(Fields.protein, protein)
             new_rec.set_value(Fields.protein_name, protein_name)
-            new_rec.set_value(Fields.ligid, ligid)
             new_rec.set_value(Fields.ligand_name, lig_title)
-            new_rec.set_value(Fields.Analysis.oetrajconf_rec, list_conf_rec)
 
             self.success.emit(new_rec)
 
