@@ -261,6 +261,7 @@ class OmmNVTCubeTester(unittest.TestCase):
         self.cube.args.constraints = "H-Bonds"
         self.cube.args.trajectory_interval = 0.0
         self.cube.args.reporter_interval = 0.0
+        self.cube.args.hmr = False
         self._test_success()
 
 
@@ -339,6 +340,7 @@ class OmmNPTCubeTester(unittest.TestCase):
         self.cube.args.constraints = "H-Bonds"
         self.cube.args.trajectory_interval = 0.0
         self.cube.args.reporter_interval = 0.0
+        self.cube.args.hmr = False
 
         self._test_success()
 

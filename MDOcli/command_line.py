@@ -88,8 +88,16 @@ def dataset(ctx, filename, id):
 
 @dataset.command("makelocal")
 @click.option("--name", help="Edit the trajectory file name", default="local.oedb")
+@click.option("--only", help="Make local only selected items. Items available are: stages, parmed or protein_confs",
+              default="a", multiple=True)
 @click.pass_context
-def data_trajectory_extraction(ctx, name):
+def data_trajectory_extraction(ctx, name, only):
+
+    check_only = ['a', 'stages', 'parmed', 'protein_confs']
+
+    for v in only:
+        if v not in check_only:
+            raise ValueError("The only keyword value is not recognized {}. Option available: {}".format(only, check_only[1:]))
 
     session = ctx.obj['session']
 
@@ -115,85 +123,88 @@ def data_trajectory_extraction(ctx, name):
 
         new_stages = []
 
-        for stage in stages:
+        if 'a' in only or 'stages' in only:
+            for stage in stages:
 
-            stg_type = stage.get_value(Fields.stage_type)
-            new_stage = OERecord(stage)
+                stg_type = stage.get_value(Fields.stage_type)
+                new_stage = OERecord(stage)
 
-            with TemporaryDirectory() as output_directory:
-                data_fn = os.path.basename(output_directory) + '_' + system_title + '_' + str(sys_id) + '-' + stg_type + '.tar.gz'
-                shard_id = stage.get_value(OEField("MDData_OPLMD", Types.Int))
+                with TemporaryDirectory() as output_directory:
+                    data_fn = os.path.basename(output_directory) + '_' + system_title + '_' + str(sys_id) + '-' + stg_type + '.tar.gz'
+                    shard_id = stage.get_value(OEField("MDData_OPLMD", Types.Int))
 
-                shard = session.get_resource(Shard(collection=collection), shard_id)
-                shard.download_to_file(data_fn)
+                    shard = session.get_resource(Shard(collection=collection), shard_id)
+                    shard.download_to_file(data_fn)
 
-                new_stage.delete_field(OEField("MDData_OPLMD", Types.Int))
-                new_stage.set_value(Fields.mddata, data_fn)
+                    new_stage.delete_field(OEField("MDData_OPLMD", Types.Int))
+                    new_stage.set_value(Fields.mddata, data_fn)
 
-                if stage.has_field(OEField("Trajectory_OPLMD", Types.Int)):
+                    if stage.has_field(OEField("Trajectory_OPLMD", Types.Int)):
 
-                    trj_field = stage.get_field("Trajectory_OPLMD")
+                        trj_field = stage.get_field("Trajectory_OPLMD")
 
-                    trj_meta = trj_field.get_meta()
-                    md_engine = trj_meta.get_attribute(Meta.Annotation.Description)
+                        trj_meta = trj_field.get_meta()
+                        md_engine = trj_meta.get_attribute(Meta.Annotation.Description)
 
-                    trj_id = stage.get_value(trj_field)
-                    trj_fn = os.path.basename(output_directory) + '_' + system_title + '_' + str(sys_id) + '-' + stg_type + '_traj' + '.tar.gz'
+                        trj_id = stage.get_value(trj_field)
+                        trj_fn = os.path.basename(output_directory) + '_' + system_title + '_' + str(sys_id) + '-' + stg_type + '_traj' + '.tar.gz'
 
-                    resource = session.get_resource(File, trj_id)
-                    resource.download_to_file(trj_fn)
+                        resource = session.get_resource(File, trj_id)
+                        resource.download_to_file(trj_fn)
 
-                    trj_meta = OEFieldMeta()
-                    trj_meta.set_attribute(Meta.Annotation.Description, md_engine)
-                    new_trj_field = OEField(Fields.trajectory.get_name(), Fields.trajectory.get_type(), meta=trj_meta)
+                        trj_meta = OEFieldMeta()
+                        trj_meta.set_attribute(Meta.Annotation.Description, md_engine)
+                        new_trj_field = OEField(Fields.trajectory.get_name(), Fields.trajectory.get_type(), meta=trj_meta)
 
-                    new_stage.delete_field(OEField("Trajectory_OPLMD", Types.Int))
-                    new_stage.set_value(new_trj_field, trj_fn)
+                        new_stage.delete_field(OEField("Trajectory_OPLMD", Types.Int))
+                        new_stage.set_value(new_trj_field, trj_fn)
 
-            new_stages.append(new_stage)
+                new_stages.append(new_stage)
 
-        new_record.set_value(Fields.md_stages, new_stages)
+            new_record.set_value(Fields.md_stages, new_stages)
 
-        if record.has_field(OEField('Structure_Parmed_OPLMD', Types.Int)):
-            pmd_id = record.get_value(OEField('Structure_Parmed_OPLMD', Types.Int))
-            shard = session.get_resource(Shard(collection=collection), pmd_id)
+        if 'a' in only or 'parmed' in only:
+            if record.has_field(OEField('Structure_Parmed_OPLMD', Types.Int)):
+                pmd_id = record.get_value(OEField('Structure_Parmed_OPLMD', Types.Int))
+                shard = session.get_resource(Shard(collection=collection), pmd_id)
 
-            with TemporaryDirectory() as output_directory:
-                parmed_fn = os.path.join(output_directory, "parmed.pickle")
+                with TemporaryDirectory() as output_directory:
+                    parmed_fn = os.path.join(output_directory, "parmed.pickle")
 
-                shard.download_to_file(parmed_fn)
+                    shard.download_to_file(parmed_fn)
 
-                with open(parmed_fn, 'rb') as f:
-                    parm_dic = pickle.load(f)
+                    with open(parmed_fn, 'rb') as f:
+                        parm_dic = pickle.load(f)
 
-                pmd_structure = parmed.structure.Structure()
-                pmd_structure.__setstate__(parm_dic)
+                    pmd_structure = parmed.structure.Structure()
+                    pmd_structure.__setstate__(parm_dic)
 
-            new_record.delete_field(OEField('Structure_Parmed_OPLMD', Types.Int))
-            new_record.set_value(Fields.pmd_structure, pmd_structure)
+                new_record.delete_field(OEField('Structure_Parmed_OPLMD', Types.Int))
+                new_record.set_value(Fields.pmd_structure, pmd_structure)
 
-        if record.has_field(OEField('OETraj', Types.Record)):
+        if 'a' in only or 'protein_confs' in only:
+            if record.has_field(OEField('OETraj', Types.Record)):
 
-            oetrajrec = record.get_value(OEField('OETraj', Types.Record))
+                oetrajrec = record.get_value(OEField('OETraj', Types.Record))
 
-            prot_conf_id = oetrajrec.get_value(OEField("ProtTraj_OPLMD", Types.Int))
+                prot_conf_id = oetrajrec.get_value(OEField("ProtTraj_OPLMD", Types.Int))
 
-            shard = session.get_resource(Shard(collection=collection),  prot_conf_id)
+                shard = session.get_resource(Shard(collection=collection),  prot_conf_id)
 
-            with TemporaryDirectory() as output_directory:
-                protein_fn = os.path.join(output_directory, "prot_traj_confs.oeb")
+                with TemporaryDirectory() as output_directory:
+                    protein_fn = os.path.join(output_directory, "prot_traj_confs.oeb")
 
-                shard.download_to_file(protein_fn)
+                    shard.download_to_file(protein_fn)
 
-                protein_conf = oechem.OEMol()
+                    protein_conf = oechem.OEMol()
 
-                with oechem.oemolistream(protein_fn) as ifs:
-                    oechem.OEReadMolecule(ifs, protein_conf)
+                    with oechem.oemolistream(protein_fn) as ifs:
+                        oechem.OEReadMolecule(ifs, protein_conf)
 
-            oetrajrec.delete_field(OEField('ProtTraj_OPLMD', Types.Int))
-            oetrajrec.set_value(Fields.protein_traj_confs, protein_conf)
+                oetrajrec.delete_field(OEField('ProtTraj_OPLMD', Types.Int))
+                oetrajrec.set_value(Fields.protein_traj_confs, protein_conf)
 
-            new_record.set_value(OEField('OETraj', Types.Record), oetrajrec)
+                new_record.set_value(OEField('OETraj', Types.Record), oetrajrec)
 
         new_record.delete_field(Fields.collection)
 
@@ -274,7 +285,7 @@ def info_extraction(ctx):
         if suffixIndex > 1:
             color = "\033[33m"
 
-        return "%s %.*f %s \033[0;37;40m" % (color, precision, size, suffixes[suffixIndex])
+        return "%s %.*f %s \033[00m" % (color, precision, size, suffixes[suffixIndex])
 
     def recursive_record(record, level=0):
 
