@@ -1015,29 +1015,8 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} writing trajClus OERecord'.format(system_title) )
             trajClus = OERecord()
             #
-            confids_field = OEField( 'ConformerIDs', Types.IntVec)
-            trajClus.set_value( confids_field, confIdVec)
-            #
-            ClusterMethod_field = OEField( 'ClusterMethod', Types.String)
-            trajClus.set_value( ClusterMethod_field, clusResults['ClusterMethod'])
-            #
-            DBSCAN_epsilon_field = OEField( 'DBSCAN_epsilon', Types.Float)
-            trajClus.set_value( DBSCAN_epsilon_field, clusResults['DBSCAN_epsilon'])
-            #
-            nFrames_field = OEField( 'nFrames', Types.Int)
-            trajClus.set_value( nFrames_field, clusResults['nFrames'])
-            #
-            nClusters_field = OEField( 'nClusters', Types.Int)
-            trajClus.set_value( nClusters_field, clusResults['nClusters'])
-            #
-            nClusters_field = OEField( 'nOutliers', Types.Int)
-            trajClus.set_value( nClusters_field, clusResults['nOutliers'])
-            #
-            clusterCounts_field = OEField( 'ClusterCounts', Types.IntVec)
-            trajClus.set_value( clusterCounts_field, clusResults['ClusterCounts'])
-            #
-            Clusters_field = OEField( 'ClusterVec', Types.IntVec)
-            trajClus.set_value( Clusters_field, clusResults['ClusterVec'])
+            # store trajClus results dict (Plain Old Data only) on the record as a JSON object
+            trajClus.set_value(Fields.Analysis.oeclus_dict, clusResults)
 
             # Generate simple plots for floe report
             opt['Logger'].info('{} plotting cluster strip plot'.format(system_title) )
@@ -1118,20 +1097,23 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} Attempting to make trajectory OEMols for Ligand and Protein by Cluster'
                 .format(system_title) )
 
-            # Get the cluster info off the TrajClus record
-            if not record.has_field(Fields.Analysis.oeclus_rec):
-                raise ValueError('{} could not find the TrajClus analyses record'.format(system_title))
-            else:
-                opt['Logger'].info('{} found the TrajClus analyses  record'.format(system_title))
 
-            # Extract the relevant clustering information from the TrajClus record
-            trajClusRecord = record.get_value(Fields.Analysis.oeclus_rec)
-            opt['Logger'].info('{} found TrajClus record'.format(system_title))
-            nFrames = utl.RequestOEField(trajClusRecord, 'nFrames', Types.Int)
-            clusterCounts = utl.RequestOEField(trajClusRecord, 'ClusterCounts', Types.IntVec)
-            clusterVec = utl.RequestOEField(trajClusRecord, 'ClusterVec', Types.IntVec)
+            if not record.has_field(Fields.Analysis.oeclus_rec):
+                raise ValueError('{} does not have TrajClus record'.format(system_title))
+            else:
+                opt['Logger'].info('{} found TrajClus record'.format(system_title))
+            trajClusRecord = utl.RequestOEFieldType(record, Fields.Analysis.oeclus_rec)
+
+            # Get the cluster info dict off the oeclus_dict field
+            if not trajClusRecord.has_field(Fields.Analysis.oeclus_dict):
+                raise ValueError('{} could not find the oeclus_dict field'.format(system_title))
+            else:
+                opt['Logger'].info('{} found the oeclus_dict field'.format(system_title))
+
+            # Extract the relevant clustering information from the trajClus results dict
+            trajClus = trajClusRecord.get_value(Fields.Analysis.oeclus_dict)
             opt['Logger'].info('{} retrieved Cluster info on {} frames giving {} clusters'
-                               .format(system_title, nFrames, len(clusterCounts)))
+                               .format(system_title, trajClus['nFrames'], len(trajClus['ClusterCounts'])))
 
             # set up ligTraj and protTraj lists then loop over conformer records
             if not record.has_field(Fields.Analysis.oetraj_rec):
@@ -1172,8 +1154,8 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
             # make a list of major clusters (major= 10% or more of traj)
             majorClusters = []
             nMajorClusters = 0
-            for clusID, count in enumerate(clusterCounts):
-                if count/nFrames >= 0.1:
+            for clusID, count in enumerate(trajClus['ClusterCounts']):
+                if count/trajClus['nFrames'] >= 0.1:
                     nMajorClusters += 1
                     majorClusters.append(clusID)
             opt['Logger'].info('Found {} major clusters for {}'.format(nMajorClusters, system_title))
@@ -1193,9 +1175,9 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 # for each major cluster generate SVG and average and median for protein and ligand
                 for clusID in majorClusters:
                     opt['Logger'].info('Extracting cluster {} from {}'.format( clusID, system_title ))
-                    clusLig = clusutl.TrajOEMolFromCluster( ligTraj, clusterVec, clusID)
+                    clusLig = clusutl.TrajOEMolFromCluster( ligTraj, trajClus['ClusterVec'], clusID)
                     opt['Logger'].info( 'ligand cluster {} with {} confs'.format(clusID,clusLig.NumConfs()) )
-                    clusProt = clusutl.TrajOEMolFromCluster( protTraj, clusterVec, clusID)
+                    clusProt = clusutl.TrajOEMolFromCluster( protTraj, trajClus['ClusterVec'], clusID)
                     opt['Logger'].info('protein cluster {} with {} confs'.format(clusID,clusProt.NumConfs()) )
                     opt['Logger'].info('generating representative protein average and median confs')
                     #
@@ -1354,7 +1336,6 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 mmpbsaLabelStr = "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".format(mmpbsa_traj_mean,
                                                                                                mmpbsa_traj_std)
 
-
             # Extract the three plots from the TrajClus record
             if not record.has_field(Fields.Analysis.oeclus_rec):
                 raise ValueError('{} does not have TrajClus record'.format(system_title))
@@ -1364,21 +1345,16 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             trajClus_svg = utl.RequestOEField(clusRecord, 'ClusSVG', Types.String)
             #rmsdInit_svg = utl.RequestOEField(clusRecord, 'rmsdInitPose', Types.String)
             clusTrajSVG = utl.RequestOEField(clusRecord, 'ClusTrajSVG', Types.StringVec)
-
             opt['Logger'].info('{} found the TrajClus plots'.format(system_title))
 
-            # Generate text string about Clustering information
-            clusData = {}
-
-            clusData['nFrames'] = utl.RequestOEField(clusRecord, 'nFrames', Types.Int)
-            clusData['ClusterMethod'] = utl.RequestOEField(clusRecord, 'ClusterMethod', Types.String)
-            #clusData['HDBSCAN_alpha'] = utl.RequestOEField(clusRecord, 'HDBSCAN_alpha', Types.Float)
-            clusData['nClusters'] = utl.RequestOEField(clusRecord, 'nClusters', Types.Int)
-            clusData['nOutliers'] = utl.RequestOEField(clusRecord, 'nOutliers', Types.Int)
-            clusData['ClusterVec'] = utl.RequestOEField(clusRecord, 'ClusterVec', Types.IntVec)
-            clusData['ClusterCounts'] = utl.RequestOEField(clusRecord, 'ClusterCounts', Types.IntVec)
-
-            opt['Logger'].info('{} finished writing analysis files'.format(system_title))
+            # Get the Clustering information
+            if not clusRecord.has_field(Fields.Analysis.oeclus_dict):
+                raise ValueError('{} could not find the oeclus_dict field'.format(system_title))
+            else:
+                opt['Logger'].info('{} found the oeclus_dict field'.format(system_title))
+            # Extract the relevant clustering information from the trajClus results dict
+            clusData = clusRecord.get_value(Fields.Analysis.oeclus_dict)
+            opt['Logger'].info('{} found the cluster info'.format(system_title))
 
             # Make a copy of the ligand starting pose.
             # OE Prepare Depiction is removing hydrogens
