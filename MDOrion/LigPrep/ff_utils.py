@@ -41,7 +41,7 @@ def assignELF10charges(molecule, max_confs=800, strictStereo=True, opt=None):
         a copy of the original molecule with assigned atomic partial charges
     """
 
-    mol_copy = molecule.CreateCopy()
+    mol_copy = oechem.OEMol(molecule)
 
     # The passed molecule could have already conformers. If the conformer number
     # does not exceed the max_conf threshold then max_confs conformations will

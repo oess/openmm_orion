@@ -34,7 +34,7 @@ from MDOrion.System.cubes import ParallelSolvationCube
 
 from MDOrion.ForceField.cubes import ParallelForceFieldCube
 
-from MDOrion.ProtPrep.cubes import MDSetting
+from MDOrion.System.cubes import MDComponentCube
 
 from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
@@ -106,7 +106,7 @@ ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Op
 
 
 # Protein Setting
-protset = MDSetting("ProteinSetting", title="Protein Setting")
+protset = MDComponentCube("MD Components", title="MD Components")
 protset.promote_parameter("flask_title", promoted_name="flask_title", default="")
 
 prod = ParallelMDNptCube("Production", title="Production")

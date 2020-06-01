@@ -114,6 +114,14 @@ class MDComponents:
             oechem.OEDeleteInteractionsHintSerializationIds(comp)
             oechem.OEClearStyle(comp)
 
+            # Clean R-Groups
+            for atom in comp.GetAtoms(oechem.OEIsRGroup()):
+                nbrs = [nbr for nbr in atom.GetAtoms()]
+                comp.DeleteAtom(atom)
+                for nbr in nbrs:
+                    oechem.OEAssignMDLHydrogens(nbr)
+            oechem.OEAddExplicitHydrogens(comp)
+
             # Reset Comp Order
             oechem.OEPDBOrderAtoms(comp, False)
 
@@ -124,7 +132,7 @@ class MDComponents:
                 self._ligand = comp
                 self._components['ligand'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_OtherLigands:
-                self._other_ligand = comp
+                self._other_ligands = comp
                 self._components['other_ligands'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_CounterIons:
                 self._counter_ions = comp
@@ -133,7 +141,7 @@ class MDComponents:
                 self._metals = comp
                 self._components['metals'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Excipients:
-                self.excipients = comp
+                self._excipients = comp
                 self._components['excipients'] = comp
             elif comp_id == oechem.OEDesignUnitComponents_Solvent:
                 # Separate Water from Spruce Solvent
@@ -647,6 +655,20 @@ class ParametrizeMDComponents:
         self.lipids_ff = ff_library.lipids_ff['Lipids']
         self.nucleics_ff = ff_library.nucleics_ff['Nucleics']
 
+    @staticmethod
+    def _check_formal_vs_partial_charge(comp_name, component, pmd_component):
+        formal_charge = 0
+        for at in component.GetAtoms():
+            formal_charge += at.GetFormalCharge()
+
+        partial_charge = 0.0
+        for at in pmd_component.atoms:
+            partial_charge += at.charge
+
+        if abs(formal_charge - partial_charge) > 0.01:
+            raise ValueError("Component: {} - Formal charge and Parmed Partial charge mismatch: {} vs {}".
+                             format(comp_name, formal_charge, partial_charge))
+
     @property
     def parametrize_protein(self):
         if self.md_components.has_protein:
@@ -659,9 +681,40 @@ class ParametrizeMDComponents:
             # Try to apply the selected FF on the Protein
             forcefield = app.ForceField(self.protein_ff)
 
-            # If there are force field unmatched residues like non standard residues
-            if forcefield.getUnmatchedResidues(topology):
+            unmatched_res_list = forcefield.getUnmatchedResidues(topology)
 
+            # If there are force field unmatched residues
+            if unmatched_res_list:
+
+                standard_resides_fail = []
+
+                for res in unmatched_res_list:
+                    if res.name in ff_library.protein_standard_residue_names:
+                        standard_resides_fail.append(res)
+
+                if standard_resides_fail:
+
+                    omm_residues = []
+                    for res in topology.residues():
+                        omm_residues.append(res)
+
+                    oe_residues = []
+                    for oe_res in oechem.OEGetResidues(protein):
+                        oe_residues.append(oe_res)
+
+                    map_omm_oe = dict()
+                    for omm_res, oe_res in zip(omm_residues, oe_residues):
+                        map_omm_oe[omm_res] = oe_res
+
+                    info_fail = [(map_omm_oe[res].GetName(),
+                                  map_omm_oe[res].GetResidueNumber(),
+                                  map_omm_oe[res].GetChainID())
+                                 for res in standard_resides_fail]
+
+                    raise ValueError(
+                        "The following standard residues cannot be parametrize: {}".format(info_fail))
+
+                # Try to parametrize Non Standard Residues
                 ffxml_nsr_template_list = nsr_template_generator(protein, topology, forcefield)
 
                 for ffxml_template in ffxml_nsr_template_list:
@@ -669,18 +722,10 @@ class ParametrizeMDComponents:
 
             omm_protein = forcefield.createSystem(topology, rigidWater=False, constraints=None)
             protein_pmd = parmed.openmm.load_topology(topology, omm_protein, xyz=positions)
-            return protein_pmd
 
-            # # Try to apply the extended FF to the Protein
-                # forcefield = app.ForceField(self.protein_extended_ff)
-                # unmatched_res_list = forcefield.getUnmatchedResidues(topology)
-                # if unmatched_res_list:
-                #     raise ValueError("The following residues cannot be parametrized by the selected FF {}\n{}".
-                #                      format(self.protein_ff, unmatched_res_list))
-                # else:
-                #     omm_protein = forcefield.createSystem(topology, rigidWater=False, constraints=None)
-                #     protein_pmd = parmed.openmm.load_topology(topology, omm_protein, xyz=positions)
-                #     return protein_pmd
+            self._check_formal_vs_partial_charge("protein", self.md_components.get_protein, protein_pmd)
+
+            return protein_pmd
         else:
             raise ValueError("Protein is not present in the MDComponents")
 
@@ -690,9 +735,12 @@ class ParametrizeMDComponents:
         if self.md_components.has_ligand:
             print("Ligand Parametrized by using the ff: {}".format(self.ligand_ff))
             prefix_name = 'LIG'
-            pmd = ParamMolStructure(self.md_components.get_ligand, self.ligand_ff, prefix_name=prefix_name)
+            pmd = ParamMolStructure(self.md_components.get_ligand, self.ligand_ff, prefix_name=prefix_name, force_charge=True)
             ligand_pmd = pmd.parameterize()
             ligand_pmd.residues[0].name = prefix_name
+
+            self._check_formal_vs_partial_charge("ligand", self.md_components.get_ligand, ligand_pmd)
+
             return ligand_pmd
         else:
             raise ValueError("Ligand is not present in the MDComponents")
@@ -701,8 +749,12 @@ class ParametrizeMDComponents:
     def parametrize_other_ligands(self):
         print("Other Ligands Parametrized by using the ff: {}".format(self.ligand_ff))
         if self.md_components.has_other_ligands:
-            ligand_pmd = parametrize_unknown_component(self.md_components.get_other_ligands, self.ligand_ff)
-            return ligand_pmd
+
+            other_ligand_pmd = parametrize_unknown_component(self.md_components.get_other_ligands, self.ligand_ff)
+
+            self._check_formal_vs_partial_charge("other ligands", self.md_components.get_other_ligands, other_ligand_pmd)
+
+            return other_ligand_pmd
         else:
             raise ValueError("Other Ligands are not present in the MDComponents")
 
@@ -724,6 +776,9 @@ class ParametrizeMDComponents:
             metals_pmd = parametrize_component(self.md_components.get_metals,
                                                self.metals_ff,
                                                self.other_ff)
+
+            self._check_formal_vs_partial_charge("metals", self.md_components.get_metals, metals_pmd)
+
             return metals_pmd
         else:
             raise ValueError("Metals are not present in the MDComponents")
@@ -735,6 +790,9 @@ class ParametrizeMDComponents:
             excipients_pmd = parametrize_component(self.md_components.get_excipients,
                                                    self.excipients_ff,
                                                    self.other_ff)
+
+            self._check_formal_vs_partial_charge("excipients", self.md_components.get_excipients, excipients_pmd)
+
             return excipients_pmd
 
         else:
@@ -748,6 +806,9 @@ class ParametrizeMDComponents:
             solvent_pmd = parametrize_component(self.md_components.get_solvent,
                                                 self.solvent_ff,
                                                 self.other_ff)
+
+            self._check_formal_vs_partial_charge("solvent", self.md_components.get_solvent, solvent_pmd)
+
             return solvent_pmd
 
         else:
@@ -767,9 +828,12 @@ class ParametrizeMDComponents:
             unmatched_res_list = forcefield.getUnmatchedResidues(topology)
 
             if not unmatched_res_list:
-                omm_components = forcefield.createSystem(topology, rigidWater=False, constraints=None)
-                components_pmd = parmed.openmm.load_topology(topology, omm_components, xyz=positions)
-                return components_pmd
+                water_omm_system = forcefield.createSystem(topology, rigidWater=False, constraints=None)
+                water_pmd = parmed.openmm.load_topology(topology, water_omm_system, xyz=positions)
+
+                self._check_formal_vs_partial_charge("water", self.md_components.get_water, water_pmd)
+
+                return water_pmd
 
             else:
                 raise ValueError("Water cannot be parametrized by using the FF: {}\n Problematic Residues are: {}".
@@ -781,9 +845,15 @@ class ParametrizeMDComponents:
     def parametrize_cofactors(self):
 
         if self.md_components.has_cofactors:
+
+            ff = [self.cofactors_ff, self.metals_ff]
+
             cofactors_pmd = parametrize_component(self.md_components.get_cofactors,
-                                                  self.cofactors_ff,
+                                                  ff,
                                                   self.other_ff)
+
+            self._check_formal_vs_partial_charge("cofactors", self.md_components.get_cofactors, cofactors_pmd)
+
             return cofactors_pmd
         else:
             raise ValueError("Cofactors are not present in the MDComponents")
@@ -792,9 +862,16 @@ class ParametrizeMDComponents:
     def parametrize_other_cofactors(self):
 
         if self.md_components.has_other_cofactors:
+
+            ff = [self.cofactors_ff, self.metals_ff]
+
             other_cofactors_pmd = parametrize_component(self.md_components.get_other_cofactors,
-                                                        self.cofactors_ff,
+                                                        ff,
                                                         self.other_ff)
+
+            self._check_formal_vs_partial_charge("other cofactors", self.md_components.get_other_cofactors,
+                                                 other_cofactors_pmd)
+
             return other_cofactors_pmd
         else:
             raise ValueError("Other Cofactors not present in the MDComponents")
@@ -806,6 +883,9 @@ class ParametrizeMDComponents:
             lipids_pmd = parametrize_component(self.md_components.get_lipids,
                                                self.lipids_ff,
                                                self.other_ff)
+
+            self._check_formal_vs_partial_charge("lipids", self.md_components.get_lipids, lipids_pmd)
+
             return lipids_pmd
         else:
             raise ValueError("Lipids are not present in the MDComponents")
@@ -817,6 +897,9 @@ class ParametrizeMDComponents:
             nucleics_pmd = parametrize_component(self.md_components.get_nucleics,
                                                  self.nucleics_ff,
                                                  self.other_ff)
+
+            self._check_formal_vs_partial_charge("lipids", self.md_components.get_nucleics, nucleics_pmd)
+
             return nucleics_pmd
         else:
             raise ValueError("Nucleics molecule not present in the MDComponents")

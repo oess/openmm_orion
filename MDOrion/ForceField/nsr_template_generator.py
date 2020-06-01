@@ -37,23 +37,30 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield):
     unmatched_res_list = omm_forcefield.getUnmatchedResidues(omm_topology)
 
     non_standard_reside_names = set()
-    standard_resides = []
 
     for res in unmatched_res_list:
         if res.name not in ff_library.protein_standard_residue_names:
             non_standard_reside_names.add(res.name)
-        else:
-            standard_resides.append(res)
 
-    if standard_resides:
-        raise ValueError("The following standard residues cannot be parametrize: {}".format(standard_resides))
+    # This dictionary is used to store the chain ID and residue number of the all NSR
+    map_nsr = dict()
+
+    for nsr_name in non_standard_reside_names:
+        for oe_res in oechem.OEGetResidues(protein):
+            if oe_res.GetName() == nsr_name:
+                map_nsr[nsr_name] = [oe_res.GetChainID(), str(oe_res.GetResidueNumber())]
+                break
 
     ffmxl_template_list = []
     for nsr_name in non_standard_reside_names:
         print("Non-Standard Residue Detected: {}".format(nsr_name))
         # Extract the NSR from the protein
         nsr_match = oechem.OEAtomMatchResidueID()
+
         nsr_match.SetName(nsr_name)
+        nsr_match.SetChainID(map_nsr[nsr_name][0])
+        nsr_match.SetResidueNumber(map_nsr[nsr_name][1])
+
         pred_nsr = oechem.OEAtomMatchResidue(nsr_match)
         oe_nsr = oechem.OEMol()
         oechem.OESubsetMol(oe_nsr, protein, pred_nsr, True)

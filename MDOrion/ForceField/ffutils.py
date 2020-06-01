@@ -86,16 +86,13 @@ class ParamMolStructure(object):
         if is_charged and self.force_charge:
             is_charged = False
 
-        if not is_charged:
-            raise Exception('Molecule {} has no charges; input molecules must be charged.' .format(molecule.GetTitle()))
+        return is_charged
 
     def getSmirnoffStructure(self, molecule=None):
         if not molecule:
             molecule = self.molecule
 
-        try:
-            self.checkCharges(molecule)
-        except:
+        if not self.checkCharges(molecule):
             print("WARNING: Missing Charges, assigning elf10 charges to molecule")
             molecule = assignELF10charges(molecule)
 
@@ -133,16 +130,15 @@ class ParamMolStructure(object):
     def getGaffStructure(self, molecule=None, forcefield=None):
         if not molecule:
             molecule = self.molecule
+
         if not forcefield:
             forcefield = self.forcefield
 
         if not molecule:
             molecule = self.molecule
-        try:
-            self.checkCharges(molecule)
-        except:
-            print("WARNING: Missing Charges, assigning elf10 charges to molecule")
 
+        if not self.checkCharges(molecule):
+            print("WARNING: Missing Charges, assigning elf10 charges to molecule")
             molecule = assignELF10charges(molecule)
 
         # Write out mol to a mol2 file to process via AmberTools
@@ -203,7 +199,12 @@ def parametrize_component(component, component_ff, other_ff):
     topology, positions = oeommutils.oemol_to_openmmTop(component_copy)
 
     # Try to apply the selected FF on the component
-    forcefield = app.ForceField(component_ff)
+    if isinstance(component_ff, list):
+        forcefield = app.ForceField()
+        for f in component_ff:
+            forcefield.loadFile(f)
+    else:
+        forcefield = app.ForceField(component_ff)
 
     # List of the unrecognized component
     unmatched_res_list = forcefield.getUnmatchedResidues(topology)
@@ -264,7 +265,7 @@ def parametrize_component(component, component_ff, other_ff):
 
         # Charge the unrecognized excipient
         if not oequacpac.OEAssignCharges(oe_mol, oequacpac.OEAM1BCCCharges(symmetrize=True)):
-            raise ValueError("Is was not possible to charge the extract residue: {}".format(ures))
+            raise ValueError("It was not possible to charge the extract residue: {}".format(ures))
 
         if other_ff in ['Smirnoff99Frosst', 'OpenFF_1.0.0', 'OpenFF_1.1.0']:
             oe_mol = oeommutils.sanitizeOEMolecule(oe_mol)

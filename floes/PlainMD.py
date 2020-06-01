@@ -28,7 +28,7 @@ from MDOrion.MDEngines.cubes import (ParallelMDMinimizeCube,
                                      ParallelMDNvtCube,
                                      ParallelMDNptCube)
 
-from MDOrion.ProtPrep.cubes import MDSetting
+from MDOrion.System.cubes import MDComponentCube
 
 from MDOrion.System.cubes import ParallelSolvationCube
 
@@ -55,7 +55,7 @@ ifs.promote_parameter("data_in", promoted_name="solute", title='Solute Input Fil
 
 sysid = IDSettingCube("System Ids")
 
-md_comp = MDSetting("MD Setting")
+md_comp = MDComponentCube("MD Components")
 
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
 solvate = ParallelSolvationCube("Hydration", title="Hydration")

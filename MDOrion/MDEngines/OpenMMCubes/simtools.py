@@ -108,8 +108,23 @@ class OpenMMSimulations(MDSimulations):
 
         # OpenMM system
         if box is not None:
+            box_v = parmed_structure.box_vectors.value_in_unit(unit.angstrom)
+            box_v = np.array([box_v[0][0], box_v[1][1], box_v[2][2]])
+
+            min_box = np.min(box_v)
+
+            threshold = (min_box / 2.0) * 0.85
+
+            if opt['nonbondedCutoff'] < threshold:
+                cutoff_distance = opt['nonbondedCutoff'] * unit.angstroms
+            else:
+                opt['Logger'].warn("[{}] Cutoff Distance too large for the box size. Set the cutoff distance "
+                                   "to {} A".format(opt['CubeTitle'], threshold))
+
+                cutoff_distance = threshold * unit.angstroms
+
             self.system = parmed_structure.createSystem(nonbondedMethod=app.PME,
-                                                        nonbondedCutoff=opt['nonbondedCutoff'] * unit.angstroms,
+                                                        nonbondedCutoff=cutoff_distance,
                                                         constraints=eval("app.%s" % constraints),
                                                         removeCMMotion=False,
                                                         hydrogenMass=4.0 * unit.amu if opt['hmr'] else None)
@@ -374,6 +389,12 @@ class OpenMMSimulations(MDSimulations):
                 info = '{:<25} = {:<10}'.format('Total trajectory frames', total_frames)
                 self.str_logger += '\n' + info
 
+            elif self.opt['trajectory_frames']:
+                self.opt['Logger'].info(
+                    '[{}] Total trajectory frames : {}'.format(self.opt['CubeTitle'], self.opt['trajectory_frames']))
+                info = '{:<25} = {:<10}'.format('Total trajectory frames', self.opt['trajectory_frames'])
+                self.str_logger += '\n' + info
+
             # Start Simulation
             self.omm_simulation.step(self.opt['steps'])
 
@@ -397,7 +418,7 @@ class OpenMMSimulations(MDSimulations):
                     self.opt['str_logger'] += '\n' + log_string
 
                 # Save trajectory files
-                if self.opt['trajectory_interval']:
+                if self.opt['trajectory_interval'] or self.opt['trajectory_frames']:
 
                     tar_fn = self.opt['trj_fn']
 
@@ -489,7 +510,19 @@ def getReporters(totalSteps=None, outfname=None, **opt):
         trajectory_steps = int(round(opt['trajectory_interval'] / (
                 opt['timestep'].in_units_of(unit.nanoseconds) / unit.nanoseconds)))
 
-        traj_reporter = mdtraj.reporters.HDF5Reporter(opt['omm_trj_fn'], trajectory_steps)
+        traj_reporter = mdtraj.reporters.HDF5Reporter(opt['omm_trj_fn'], trajectory_steps, velocities=True)
+
+        reporters.append(traj_reporter)
+
+    elif opt['trajectory_frames']:
+
+        if opt['steps'] < opt['trajectory_frames']:
+            raise ValueError(" The selected number of frames {} will exceed the total produced md steps {}".
+                             format(opt['trajectory_frames'], opt['steps']))
+
+        trajectory_steps = int(math.floor(opt['steps'] / opt['trajectory_frames']))
+
+        traj_reporter = mdtraj.reporters.HDF5Reporter(opt['omm_trj_fn'], trajectory_steps, velocities=True)
 
         reporters.append(traj_reporter)
 

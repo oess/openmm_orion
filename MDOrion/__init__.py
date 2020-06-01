@@ -15,7 +15,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '1.0.0rc4'
+__version__ = '2.0.0a14'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
@@ -36,12 +36,11 @@ from .MDEngines.cubes import ParallelMDNvtCube
 from .MDEngines.cubes import MDNptCube
 from .MDEngines.cubes import ParallelMDNptCube
 
-from .ProtPrep.cubes import MDSetting
-
 from .System.cubes import IDSettingCube
 from .System.cubes import SolvationCube
 from .System.cubes import ParallelSolvationCube
 from .System.cubes import CollectionSetting
+from .System.cubes import MDComponentCube
 
 from .TrjAnalysis.cubes import MDFloeReportCube
 from .TrjAnalysis.cubes import ParallelTrajToOEMolCube
@@ -50,5 +49,7 @@ from .TrjAnalysis.cubes import ParallelTrajInteractionEnergyCube
 from .TrjAnalysis.cubes import ParallelMDTrajAnalysisClusterReport
 from .TrjAnalysis.cubes import ParallelClusterOETrajCube
 from .TrjAnalysis.cubes import ConformerGatheringData
+
+from .FEC.RFEC.cubes import BoundUnboundSwitchCube
 
 

@@ -62,7 +62,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-        "instance_type": {"default": "!g4"},  # Gpu Family selection
+        "instance_type": {"default": "g3.4xlarge"},  # Gpu Family selection
         "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
@@ -283,7 +283,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-        "instance_type": {"default": "!g4"},  # Gpu Family selection
+        "instance_type": {"default": "g3.4xlarge"},  # Gpu Family selection
         "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
@@ -361,6 +361,18 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
         default=0.0,
         help_text="""Time interval for reporting data in ns. 
         If 0 the reporter file will not be generated""")
+
+    trajectory_frames = parameters.IntegerParameter(
+        'trajectory_frames',
+        default=0,
+        help_text="""The total number of trajectory frames. If it is 
+        set to zero and the trajectory interval parameter is set 
+        to zero no trajectory is generated. If it is different from zero 
+        and the trajectory interval parameter is set to zero the produced 
+        trajectory will have the selected number of frames. If different
+        from zero and the trajectory interval parameter is different from 
+        zero the total number of generated frames will be calculated by just 
+        using the trajectory interval and the md time step (2fs and 4fs hmr on)""")
 
     suffix = parameters.StringParameter(
         'suffix',
@@ -483,7 +495,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
             mdrecord.set_flask(flask)
 
             # Trajectory
-            if opt['trajectory_interval']:
+            if opt['trajectory_interval'] or opt['trajectory_frames']:
                 trajectory_fn = opt['trj_fn']
                 if opt['md_engine'] == MDEngines.OpenMM:
                     trajectory_engine = MDEngines.OpenMM
@@ -548,7 +560,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
     # Override defaults for some parameters
     parameter_overrides = {
         "gpu_count": {"default": 1},
-        "instance_type": {"default": "!g4"},  # Gpu Family selection
+        "instance_type": {"default": "g3.4xlarge"},  # Gpu Family selection
         "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
@@ -629,6 +641,18 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
         default=0.0,
         help_text="""Time interval for reporting data in ns. 
         If 0 the reporter file will not be generated""")
+
+    trajectory_frames = parameters.IntegerParameter(
+        'trajectory_frames',
+        default=0,
+        help_text="""The total number of trajectory frames. If it is 
+            set to zero and the trajectory interval parameter is set 
+            to zero no trajectory is generated. If it is different from zero 
+            and the trajectory interval parameter is set to zero the produced 
+            trajectory will have the selected number of frames. If different
+            from zero and the trajectory interval parameter is different from 
+            zero the total number of generated frames will be calculated by just 
+            using the trajectory interval and the md time step (2fs and 4fs hmr on)""")
 
     suffix = parameters.StringParameter(
         'suffix',
@@ -749,7 +773,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
             mdrecord.set_flask(flask)
 
             # Trajectory
-            if opt['trajectory_interval']:
+            if opt['trajectory_interval'] or opt['trajectory_frames']:
                 trajectory_fn = opt['trj_fn']
                 if opt['md_engine'] == MDEngines.OpenMM:
                     trajectory_engine = MDEngines.OpenMM

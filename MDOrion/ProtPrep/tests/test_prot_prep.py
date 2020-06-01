@@ -18,7 +18,7 @@ from datarecord import OERecord
 
 import unittest
 
-from MDOrion.ProtPrep.cubes import MDSetting
+from MDOrion.System.cubes import MDComponentCube
 
 from floe.test import CubeTestRunner
 
@@ -43,7 +43,7 @@ class MDSettingTester(unittest.TestCase):
     MD Components testing
     """
     def setUp(self):
-        self.cube = MDSetting("MDSetting")
+        self.cube = MDComponentCube("MDComponents")
         self.cube.args.multiple_flask = False
         self.runner = CubeTestRunner(self.cube)
         self.runner.start()
