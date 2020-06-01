@@ -393,12 +393,47 @@ class ConcatenateTrajMMPBSACube(RecordPortsMixin, ComputeCube):
             system_title = utl.RequestOEFieldType(record, Fields.title)
             opt['Logger'].info('{} Attempting to concatenate per-conf MMPBSA energies'.format(system_title))
 
-            # Go find the trajPBSA record in each of the conformer records
+            # Go find the conformer records
             if not record.has_field(Fields.Analysis.oetrajconf_rec):
                 raise ValueError('{} could not find the conformer record'.format(system_title))
             else:
                 opt['Logger'].info('{} found the conformer record'.format(system_title))
             list_conf_rec = record.get_value(Fields.Analysis.oetrajconf_rec)
+
+            # find the PBSAdata dict from inside the first conf
+            #if not rec0.has_field(Fields.Analysis.oepbsa_dict):
+            #    raise ValueError('{} could not find the PBSAdata dict for confID {}'.format(system_title, confid))
+            #opt['Logger'].info('{}: found PBSAdata dict for confID {}'.format(system_title, confid))
+            #PBSAdata = rec0.get_value(Fields.Analysis.oepbsa_dict)
+            #for key in PBSAdata:
+            #    opt['Logger'].info('{}: PBSAdata {} : {} values'.format(system_title, key, len(PBSAdata[key])))
+
+            # make a dict of all FloatVec fields from inside the trajPBSA_rec record of the first conf
+            PBSAdata = dict()
+            for confrec in list_conf_rec:
+                confid = utl.RequestOEFieldType(confrec, Fields.confid)
+                if not confrec.has_field(Fields.Analysis.oepbsa_rec):
+                    raise ValueError('{} could not find the trajPBSA record for confid {}'.
+                                     format(system_title, confid))
+                trajPBSA_rec = confrec.get_value(Fields.Analysis.oepbsa_rec)
+                for field in trajPBSA_rec.get_fields():
+                    fname = field.get_name()
+                    if field.get_type() is Types.FloatVec:
+                        opt['Logger'].info(
+                            'ConcatenateTrajMMPBSACube adding FloatVec field {}'.format(fname))
+                        if fname not in PBSAdata.keys():
+                            PBSAdata[fname] = trajPBSA_rec.get_value(field)
+                        else:
+                            PBSAdata[fname] += trajPBSA_rec.get_value(field)
+                    else:
+                        opt['Logger'].info('ConcatenateTrajMMPBSACube skipping field {}'.format(fname))
+            for key in PBSAdata.keys():
+                opt['Logger'].info('ConcatenateTrajMMPBSACube PBSAdata[{}] length {}'.format(key, len(PBSAdata[key])))
+
+            # Add the trajPBSA record to the parent record
+            record.set_value(Fields.Analysis.oepbsa_dict, PBSAdata)
+
+
 
             # find the trajPBSA record from inside the first conf
             rec0 = list_conf_rec[0]
@@ -412,7 +447,7 @@ class ConcatenateTrajMMPBSACube(RecordPortsMixin, ComputeCube):
             floatVecFields = []
             for field in trajPBSA_rec.get_fields():
                 if field.get_type() is Types.FloatVec:
-                    #opt['Logger'].info('ConcatenateTrajMMPBSACube adding FloatVec field {}'.format(field.get_name()))
+                    opt['Logger'].info('ConcatenateTrajMMPBSACube adding FloatVec field {}'.format(field.get_name()))
                     floatVecFields.append(field)
                 else:
                     opt['Logger'].info('ConcatenateTrajMMPBSACube skipping field {}'.
@@ -461,8 +496,6 @@ class ConcatenateTrajMMPBSACube(RecordPortsMixin, ComputeCube):
             self.failure.emit(record)
 
         return
-
-
 
 
 class TrajPBSACube(RecordPortsMixin, ComputeCube):
@@ -556,7 +589,17 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 raise ValueError('{} Calculation of PBSA energies failed'.format(system_title))
 
             # generate Surface Areas energy for buried SA based on 0.006 kcal/mol/A^2
-            zapBindSA6 = [sa*-0.006 for sa in saBuried]
+            zapBindSA6 = [sa * -0.006 for sa in saBuried]
+
+            # make a dict of these energy terms to store on the record
+            PBSAdata = dict()
+            PBSAdata['OEZap_PBSA25_Bind'] = zapBind
+            PBSAdata['OEZap_PB_Bind'] = zapBindPB
+            PBSAdata['OEZap_PB_Desolvation'] = zapDesolEl
+            PBSAdata['OEZap_PB_Interaction'] = zapIntEl
+            PBSAdata['OEZap_SA25_Bind'] = zapBindSA25
+            PBSAdata['OEZap_BuriedArea'] = saBuried
+            PBSAdata['OEZap_SA6_Bind'] = zapBindSA6
 
             # Create new record with traj interaction energy results
             opt['Logger'].info('{} writing trajPBSA OERecord'.format(system_title) )
@@ -622,6 +665,10 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                                           meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
                 trajPBSA.set_value(Fields.Analysis.zapMMPBSA_fld, zapMMPBSA)
 
+                # Add these energy terms to the earlier dict to store on the record
+                PBSAdata['OEZap_MMPB_Bind'] = zapMMPB
+                PBSAdata['OEZap_MMPBSA6_Bind'] = zapMMPBSA
+
                 # Clean average MMPBSA to avoid nans and high zap energy values
                 avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(zapMMPBSA)
 
@@ -631,6 +678,9 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 # Add to the record the Average MMPBSA floe report label
                 record.set_value(Fields.floe_report_label, "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".
                                  format(avg_mmpbsa, serr_mmpbsa))
+
+            # Add the PBSAdata dict to the record
+            record.set_value(Fields.Analysis.oepbsa_dict, PBSAdata)
 
             # Add the trajPBSA record to the parent record
             record.set_value(Fields.Analysis.oepbsa_rec, trajPBSA)
@@ -729,8 +779,11 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
 
             # protein and ligand traj OEMols now have parmed charges on them; save these
             oetrajRecord.set_value(OEField('LigTraj', Types.Chem.Mol), ligTraj)
-
             record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
+
+            # make a dict of these energy terms to store on the record
+            intEdata = dict()
+            intE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE
 
             # Create new record with traj interaction energy results
             opt['Logger'].info('{} writing trajIntE OERecord'.format(system_title))
@@ -771,6 +824,9 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
                                      meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
 
             trajIntE.set_value(pw_lIntE_field, pw_lIntE)
+
+            # Add the intEdata dict to the record
+            record.set_value(Fields.Analysis.oeintE_dict, intEdata)
 
             # Add the trajIntE record to the parent record
             record.set_value(Fields.Analysis.oeintE_rec, trajIntE)

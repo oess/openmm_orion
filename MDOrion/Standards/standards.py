@@ -159,8 +159,14 @@ class Fields:
         # The TrajIntE Field is for the record containing Traj interaction energies
         oeintE_rec = OEField("TrajIntE", Types.Record, meta=_metaHidden)
 
+        # The TrajIntEDict Field is for the POD Dictionary containing Traj interaction energies
+        oeintE_dict = OEField("TrajIntEDict", Types.JSONObject, meta=_metaHidden)
+
         # The TrajPBSA Field is for the record containing Traj PBSA energies
         oepbsa_rec = OEField("TrajPBSA", Types.Record, meta=_metaHidden)
+
+        # The TrajPBSADict Field is for the POD Dictionary containing Traj PBSA energies
+        oepbsa_dict = OEField("TrajPBSADict", Types.JSONObject, meta=_metaHidden)
 
         # The TrajClus Field is for the record containing Traj ligand clustering results
         oeclus_rec = OEField("TrajClus", Types.Record, meta=_metaHidden)
