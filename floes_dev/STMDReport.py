@@ -4,8 +4,10 @@ from floe.api import (WorkFloe, ParallelCubeGroup)
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import (ParallelMDTrajAnalysisClusterReport,
-                                       MDFloeReportCube)
+from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (
+                                    ParallelClusterPopAnalysis,
+                                    ParallelMDTrajAnalysisClusterReport,
+                                    MDFloeReportCube)
 
 job = WorkFloe("Starting with STMD results through clustering, just generate the Analysis Floe report")
 
@@ -19,6 +21,7 @@ The input dataset is an .oedb file of the STMD results through clustering
 ifs = DatasetReaderCube("ifs")
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")
 
+popanlys = ParallelClusterPopAnalysis('ClusterPopAnalysis')
 report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 report = MDFloeReportCube("report", title="Floe Report")
 
@@ -29,10 +32,12 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
 job.add_cubes(ifs,
+              popanlys,
               report_gen, report,
               ofs, fail)
 
-ifs.success.connect(report_gen.intake)
+ifs.success.connect(popanlys.intake)
+popanlys.success.connect(report_gen.intake)
 report_gen.success.connect(report.intake)
 report_gen.failure.connect(fail.intake)
 report.success.connect(ofs.intake)

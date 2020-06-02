@@ -6,8 +6,6 @@ from floe.api import (ParallelMixin,
 
 from MDOrion.Standards import Fields, MDStageNames
 
-from oeommtools import utils as oeutils
-
 from floereport import FloeReport, LocalFloeReport
 
 from orionclient.session import in_orion, OrionSession
@@ -17,10 +15,6 @@ from orionclient.types import File
 from os import environ
 
 import MDOrion.TrjAnalysis.utils as utl
-
-import MDOrion.TrjAnalysis.TrajMMPBSA_utils as mmpbsa
-
-from MDOrion.TrjAnalysis.water_utils import nmax_waters
 
 import oetrajanalysis.OETrajBasicAnalysis_utils as oetrjutl
 
@@ -561,6 +555,90 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
         return
 
 
+class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
+    title = 'Population Analysis of Traj Clusters'
+    # version = "0.1.0"
+    classification = [["Analysis"]]
+    tags = ['Clustering', 'Ligand', 'Trajectory']
+
+    description = """
+    Population Analysis of Traj Clusters
+
+    This cube analyzes the ligand trajectory cluster in terms of
+    their occurrence, size, and proximity to the starting pose(s).
+    """
+
+    #uuid = "b503c2f4-12e6-49c7-beb6-ee17da177ec2"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 14000},
+        "spot_policy": {"default": "Allowed"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+        return
+
+    def process(self, record, port):
+        try:
+            # The copy of the dictionary option as local variable
+            # is necessary to avoid filename collisions due to
+            # the parallel cube processes
+            opt = dict(self.opt)
+
+            # Logger string
+            opt['Logger'].info(' Beginning ClusterPopAnalysis')
+            system_title = utl.RequestOEFieldType(record, Fields.title)
+            opt['Logger'].info('{} Attempting Population Analysis of Traj Clusters'
+                .format(system_title) )
+
+            # Get the ligand which will be a multiconformer molecule with the starting
+            # conformer for each simulation
+            if not record.has_field(Fields.ligand):
+                raise ValueError('{} could not find the ligand field'.format(system_title))
+            ligand = utl.RequestOEFieldType(record, Fields.ligand)
+            lig_name = utl.RequestOEFieldType(record, Fields.ligand_name)
+
+            # Get the confId vector which addresses each frame of the trajectory to its
+            # parent starting conformer.
+            confIdVecField = OEField( 'ConfIdVec', Types.IntVec)
+            if not record.has_field(confIdVecField):
+                raise ValueError('{} could not find the confId vector'.format(system_title))
+            confIdVec = utl.RequestOEFieldType(record, confIdVecField)
+
+            # Get the clustering results dict from the traj clustering record
+            if not record.has_field(Fields.Analysis.oeclus_rec):
+                raise ValueError('{} could not find the cluster record'.format(system_title))
+            opt['Logger'].info('{} found the cluster record'.format(system_title))
+            oeclusRecord = record.get_value(Fields.Analysis.oeclus_rec)
+            clusResults = utl.RequestOEFieldType( oeclusRecord, Fields.Analysis.oeclus_dict)
+            for key in clusResults.keys():
+                opt['Logger'].info('{} : clusResults key {}'.format(system_title, key) )
+
+            # Get the PBSA data dict from the record
+            if not record.has_field(Fields.Analysis.oepbsa_dict):
+                raise ValueError('{} could not find the PBSA JSON object'.format(system_title))
+            opt['Logger'].info('{} found the PBSA JSON record'.format(system_title))
+            PBSAdata = utl.RequestOEFieldType(record,Fields.Analysis.oepbsa_dict)
+            for key in PBSAdata.keys():
+                opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])) )
+
+            self.success.emit(record)
+
+        except Exception as e:
+            print("Failed to complete", str(e), flush=True)
+            opt['Logger'].info('Exception {} in ClusterPopAnalysis on {}'.format(str(e), system_title))
+            self.log.error(traceback.format_exc())
+            # Return failed mol
+            self.failure.emit(record)
+
+        return
+
+
 class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
     title = 'Extract relevant outputs of MD Traj Cluster  Analysis'
     # version = "0.1.4"
@@ -780,6 +858,12 @@ class ParallelClusterOETrajCube(ParallelMixin, ClusterOETrajCube):
 class ParallelMakeClusterTrajOEMols(ParallelMixin, MakeClusterTrajOEMols):
     title = "Parallel " + MakeClusterTrajOEMols.title
     description = "(Parallel) " + MakeClusterTrajOEMols.description
+    # uuid = "216973c9-5f13-46f9-b79d-dee9d90398e9"
+
+
+class ParallelClusterPopAnalysis(ParallelMixin, ClusterPopAnalysis):
+    title = "Parallel " + ClusterPopAnalysis.title
+    description = "(Parallel) " + ClusterPopAnalysis.description
     # uuid = "216973c9-5f13-46f9-b79d-dee9d90398e9"
 
 

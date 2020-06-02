@@ -43,12 +43,14 @@ from .System.cubes import SolvationCube
 from .System.cubes import ParallelSolvationCube
 from .System.cubes import CollectionSetting
 
-from .TrjAnalysis.cubes_trajProcessing import ConformerGatheringData
-from .TrjAnalysis.cubes_trajProcessing import ParallelTrajToOEMolCube
-from .TrjAnalysis.cubes_trajProcessing import ParallelTrajPBSACube
-from .TrjAnalysis.cubes_trajProcessing import ParallelTrajInteractionEnergyCube
-from .TrjAnalysis.cubes_clusterAnalysis import ParallelMDTrajAnalysisClusterReport
-from .TrjAnalysis.cubes_clusterAnalysis import ParallelClusterOETrajCube
-from .TrjAnalysis.cubes_clusterAnalysis import MDFloeReportCube
+from .TrjAnalysis.cubes_trajProcessing import (ConformerGatheringData,
+                                               ParallelTrajToOEMolCube,
+                                               ParallelTrajPBSACube,
+                                               ParallelTrajInteractionEnergyCube)
+
+from .TrjAnalysis.cubes_clusterAnalysis import (ParallelMDTrajAnalysisClusterReport,
+                                                ParallelClusterOETrajCube,
+                                                ParallelClusterPopAnalysis,
+                                                MDFloeReportCube)
 
 

@@ -8,13 +8,7 @@ from MDOrion.Standards import Fields, MDStageNames
 
 from oeommtools import utils as oeutils
 
-from floereport import FloeReport, LocalFloeReport
-
-from orionclient.session import in_orion, OrionSession
-
-from orionclient.types import File
-
-from os import environ
+from orionclient.session import in_orion
 
 import MDOrion.TrjAnalysis.utils as utl
 
@@ -22,17 +16,7 @@ import MDOrion.TrjAnalysis.TrajMMPBSA_utils as mmpbsa
 
 from MDOrion.TrjAnalysis.water_utils import nmax_waters
 
-import oetrajanalysis.OETrajBasicAnalysis_utils as oetrjutl
-
-import ensemble2img
-
-from tempfile import TemporaryDirectory
-
 from openeye import oechem
-
-import oetrajanalysis.Clustering_utils as clusutl
-
-from openeye import oedepict
 
 import os
 
@@ -45,16 +29,6 @@ from datarecord import (Types,
                         OERecord)
 
 from MDOrion.Standards.mdrecord import MDDataRecord
-
-from MDOrion.TrjAnalysis.TrajAnFloeReport_utils import (_clus_floe_report_header,
-                                                        _clus_floe_report_header2,
-                                                        _clus_floe_report_midHtml0,
-                                                        _clus_floe_report_midHtml1,
-                                                        _clus_floe_report_midHtml2,
-                                                        _clus_floe_report_stripPlots,
-                                                        _clus_floe_report_Trailer,
-                                                        trim_svg,
-                                                        MakeClusterInfoText)
 
 
 class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
