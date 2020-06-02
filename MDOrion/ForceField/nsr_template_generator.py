@@ -32,7 +32,7 @@ from lxml import etree
 from simtk.openmm.app.forcefield import NonbondedGenerator
 
 
-def nsr_template_generator(protein, omm_topology, omm_forcefield):
+def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF_1.0.0'):
 
     unmatched_res_list = omm_forcefield.getUnmatchedResidues(omm_topology)
 
@@ -53,7 +53,7 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield):
 
     ffmxl_template_list = []
     for nsr_name in non_standard_reside_names:
-        print("Non-Standard Residue Detected: {}".format(nsr_name))
+
         # Extract the NSR from the protein
         nsr_match = oechem.OEAtomMatchResidueID()
 
@@ -65,37 +65,103 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield):
         oe_nsr = oechem.OEMol()
         oechem.OESubsetMol(oe_nsr, protein, pred_nsr, True)
 
+        # C or N terminus Non Standard Residue check
+        isCTerminus = False
+        isNTerminus = False
+
+        # N backbone atom
+        pred = oechem.OEAndAtom(oechem.OEIsBackboneAtom(), oechem.OEIsNitrogen())
+
+        for at in oe_nsr.GetAtoms(pred):
+
+            nbors = [nbr for nbr in at.GetAtoms(oechem.OEIsHydrogen())]
+            if len(nbors) == 3:
+                isCTerminus = True
+
+        # C backbone atom
+        pred = oechem.OEAndAtom(oechem.OEIsCarbon(),  oechem.OEIsBackboneAtom())
+        pred_not_ca = oechem.OEAndAtom(pred, oechem.OENotAtom(oechem.OEIsCAlpha()))
+
+        for at in oe_nsr.GetAtoms(pred_not_ca):
+            nbors = [nbr for nbr in at.GetAtoms(oechem.OEIsOxygen())]
+            if len(nbors) == 2:
+                isNTerminus = True
+
+        termini = False
+        if isCTerminus:
+            termini = 'C'
+        elif isNTerminus:
+            termini = 'N'
+
+        print("Non-Standard Residue Detected: {} - {} Termini".format(nsr_name, termini))
+
         oe_nsr_caps = oechem.OEMol(oe_nsr)
 
         nsr_formal_charge = 0
         for at in oe_nsr_caps.GetAtoms():
             nsr_formal_charge += at.GetFormalCharge()
 
-        if nsr_formal_charge == 0:
+        # Load the correct FF Library Template
+        if nsr_formal_charge == 0 and isCTerminus:
+            reference_residue_name = 'CALA'
+        elif nsr_formal_charge == 0 and isNTerminus:
+            reference_residue_name = 'NALA'
+        elif nsr_formal_charge == 0 and not (isCTerminus or isNTerminus):
             reference_residue_name = 'ALA'
-        elif nsr_formal_charge < 0:
+        elif nsr_formal_charge < 0 and isCTerminus:
+            reference_residue_name = 'CASP'
+        elif nsr_formal_charge < 0 and isNTerminus:
+            reference_residue_name = 'NASP'
+        elif nsr_formal_charge < 0 and not (isCTerminus or isNTerminus):
             reference_residue_name = 'ASP'
+        elif nsr_formal_charge > 0 and isCTerminus:
+            reference_residue_name = 'CLYS'
+        elif nsr_formal_charge > 0 and isNTerminus:
+            reference_residue_name = 'NLYS'
         else:
             reference_residue_name = 'LYS'
 
         for at in oe_nsr_caps.GetAtoms():
             res = oechem.OEAtomGetResidue(at)
-            res.SetName(reference_residue_name)
+            if isCTerminus or isNTerminus:
+                res.SetName(reference_residue_name[1:])
+            else:
+                res.SetName(reference_residue_name)
             oechem.OEAtomSetResidue(at, res)
 
-        oespruce.OECapTermini(oe_nsr_caps)
-        oechem.OEPlaceHydrogens(oe_nsr_caps)
+        if isCTerminus:
+            oespruce.OECapTermini(oe_nsr_caps)
+        elif isNTerminus:
+            oespruce.OECapNTermini(oe_nsr_caps)
+        else:
+            oespruce.OECapTermini(oe_nsr_caps)
 
-        # Reset Atom Order because we added hydrogens
+        # Add Hydrogens after capping
+        oechem.OEPlaceHydrogens(oe_nsr_caps)
+        # Reset Atom Order because we added Hydrogens
         oechem.OEPDBOrderAtoms(oe_nsr_caps, False)
 
-        if oe_nsr_caps.NumAtoms() != oe_nsr.NumAtoms() + 12:
-            raise ValueError("Error Capping the Non Standard Residue {}. Atoms expected {} vs {}".format(
-                nsr_name, oe_nsr.NumAtoms() + 12, oe_nsr_caps.NumAtoms()))
+        if isCTerminus:
+            if oe_nsr_caps.NumAtoms() != oe_nsr.NumAtoms() + 6:
+                raise ValueError("Error Capping the Non Standard Residue C Terminus  {}. Atoms expected {} vs {}".format(
+                    nsr_name, oe_nsr.NumAtoms() + 6, oe_nsr_caps.NumAtoms()))
+
+        elif isNTerminus:
+            if oe_nsr_caps.NumAtoms() != oe_nsr.NumAtoms() + 6:
+                raise ValueError("Error Capping the Non Standard Residue N Terminus  {}. Atoms expected {} vs {}".format(
+                    nsr_name, oe_nsr.NumAtoms() + 6, oe_nsr_caps.NumAtoms()))
+
+        else:
+            if oe_nsr_caps.NumAtoms() != oe_nsr.NumAtoms() + 12:
+                raise ValueError("Error Capping the Non Standard Residue {}. Atoms expected {} vs {}".format(
+                    nsr_name, oe_nsr.NumAtoms() + 12, oe_nsr_caps.NumAtoms()))
 
         # Generate Unique atom names for the new capped non-standard residue
         for index, oe_at in enumerate(oe_nsr_caps.GetAtoms()):
             oe_at.SetName(oe_at.GetName() + "_" + str(index))
+
+        # with oechem.oemolostream("oe_nsr_caps.oeb") as ofs:
+        #     oechem.OEWriteConstMolecule(ofs, oe_nsr_caps)
 
         nsr_backbone_atoms = []
         nsr_side_chain_atoms = []
@@ -150,7 +216,7 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield):
 
         # Generate NSR Parametrization
         pmd = ParamMolStructure(oe_nsr_caps,
-                                ff_library.ligandff['OpenFF_1.0.0'],
+                                ff_library.ligandff[nsr_ff],
                                 prefix_name=nsr_name,
                                 force_charge=True)
 
@@ -182,6 +248,11 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield):
         if len(oe_atoms) != len(pmd_atoms):
             raise ValueError("Parmed and OpenEye topology number of atoms mismatch: {} vs {}".
                              format(len(pmd_atoms), len(oe_atoms)))
+
+
+        # TODO DEBUG
+        import sys
+        sys.exit(-1)
 
         # Protein Reference Template atom types
         protein_ff_template = omm_forcefield._templates[reference_residue_name]
