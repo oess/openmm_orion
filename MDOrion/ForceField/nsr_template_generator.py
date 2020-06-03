@@ -76,7 +76,7 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
 
             nbors = [nbr for nbr in at.GetAtoms(oechem.OEIsHydrogen())]
             if len(nbors) == 3:
-                isCTerminus = True
+                isNTerminus = True
 
         # C backbone atom
         pred = oechem.OEAndAtom(oechem.OEIsCarbon(),  oechem.OEIsBackboneAtom())
@@ -85,15 +85,16 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
         for at in oe_nsr.GetAtoms(pred_not_ca):
             nbors = [nbr for nbr in at.GetAtoms(oechem.OEIsOxygen())]
             if len(nbors) == 2:
-                isNTerminus = True
+                isCTerminus = True
 
-        termini = False
         if isCTerminus:
-            termini = 'C'
+            termini = 'C Terminus'
         elif isNTerminus:
-            termini = 'N'
+            termini = 'N Terminus'
+        else:
+            termini = "Not Termini"
 
-        print("Non-Standard Residue Detected: {} - {} Termini".format(nsr_name, termini))
+        print("Non-Standard Residue Detected: {} - {}".format(nsr_name, termini))
 
         oe_nsr_caps = oechem.OEMol(oe_nsr)
 
@@ -121,6 +122,8 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
         else:
             reference_residue_name = 'LYS'
 
+        # print("Loaded Template: {}".format(reference_residue_name))
+
         for at in oe_nsr_caps.GetAtoms():
             res = oechem.OEAtomGetResidue(at)
             if isCTerminus or isNTerminus:
@@ -130,9 +133,9 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
             oechem.OEAtomSetResidue(at, res)
 
         if isCTerminus:
-            oespruce.OECapTermini(oe_nsr_caps)
-        elif isNTerminus:
             oespruce.OECapNTermini(oe_nsr_caps)
+        elif isNTerminus:
+            oespruce.OECapCTermini(oe_nsr_caps)
         else:
             oespruce.OECapTermini(oe_nsr_caps)
 
@@ -160,6 +163,7 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
         for index, oe_at in enumerate(oe_nsr_caps.GetAtoms()):
             oe_at.SetName(oe_at.GetName() + "_" + str(index))
 
+        # # TODO
         # with oechem.oemolostream("oe_nsr_caps.oeb") as ofs:
         #     oechem.OEWriteConstMolecule(ofs, oe_nsr_caps)
 
@@ -168,7 +172,10 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
         C_ACE_or_N_NME_atoms = []
         CBeta_side_chain = []
 
-        nsr_caps_pred_backbone = oechem.OEIsBackboneAtom()
+        if isCTerminus or isNTerminus:
+            nsr_caps_pred_backbone = oechem.OEIsBackboneAtom(True, True)
+        else:
+            nsr_caps_pred_backbone = oechem.OEIsBackboneAtom()
 
         nsr_caps_match_ACE = oechem.OEAtomMatchResidueID()
         nsr_caps_match_ACE.SetName("ACE")
@@ -199,7 +206,11 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
                         nsr_backbone_atoms.append(can)
 
         nsr_caps_match_reference_residue = oechem.OEAtomMatchResidueID()
-        nsr_caps_match_reference_residue.SetName(reference_residue_name)
+        if isCTerminus or isNTerminus:
+            nsr_caps_match_reference_residue.SetName(reference_residue_name[1:])
+        else:
+            nsr_caps_match_reference_residue.SetName(reference_residue_name)
+
         nsr_caps_pred_reference_residue = oechem.OEAtomMatchResidue(nsr_caps_match_reference_residue)
 
         # NSR SIDE CHAIN
@@ -211,6 +222,9 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
         for atom in oe_nsr_caps.GetAtoms(oechem.OEAndAtom(nsr_caps_pred_NME, oechem.OEIsNitrogen())):
             C_ACE_or_N_NME_atoms.append(atom)
 
+        # TODO
+        # for at in nsr_backbone_atoms:
+        #     print(at.GetName())
         # with oechem.oemolostream("nsr_caps.oeb") as ofs:
         #     oechem.OEWriteConstMolecule(ofs, oe_nsr_caps)
 
@@ -249,11 +263,6 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
             raise ValueError("Parmed and OpenEye topology number of atoms mismatch: {} vs {}".
                              format(len(pmd_atoms), len(oe_atoms)))
 
-
-        # TODO DEBUG
-        import sys
-        sys.exit(-1)
-
         # Protein Reference Template atom types
         protein_ff_template = omm_forcefield._templates[reference_residue_name]
         protein_ff_backbone_atype = dict()
@@ -262,6 +271,7 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
         for at in protein_ff_template.atoms:
             protein_ff_backbone_atype[at.name] = at.type
             protein_ff_backbone_parameters[at.name] = at.parameters
+            # print(at.name, at.type, at.parameters)
 
         # Charges can be present in the Non Bonded Section and not in the loaded Residue Template
         charge_from_non_bonded = False
@@ -330,8 +340,12 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
                     params = protein_ff_backbone_parameters['O']
                 else:  # Hydrogen
                     if [nbr for nbr in oe_at.GetAtoms(oechem.OEIsNitrogen())]:
-                        type = protein_ff_backbone_atype['H']
-                        params = protein_ff_backbone_parameters['H']
+                        if isNTerminus:
+                            type = protein_ff_backbone_atype['H1']
+                            params = protein_ff_backbone_parameters['H1']
+                        else:
+                            type = protein_ff_backbone_atype['H']
+                            params = protein_ff_backbone_parameters['H']
                     else:
                         type = protein_ff_backbone_atype['HA']
                         params = protein_ff_backbone_parameters['HA']
@@ -384,6 +398,11 @@ def nsr_template_generator(protein, omm_topology, omm_forcefield, nsr_ff='OpenFF
                 pmd_at.charge = new_cb_charge
 
         residue_atoms = nsr_backbone_atoms + nsr_side_chain_atoms
+
+        # TODO
+        # for at in residue_atoms:
+        #     print(">>>>>>>>>>", at.GetName())
+        #
 
         # Check partial charge:
         partial_charge_check = 0.0

@@ -43,7 +43,7 @@ from oeommtools.utils import sanitizeOEMolecule
 
 class MDComponents:
 
-    def __init__(self, system_representation, components_title="MD Components"):
+    def __init__(self, system_representation, components_title="Flask"):
 
         du = None
         molecules = None
@@ -102,6 +102,9 @@ class MDComponents:
         return ret_str
 
     def _initialize_from_du(self, du):
+
+        if du.GetTitle() and self._components_title == "Flask":
+            self._components_title = du.GetTitle()
 
         for pair in du.GetTaggedComponents():
 
@@ -181,6 +184,9 @@ class MDComponents:
             raise ValueError("None of the DU components cannot recognized")
 
     def _initialize_from_molecules(self, molecules):
+
+        if molecules.GetTitle() and self._components_title == 'Flask':
+            self._components_title = molecules.GetTitle()
 
         build_opts = oespruce.OEDesignUnitBuildOptions()
         build_opts.SetBuildSidechains(False)
@@ -363,6 +369,7 @@ class MDComponents:
 
     def set_protein(self, protein):
         self._protein = protein
+        self._components['protein'] = self._protein
 
     @property
     def has_protein(self):
@@ -380,6 +387,7 @@ class MDComponents:
 
     def set_ligand(self, ligand):
         self._ligand = ligand
+        self._components['ligand'] = self._ligand
 
     @property
     def has_ligand(self):
@@ -397,6 +405,7 @@ class MDComponents:
 
     def set_other_ligands(self, other_ligands):
         self._other_ligands = other_ligands
+        self._components['other_ligands'] = self._other_ligands
 
     @property
     def has_other_ligands(self):
@@ -414,6 +423,7 @@ class MDComponents:
 
     def set_counter_ions(self, counter_ions):
         self._counter_ions = counter_ions
+        self._components['counter_ions'] = self._counter_ions
 
     @property
     def has_counter_ions(self):
@@ -431,6 +441,7 @@ class MDComponents:
 
     def set_metals(self, metals):
         self._metals = metals
+        self._components['metals'] = self._metals
 
     @property
     def has_metals(self):
@@ -448,6 +459,7 @@ class MDComponents:
 
     def set_excipients(self, excipients):
         self._excipients = excipients
+        self._components['excipients'] = self._excipients
 
     @property
     def has_excipients(self):
@@ -465,6 +477,7 @@ class MDComponents:
 
     def set_solvent(self, solvent):
         self._solvent = solvent
+        self._components['solvent'] = self._solvent
 
     @property
     def has_solvent(self):
@@ -482,6 +495,7 @@ class MDComponents:
 
     def set_water(self, water):
         self._water = water
+        self._components['water'] = self._water
 
     @property
     def has_water(self):
@@ -499,6 +513,7 @@ class MDComponents:
 
     def set_cofactors(self, cofactors):
         self._cofactors = cofactors
+        self._components['cofactors'] = self._cofactors
 
     @property
     def has_cofactors(self):
@@ -516,6 +531,7 @@ class MDComponents:
 
     def set_other_cofactors(self, other_cofactors):
         self._other_cofactors = other_cofactors
+        self._components['other_cofactors'] = self._other_cofactors
 
     @property
     def has_other_cofactors(self):
@@ -533,6 +549,7 @@ class MDComponents:
 
     def set_lipids(self, lipids):
         self._lipids = lipids
+        self._components['lipids'] = self._lipids
 
     @property
     def has_lipids(self):
@@ -550,6 +567,7 @@ class MDComponents:
 
     def set_nucleics(self, nucleics):
         self._nucleics = nucleics
+        self._components['nucleics'] = self._nucleics
 
     @property
     def has_nucleids(self):
@@ -567,6 +585,7 @@ class MDComponents:
 
     def set_other_nucleics(self, other_nucleics):
         self._other_nucleics = other_nucleics
+        self._components['other_nucleics'] = self._other_nucleics
 
     @property
     def has_other_nucleids(self):
@@ -613,6 +632,33 @@ class MDComponents:
             raise ValueError("The component name {} is not supported. Allowed: {}".format(comp_name,
                                                                                           self._component_names))
         self._components[comp_name] = comp
+
+        if comp_name == 'protein':
+            self._protein = comp
+        elif comp_name == 'ligand':
+            self._ligand = comp
+        elif comp_name == 'other_ligands':
+            self._other_ligands = comp
+        elif comp_name == 'counter_ions':
+            self._counter_ions = comp
+        elif comp_name == 'metals':
+            self._metals = comp
+        elif comp_name == 'excipients':
+            self._excipients = comp
+        elif comp_name == 'solvent':
+            self._solvent = comp
+        elif comp_name == 'water':
+            self._water = comp
+        elif comp_name == 'cofactors':
+            self._cofactors = comp
+        elif comp_name == 'other_cofactors':
+            self._other_cofactors = comp
+        elif comp_name == 'lipids':
+            self._lipids = comp
+        elif comp_name == 'nucleics':
+            self._nucleics = comp
+        elif comp_name == 'other_nucleics':
+            self._other_nucleics = comp
 
     def parametrize_components(self, protein_ff='Amber14SB',
                                ligand_ff='OpenFF_1.0.0',
