@@ -565,7 +565,7 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
 
                 md_components = MDComponents(molecules, components_title=name)
 
-            self.opt['Logger'].info(md_components.get_info)
+            # self.opt['Logger'].info(md_components.get_info)
 
             record.set_value(Fields.md_components, md_components)
             record.set_value(Fields.title, name)

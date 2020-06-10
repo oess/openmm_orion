@@ -157,6 +157,8 @@ class Fields:
 
     floe_report_URL = OEField('Floe_report_URL_OPLMD', Types.String, meta=OEFieldMeta(options=[Meta.Hints.URL]))
 
+    floe_report_collection_id = OEField('Floe_report_ID_OPLMD', Types.Int, meta=_metaHidden)
+
     class Analysis:
 
         # The OETraj Field is for the record containing Traj OEMols and energies

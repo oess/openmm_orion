@@ -93,7 +93,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_excipient_successSOpenFF1_0(self):
+    def test_excipient_successOpenFF1_0(self):
         print('Testing cube:', self.cube.name)
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
@@ -115,7 +115,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_excipient_successSOpenFF1_1(self):
+    def test_excipient_successOpenFF1_1(self):
         print('Testing cube:', self.cube.name)
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))

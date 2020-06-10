@@ -16,8 +16,7 @@
 # or its use.
 
 
-from openeye import (oechem,
-                     oequacpac)
+from openeye import oechem
 
 from oeommtools import utils as oeommutils
 
@@ -64,7 +63,7 @@ class ParamMolStructure(object):
         Openeye molecule with the ParmEd Structure attached.
     """
 
-    def __init__(self, molecule, forcefield, prefix_name='ligand', delete_out_files=True, force_charge=False):
+    def __init__(self, molecule, forcefield, prefix_name='ligand', delete_out_files=True, recharge=False):
         if forcefield not in list(ff_library.ligandff.values()):
             raise RuntimeError('The selected ligand force field is not '
                                'supported {}. Available {}'.format(forcefield, list(ff_library.ligandff.keys())))
@@ -74,7 +73,7 @@ class ParamMolStructure(object):
             self.structure = None
             self.prefix_name = prefix_name
             self.delete_out_files = delete_out_files
-            self.force_charge = force_charge
+            self.recharge = recharge
 
     def checkCharges(self, molecule):
         # Check that molecule is charged.
@@ -83,7 +82,7 @@ class ParamMolStructure(object):
             if atom.GetPartialCharge() != 0.0:
                 is_charged = True
 
-        if is_charged and self.force_charge:
+        if is_charged and self.recharge:
             is_charged = False
 
         return is_charged
@@ -209,94 +208,99 @@ def parametrize_component(component, component_ff, other_ff):
     # List of the unrecognized component
     unmatched_res_list = forcefield.getUnmatchedResidues(topology)
 
+    # Try to parametrize the whole flask
     if not unmatched_res_list:
         omm_components = forcefield.createSystem(topology, rigidWater=False, constraints=None)
         components_pmd = parmed.openmm.load_topology(topology, omm_components, xyz=positions)
         return components_pmd
 
-    numparts, partlist = oechem.OEDetermineComponents(component_copy)
-    pred = oechem.OEPartPredAtom(partlist)
+    # Extract The different non bonded parts
+    numparts, parts = oechem.OEDetermineComponents(component_copy)
+    pred = oechem.OEPartPredAtom(parts)
 
-    part_mols = []
+    part_mols = dict()
     for i in range(1, numparts + 1):
         pred.SelectPart(i)
         partmol = oechem.OEMol()
         oechem.OESubsetMol(partmol, component_copy, pred)
-        part_mols.append(partmol)
+        part_mols[i] = partmol
 
-    map_omm_to_oe = {omm_res: oe_mol for omm_res, oe_mol in zip(topology.residues(), part_mols)}
+    part = -1
+    part_numbers = []
+    for at in component_copy.GetAtoms():
+        if parts[at.GetIdx()] != part:
+            part = parts[at.GetIdx()]
+            part_numbers.append(part)
+        # print("atom %d is in part %d" % (at.GetIdx(), parts[at.GetIdx()]))
 
-    matched_res_list = []
-    for res in topology.residues():
-        if res in unmatched_res_list:
+    part_numbers_resolved = dict()
+    for i in range(0, len(part_numbers)):
+        if part_numbers[i] in part_numbers_resolved:
             continue
         else:
-            matched_res_list.append(res)
+            part_numbers_resolved[part_numbers[i]] = part_numbers[i]
+            if i == len(part_numbers) - 1:
+                break
+            for j in range(i+1, len(part_numbers)):
+                if part_numbers[j] in part_numbers_resolved:
+                    continue
+                else:
+                    smiles_i = oechem.OECreateCanSmiString(part_mols[part_numbers[i]])
+                    smiles_j = oechem.OECreateCanSmiString(part_mols[part_numbers[j]])
 
-    # Map OpenMM residue to their parmed structure
-    map_omm_res_to_pmd = dict()
+                    if smiles_i == smiles_j:
+                        part_numbers_resolved[part_numbers[j]] = part_numbers[i]
+                    else:
+                        continue
 
-    # Unique residue templates
-    map_template_to_pmd = dict()
+    ordered_parts = [part_numbers_resolved[pn] for pn in part_numbers]
 
-    # Matched Residue Parametrization
-    bondedToAtom = forcefield._buildBondedToAtomList(topology)
-    for res in matched_res_list:
-        template, matches = forcefield._getResidueTemplateMatches(res, bondedToAtom)
-        if template in map_template_to_pmd:
-            map_omm_res_to_pmd[res] = map_template_to_pmd[template]
+    # print(ordered_parts)
+
+    unique_parts = set(ordered_parts)
+
+    part_to_pmd = dict()
+    for part_i in unique_parts:
+
+        mol_part_i = part_mols[part_i]
+        omm_top_part_i, omm_pos_part_i = oeommutils.oemol_to_openmmTop(mol_part_i)
+        if not forcefield.getUnmatchedResidues(omm_top_part_i):
+            omm_sys_part_i = forcefield.createSystem(topology, rigidWater=False, constraints=None)
+            pmd_part_i = parmed.openmm.load_topology(topology, omm_sys_part_i, xyz=omm_pos_part_i)
+            # print("Parametrize full part: {}".format(part_i))
         else:
-            res_top, res_pos = oeommutils.oemol_to_openmmTop(map_omm_to_oe[res])
-            try:
-                res_omm_system = forcefield.createSystem(res_top, rigidWater=False, constraints=None)
-                res_pmd = parmed.openmm.load_topology(res_top, res_omm_system, xyz=res_pos)
-            except:
-                raise ValueError("Error in the recognised excipient residue parametrization {}".format(res))
-
-            map_template_to_pmd[template] = res_pmd
-            map_omm_res_to_pmd[res] = res_pmd
-
-    # print(map_omm_res_to_pmd)
-
-    # UnMatched Residue Parametrization
-    for ures in unmatched_res_list:
-
-        oe_mol = map_omm_to_oe[ures]
-
-        # Charge the unrecognized excipient
-        if not oequacpac.OEAssignCharges(oe_mol, oequacpac.OEAM1BCCCharges(symmetrize=True)):
-            raise ValueError("It was not possible to charge the extract residue: {}".format(ures))
-
-        if other_ff in ['Smirnoff99Frosst', 'OpenFF_1.0.0', 'OpenFF_1.1.0']:
-            oe_mol = oeommutils.sanitizeOEMolecule(oe_mol)
-
-        pmd = ParamMolStructure(oe_mol, other_ff, prefix_name="MOL" + '_' + ures.name)
-        ures_pmd = pmd.parameterize()
-
-        map_omm_res_to_pmd[ures] = ures_pmd
+            mol_part_i_clean = oeommutils.sanitizeOEMolecule(mol_part_i)
+            pmd_part_i = ParamMolStructure(mol_part_i_clean, other_ff,
+                                           prefix_name="Part" + '_' + str(part_i),
+                                           recharge=True).parameterize()
+            # print("Parametrize part: {}".format(part_i))
+        part_to_pmd[part_i] = pmd_part_i
 
     # Component Parmed Structure
     component_pmd = parmed.Structure()
-    for res in topology.residues():
-        component_pmd += map_omm_res_to_pmd[res]
+    for part_i in ordered_parts:
+        component_pmd += part_to_pmd[part_i]
 
-    if len(component_pmd.atoms) != component_copy.NumAtoms():
-        raise ValueError(
-            "Component OE molecule and Component Parmed structure number of atoms mismatch {} vs {}".format(
-                len(component_pmd.atoms), component_copy.NumAtoms()))
+    # Checking
+    for parm_at, oe_at in zip(component_pmd.atoms, component_copy.GetAtoms()):
+
+        if parm_at.atomic_number != oe_at.GetAtomicNum():
+            raise ValueError(
+                "Atomic number mismatch between the Parmed and the OpenEye topologies: {} - {}".
+                format(parm_at.atomic_number, oe_at.GetAtomicNum()))
 
     # Set the positions
     oe_comp_coord_dic = component_copy.GetCoords()
     comp_coords = np.ndarray(shape=(component_copy.NumAtoms(), 3))
     for at_idx in oe_comp_coord_dic:
-        comp_coords[at_idx] = oe_comp_coord_dic [at_idx]
+        comp_coords[at_idx] = oe_comp_coord_dic[at_idx]
 
     component_pmd.coordinates = comp_coords
 
     return component_pmd
 
 
-# def parametrize_component(component, component_ff):
+# def parametrize_component(component, component_ff, other_ff):
 #
 #     component_copy = oechem.OEMol(component)
 #
@@ -304,7 +308,12 @@ def parametrize_component(component, component_ff, other_ff):
 #     topology, positions = oeommutils.oemol_to_openmmTop(component_copy)
 #
 #     # Try to apply the selected FF on the component
-#     forcefield = app.ForceField(component_ff)
+#     if isinstance(component_ff, list):
+#         forcefield = app.ForceField()
+#         for f in component_ff:
+#             forcefield.loadFile(f)
+#     else:
+#         forcefield = app.ForceField(component_ff)
 #
 #     # List of the unrecognized component
 #     unmatched_res_list = forcefield.getUnmatchedResidues(topology)
@@ -312,9 +321,8 @@ def parametrize_component(component, component_ff, other_ff):
 #     if not unmatched_res_list:
 #         omm_components = forcefield.createSystem(topology, rigidWater=False, constraints=None)
 #         components_pmd = parmed.openmm.load_topology(topology, omm_components, xyz=positions)
-#         return components_pmd, None
+#         return components_pmd
 #
-#     # TODO This do not work for protein
 #     numparts, partlist = oechem.OEDetermineComponents(component_copy)
 #     pred = oechem.OEPartPredAtom(partlist)
 #
@@ -323,21 +331,9 @@ def parametrize_component(component, component_ff, other_ff):
 #         pred.SelectPart(i)
 #         partmol = oechem.OEMol()
 #         oechem.OESubsetMol(partmol, component_copy, pred)
-#
-#         # TODO DEBUG
-#         # oechem.OEPerceiveResidues(partmol)
-#
 #         part_mols.append(partmol)
 #
 #     map_omm_to_oe = {omm_res: oe_mol for omm_res, oe_mol in zip(topology.residues(), part_mols)}
-#
-#     # TODO DEBUG
-#     # for un_res in unmatched_res_list:
-#     #
-#     #     unl = map_omm_to_oe[un_res]
-#     #
-#     #     for at in unl.GetAtoms():
-#     #         print(">>>>>>>>>", at.GetName())
 #
 #     matched_res_list = []
 #     for res in topology.residues():
@@ -345,9 +341,6 @@ def parametrize_component(component, component_ff, other_ff):
 #             continue
 #         else:
 #             matched_res_list.append(res)
-#
-#     if not matched_res_list:
-#         return None, component_copy
 #
 #     # Map OpenMM residue to their parmed structure
 #     map_omm_res_to_pmd = dict()
@@ -374,103 +367,42 @@ def parametrize_component(component, component_ff, other_ff):
 #
 #     # print(map_omm_res_to_pmd)
 #
-#     # Matched OE Mol
-#     matched_oe_mols = oechem.OEMol()
+#     # UnMatched Residue Parametrization
+#     for ures in unmatched_res_list:
+#
+#         oe_mol = map_omm_to_oe[ures]
+#
+#         # Charge the unrecognized excipient
+#         if not oequacpac.OEAssignCharges(oe_mol, oequacpac.OEAM1BCCCharges(symmetrize=True)):
+#             raise ValueError("It was not possible to charge the extract residue: {}".format(ures))
+#
+#         if other_ff in ['Smirnoff99Frosst', 'OpenFF_1.0.0', 'OpenFF_1.1.0']:
+#             oe_mol = oeommutils.sanitizeOEMolecule(oe_mol)
+#
+#         pmd = ParamMolStructure(oe_mol, other_ff, prefix_name="MOL" + '_' + ures.name)
+#         ures_pmd = pmd.parameterize()
+#
+#         map_omm_res_to_pmd[ures] = ures_pmd
 #
 #     # Component Parmed Structure
-#     matched_pmd = parmed.Structure()
+#     component_pmd = parmed.Structure()
+#     for res in topology.residues():
+#         component_pmd += map_omm_res_to_pmd[res]
 #
-#     for res in matched_res_list:
-#         matched_pmd += map_omm_res_to_pmd[res]
-#         oe_part = map_omm_to_oe[res]
-#         oechem.OEAddMols(matched_oe_mols, oe_part)
-#
-#     if len(matched_pmd.atoms) != matched_oe_mols.NumAtoms():
+#     if len(component_pmd.atoms) != component_copy.NumAtoms():
 #         raise ValueError(
-#             "The OE Component molecule and the corresponding Parmed structure have "
-#             "number of atoms mismatch {} vs {}".format(
-#                 matched_oe_mols.NumAtoms(), len(matched_pmd.atoms)))
+#             "Component OE molecule and Component Parmed structure number of atoms mismatch {} vs {}".format(
+#                 len(component_pmd.atoms), component_copy.NumAtoms()))
 #
-#     oe_comp_coord_dic = matched_oe_mols.GetCoords()
-#     comp_coords = np.ndarray(shape=(matched_oe_mols.NumAtoms(), 3))
-#
+#     # Set the positions
+#     oe_comp_coord_dic = component_copy.GetCoords()
+#     comp_coords = np.ndarray(shape=(component_copy.NumAtoms(), 3))
 #     for at_idx in oe_comp_coord_dic:
-#         comp_coords[at_idx] = oe_comp_coord_dic[at_idx]
+#         comp_coords[at_idx] = oe_comp_coord_dic [at_idx]
 #
-#     matched_pmd.coordinates = comp_coords
+#     component_pmd.coordinates = comp_coords
 #
-#     un_matched_oe_mols = oechem.OEMol()
-#     for un_res in unmatched_res_list:
-#         oechem.OEAddMols(un_matched_oe_mols, map_omm_to_oe[un_res])
-#
-#     if un_matched_oe_mols.NumAtoms() == 0:
-#         return matched_pmd, None
-#     else:
-#         un_matched_oe_mols.SetTitle("Unmatched_Cofactors")
-#         return matched_pmd, un_matched_oe_mols
-
-
-def parametrize_unknown_component(component, other_ff):
-
-    component_copy = oechem.OEMol(component)
-
-    # OpenMM topology and positions from OEMol
-    topology, positions = oeommutils.oemol_to_openmmTop(component_copy)
-
-    numparts, partlist = oechem.OEDetermineComponents(component_copy)
-    pred = oechem.OEPartPredAtom(partlist)
-
-    part_mols = []
-    for i in range(1, numparts + 1):
-        pred.SelectPart(i)
-        partmol = oechem.OEMol()
-        oechem.OESubsetMol(partmol, component_copy, pred)
-        part_mols.append(partmol)
-
-    map_omm_to_oe = {omm_res: oe_mol for omm_res, oe_mol in zip(topology.residues(), part_mols)}
-
-    map_omm_res_name_to_pmd = dict()
-    for res in topology.residues():
-
-        res_name = res.name
-
-        if res_name not in map_omm_res_name_to_pmd:
-
-            oe_mol = map_omm_to_oe[res]
-
-            # Charge the unrecognized component
-            if not oequacpac.OEAssignCharges(oe_mol, oequacpac.OEAM1BCCCharges(symmetrize=True)):
-                raise ValueError("Is was not possible to charge the extract residue: {}".format(res))
-
-            if other_ff in ['Smirnoff99Frosst', 'OpenFF_1.0.0', 'OpenFF_1.1.0']:
-                oe_mol = oeommutils.sanitizeOEMolecule(oe_mol)
-
-            pmd = ParamMolStructure(oe_mol, other_ff, prefix_name="MOL" + '_' + res_name)
-            res_pmd = pmd.parameterize()
-
-            map_omm_res_name_to_pmd[res_name] = res_pmd
-
-    # Whole Parmed Structure
-    comp_pmd = parmed.Structure()
-    for res in topology.residues():
-        res_name = res.name
-        comp_pmd += map_omm_res_name_to_pmd[res_name]
-
-    if len(comp_pmd.atoms) != component_copy.NumAtoms():
-        raise ValueError(
-            "The OE Component molecule and the corresponding Parmed structure have "
-            "number of atoms mismatch {} vs {}".format(
-                component_copy.NumAtoms(), len(comp_pmd.atoms)))
-
-    # Set the positions
-    oe_comp_coord_dic = component_copy.GetCoords()
-    comp_coords = np.ndarray(shape=(component_copy.NumAtoms(), 3))
-    for at_idx in oe_comp_coord_dic:
-        comp_coords[at_idx] = oe_comp_coord_dic[at_idx]
-
-    comp_pmd.coordinates = comp_coords
-
-    return comp_pmd
+#     return component_pmd
 
 
 def clean_tags(molecule):

@@ -21,7 +21,6 @@ from MDOrion.ForceField.ff_library import ff_library
 
 from MDOrion.ForceField.ffutils import (ParamMolStructure,
                                         parametrize_component,
-                                        parametrize_unknown_component,
                                         clean_tags)
 
 from oeommtools import utils as oeommutils
@@ -34,7 +33,7 @@ from openeye import oespruce
 
 import parmed
 
-from MDOrion.ForceField.nsr_template_generator import nsr_template_generator
+from oemdtoolbox.ForceField import nsr_template_generator
 
 from io import StringIO
 
@@ -267,7 +266,7 @@ class MDComponents:
 
         state = dict(protein=mol_to_bytes(self._protein) if self._protein else None,
                      ligand=mol_to_bytes(self._ligand) if self._ligand else None,
-                     other_ligands=self._other_ligands if self._other_ligands else None,
+                     other_ligands=mol_to_bytes(self._other_ligands) if self._other_ligands else None,
                      counter_ions=mol_to_bytes(self._counter_ions) if self._counter_ions else None,
                      metals=mol_to_bytes(self._metals) if self._metals else None,
                      excipients=mol_to_bytes(self._excipients) if self._excipients else None,
@@ -758,10 +757,13 @@ class ParametrizeMDComponents:
                                  for res in standard_resides_fail]
 
                     raise ValueError(
-                        "The following standard residues cannot be parametrize: {}".format(info_fail))
+                        "The following protein residues cannot be parametrize: {}".format(info_fail))
 
                 # Try to parametrize Non Standard Residues
-                ffxml_nsr_template_list = nsr_template_generator(protein, topology, forcefield)
+                ffxml_nsr_template_list = nsr_template_generator(protein,
+                                                                 topology,
+                                                                 forcefield,
+                                                                 openff=ff_library.ligandff['OpenFF_1.0.0'])
 
                 for ffxml_template in ffxml_nsr_template_list:
                     forcefield.loadFile(StringIO(ffxml_template))
@@ -781,7 +783,12 @@ class ParametrizeMDComponents:
         if self.md_components.has_ligand:
             print("Ligand Parametrized by using the ff: {}".format(self.ligand_ff))
             prefix_name = 'LIG'
-            pmd = ParamMolStructure(self.md_components.get_ligand, self.ligand_ff, prefix_name=prefix_name, force_charge=True)
+
+            pmd = ParamMolStructure(self.md_components.get_ligand,
+                                    self.ligand_ff,
+                                    prefix_name=prefix_name,
+                                    recharge=False)
+
             ligand_pmd = pmd.parameterize()
             ligand_pmd.residues[0].name = prefix_name
 
@@ -796,7 +803,9 @@ class ParametrizeMDComponents:
         print("Other Ligands Parametrized by using the ff: {}".format(self.ligand_ff))
         if self.md_components.has_other_ligands:
 
-            other_ligand_pmd = parametrize_unknown_component(self.md_components.get_other_ligands, self.ligand_ff)
+            other_ligand_pmd = parametrize_component(self.md_components.get_other_ligands,
+                                                     self.protein_ff,
+                                                     self.ligand_ff)
 
             self._check_formal_vs_partial_charge("other ligands", self.md_components.get_other_ligands, other_ligand_pmd)
 

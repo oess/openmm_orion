@@ -66,6 +66,10 @@ solvate.set_parameters(salt_concentration=50.0)
 solvate.set_parameters(neutralize_solute=True)
 solvate.modify_parameter(solvate.close_solvent, promoted=False, default=False)
 
+# This cube is necessary for the correct work of collection and shard
+coll_open = CollectionSetting("OpenCollection", title="Open Collection")
+coll_open.set_parameters(open=True)
+
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
@@ -78,6 +82,9 @@ minflask.set_parameters(center=True)
 minflask.set_parameters(save_md_stage=True)
 minflask.promote_parameter("md_engine", promoted_name="md_engine")
 
+# This cube is necessary for the correct working of collection and shard
+coll_close = CollectionSetting("CloseCollection", title="Close Collection")
+coll_close.set_parameters(open=False)
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",
@@ -87,21 +94,25 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
-job.add_cubes(flask, idsetting, comp, solvate, ff, minflask, ofs, fail)
+job.add_cubes(flask, idsetting, comp, solvate, coll_open, ff, minflask, coll_close, ofs, fail)
 
 flask.success.connect(idsetting.intake)
 idsetting.success.connect(comp.intake)
 comp.success.connect(solvate.intake)
-solvate.success.connect(ff.intake)
+solvate.success.connect(coll_open.intake)
+coll_open.success.connect(ff.intake)
 ff.success.connect(minflask.intake)
-minflask.success.connect(ofs.intake)
+minflask.success.connect(coll_close.intake)
+coll_close.success.connect(ofs.intake)
 
 # Fail Connections
 idsetting.failure.connect(fail.intake)
 comp.failure.connect(fail.intake)
 solvate.failure.connect(fail.intake)
+coll_open.failure.connect(fail.intake)
 ff.failure.connect(fail.intake)
 minflask.failure.connect(fail.intake)
+coll_close.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()

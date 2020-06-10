@@ -15,7 +15,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '2.0.0a14'
+__version__ = '2.0.0a26'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
@@ -49,6 +49,7 @@ from .TrjAnalysis.cubes import ParallelTrajInteractionEnergyCube
 from .TrjAnalysis.cubes import ParallelMDTrajAnalysisClusterReport
 from .TrjAnalysis.cubes import ParallelClusterOETrajCube
 from .TrjAnalysis.cubes import ConformerGatheringData
+from .TrjAnalysis.cubes import ExtractMDDataCube
 
 from .FEC.RFEC.cubes import BoundUnboundSwitchCube
 

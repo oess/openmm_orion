@@ -64,4 +64,4 @@ protein_standard_residue_names = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS',
                                   'LEU', 'LYS', 'MET', 'PHE', 'PRO',
                                   'SER', 'THR', 'TRP', 'TYR', 'VAL',
                                   'ASX', 'GLX', 'CYX', 'CYH', 'HID',
-                                  'HIE', 'HIP']
+                                  'HIE', 'HIP', 'ACE', 'NME']
