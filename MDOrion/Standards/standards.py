@@ -153,6 +153,9 @@ class Fields:
 
     class Analysis:
 
+        # The ConfIdVec vector addresses an input confid for each traj frame
+        confIdVec = OEField("ConfIdVec", Types.IntVec, meta=_metaHidden)
+
         # The OETraj Field is for the record containing Traj OEMols and energies
         oetraj_rec = OEField("OETraj", Types.Record, meta=_metaHidden)
 

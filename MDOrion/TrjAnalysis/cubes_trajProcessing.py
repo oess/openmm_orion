@@ -222,8 +222,6 @@ class ConcatenateTrajMMPBSACube(RecordPortsMixin, ComputeCube):
                 for field in trajPBSA_rec.get_fields():
                     fname = field.get_name()
                     if field.get_type() is Types.FloatVec:
-                        opt['Logger'].info(
-                            'ConcatenateTrajMMPBSACube adding FloatVec {}'.format(fname))
                         if fname not in PBSAdata.keys():
                             PBSAdata[fname] = trajPBSA_rec.get_value(field)
                         else:
@@ -233,52 +231,11 @@ class ConcatenateTrajMMPBSACube(RecordPortsMixin, ComputeCube):
             for key in PBSAdata.keys():
                 opt['Logger'].info('ConcatenateTrajMMPBSACube PBSAdata[{}] length {}'.format(key, len(PBSAdata[key])))
 
-            # Add the trajPBSA record to the parent record
+            # Add the PBSAdata dict to the parent record
             record.set_value(Fields.Analysis.oepbsa_dict, PBSAdata)
 
-
-
-            # find the trajPBSA record from inside the first conf
-            rec0 = list_conf_rec[0]
-            confid = utl.RequestOEFieldType(rec0, Fields.confid)
-            if not rec0.has_field(Fields.Analysis.oepbsa_rec):
-                raise ValueError('{} could not find the trajPBSA record for confID {}'.format(system_title, confid))
-            trajPBSA_rec = rec0.get_value(Fields.Analysis.oepbsa_rec)
-            opt['Logger'].info('{}: found trajPBSA record for confID {}'.format(system_title, confid))
-
-            # make a list of all FloatVec fields from inside the trajPBSA_rec record of the first conf
-            floatVecFields = []
-            for field in trajPBSA_rec.get_fields():
-                if field.get_type() is Types.FloatVec:
-                    opt['Logger'].info('ConcatenateTrajMMPBSACube adding FloatVec field {}'.format(field.get_name()))
-                    floatVecFields.append(field)
-                else:
-                    opt['Logger'].info('ConcatenateTrajMMPBSACube skipping field {}'.
-                                       format(field.get_name()))
-            if len(floatVecFields)<1:
-                raise ValueError('{} ConcatenateTrajMMPBSACube found no FloatVec Fields'.format(system_title))
-
-            # for each field, concatenate the floatvecs from all confs and put in new record
-            new_rec = OERecord()
-            for field in floatVecFields:
-                vec = []
-                for confrec in list_conf_rec:
-                    confid = utl.RequestOEFieldType(confrec, Fields.confid)
-                    if not confrec.has_field(Fields.Analysis.oepbsa_rec):
-                        raise ValueError('{} could not find the trajPBSA record for confid {}'.
-                                         format(system_title,confid))
-                    trajPBSA_rec = confrec.get_value(Fields.Analysis.oepbsa_rec)
-                    vec += trajPBSA_rec.get_value(field)
-                new_rec.set_value(field, vec)
-                #opt['Logger'].info('ConcatenateTrajMMPBSACube added FloatVec {} of size {}'.format(field.get_name(),len(vec)))
-
-            # Add the trajPBSA record to the parent record
-            record.set_value(Fields.Analysis.oepbsa_rec, new_rec)
-
-            # Get concatenated MMPBSA values for overall mean and std err
-            zapMMPBSA = new_rec.get_value(Fields.Analysis.zapMMPBSA_fld, vec)
-            # Clean average MMPBSA to avoid nans and high zap energy values
-            avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(zapMMPBSA)
+            # Generate clean average, stderr MMPBSA to avoid nans and high zap energy values
+            avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(PBSAdata['OEZap_MMPBSA6_Bind'])
 
             # Add to the record the MMPBSA mean and std
             record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)

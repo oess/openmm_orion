@@ -11,6 +11,8 @@ from MDOrion.TrjAnalysis.cubes_trajProcessing import (ConformerGatheringData,
 from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube,
                                        ParallelMakeClusterTrajOEMols,
                                        ParallelMDTrajAnalysisClusterReport,
+                                       ParallelClusterPopAnalysis,
+                                       ParallelTrajAnalysisReportDataset,
                                        MDFloeReportCube)
 
 job = WorkFloe("From combining confs Traj OEMols through Analysis")
@@ -30,6 +32,8 @@ catLigTraj = ParallelConfTrajsToLigTraj("ConfTrajsToLigTraj")
 catLigMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube')
 clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
 clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols')
+clusPop = ParallelClusterPopAnalysis('ClusterPopAnalysis')
+prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset')
 report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 report = MDFloeReportCube("report", title="Floe Report")
 
@@ -40,8 +44,8 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
 job.add_cubes(ifs,
-              confGather, catLigTraj, catLigMMPBSA, clusCube, clusOEMols,
-              report_gen, report,
+              confGather, catLigTraj, catLigMMPBSA, clusCube, clusOEMols, clusPop,
+              prepDataset, report_gen, report,
               ofs, fail)
 
 ifs.success.connect(confGather.intake)
@@ -49,7 +53,9 @@ confGather.success.connect(catLigTraj.intake)
 catLigTraj.success.connect(catLigMMPBSA.intake)
 catLigMMPBSA.success.connect(clusCube.intake)
 clusCube.success.connect(clusOEMols.intake)
-clusOEMols.success.connect(report_gen.intake)
+clusOEMols.success.connect(clusPop.intake)
+clusPop.success.connect(prepDataset.intake)
+prepDataset.success.connect(report_gen.intake)
 report_gen.success.connect(report.intake)
 report_gen.failure.connect(fail.intake)
 report.success.connect(ofs.intake)

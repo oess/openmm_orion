@@ -20,6 +20,9 @@ from tempfile import TemporaryDirectory
 
 from oeommtools import utils as oeommutils
 
+# Needed for ClusterRMSDByConf
+import oetrajanalysis.Clustering_utils as clusutl
+
 from scipy.signal import medfilt
 
 from pymbar import timeseries
@@ -516,7 +519,7 @@ def ligand_to_svg_stmd(ligand, ligand_name):
     return svg_lines
 
 
-def clean_mean_serr(data):
+def clean_mean_serr(data,timeSeriesCorrection=False):
 
     def pwc_medfiltit(y, W):
 
@@ -538,8 +541,10 @@ def clean_mean_serr(data):
     # Remove all nans from the array if any; this becomes our working set of values
     np_no_nans = np_arr[~np.isnan(np_arr)]
 
-    # De-noise the data to prepare it to make low_std and high_std
-    smooth = pwc_medfiltit(np_no_nans, 15)
+    # If enough data, de-noise the data to prepare it to make low_std and high_std
+    smooth = np_no_nans
+    if len(np_no_nans)>30:
+        smooth = pwc_medfiltit(np_no_nans, 15)
 
     # Estimate the average and standard deviation from which we make make low_std and high_std
     tmp_avg = smooth.mean()
@@ -554,12 +559,15 @@ def clean_mean_serr(data):
 
     new_arr = np_no_nans.take(clean_index[0])
 
-    # since this is a timeseries, data is probably not independent so get g (statistical inefficiency)
-    [t0, g, Neff_max] = timeseries.detectEquilibration(new_arr)
-    # effective number of uncorrelated samples is totalSamples/g
-    neff = len(new_arr)/g
-    # use neff to calculate the standard error of the mean
-    serr = new_arr.std()/np.sqrt(neff)
+    # If this is a timeseries, data is probably not independent so get g (statistical inefficiency)
+    if timeSeriesCorrection:
+        [t0, g, Neff_max] = timeseries.detectEquilibration(new_arr)
+        # effective number of uncorrelated samples is totalSamples/g
+        neff = len(new_arr)/g
+        # use neff to calculate the standard error of the mean
+        serr = new_arr.std()/np.sqrt(neff)
+    else:
+        serr = new_arr.std()/np.sqrt(len(new_arr))
 
     return new_arr.mean(), serr
 
@@ -622,5 +630,139 @@ def StyleTrajProteinLigandClusters( protein, ligand):
         #print( pconf.GetTitle(), lconf.GetTitle(), colorRGB)
         SetProteinLigandVizStyle( pconf, lconf, colorRGB)
     return True
+
+
+def AnalyzeClustersByConfs(ligand,confIdVec,clusResults):
+    '''Performs a population analysis of cluster results with respect to starting conformers
+    in the ligand argument. Returns a dictionary of results.'''
+    #
+    # Setup
+    confs = ligand.NumConfs()
+    clusVec = clusResults['ClusterVec']
+    nMajorCl = clusResults['nMajorClusters']
+    # clusters are ordered by decreasing size so first nMajorCl clusters are the major ones
+    majorCl = list(range(nMajorCl))
+    # The outliers and remaining (minor) clusters are grouped together in a last element nMajorPlus1
+    nMajorPlus1 = nMajorCl+1
+    results = dict()
+    results['nConfs'] = confs
+    results['nMajorPlus1'] = nMajorPlus1
+    #
+    # generate 2D matrix, by confs and cluster, of lists of the traj idxs
+    trajIdxs = [ [ [] for column in range(nMajorPlus1) ] for row in range(confs) ]
+    for i, (confid, clus) in enumerate( zip(confIdVec,clusVec)):
+        if clus in majorCl:
+            trajIdxs[confid][clus].append(i)
+        else:
+            trajIdxs[confid][-1].append(i)
+    results['TrajIdxs'] = trajIdxs
+    results['MaxIdx'] = len(confIdVec)
+    #
+    # Count the idxs in each element, row, and column to calculate fractional populations
+    confPopsList = [ [ len(trajIdxs[conf][clus]) for clus in range(nMajorPlus1) ] for conf in range(confs) ]
+    confPops = np.array(confPopsList)
+    confTot = [ confPops[conf,:].sum() for conf in range(confs) ]
+    clusTot = [ confPops[:,clus].sum() for clus in range(nMajorPlus1) ]
+    results['ConfPops'] = confPops
+    results['ConfTot'] = confTot
+    results['ClusTot'] = clusTot
+    #
+    # Calculate fractional populations of clusters for each conf, and confs for each cluster
+    confFracByClus = [ [ confPops[conf][clus]/clusTot[clus] for conf in range(confs) ] for clus in range(nMajorPlus1) ]
+    clusFracByConf = [ [ confPops[conf][clus]/confTot[conf] for clus in range(nMajorPlus1) ] for conf in range(confs) ]
+    results['ConfFracByClus'] = confFracByClus
+    results['ClusFracByConf'] = clusFracByConf
+
+    return results
+
+
+def MeanSerrByClusterEnsemble(confPopDict, floatVec):
+    '''Performs a mean and standard error of floatVec by cluster ensemble.'''
+    #
+    # Raise ValueError if floatVec is of different length than MaxIdx
+    if len(floatVec) != confPopDict['MaxIdx']:
+        print('Error: MaxIdx {} must equal len(floatvec) {}'.format(confPopDict['MaxIdx'], len(floatVec)))
+    #
+    nconfs = confPopDict['nConfs']
+    trajIdxs = confPopDict['TrajIdxs']
+    nMajorPlus1 = confPopDict['nMajorPlus1']
+    results = dict()
+    results['nConfs'] = nconfs
+    results['nMajorPlus1'] = nMajorPlus1
+    #
+    #
+    confClusMMPBSAlist = [[[] for column in range(nMajorPlus1)] for row in range(nconfs)]
+    for conf in range(nconfs):
+        # print('conf', conf)
+        for clus in range(nMajorPlus1):
+            # print(conf, clus, confIdxs[conf][clus][:3])
+            for idx in trajIdxs[conf][clus]:
+                confClusMMPBSAlist[conf][clus].append(floatVec[idx])
+    #
+    #
+    confClusMMPBSA = np.array(confClusMMPBSAlist)
+    #
+    clusmmpbsaMean = []
+    clusmmpbsaSerr = []
+    clusmmpbsa = np.array([np.concatenate(confClusMMPBSA[:, clus]) for clus in range(nMajorPlus1)])
+    for clus in clusmmpbsa:
+        mean, serr = clean_mean_serr(clus)
+        # print(mean,serr)
+        clusmmpbsaMean.append(mean)
+        clusmmpbsaSerr.append(serr)
+    results['ByClusMean'] = clusmmpbsaMean
+    results['ByClusSerr'] = clusmmpbsaSerr
+    #
+    confmmpbsaMean = []
+    confmmpbsaSerr = []
+    confmmpbsa = np.array([np.concatenate(confClusMMPBSA[conf, :]) for conf in range(nconfs)])
+    for conf in confmmpbsa:
+        mean, serr = clean_mean_serr(conf)
+        # print(mean,serr)
+        confmmpbsaMean.append(mean)
+        confmmpbsaSerr.append(serr)
+    results['ByConfMean'] = confmmpbsaMean
+    results['ByConfSerr'] = confmmpbsaSerr
+
+    return results
+
+
+def ClusterRMSDByConf(ligand, ligTraj, clusResults):
+    # Setup
+    nconfs = ligand.NumConfs()
+    nMajorClusters = clusResults['nMajorClusters']
+    majorClusIds = list(range(nMajorClusters))
+    nMajorPlus1 = nMajorClusters+1
+    clusVec = clusResults['ClusterVec']
+    #
+    # make major-cluster OEMols
+    majorClusIds = list(range(clusResults['nMajorClusters']))
+    clusOEMols = []
+    for clusID in majorClusIds:
+        clusOEMol = clusutl.TrajOEMolFromCluster( ligTraj, clusResults['ClusterVec'], clusID)
+        clusOEMols.append(clusOEMol)
+    #
+    # final OEMol OEMol combines outliers and minor clusters
+    otherVec = [-1]*len(clusResults['ClusterVec'])
+    for i, clusID in enumerate(clusResults['ClusterVec']):
+        if clusID in majorClusIds:
+            otherVec[i] = clusID
+    clusOEMol = clusutl.TrajOEMolFromCluster( ligTraj, otherVec, -1)
+    clusOEMols.append(clusOEMol)
+    #
+    # Get RMSDs to traj clusters for each ligand starting conformer
+    ligConfList = [ oechem.OEMol(conf) for conf in ligand.GetConfs() ]
+    confRMSDsByClus = [ clusutl.TrajRMSDToRefMolList(ligConfList,clusOEMol) for clusOEMol in clusOEMols ]
+    #
+    #
+    confRMSDsByClusMean = [[[] for column in range(nMajorPlus1)] for row in range(nconfs)]
+    confRMSDsByClusSerr = [[[] for column in range(nMajorPlus1)] for row in range(nconfs)]
+    for conf in range(nconfs):
+        for clus in range(nMajorPlus1):
+            rmsdVec = np.array(confRMSDsByClus[clus][conf])
+            confRMSDsByClusMean[conf][clus] = rmsdVec.mean()
+            confRMSDsByClusSerr[conf][clus] = rmsdVec.std()/np.sqrt(len(rmsdVec))
+    #
+    return confRMSDsByClusMean, confRMSDsByClusSerr
 
 
