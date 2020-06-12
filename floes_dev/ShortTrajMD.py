@@ -32,7 +32,7 @@ from MDOrion.System.cubes import ParallelSolvationCube
 
 from MDOrion.ForceField.cubes import ParallelForceFieldCube
 
-from MDOrion.ProtPrep.cubes import MDSetting
+from MDOrion.System.cubes import MDComponentCube
 
 from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
@@ -104,8 +104,8 @@ iprot = DatasetReaderCube("ProteinReader", title="Protein Reader")
 iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input File',
                         description="Protein file name")
 
-protset = MDSetting("ProteinSetting", title="Protein Setting")
-protset.promote_parameter("flask_title", promoted_name="flask_title", default="protein")
+mdcomp = MDComponentCube("MDComponentSetting", title="MDComponentSetting")
+mdcomp.promote_parameter("flask_title", promoted_name="flask_title", default="protein")
 
 # Complex cube used to assemble the ligands and the solvated protein
 complx = ComplexPrepCube("Complex", title="Complex Preparation")
@@ -221,7 +221,7 @@ ofs.promote_parameter("data_out", promoted_name="out")
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
-job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx, solvate, coll_open, ff,
+job.add_cubes(iligs, ligset, iprot, mdcomp, chargelig, complx, solvate, coll_open, ff,
               minComplex, warmup, equil1, equil2, equil3, prod, coll_close, ofs, fail)
 
 
@@ -229,8 +229,8 @@ iligs.success.connect(chargelig.intake)
 chargelig.success.connect(ligset.intake)
 ligset.success.connect(ligid.intake)
 ligid.success.connect(complx.intake)
-iprot.success.connect(protset.intake)
-protset.success.connect(complx.protein_port)
+iprot.success.connect(mdcomp.intake)
+mdcomp.success.connect(complx.protein_port)
 complx.success.connect(solvate.intake)
 solvate.success.connect(coll_open.intake)
 coll_open.success.connect(ff.intake)

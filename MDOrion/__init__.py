@@ -51,6 +51,5 @@ from .TrjAnalysis.cubes import ParallelClusterOETrajCube
 from .TrjAnalysis.cubes import ConformerGatheringData
 from .TrjAnalysis.cubes import ExtractMDDataCube
 
-from .FEC.RFEC.cubes import BoundUnboundSwitchCube
 
 

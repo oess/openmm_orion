@@ -199,6 +199,7 @@ rec_check.success.connect(ofs.intake)
 # Fail Connections
 sysid.failure.connect(rec_check.fail_in)
 solvate.failure.connect(rec_check.fail_in)
+md_comp.failure.connect(rec_check.fail_in)
 coll_open.failure.connect(rec_check.fail_in)
 ff.failure.connect(rec_check.fail_in)
 minComplex.failure.connect(rec_check.fail_in)

@@ -9,7 +9,7 @@ lxml==4.5.0
 
 # OE Stack
 # Leave this here to avoid pip install issues
-OpenEye-orionplatform==2.4.4
+OpenEye-orionplatform==2.4.6
 
 # # OpenEye-Artemis
 OpenEye-ensemble2img==0.1.1

@@ -23,16 +23,12 @@ from MDOrion.TrjAnalysis.cubes import ExtractMDDataCube
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
+from os import path
+
 job = WorkFloe("MD Data Extraction Floe", title="MD Data Extraction Floe")
 
-job.description = """
-This floe extract significant data generated along the Short Trajectory
-MD with Analysis floe. The protein, ligand and binding site water trajectories
-are extracted with the protein and ligand average and median 
-clusters. Also the generated floe report is saved. The MD Data is upload
-as .tar.gz file to S3 and it is available under the Files UI tab in Orion 
-with the selected file name.
-"""
+
+job.description = open(path.join(path.dirname(__file__), 'MDData_desc.rst'), 'r').read()
 
 job.classification = [['MD Data']]
 job.uuid = "6665ca20-6014-4f3b-8d02-4b5d15b75ee3"
