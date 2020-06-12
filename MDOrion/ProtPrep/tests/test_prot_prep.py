@@ -72,7 +72,8 @@ class MDSettingTester(unittest.TestCase):
         self.assertEqual(md_components.num_atoms, 9746)
         self.assertTrue(md_components.has_protein)
         self.assertTrue(md_components.has_ligand)
-        self.assertTrue(md_components.has_solvent)
+        self.assertTrue(md_components.has_water)
+        self.assertFalse(md_components.has_solvent)
         self.assertFalse(md_components.has_cofactors)
 
     @pytest.mark.travis
@@ -103,7 +104,8 @@ class MDSettingTester(unittest.TestCase):
         self.assertEqual(md_components.num_atoms, 8442)
         self.assertTrue(md_components.has_protein)
         self.assertTrue(md_components.has_ligand)
-        self.assertTrue(md_components.has_solvent)
+        self.assertTrue(md_components.has_water)
+        self.assertFalse(md_components.has_solvent)
         self.assertFalse(md_components.has_cofactors)
 
     @pytest.mark.travis

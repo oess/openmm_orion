@@ -91,7 +91,9 @@ class MDComponents:
             self._initialize_from_molecules(molecules)
 
     def __repr__(self):
-        ret_str = "\n{:<20} {:>7}\n".format("Comp_name", "Atoms")
+        ret_str = "\n" + 28 * "-" + "\n"
+        ret_str += "{}\n".format(self.get_title)[:28]
+        ret_str += "\n{:<20} {:>7}\n".format("Comp_name", "Atoms")
         ret_str += 28 * "-" + "\n"
         for comp_name, comp in self._components.items():
             ret_str += "{:<20} {:>7}\n".format(comp_name, comp.NumAtoms())
