@@ -31,8 +31,8 @@ confGather = ConformerGatheringData("Gathering Conformer Records")
 catLigTraj = ParallelConfTrajsToLigTraj("ConfTrajsToLigTraj")
 catLigMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube')
 clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
-clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols')
 clusPop = ParallelClusterPopAnalysis('ClusterPopAnalysis')
+clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols')
 prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset')
 report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 report = MDFloeReportCube("report", title="Floe Report")
@@ -44,7 +44,7 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
 job.add_cubes(ifs,
-              confGather, catLigTraj, catLigMMPBSA, clusCube, clusOEMols, clusPop,
+              confGather, catLigTraj, catLigMMPBSA, clusCube, clusPop, clusOEMols,
               prepDataset, report_gen, report,
               ofs, fail)
 
@@ -52,9 +52,9 @@ ifs.success.connect(confGather.intake)
 confGather.success.connect(catLigTraj.intake)
 catLigTraj.success.connect(catLigMMPBSA.intake)
 catLigMMPBSA.success.connect(clusCube.intake)
-clusCube.success.connect(clusOEMols.intake)
-clusOEMols.success.connect(clusPop.intake)
-clusPop.success.connect(prepDataset.intake)
+clusCube.success.connect(clusPop.intake)
+clusPop.success.connect(clusOEMols.intake)
+clusOEMols.success.connect(prepDataset.intake)
 prepDataset.success.connect(report_gen.intake)
 report_gen.success.connect(report.intake)
 report_gen.failure.connect(fail.intake)

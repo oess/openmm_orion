@@ -661,9 +661,9 @@ def AnalyzeClustersByConfs(ligand,confIdVec,clusResults):
     # Count the idxs in each element, row, and column to calculate fractional populations
     confPopsList = [ [ len(trajIdxs[conf][clus]) for clus in range(nMajorPlus1) ] for conf in range(confs) ]
     confPops = np.array(confPopsList)
-    confTot = [ confPops[conf,:].sum() for conf in range(confs) ]
-    clusTot = [ confPops[:,clus].sum() for clus in range(nMajorPlus1) ]
-    results['ConfPops'] = confPops
+    confTot = [ confPops[conf,:].sum().item() for conf in range(confs) ]
+    clusTot = [ confPops[:,clus].sum().item() for clus in range(nMajorPlus1) ]
+    results['ConfPops'] = confPops.tolist()
     results['ConfTot'] = confTot
     results['ClusTot'] = clusTot
     #
@@ -672,6 +672,7 @@ def AnalyzeClustersByConfs(ligand,confIdVec,clusResults):
     clusFracByConf = [ [ confPops[conf][clus]/confTot[conf] for clus in range(nMajorPlus1) ] for conf in range(confs) ]
     results['ConfFracByClus'] = confFracByClus
     results['ClusFracByConf'] = clusFracByConf
+
 
     return results
 

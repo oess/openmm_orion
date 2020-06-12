@@ -588,12 +588,20 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} Attempting Population Analysis of Traj Clusters'
                 .format(system_title) )
 
-            # Get the ligand which will be a multiconformer molecule with the starting
-            # conformer for each simulation
+            # Get the ligand which will be a multiconformer molecule comprising the parent
+            # starting conformer for each separate MD simulation
             if not record.has_field(Fields.ligand):
                 raise ValueError('{} could not find the ligand field'.format(system_title))
             ligand = utl.RequestOEFieldType(record, Fields.ligand)
             lig_name = utl.RequestOEFieldType(record, Fields.ligand_name)
+
+            # Extract the ligTraj OEMol from the OETraj record
+            if not record.has_field(Fields.Analysis.oetraj_rec):
+                raise ValueError('{} could not find the traj record'.format(system_title))
+            oetrajRecord = record.get_value(Fields.Analysis.oetraj_rec)
+            ligTraj = utl.RequestOEField(oetrajRecord, 'LigTraj', Types.Chem.Mol)
+            opt['Logger'].info('{} got ligTraj with {} atoms, {} confs'.format(
+                system_title, ligTraj.NumAtoms(), ligTraj.NumConfs()))
 
             # Get the confId vector which addresses each frame of the trajectory to its
             # parent starting conformer.
@@ -618,6 +626,24 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
             PBSAdata = utl.RequestOEFieldType(record,Fields.Analysis.oepbsa_dict)
             for key in PBSAdata.keys():
                 opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])) )
+
+            # Generate the fractional cluster populations by conformer, and conformer populations by cluster
+            popResults = utl.AnalyzeClustersByConfs(ligand, confIdVec, clusResults)
+
+            # Generate the cluster MMPBSA mean and standard error
+            MMPBSAbyClus = utl.MeanSerrByClusterEnsemble(popResults, PBSAdata['OEZap_MMPBSA6_Bind'])
+            popResults['OEZap_MMPBSA6_ByClusMean'] = MMPBSAbyClus['ByClusMean']
+            popResults['OEZap_MMPBSA6_ByClusSerr'] = MMPBSAbyClus['ByClusSerr']
+            popResults['OEZap_MMPBSA6_ByConfMean'] = MMPBSAbyClus['ByConfMean']
+            popResults['OEZap_MMPBSA6_ByConfSerr'] = MMPBSAbyClus['ByConfSerr']
+
+            # Generate by-cluster mean and serr RMSDs to the starting confs
+            confRMSDsByClusMean, confRMSDsByClusSerr = utl.ClusterRMSDByConf(ligand, ligTraj, clusResults)
+            popResults['confRMSDsByClusMean'] = confRMSDsByClusMean
+            popResults['confRMSDsByClusSerr'] = confRMSDsByClusSerr
+
+            # Put these results on the record as a POD JSON object
+            record.set_value(Fields.Analysis.cluspop_dict,popResults)
 
             self.success.emit(record)
 
@@ -727,6 +753,19 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
             PBSAdata = utl.RequestOEFieldType(record, Fields.Analysis.oepbsa_dict)
             for key in PBSAdata.keys():
                 opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])))
+
+            # BEGIN TESTING Bayly 2020jun
+            # Get the clusConf population data dict from the record
+            if not record.has_field(Fields.Analysis.cluspop_dict):
+                raise ValueError('{} could not find the clusConf population JSON object'.format(system_title))
+            opt['Logger'].info('{} found the clusConf population JSON record'.format(system_title))
+            popDict = utl.RequestOEFieldType(record, Fields.Analysis.cluspop_dict)
+            for key in popDict.keys():
+                opt['Logger'].info(' popDict[{}] :'.format(key) )
+                if key == 'TrajIdxs':
+                    continue
+                opt['Logger'].info(' {} '.format(popDict[key]) )
+            # END TESTING Bayly 2020jun
 
             self.success.emit(record)
 

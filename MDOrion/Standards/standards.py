@@ -177,6 +177,9 @@ class Fields:
         # The TrajClusDict Field is for the POD Dictionary containing Traj ligand clustering results
         oeclus_dict = OEField("TrajClusDict", Types.JSONObject, meta=_metaHidden)
 
+        # The ClusPopDict Field is for the POD Dictionary containing conf/cluster population results
+        cluspop_dict = OEField("ClusPopDict", Types.JSONObject, meta=_metaHidden)
+
         # The AnalysesDone Field is for a list of the analyses that have been done
         analysesDone = OEField("AnalysesDone", Types.StringVec, meta=_metaHidden)
 
