@@ -70,7 +70,6 @@ npt.set_parameters(restraintWt=5.0)
 npt.set_parameters(suffix='npt')
 npt.set_parameters(hmr=False)
 
-
 # Trajectory and logging info frequency intervals
 npt.promote_parameter('trajectory_interval', promoted_name='trajectory_interval', default=0.0005,
                       description='Trajectory saving interval in ns')

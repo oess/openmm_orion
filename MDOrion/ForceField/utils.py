@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -15,330 +15,995 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-
 from openeye import oechem
+
+from MDOrion.ForceField.ff_library import ff_library
+
+from MDOrion.ForceField.ffutils import (ParamMolStructure,
+                                        parametrize_component,
+                                        clean_tags)
 
 from oeommtools import utils as oeommutils
 
-import MDOrion
+from oeommtools import data_utils
 
 from simtk.openmm import app
 
+from openeye import oespruce
+
 import parmed
 
-from openeye import oequacpac
+from oemdtoolbox.ForceField import nsr_template_generator
 
-from MDOrion.LigPrep import ff_utils
+from io import StringIO
 
-import numpy as np
-
-import itertools
-
-import os
-
-proteinResidues = ['ALA', 'ASN', 'CYS', 'GLU', 'HIS',
-                   'LEU', 'MET', 'PRO', 'THR', 'TYR',
-                   'ARG', 'ASP', 'GLN', 'GLY', 'ILE',
-                   'LYS', 'PHE', 'SER', 'TRP', 'VAL']
-
-rnaResidues = ['A', 'G', 'C', 'U', 'I']
-dnaResidues = ['DA', 'DG', 'DC', 'DT', 'DI']
+from oeommtools.utils import sanitizeOEMolecule
 
 
-proteinff = {'Amber99SBildn': 'amber99sbildn.xml',
-             'Amber99SB': 'amber99sb.xml',
-             'Amber14SB': 'amber14/protein.ff14SB.xml',
-             'AmberFB15': 'amberfb15.xml'}
+class MDComponents:
 
-ligandff = {'Gaff': 'GAFF',
-            'Gaff2': 'GAFF2',
-            'Smirnoff99Frosst': 'smirnoff99Frosst.offxml',
-            'OpenFF_1.0.0': "openff_unconstrained-1.0.0.offxml",
-            'OpenFF_1.1.0': "openff_unconstrained-1.1.0.offxml"}
+    def __init__(self, system_representation, components_title="Flask"):
 
-solventff = {'Tip3p': 'tip3p.xml'}
+        du = None
+        molecules = None
 
-otherff = {'Gaff': 'GAFF',
-           'Gaff2': 'GAFF2',
-           'Smirnoff99Frosst': 'smirnoff99Frosst.offxml',
-           'OpenFF_1.0.0': "openff_unconstrained-1.0.0.offxml",
-           'OpenFF_1.1.0': "openff_unconstrained-1.1.0.offxml"}
-
-
-def applyffProtein(protein, opt):
-    """
-    This function applies the selected force field to the
-    protein
-
-    Parameters:
-    -----------
-    protein: OEMol molecule
-        The protein to parametrize
-    opt: python dictionary
-        The options used to parametrize the protein
-
-    Return:
-    -------
-    protein_structure: Parmed structure instance
-        The parametrized protein parmed structure
-    """
-
-    opt['Logger'].info("[{}] Protein parametrized by using: {}".format(opt['CubeTitle'],
-                                                                       opt['protein_forcefield']))
-
-    protein_copy = oechem.OEMol(protein)
-
-    topology, positions = oeommutils.oemol_to_openmmTop(protein_copy)
-
-    forcefield = app.ForceField(proteinff[opt['protein_forcefield']])
-
-    unmatched_residues = forcefield.getUnmatchedResidues(topology)
-
-    if unmatched_residues:
-        # Extended ff99SBildn force field
-        opt['Logger'].warn("The following protein residues are not recognized by the selected FF: {} - {}"
-                           "\n...Extended FF is in use".format(opt['protein_forcefield'], unmatched_residues))
-
-        PACKAGE_DIR = os.path.dirname(os.path.dirname(MDOrion.__file__))
-        FILE_DIR = os.path.join(PACKAGE_DIR, "MDOrion/ForceField", "ffext")
-
-        ffext_fname = os.path.join(FILE_DIR, 'amber99SBildn_ext.xml')
-        forcefield = app.ForceField()
-        forcefield.loadFile(ffext_fname)
-
-        unmatched_residues = forcefield.getUnmatchedResidues(topology)
-
-        if unmatched_residues:
-            raise ValueError("Error. The following protein residues are not recognized "
-                             "by the extended force field {}".format(unmatched_residues))
-
-    omm_system = forcefield.createSystem(topology, rigidWater=False, constraints=None)
-    protein_structure = parmed.openmm.load_topology(topology, omm_system, xyz=positions)
-
-    return protein_structure
-
-
-def applyffWater(water, opt):
-    """
-    This function applies the selected force field to the
-    water
-
-    Parameters:
-    -----------
-    water: OEMol molecule
-        The water molecules to parametrize
-    opt: python dictionary
-        The options used to parametrize the water
-
-    Return:
-    -------
-    water_structure: Parmed structure instance
-        The parametrized water parmed structure
-    """
-
-    opt['Logger'].info("[{}] Water parametrized by using: {}".format(opt['CubeTitle'],
-                                                                     opt['solvent_forcefield']))
-
-    water_copy = oechem.OEMol(water)
-
-    topology, positions = oeommutils.oemol_to_openmmTop(water_copy)
-
-    forcefield = app.ForceField(solventff[opt['solvent_forcefield']])
-
-    # if opt['solvent_forcefield'] == 'tip4pew.xml':
-    #     modeller = app.Modeller(topology, positions)
-    #     modeller.addExtraParticles(forcefield)
-    #     topology = modeller.topology
-    #     positions = modeller.positions
-
-    unmatched_residues = forcefield.getUnmatchedResidues(topology)
-
-    if unmatched_residues:
-        raise ValueError("The following water molecules are not recognized "
-                         "by the selected force field {}: {}".format(opt['solvent_forcefield'], unmatched_residues))
-
-    omm_system = forcefield.createSystem(topology, rigidWater=False, constraints=None)
-    water_structure = parmed.openmm.load_topology(topology, omm_system, xyz=positions)
-
-    return water_structure
-
-
-def applyffExcipients(excipients, opt):
-    """
-    This function applies the selected force field to the
-    excipients
-
-    Parameters:
-    -----------
-    excipients: OEMol molecule
-        The excipients molecules to parametrize
-    opt: python dictionary
-        The options used to parametrize the excipients
-
-    Return:
-    -------
-    excipient_structure: Parmed structure instance
-        The parametrized excipient parmed structure
-    """
-
-    opt['Logger'].info("[{}] Excipients parametrized by using: {} and Ions by using Amber 14".format(opt['CubeTitle'],
-                                                                                                     opt['other_forcefield']))
-
-    excipients_copy = oechem.OEMol(excipients)
-
-    numparts, partlist = oechem.OEDetermineComponents(excipients_copy)
-    pred = oechem.OEPartPredAtom(partlist)
-
-    part_mols = []
-    for i in range(1, numparts + 1):
-        pred.SelectPart(i)
-        partmol = oechem.OEMol()
-        oechem.OESubsetMol(partmol, excipients_copy, pred)
-        part_mols.append(partmol)
-
-    # OpenMM topology and positions from OEMol
-    topology, positions = oeommutils.oemol_to_openmmTop(excipients_copy)
-
-    map_omm_to_oe = {omm_res: oe_mol for omm_res, oe_mol in zip(topology.residues(), part_mols)}
-
-    # Ions are contained in the amberff14 force field
-    exc_ff = "amber14/tip3p.xml"
-
-    # Try to apply the selected FF on the excipients
-    forcefield = app.ForceField(exc_ff)
-    #
-    # List of the unrecognized excipients
-    unmatched_res_list = forcefield.getUnmatchedResidues(topology)
-
-    matched_res_list = []
-    for res in topology.residues():
-        if res in unmatched_res_list:
-            continue
+        if type(system_representation) == oechem.OEDesignUnit:
+            du = system_representation
+        elif type(system_representation) == oechem.OEMol:
+            molecules = system_representation
         else:
-            matched_res_list.append(res)
+            raise ValueError("The MDComponent class can be initialized with an OE Design Unit "
+                             "or an OE Mol. The object passed is: {}".format(type(system_representation)))
 
-    # Map OpenMM residue to their parmed structure
-    map_omm_res_to_pmd = dict()
+        # MD allowed components
+        self._protein = None
+        self._ligand = None
+        self._other_ligands = None
+        self._counter_ions = None
+        self._metals = None
+        self._excipients = None
+        self._solvent = None
+        self._water = None
+        self._cofactors = None
+        self._other_cofactors = None
+        self._lipids = None
+        self._nucleics = None
+        self._other_nucleics = None
 
-    # Unique residue templates
-    map_template_to_pmd = dict()
+        self._component_names = ['protein', 'ligand',
+                                 'other_ligands', 'counter_ions',
+                                 'metals', 'excipients',
+                                 'solvent', 'water', 'cofactors',
+                                 'other_cofactors', 'lipids',
+                                 'nucleics', 'other_nucleics']
 
-    # Matched Residue Parametrization
-    bondedToAtom = forcefield._buildBondedToAtomList(topology)
-    for res in matched_res_list:
-        template, matches = forcefield._getResidueTemplateMatches(res, bondedToAtom)
-        if template in map_template_to_pmd:
-            map_omm_res_to_pmd[res] = map_template_to_pmd[template]
+        # Components found in the system_representation
+        self._components = dict()
+
+        self._components_title = components_title
+
+        self._box_vectors = None
+
+        if du is not None:
+            print("Found DU")
+            self._initialize_from_du(du)
         else:
-            res_top, res_pos = oeommutils.oemol_to_openmmTop(map_omm_to_oe[res])
-            try:
-                res_omm_system = forcefield.createSystem(res_top, rigidWater=False, constraints=None)
-                res_pmd = parmed.openmm.load_topology(res_top, res_omm_system, xyz=res_pos)
-            except:
-                raise ValueError("Error in the recognised excipient residue parametrization {}".format(res))
+            self._initialize_from_molecules(molecules)
 
-            map_template_to_pmd[template] = res_pmd
-            map_omm_res_to_pmd[res] = res_pmd
+    def __repr__(self):
+        ret_str = "\n{:<20} {:>7}\n".format("Comp_name", "Atoms")
+        ret_str += 28 * "-" + "\n"
+        for comp_name, comp in self._components.items():
+            ret_str += "{:<20} {:>7}\n".format(comp_name, comp.NumAtoms())
+        ret_str += 28 * "-" + "\n"
+        ret_str += "{:<20} {:>7}\n".format("Total_Atoms", self.num_atoms)
 
-    # print(map_omm_res_to_pmd)
+        return ret_str
 
-    # UnMatched Residue Parametrization
-    for ures in unmatched_res_list:
+    def _initialize_from_du(self, du):
 
-        oe_mol = map_omm_to_oe[ures]
+        if du.GetTitle() and self._components_title == "Flask":
+            self._components_title = du.GetTitle()
 
-        # Charge the unrecognized excipient
-        if not oequacpac.OEAssignCharges(oe_mol, oequacpac.OEAM1BCCCharges(symmetrize=True)):
-            raise ValueError("Is was not possible to charge the extract residue: {}".format(ures))
+        for pair in du.GetTaggedComponents():
 
-        # If GAFF or GAFF2 is selected as FF check for tleap command
-        # This is check for the tleap command only
-        if opt['other_forcefield'] in ['GAFF', 'GAFF2']:
-            ff_utils.ParamLigStructure(oechem.OEMol(), otherff[opt['other_forcefield']]).checkTleap
+            comp_name = pair[0]
+            comp_id = du.GetComponentID(comp_name)
+            comp = pair[1]
 
-        if otherff[opt['other_forcefield']] in ['Smirnoff99Frosst', 'OpenFF_1.0.0', 'OpenFF_1.1.0']:
-            oe_mol = oeommutils.sanitizeOEMolecule(oe_mol)
+            # Removing Interaction Hint Container and Style from the components
+            oechem.OEDeleteInteractionsHintSerializationData(comp)
+            oechem.OEDeleteInteractionsHintSerializationIds(comp)
+            oechem.OEClearStyle(comp)
 
-        # Parametrize the unrecognized excipient by using the selected FF
-        pmd = ff_utils.ParamLigStructure(oe_mol, otherff[opt['other_forcefield']],
-                                         prefix_name=opt['prefix_name'] + '_' + ures.name)
+            # Clean R-Groups
+            for atom in comp.GetAtoms(oechem.OEIsRGroup()):
+                nbrs = [nbr for nbr in atom.GetAtoms()]
+                comp.DeleteAtom(atom)
+                for nbr in nbrs:
+                    oechem.OEAssignMDLHydrogens(nbr)
+            oechem.OEAddExplicitHydrogens(comp)
 
-        ures_pmd = pmd.parameterize()
-        map_omm_res_to_pmd[ures] = ures_pmd
+            # Reset Comp Order
+            oechem.OEPDBOrderAtoms(comp, False)
 
-    # Excipient Parmed Structure
-    excipients_pmd = parmed.Structure()
-    for res in topology.residues():
-        excipients_pmd += map_omm_res_to_pmd[res]
+            if comp_id == oechem.OEDesignUnitComponents_Protein:
+                self._protein = comp
+                self._components['protein'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_Ligand:
+                self._ligand = comp
+                self._components['ligand'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_OtherLigands:
+                self._other_ligands = comp
+                self._components['other_ligands'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_CounterIons:
+                self._counter_ions = comp
+                self._components['counter_ions'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_Metals:
+                self._metals = comp
+                self._components['metals'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_Excipients:
+                self._excipients = comp
+                self._components['excipients'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_Solvent:
+                # Separate Water from Spruce Solvent
+                pred_water = oechem.OEIsWater(checkHydrogens=True)
+                water = oechem.OEMol()
+                oechem.OESubsetMol(water, comp, pred_water)
+                if water.NumAtoms():
+                    self._water = water
+                    self._components['water'] = water
+                    pred_not_water = oechem.OENotAtom(oechem.OEIsWater(checkHydrogens=True))
+                    solvent_not_water = oechem.OEMol()
+                    oechem.OESubsetMol(solvent_not_water, comp, pred_not_water)
+                    if solvent_not_water.NumAtoms():
+                        self._solvent = solvent_not_water
+                        self._components['solvent'] = solvent_not_water
+                else:
+                    self._solvent = comp
+                    self._components['solvent'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_Cofactors:
+                self._cofactors = comp
+                self._components['cofactors'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_OtherCofactors:
+                self._other_cofactors = comp
+                self._components['other_cofactors'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_Lipids:
+                self._lipids = comp
+                self._components['lipids'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_Nucleic:
+                self._nucleics = comp
+                self._components['nucleics'] = comp
+            elif comp_id == oechem.OEDesignUnitComponents_OtherNucleics:
+                self._other_nucleics = comp
+                self._components['other_nucleics'] = comp
+            else:
+                print("WARNING: The following component is not currently supported: {}".format(comp_name))
+        if not self._components:
+            raise ValueError("None of the DU components cannot recognized")
 
-    if len(excipients_pmd.atoms) != excipients_copy.NumAtoms():
-        raise ValueError(
-            "Excipient OE molecule and Excipient Parmed structure number of atoms mismatch {} vs {}".format(
-                len(excipients_pmd.atoms), excipients_copy.NumAtoms()))
+    def _initialize_from_molecules(self, molecules):
 
-    # Set the positions
-    oe_exc_coord_dic = excipients_copy.GetCoords()
-    exc_coords = np.ndarray(shape=(excipients_copy.NumAtoms(), 3))
-    for at_idx in oe_exc_coord_dic:
-        exc_coords[at_idx] = oe_exc_coord_dic[at_idx]
+        if molecules.GetTitle() and self._components_title == 'Flask':
+            self._components_title = molecules.GetTitle()
 
-    excipients_pmd.coordinates = exc_coords
+        build_opts = oespruce.OEDesignUnitBuildOptions()
+        build_opts.SetBuildSidechains(False)
+        build_opts.SetBuildLoops(False)
+        build_opts.SetCapCTermini(False)
+        build_opts.SetCapNTermini(False)
+        build_opts.SetDeleteClashingSolvent(False)
 
-    return excipients_pmd
+        enum_opts = oespruce.OEDesignUnitEnumerateSitesOptions()
+        enum_opts.SetAddInteractionHints(False)
+        enum_opts.SetAddStyle(False)
+        enum_opts.SetEnumerateCofactorSites(False)
+        enum_opts.SetDuplicateRemoval(False)
+        enum_opts.SetCollapseNonSiteAlts(False)
+
+        prep_opts = oespruce.OEDesignUnitPrepOptions()
+        prep_opts.SetProtonate(False)
+        prep_opts.SetAssignPartialChargesAndRadii(False)
+        prep_opts.SetBuildOptions(build_opts)
+        prep_opts.SetEnumerateSitesOptions(enum_opts)
+
+        split_opts = oespruce.OEDesignUnitSplitOptions()
+        split_opts.SetMakePackingResidues(False)
+
+        bio_opts = oespruce.OEBioUnitExtractionOptions()
+        bio_opts.SetSuperpose(False)
+
+        du_opts = oespruce.OEMakeDesignUnitOptions(split_opts, prep_opts, bio_opts)
+
+        du_meta_data = oespruce.OEStructureMetadata()
+
+        du_list = []
+
+        for du in oespruce.OEMakeDesignUnits(molecules, du_meta_data, du_opts):
+            du_list.append(du)
+
+        # Take the first du from the list if available
+        if du_list:
+            du = du_list[0]
+            self._initialize_from_du(du)
+            print("Design Unit Built from Spruce")
+        else:
+            # Split the complex in components
+            protein, ligand, water, excipients = oeommutils.split(molecules,
+                                                                  ligand_res_name='LIG')
+            if protein.NumAtoms():
+                protein = clean_tags(protein)
+                oechem.OEPDBOrderAtoms(protein, False)
+                self._protein = protein
+                self._components['protein'] = protein
+            if ligand.NumAtoms():
+                ligand = clean_tags(ligand)
+                ligand = sanitizeOEMolecule(ligand)
+                oechem.OEPDBOrderAtoms(ligand, False)
+                self._ligand = ligand
+                self._components['ligand'] = ligand
+            if water.NumAtoms():
+                water = clean_tags(water)
+                oechem.OEPDBOrderAtoms(water, False)
+                self._water = water
+                self._components['water'] = water
+            if excipients.NumAtoms():
+                excipients = clean_tags(excipients)
+                excipients = sanitizeOEMolecule(excipients)
+                oechem.OEPDBOrderAtoms(excipients, False)
+                self._excipients = excipients
+                self._components['excipients'] = excipients
+
+            print("Design Unit Built from Molecule")
+
+        if self.num_atoms != molecules.NumAtoms():
+            raise ValueError("Atom number mismatch: {} vs {}".format(self.num_atoms, molecules.NumAstoms()))
+
+    def __getstate__(self):
+
+        def mol_to_bytes(mol):
+            return oechem.OEWriteMolToBytes(oechem.OEFormat_OEB, True, mol)
+
+        state = dict(protein=mol_to_bytes(self._protein) if self._protein else None,
+                     ligand=mol_to_bytes(self._ligand) if self._ligand else None,
+                     other_ligands=mol_to_bytes(self._other_ligands) if self._other_ligands else None,
+                     counter_ions=mol_to_bytes(self._counter_ions) if self._counter_ions else None,
+                     metals=mol_to_bytes(self._metals) if self._metals else None,
+                     excipients=mol_to_bytes(self._excipients) if self._excipients else None,
+                     solvent=mol_to_bytes(self._solvent) if self._solvent else None,
+                     water=mol_to_bytes(self._water) if self._water else None,
+                     cofactors=mol_to_bytes(self._cofactors) if self._cofactors else None,
+                     other_cofactors=mol_to_bytes(self._other_cofactors) if self._other_cofactors else None,
+                     lipids=mol_to_bytes(self._lipids) if self._lipids else None,
+                     nucleics=mol_to_bytes(self._nucleics) if self._nucleics else None,
+                     other_nucleics=mol_to_bytes(self._other_nucleics) if self._other_nucleics else None,
+                     components_title=self._components_title,
+                     box_vectors=data_utils.encodePyObj(self._box_vectors) if self._box_vectors else None
+                     )
+
+        return state
+
+    def __setstate__(self, state):
+
+        def mol_from_bytes(mol_bytes):
+            mol = oechem.OEMol()
+            oechem.OEReadMolFromBytes(mol, oechem.OEFormat_OEB, True, mol_bytes)
+            return mol
+
+        self._components = dict()
+        self._total_atoms = 0
+
+        for comp_name, comp in state.items():
+
+            if comp_name == 'components_title':
+                self._components_title = comp
+                continue
+
+            if comp_name == 'box_vectors':
+                if comp is not None:
+                    box_vec = data_utils.decodePyObj(comp)
+                    self._box_vectors = box_vec
+                else:
+                    self._box_vectors = None
+                continue
+
+            mol = mol_from_bytes(comp) if comp else None
+
+            if comp_name == 'protein':
+                self._protein = mol
+            elif comp_name == 'ligand':
+                self._ligand = mol
+            elif comp_name == 'other_ligands':
+                self._other_ligands = mol
+            elif comp_name == 'counter_ions':
+                self._counter_ions = mol
+            elif comp_name == 'metals':
+                self._metals = mol
+            elif comp_name == 'excipients':
+                self._excipients = mol
+            elif comp_name == 'solvent':
+                self._solvent = mol
+            elif comp_name == 'water':
+                self._water = mol
+            elif comp_name == 'cofactors':
+                self._cofactors = mol
+            elif comp_name == 'other_cofactors':
+                self._other_cofactors = mol
+            elif comp_name == 'lipids':
+                self._lipids = mol
+            elif comp_name == 'nucleics':
+                self._nucleics = mol
+            elif comp_name == 'other_nucleics':
+                self._other_nucleics = mol
+            else:
+                raise ValueError("Cannot Deserialize Component {}".format(comp_name))
+
+            if mol:
+                self._components[comp_name] = mol
+
+    @property
+    def num_atoms(self):
+
+        tot_atoms = 0
+        for comp_name, comp in self._components.items():
+            tot_atoms += comp.NumAtoms()
+
+        return tot_atoms
+
+    @property
+    def create_flask(self):
+        flask = oechem.OEMol()
+        for comp_name, comp in self._components.items():
+            if not oechem.OEAddMols(flask, comp):
+                raise ValueError("The flask cannot be created. Problems with the component: {}".format(comp_name))
+        flask.SetTitle(self._components_title)
+        return flask
+
+    @property
+    def get_protein(self):
+        if self._protein is not None:
+            return self._protein
+        else:
+            raise ValueError("Protein Component has not been found")
+
+    def set_protein(self, protein):
+        self._protein = protein
+        self._components['protein'] = self._protein
+
+    @property
+    def has_protein(self):
+        if self._protein is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_ligand(self):
+        if self._ligand is not None:
+            return self._ligand
+        else:
+            raise ValueError("Ligand Component has not been found")
+
+    def set_ligand(self, ligand):
+        self._ligand = ligand
+        self._components['ligand'] = self._ligand
+
+    @property
+    def has_ligand(self):
+        if self._ligand is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_other_ligands(self):
+        if self._other_ligands is not None:
+            return self._other_ligands
+        else:
+            raise ValueError("Other Ligand Component has not been found")
+
+    def set_other_ligands(self, other_ligands):
+        self._other_ligands = other_ligands
+        self._components['other_ligands'] = self._other_ligands
+
+    @property
+    def has_other_ligands(self):
+        if self._other_ligands is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_counter_ions(self):
+        if self._counter_ions is not None:
+            return self._counter_ions
+        else:
+            raise ValueError("Counter Ions Component has not been found")
+
+    def set_counter_ions(self, counter_ions):
+        self._counter_ions = counter_ions
+        self._components['counter_ions'] = self._counter_ions
+
+    @property
+    def has_counter_ions(self):
+        if self._counter_ions is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_metals(self):
+        if self._metals is not None:
+            return self._metals
+        else:
+            raise ValueError("Metals Component has not been found")
+
+    def set_metals(self, metals):
+        self._metals = metals
+        self._components['metals'] = self._metals
+
+    @property
+    def has_metals(self):
+        if self._metals is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_excipients(self):
+        if self._excipients is not None:
+            return self._excipients
+        else:
+            raise ValueError("Excipients Component has not been found")
+
+    def set_excipients(self, excipients):
+        self._excipients = excipients
+        self._components['excipients'] = self._excipients
+
+    @property
+    def has_excipients(self):
+        if self._excipients is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_solvent(self):
+        if self._solvent is not None:
+            return self._solvent
+        else:
+            raise ValueError("Solvent Component has not been found")
+
+    def set_solvent(self, solvent):
+        self._solvent = solvent
+        self._components['solvent'] = self._solvent
+
+    @property
+    def has_solvent(self):
+        if self._solvent is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_water(self):
+        if self._water is not None:
+            return self._water
+        else:
+            raise ValueError("Water Component has not been found")
+
+    def set_water(self, water):
+        self._water = water
+        self._components['water'] = self._water
+
+    @property
+    def has_water(self):
+        if self._water is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_cofactors(self):
+        if self._cofactors is not None:
+            return self._cofactors
+        else:
+            raise ValueError("Cofactors Component has not been found")
+
+    def set_cofactors(self, cofactors):
+        self._cofactors = cofactors
+        self._components['cofactors'] = self._cofactors
+
+    @property
+    def has_cofactors(self):
+        if self._cofactors is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_other_cofactors(self):
+        if self._other_cofactors is not None:
+            return self._other_cofactors
+        else:
+            raise ValueError("Other Cofactors Component has not been found")
+
+    def set_other_cofactors(self, other_cofactors):
+        self._other_cofactors = other_cofactors
+        self._components['other_cofactors'] = self._other_cofactors
+
+    @property
+    def has_other_cofactors(self):
+        if self._other_cofactors is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_lipids(self):
+        if self._lipids is not None:
+            return self._lipids
+        else:
+            raise ValueError("Lipids Component has not been found")
+
+    def set_lipids(self, lipids):
+        self._lipids = lipids
+        self._components['lipids'] = self._lipids
+
+    @property
+    def has_lipids(self):
+        if self._lipids is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_nucleics(self):
+        if self._nucleics is not None:
+            return self._nucleics
+        else:
+            raise ValueError("Nucleics Component has not been found")
+
+    def set_nucleics(self, nucleics):
+        self._nucleics = nucleics
+        self._components['nucleics'] = self._nucleics
+
+    @property
+    def has_nucleids(self):
+        if self._nucleics is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_other_nucleics(self):
+        if self._other_nucleics is not None:
+            return self._other_nucleics
+        else:
+            raise ValueError("Other Nucleics Component has not been found")
+
+    def set_other_nucleics(self, other_nucleics):
+        self._other_nucleics = other_nucleics
+        self._components['other_nucleics'] = self._other_nucleics
+
+    @property
+    def has_other_nucleids(self):
+        if self._other_nucleics is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def has_box_vectors(self):
+        if self._box_vectors is not None:
+            return True
+        else:
+            return False
+
+    @property
+    def get_box_vectors(self):
+        if self._box_vectors is not None:
+            return self._box_vectors
+        else:
+            raise ValueError("Box Vectors has not been found")
+
+    def set_box_vectors(self, box_vectors):
+        self._box_vectors = box_vectors
+
+    @property
+    def get_title(self):
+        return self._components_title
+
+    def set_title(self, title):
+        self._components_title = title
+
+    @property
+    def get_info(self):
+        return self.__repr__()
+
+    @property
+    def get_components(self):
+        return self._components
+
+    def set_component_by_name(self, comp_name, comp):
+
+        if comp_name not in self._component_names:
+            raise ValueError("The component name {} is not supported. Allowed: {}".format(comp_name,
+                                                                                          self._component_names))
+        self._components[comp_name] = comp
+
+        if comp_name == 'protein':
+            self._protein = comp
+        elif comp_name == 'ligand':
+            self._ligand = comp
+        elif comp_name == 'other_ligands':
+            self._other_ligands = comp
+        elif comp_name == 'counter_ions':
+            self._counter_ions = comp
+        elif comp_name == 'metals':
+            self._metals = comp
+        elif comp_name == 'excipients':
+            self._excipients = comp
+        elif comp_name == 'solvent':
+            self._solvent = comp
+        elif comp_name == 'water':
+            self._water = comp
+        elif comp_name == 'cofactors':
+            self._cofactors = comp
+        elif comp_name == 'other_cofactors':
+            self._other_cofactors = comp
+        elif comp_name == 'lipids':
+            self._lipids = comp
+        elif comp_name == 'nucleics':
+            self._nucleics = comp
+        elif comp_name == 'other_nucleics':
+            self._other_nucleics = comp
+
+    def parametrize_components(self, protein_ff='Amber14SB',
+                               ligand_ff='OpenFF_1.0.0',
+                               other_ff='OpenFF_1.0.0'):
+
+        ParamMDComp = ParametrizeMDComponents(self, protein_ff, ligand_ff, other_ff)
+        pmd = ParamMDComp.parametrize_components
+
+        if self.has_box_vectors:
+            pmd.box_vectors = self.get_box_vectors
+
+        self.ParamMDComp = ParamMDComp
+
+        return pmd
 
 
-def applyffLigand(ligand, opt):
-    """
-    This function applies the selected force field to the
-    ligand
+class ParametrizeMDComponents:
+    def __init__(self, md_component,
+                 protein_ff='Amber14SB',
+                 ligand_ff='OpenFF_1.0.0',
+                 other_ff='OpenFF_1.0.0'):
 
-    Parameters:
-    -----------
-    ligand: OEMol molecule
-        The ligand molecule to parametrize
-    opt: python dictionary
-        The options used to parametrize the ligand
+        # MD Components
+        self.md_components = md_component
 
-    Return:
-    -------
-    ligand_structure: Parmed structure instance
-        The parametrized ligand parmed structure
-    """
-    ligand_copy = oechem.OEMol(ligand)
+        # Force Field to use: User Defined
+        self.protein_ff = ff_library.proteinff[protein_ff]
+        self.ligand_ff = ff_library.ligandff[ligand_ff]
+        self.other_ff = ff_library.otherff[other_ff]
 
-    # Check TLeap
-    if opt['ligand_forcefield'] in ['GAFF', 'GAFF2']:
-        ff_utils.ParamLigStructure(oechem.OEMol(), ligandff[opt['ligand_forcefield']]).checkTleap
+        # Extended Force Field
+        # self.protein_extended_ff = ff_library.protein_extended_ff[protein_ff]
 
-    # Parametrize the Ligand
-    pmd = ff_utils.ParamLigStructure(ligand_copy, ligandff[opt['ligand_forcefield']], prefix_name=opt['prefix_name'])
-    ligand_structure = pmd.parameterize()
-    ligand_structure.residues[0].name = opt['lig_res_name']
-    opt['Logger'].info("[{}] Ligand parametrized by using: {}".format(opt['CubeTitle'],
-                                                                      opt['ligand_forcefield']))
+        # Force Field to use: Default
+        self.counter_ions_ff = ff_library.counter_ionsff['Counter_ions']
+        self.metals_ff = ff_library.metals_ff['Metals']
+        self.excipients_ff = ff_library.excipients_ff['Excipients']
+        self.solvent_ff = ff_library.solventff['Tip3p']
+        self.cofactors_ff = ff_library.cofactors_ff['Cofactors']
+        self.lipids_ff = ff_library.lipids_ff['Lipids']
+        self.nucleics_ff = ff_library.nucleics_ff['Nucleics']
 
-    return ligand_structure
+    @staticmethod
+    def _check_formal_vs_partial_charge(comp_name, component, pmd_component):
+        formal_charge = 0
+        for at in component.GetAtoms():
+            formal_charge += at.GetFormalCharge()
 
+        partial_charge = 0.0
+        for at in pmd_component.atoms:
+            partial_charge += at.charge
 
-def clean_tags(molecule):
-    """
-    This function remove tags that could cause problems along the MD Analysis stage.
-    In particular Hint interactions, Style and PDB data are removed.
+        if abs(formal_charge - partial_charge) > 0.01:
+            raise ValueError("Component: {} - Formal charge and Parmed Partial charge mismatch: {} vs {}".
+                             format(comp_name, formal_charge, partial_charge))
 
-    Parameters:
-    -----------
-    molecule: OEMol molecule
-        The molecule to clean
+    @property
+    def parametrize_protein(self):
+        if self.md_components.has_protein:
+            print("Protein Parametrized by using the ff: {}".format(self.protein_ff))
+            protein = self.md_components.get_protein
 
-    Return:
-    -------
-    molecule: OEMol molecule
-        The cleaned molecule
-    """
+            # OpenMM topology and positions from OEMol
+            topology, positions = oeommutils.oemol_to_openmmTop(protein)
 
-    oechem.OEDeleteInteractionsHintSerializationData(molecule)
-    oechem.OEDeleteInteractionsHintSerializationIds(molecule)
-    oechem.OEClearStyle(molecule)
-    oechem.OEClearPDBData(molecule)
+            # Try to apply the selected FF on the Protein
+            forcefield = app.ForceField(self.protein_ff)
 
-    return molecule
+            unmatched_res_list = forcefield.getUnmatchedResidues(topology)
+
+            # If there are force field unmatched residues
+            if unmatched_res_list:
+
+                standard_resides_fail = []
+
+                for res in unmatched_res_list:
+                    if res.name in ff_library.protein_standard_residue_names:
+                        standard_resides_fail.append(res)
+
+                if standard_resides_fail:
+
+                    omm_residues = []
+                    for res in topology.residues():
+                        omm_residues.append(res)
+
+                    oe_residues = []
+                    for oe_res in oechem.OEGetResidues(protein):
+                        oe_residues.append(oe_res)
+
+                    map_omm_oe = dict()
+                    for omm_res, oe_res in zip(omm_residues, oe_residues):
+                        map_omm_oe[omm_res] = oe_res
+
+                    info_fail = [(map_omm_oe[res].GetName(),
+                                  map_omm_oe[res].GetResidueNumber(),
+                                  map_omm_oe[res].GetChainID())
+                                 for res in standard_resides_fail]
+
+                    raise ValueError(
+                        "The following protein residues cannot be parametrize: {}".format(info_fail))
+
+                # Try to parametrize Non Standard Residues
+                ffxml_nsr_template_list = nsr_template_generator(protein,
+                                                                 topology,
+                                                                 forcefield,
+                                                                 openff=ff_library.ligandff['OpenFF_1.0.0'])
+
+                for ffxml_template in ffxml_nsr_template_list:
+                    forcefield.loadFile(StringIO(ffxml_template))
+
+            omm_protein = forcefield.createSystem(topology, rigidWater=False, constraints=None)
+            protein_pmd = parmed.openmm.load_topology(topology, omm_protein, xyz=positions)
+
+            self._check_formal_vs_partial_charge("protein", self.md_components.get_protein, protein_pmd)
+
+            return protein_pmd
+        else:
+            raise ValueError("Protein is not present in the MDComponents")
+
+    @property
+    def parametrize_ligand(self):
+
+        if self.md_components.has_ligand:
+            print("Ligand Parametrized by using the ff: {}".format(self.ligand_ff))
+            prefix_name = 'LIG'
+
+            pmd = ParamMolStructure(self.md_components.get_ligand,
+                                    self.ligand_ff,
+                                    prefix_name=prefix_name,
+                                    recharge=False)
+
+            ligand_pmd = pmd.parameterize()
+            ligand_pmd.residues[0].name = prefix_name
+
+            self._check_formal_vs_partial_charge("ligand", self.md_components.get_ligand, ligand_pmd)
+
+            return ligand_pmd
+        else:
+            raise ValueError("Ligand is not present in the MDComponents")
+
+    @property
+    def parametrize_other_ligands(self):
+        print("Other Ligands Parametrized by using the ff: {}".format(self.ligand_ff))
+        if self.md_components.has_other_ligands:
+
+            other_ligand_pmd = parametrize_component(self.md_components.get_other_ligands,
+                                                     self.protein_ff,
+                                                     self.ligand_ff)
+
+            self._check_formal_vs_partial_charge("other ligands", self.md_components.get_other_ligands, other_ligand_pmd)
+
+            return other_ligand_pmd
+        else:
+            raise ValueError("Other Ligands are not present in the MDComponents")
+
+    @property
+    def parametrize_counter_ions(self):
+
+        if self.md_components.has_counter_ions:
+            counter_ions_pmd = parametrize_component(self.md_components.get_counter_ions,
+                                                     self.counter_ions_ff,
+                                                     self.other_ff)
+            return counter_ions_pmd
+        else:
+            raise ValueError("Counter Ions are not present in the MDComponents")
+
+    @property
+    def parametrize_metals(self):
+
+        if self.md_components.has_metals:
+            metals_pmd = parametrize_component(self.md_components.get_metals,
+                                               self.metals_ff,
+                                               self.other_ff)
+
+            self._check_formal_vs_partial_charge("metals", self.md_components.get_metals, metals_pmd)
+
+            return metals_pmd
+        else:
+            raise ValueError("Metals are not present in the MDComponents")
+
+    @property
+    def parametrize_excipients(self):
+
+        if self.md_components.has_excipients:
+            excipients_pmd = parametrize_component(self.md_components.get_excipients,
+                                                   self.excipients_ff,
+                                                   self.other_ff)
+
+            self._check_formal_vs_partial_charge("excipients", self.md_components.get_excipients, excipients_pmd)
+
+            return excipients_pmd
+
+        else:
+            raise ValueError("Excipients are not present in the MDComponents")
+
+    @property
+    def parametrize_solvent(self):
+
+        if self.md_components.has_solvent:
+
+            solvent_pmd = parametrize_component(self.md_components.get_solvent,
+                                                self.solvent_ff,
+                                                self.other_ff)
+
+            self._check_formal_vs_partial_charge("solvent", self.md_components.get_solvent, solvent_pmd)
+
+            return solvent_pmd
+
+        else:
+            raise ValueError("Solvent is not present in the MDComponents")
+
+    @property
+    def parametrize_water(self):
+        if self.md_components.has_water:
+
+            # OpenMM topology and positions from OEMol
+            topology, positions = oeommutils.oemol_to_openmmTop(self.md_components.get_water)
+
+            # Try to apply the selected FF on the component
+            forcefield = app.ForceField(self.solvent_ff)
+
+            # List of the unrecognized component
+            unmatched_res_list = forcefield.getUnmatchedResidues(topology)
+
+            if not unmatched_res_list:
+                water_omm_system = forcefield.createSystem(topology, rigidWater=False, constraints=None)
+                water_pmd = parmed.openmm.load_topology(topology, water_omm_system, xyz=positions)
+
+                self._check_formal_vs_partial_charge("water", self.md_components.get_water, water_pmd)
+
+                return water_pmd
+
+            else:
+                raise ValueError("Water cannot be parametrized by using the FF: {}\n Problematic Residues are: {}".
+                                 format(self.solvent_ff, unmatched_res_list))
+        else:
+            raise ValueError("Water is not present in the MDComponents")
+
+    @property
+    def parametrize_cofactors(self):
+
+        if self.md_components.has_cofactors:
+
+            ff = [self.cofactors_ff, self.metals_ff]
+
+            cofactors_pmd = parametrize_component(self.md_components.get_cofactors,
+                                                  ff,
+                                                  self.other_ff)
+
+            self._check_formal_vs_partial_charge("cofactors", self.md_components.get_cofactors, cofactors_pmd)
+
+            return cofactors_pmd
+        else:
+            raise ValueError("Cofactors are not present in the MDComponents")
+
+    @property
+    def parametrize_other_cofactors(self):
+
+        if self.md_components.has_other_cofactors:
+
+            ff = [self.cofactors_ff, self.metals_ff]
+
+            other_cofactors_pmd = parametrize_component(self.md_components.get_other_cofactors,
+                                                        ff,
+                                                        self.other_ff)
+
+            self._check_formal_vs_partial_charge("other cofactors", self.md_components.get_other_cofactors,
+                                                 other_cofactors_pmd)
+
+            return other_cofactors_pmd
+        else:
+            raise ValueError("Other Cofactors not present in the MDComponents")
+
+    @property
+    def parametrize_lipids(self):
+
+        if self.md_components.has_lipinds:
+            lipids_pmd = parametrize_component(self.md_components.get_lipids,
+                                               self.lipids_ff,
+                                               self.other_ff)
+
+            self._check_formal_vs_partial_charge("lipids", self.md_components.get_lipids, lipids_pmd)
+
+            return lipids_pmd
+        else:
+            raise ValueError("Lipids are not present in the MDComponents")
+
+    @property
+    def parametrize_nucleics(self):
+
+        if self.md_components.has_nucleics:
+            nucleics_pmd = parametrize_component(self.md_components.get_nucleics,
+                                                 self.nucleics_ff,
+                                                 self.other_ff)
+
+            self._check_formal_vs_partial_charge("lipids", self.md_components.get_nucleics, nucleics_pmd)
+
+            return nucleics_pmd
+        else:
+            raise ValueError("Nucleics molecule not present in the MDComponents")
+
+    @property
+    def parametrize_other_nucleics(self):
+
+        if self.md_components.has_other_nucleics:
+            other_nucleics_pmd = parametrize_component(self.md_components.get_other_nucleics,
+                                                       self.nucleics_ff,
+                                                       self.other_ff)
+            return other_nucleics_pmd
+        else:
+            raise ValueError("Other Nucleics molecules are not present in the MDComponents")
+
+    @property
+    def parametrize_components(self):
+
+        flask_pmd = parmed.Structure()
+
+        for comp_name, comp in self.md_components.get_components.items():
+
+            if comp_name == 'protein':
+                flask_pmd += self.parametrize_protein
+            elif comp_name == 'ligand':
+                flask_pmd += self.parametrize_ligand
+            elif comp_name == 'other_ligands':
+                flask_pmd += self.parametrize_other_ligands
+            elif comp_name == 'counter_ions':
+                flask_pmd += self.parametrize_counter_ions
+            elif comp_name == 'metals':
+                flask_pmd += self.parametrize_counter_ions
+            elif comp_name == 'excipients':
+                flask_pmd += self.parametrize_excipients
+            elif comp_name == 'solvent':
+                flask_pmd += self.parametrize_solvent
+            elif comp_name == 'water':
+                flask_pmd += self.parametrize_water
+            elif comp_name == 'cofactors':
+                flask_pmd += self.parametrize_cofactors
+            elif comp_name == 'other_cofactors':
+                flask_pmd += self.parametrize_other_cofactors
+            elif comp_name == 'lipids':
+                flask_pmd += self.parametrize_lipids
+            elif comp_name == 'nucleics':
+                flask_pmd += self.parametrize_nucleics
+            elif comp_name == 'other_nucleics':
+                flask_pmd += self.parametrize_other_nucleics
+            else:
+                raise ValueError("The parametrization of the component {} is not supported".format(comp_name))
+
+        return flask_pmd

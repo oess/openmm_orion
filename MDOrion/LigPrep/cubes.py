@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -49,7 +49,7 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-       "memory_mb": {"default": 14000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -128,8 +128,8 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
 
     # Ligand Residue Name
     lig_res_name = parameters.StringParameter('lig_res_name',
-                                             default='LIG',
-                                             help_text='The new ligand residue name')
+                                              default='LIG',
+                                              help_text='The new ligand residue name')
 
     def begin(self):
         self.opt = vars(self.args)

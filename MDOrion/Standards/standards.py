@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -17,7 +17,7 @@
 
 from floe.api.orion import in_orion
 
-from MDOrion.Standards.utils import ParmedData, MDStateData
+from MDOrion.Standards.utils import ParmedData, MDStateData, DesignUnit, MDComponentData
 
 from datarecord import OEPrimaryMolField
 
@@ -133,6 +133,15 @@ class Fields:
     # MD State
     md_state = OEField("MDState_OPLMD", MDStateData)
 
+    # Design Unit Field
+    design_unit = OEField('Design_Unit_OPLMD', DesignUnit)
+
+    # Design Unit Field from Spruce
+    design_unit_from_spruce = OEField('du_single', Types.Blob)
+
+    # MD Components
+    md_components = OEField('MDComponents_OPLMD', MDComponentData)
+
     # Collection is used to offload data from the record which must be < 100Mb
     collection = OEField("Collection_ID_OPLMD", Types.Int, meta=_metaHidden)
 
@@ -147,6 +156,8 @@ class Fields:
     floe_report_label = OEField('Floe_report_label_OPLMD', Types.String, meta=_metaHidden)
 
     floe_report_URL = OEField('Floe_report_URL_OPLMD', Types.String, meta=OEFieldMeta(options=[Meta.Hints.URL]))
+
+    floe_report_collection_id = OEField('Floe_report_ID_OPLMD', Types.Int, meta=_metaHidden)
 
     class Analysis:
 
@@ -170,7 +181,7 @@ class Fields:
 
         # The vector of ligand Traj RMSDs from the initial pose
         lig_traj_rmsd = OEField('LigTrajRMSD', Types.FloatVec,
-                                   meta=OEFieldMeta().set_option(Meta.Units.Length.Ang))
+                                meta=OEFieldMeta().set_option(Meta.Units.Length.Ang))
 
         # mmpbsa ensemble average over the whole trajectory
         mmpbsa_traj_mean = OEField('MMPBSATrajMean', Types.Float,
@@ -200,9 +211,48 @@ class Fields:
         metaFreeEnergy_err.add_relation(Meta.Relations.ErrorsFor, free_energy)
         free_energy_err = OEField('FE_Error_OPLMD', Types.Float, meta=metaFreeEnergy_err)
 
+    class FEC:
+        # Free Energy
+        free_energy = OEField('FE_OPLMD', Types.Float,
+                              meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
 
-def get_meta_attributes(record, field_name):
-    field_with_meta = record.get_field(field_name, include_meta=True)
-    meta_from_field = field_with_meta.get_meta()
-    meta_dict = meta_from_field.to_dict()
-    return meta_dict
+        metaFreeEnergy_err = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
+        metaFreeEnergy_err.add_relation(Meta.Relations.ErrorsFor, free_energy)
+        free_energy_err = OEField('FE_Error_OPLMD', Types.Float, meta=metaFreeEnergy_err)
+
+        class RBFEC:
+            # Oriented Edge field for relative free energy calculations
+            # The first integer of the list is the ligand ID of the starting
+            # thermodynamic state and the second the final one
+            edgeid = OEField("EdgeID_OPLMD", Types.Int, meta=_metaHidden)
+            edge_name = OEField("EdgeName_OPLMD", Types.String)
+
+            # The Thermodynamics leg type is used for Bound and
+            # UnBound State run identification
+            thd_leg_type = OEField("Thd_Leg_OPLMD", Types.String, meta=_metaHidden)
+
+            class NESC:
+
+                state_A = OEField("StateA_OPLMD", Types.Record)
+                state_B = OEField("StateB_OPLMD", Types.Record)
+
+                gmx_top = OEField("GMX_Top_OPLMD", Types.String, meta=_metaHidden)
+                gmx_gro = OEField("GMX_Gro_OPLMD", Types.String, meta=_metaHidden)
+                work = OEField("GMX_Work_OPLMD", Types.Float,
+                               meta=OEFieldMeta().set_option(Meta.Units.Energy.kJ_per_mol))
+                frame_count = OEField("frame_count", Types.Int, meta=_metaHidden)
+
+                # The Work record is used to collect the data related to the
+                # Work Forward and Reverse for the Bound and Unbound States
+                work_rec = OEField("Work_Record_OPLMD", Types.Record)
+
+                # The Relative Binding Affinity record collects data for the
+                # different analysis methods used to compute it
+                DDG_rec = OEField("DDG_Record_OPLMD", Types.Record)
+
+
+# def get_meta_attributes(record, field_name):
+#     field_with_meta = record.get_field(field_name, include_meta=True)
+#     meta_from_field = field_with_meta.get_meta()
+#     meta_dict = meta_from_field.to_dict()
+#     return meta_dict

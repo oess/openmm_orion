@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2019 OpenEye Scientific Software, Inc.
+# Copyright (C) 2020 OpenEye Scientific Software, Inc.
 #############################################################################
 import numpy as np
 

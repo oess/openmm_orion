@@ -32,7 +32,7 @@ from MDOrion.System.cubes import ParallelSolvationCube
 
 from MDOrion.ForceField.cubes import ParallelForceFieldCube
 
-from MDOrion.ProtPrep.cubes import ProteinSetting
+from MDOrion.System.cubes import MDComponentCube
 
 from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
@@ -104,15 +104,11 @@ iprot = DatasetReaderCube("ProteinReader", title="Protein Reader")
 iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input File',
                         description="Protein file name")
 
-protset = ProteinSetting("ProteinSetting", title="Protein Setting")
-protset.promote_parameter("protein_title", promoted_name="protein_title", default="protein")
+mdcomp = MDComponentCube("MDComponentSetting", title="MDComponentSetting")
+mdcomp.promote_parameter("flask_title", promoted_name="flask_title", default="protein")
 
 # Complex cube used to assemble the ligands and the solvated protein
 complx = ComplexPrepCube("Complex", title="Complex Preparation")
-complx.set_parameters(lig_res_name='LIG')
-
-# The solvation cube is used to solvate the system and define the ionic strength of the solution
-# solvate = HydrationCube("Hydration")
 
 solvate = ParallelSolvationCube("Hydration", title="System Hydration")
 solvate.promote_parameter('density', promoted_name='density', default=1.03,
@@ -128,11 +124,9 @@ coll_open.set_parameters(open=True)
 ff = ParallelForceFieldCube("ForceField", title="System Parametrization")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
-ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
-ff.set_parameters(lig_res_name='LIG')
 
 prod = ParallelMDNptCube("Production", title="Production")
-prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
+prod.promote_parameter('time', promoted_name='prod_ns', default=0.5,
                        description='Length of MD run in nanoseconds')
 prod.promote_parameter('temperature', promoted_name='temperature', default=300.0,
                        description='Temperature (Kelvin)')
@@ -142,6 +136,7 @@ prod.promote_parameter('trajectory_interval', promoted_name='prod_trajectory_int
 prod.promote_parameter('md_engine', promoted_name='md_engine', default='OpenMM',
                        description='Select the MD Engine')
 prod.set_parameters(reporter_interval=0.002)
+prod.set_parameters(hmr=False)
 prod.set_parameters(suffix='prod')
 
 
@@ -150,10 +145,10 @@ minComplex = ParallelMDMinimizeCube('minComplex', title='System Minimization')
 minComplex.promote_parameter("hmr", promoted_name="hmr")
 minComplex.set_parameters(restraints="noh (ligand or protein)")
 minComplex.set_parameters(restraintWt=5.0)
-minComplex.set_parameters(steps=0)
 minComplex.set_parameters(center=True)
 minComplex.set_parameters(save_md_stage=True)
 minComplex.promote_parameter("md_engine", promoted_name="md_engine")
+minComplex.set_parameters(hmr=False)
 
 # NVT simulation. Here the assembled system is warmed up to the final selected temperature
 warmup = ParallelMDNvtCube('warmup', title='System Warm Up')
@@ -167,6 +162,7 @@ warmup.set_parameters(suffix='warmup')
 warmup.promote_parameter("hmr", promoted_name="hmr")
 warmup.set_parameters(save_md_stage=True)
 warmup.promote_parameter("md_engine", promoted_name="md_engine")
+warmup.set_parameters(hmr=False)
 
 
 # The system is equilibrated at the right pressure and temperature in 3 stages
@@ -186,7 +182,7 @@ equil1.set_parameters(trajectory_interval=0.0)
 equil1.set_parameters(reporter_interval=0.001)
 equil1.set_parameters(suffix='equil1')
 equil1.promote_parameter("md_engine", promoted_name="md_engine")
-
+equil1.set_parameters(hmr=False)
 
 # NPT Equilibration stage 2
 equil2 = ParallelMDNptCube('equil2', title='System Equilibration II')
@@ -200,6 +196,7 @@ equil2.set_parameters(trajectory_interval=0.0)
 equil2.set_parameters(reporter_interval=0.001)
 equil2.set_parameters(suffix='equil2')
 equil2.promote_parameter("md_engine", promoted_name="md_engine")
+equil2.set_parameters(hmr=False)
 
 # NPT Equilibration stage 3
 equil3 = ParallelMDNptCube('equil3', title='System Equilibration III')
@@ -213,6 +210,7 @@ equil3.set_parameters(trajectory_interval=0.0)
 equil3.set_parameters(reporter_interval=0.001)
 equil3.set_parameters(suffix='equil3')
 equil3.promote_parameter("md_engine", promoted_name="md_engine")
+equil3.set_parameters(hmr=False)
 
 coll_close = CollectionSetting("CloseCollection")
 coll_close.set_parameters(open=False)
@@ -223,7 +221,7 @@ ofs.promote_parameter("data_out", promoted_name="out")
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
-job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx, solvate, coll_open, ff,
+job.add_cubes(iligs, ligset, iprot, mdcomp, chargelig, complx, solvate, coll_open, ff,
               minComplex, warmup, equil1, equil2, equil3, prod, coll_close, ofs, fail)
 
 
@@ -231,8 +229,8 @@ iligs.success.connect(chargelig.intake)
 chargelig.success.connect(ligset.intake)
 ligset.success.connect(ligid.intake)
 ligid.success.connect(complx.intake)
-iprot.success.connect(protset.intake)
-protset.success.connect(complx.protein_port)
+iprot.success.connect(mdcomp.intake)
+mdcomp.success.connect(complx.protein_port)
 complx.success.connect(solvate.intake)
 solvate.success.connect(coll_open.intake)
 coll_open.success.connect(ff.intake)

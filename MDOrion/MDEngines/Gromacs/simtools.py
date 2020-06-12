@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -52,6 +52,8 @@ from collections import OrderedDict
 from MDOrion.Standards import MDEngines
 
 from subprocess import STDOUT, PIPE, Popen, DEVNULL
+
+import math
 
 
 class GromacsSimulations(MDSimulations):
@@ -134,7 +136,24 @@ class GromacsSimulations(MDSimulations):
 
         opt['timestep'] = self.stepLen
 
-        cutoff = opt['nonbondedCutoff'] * unit.angstroms
+        if box is not None:
+
+            box_v = parmed_structure.box_vectors.value_in_unit(unit.angstrom)
+            box_v = np.array([box_v[0][0], box_v[1][1], box_v[2][2]])
+
+            min_box = np.min(box_v)
+
+            threshold = (min_box / 2.0) * 0.85
+
+            if opt['nonbondedCutoff'] < threshold:
+                cutoff_distance = opt['nonbondedCutoff'] * unit.angstroms
+            else:
+                opt['Logger'].warn("[{}] Cutoff Distance too large for the box size. Set the cutoff distance "
+                                   "to {} A".format(opt['CubeTitle'], threshold))
+
+                cutoff_distance = threshold * unit.angstroms
+
+            cutoff = cutoff_distance
 
         # Centering the system
         if opt['center'] and box is not None:
@@ -159,7 +178,7 @@ class GromacsSimulations(MDSimulations):
             nslist = 10
         else:
             pbc = 'no'
-            cutoff = 0.0
+            cutoff = 0.0 * unit.angstrom
             nslist = 0
 
         if opt['SimType'] == 'min':
@@ -172,7 +191,7 @@ class GromacsSimulations(MDSimulations):
             mdp_template = gromacs_minimization.format(
                 nsteps=max_minimization_steps,
                 nslist=1,
-                cutoff=cutoff.in_units_of(unit.nanometer) / unit.nanometer,
+                cutoff=cutoff.value_in_unit(unit.nanometer),
                 pbc=pbc,
             )
 
@@ -201,14 +220,22 @@ class GromacsSimulations(MDSimulations):
             else:
                 reporter_steps = 0
 
+            # Convert simulation time in steps
+            opt['steps'] = int(round(opt['time'] / (self.stepLen.in_units_of(unit.nanoseconds) / unit.nanoseconds)))
+
             if opt['trajectory_interval']:
                 trajectory_steps = int(round(opt['trajectory_interval'] / (
                         opt['timestep'].in_units_of(unit.nanoseconds) / unit.nanoseconds)))
+
+            elif opt['trajectory_frames']:
+
+                if opt['steps'] < opt['trajectory_frames']:
+                    raise ValueError(" The selected number of frames {} will exceed the total produced md steps {}".
+                                     format(opt['trajectory_frames'], opt['steps']))
+
+                trajectory_steps = int(math.floor(opt['steps'] / opt['trajectory_frames']))
             else:
                 trajectory_steps = 0
-
-            # Convert simulation time in steps
-            opt['steps'] = int(round(opt['time'] / (self.stepLen.in_units_of(unit.nanoseconds) / unit.nanoseconds)))
 
             # Constraints
             constraints = md_keys_converter[MDEngines.Gromacs]['constraints'][opt['constraints']]
@@ -701,7 +728,7 @@ class GromacsSimulations(MDSimulations):
                 self.opt['str_logger'] += '\n'+log_string
 
             # Save trajectory files
-            if self.opt['trajectory_interval']:
+            if self.opt['trajectory_interval'] or self.opt['trajectory_frames']:
 
                 # Generate whole system trajectory
                 p = subprocess.Popen(['gmx',

@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -50,7 +50,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_excipient_successGaff2(self):
         print('Testing cube:', self.cube.name)
         # File name
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -74,7 +74,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_excipient_successSmirnoff99Frosst(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -93,10 +93,10 @@ class ForceFieldPrepTester(unittest.TestCase):
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_excipient_successSOpenFF1_0(self):
+    def test_excipient_successOpenFF1_0(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -115,10 +115,10 @@ class ForceFieldPrepTester(unittest.TestCase):
 
     @pytest.mark.travis
     @pytest.mark.local
-    def test_excipient_successSOpenFF1_1(self):
+    def test_excipient_successOpenFF1_1(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -140,7 +140,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_non_std_residue(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pCDK2_l30_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p1H1Q_l2A6_solvated_complex.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -158,7 +158,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_force_field_amber_99sbildn(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -183,7 +183,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_force_field_amber_fb15(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -208,7 +208,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_force_field_amber_14sb(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "pbace_lcat13a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
 
         for record in read_records(ifs):
             pass

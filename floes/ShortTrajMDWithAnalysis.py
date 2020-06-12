@@ -34,7 +34,7 @@ from MDOrion.System.cubes import ParallelSolvationCube
 
 from MDOrion.ForceField.cubes import ParallelForceFieldCube
 
-from MDOrion.ProtPrep.cubes import ProteinSetting
+from MDOrion.System.cubes import MDComponentCube
 
 from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
@@ -83,7 +83,6 @@ iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input
 
 # Complex cube used to assemble the ligands and the solvated protein
 complx = ComplexPrepCube("Complex", title="Complex Preparation")
-complx.set_parameters(lig_res_name='LIG')
 
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
 solvate = ParallelSolvationCube("Solvation", title="Solvation")
@@ -104,14 +103,11 @@ coll_open.set_parameters(open=True)
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.0.0')
-ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='OpenFF_1.0.0')
-ff.set_parameters(lig_res_name='LIG')
+
 
 # Protein Setting
-protset = ProteinSetting("ProteinSetting", title="Protein Setting")
-protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
-protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber14SB')
-protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='OpenFF_1.0.0')
+mdcomp = MDComponentCube("MD Components", title="MD Components")
+mdcomp.promote_parameter("flask_title", promoted_name="flask_title", default="")
 
 prod = ParallelMDNptCube("Production", title="Production")
 prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
@@ -237,7 +233,7 @@ coll_close.set_parameters(open=False)
 
 check_rec = ParallelRecordSizeCheck("Record Check Success")
 
-job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx,
+job.add_cubes(iligs, ligset, iprot, mdcomp, chargelig, complx,
               solvate, coll_open, ff,
               minComplex, warmup, equil1, equil2, equil3, prod,
               trajCube, IntECube, PBSACube, clusCube, report_gen,
@@ -247,8 +243,8 @@ iligs.success.connect(ligset.intake)
 ligset.success.connect(chargelig.intake)
 chargelig.success.connect(ligid.intake)
 ligid.success.connect(complx.intake)
-iprot.success.connect(protset.intake)
-protset.success.connect(complx.protein_port)
+iprot.success.connect(mdcomp.intake)
+mdcomp.success.connect(complx.protein_port)
 complx.success.connect(solvate.intake)
 solvate.success.connect(coll_open.intake)
 coll_open.success.connect(ff.intake)
@@ -274,7 +270,7 @@ check_rec.success.connect(ofs.intake)
 ligset.failure.connect(check_rec.fail_in)
 chargelig.failure.connect(check_rec.fail_in)
 ligid.failure.connect(check_rec.fail_in)
-protset.failure.connect(check_rec.fail_in)
+mdcomp.failure.connect(check_rec.fail_in)
 complx.failure.connect(check_rec.fail_in)
 solvate.failure.connect(check_rec.fail_in)
 coll_open.failure.connect(check_rec.fail_in)

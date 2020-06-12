@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -15,21 +15,12 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-import traceback
-
-from MDOrion.Standards import Fields
-
-from MDOrion.Standards.mdrecord import MDDataRecord
 
 from MDOrion.System.utils import get_human_readable
 
-from openeye import oechem
-
 from orionplatform.mixins import RecordPortsMixin
 
-from orionplatform.ports import (RecordInputPort,
-                                 RecordOutputPort)
-
+from orionplatform.ports import RecordInputPort
 
 from floe.api import (ParallelMixin,
                       parameters,
@@ -44,6 +35,17 @@ from orionclient.session import (in_orion,
                                  APISession)
 
 from os import environ
+
+from oeommtools import data_utils as pack_utils
+
+import traceback
+
+from MDOrion.Standards import Fields
+
+
+from openeye import oechem
+
+from MDOrion.ForceField.utils import MDComponents
 
 
 class IDSettingCube(RecordPortsMixin, ComputeCube):
@@ -77,14 +79,10 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
 
     def process(self, record, port):
         try:
-            if not record.has_value(Fields.flask):
-                if not record.has_value(Fields.primary_molecule):
-                    raise ValueError("Primary Molecule is missing")
-                flask = record.get_value(Fields.primary_molecule)
 
-                record.set_value(Fields.flask, flask)
-
-            flask = record.get_value(Fields.flask)
+            if not record.has_value(Fields.primary_molecule):
+                raise ValueError("Primary Molecule is missing")
+            flask = record.get_value(Fields.primary_molecule)
 
             # There should be a ligid; if not, increment the last one
             if not record.has_value(Fields.ligid):
@@ -115,7 +113,7 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
                 record.set_value(Fields.flaskid, self.total_count)
                 record.set_value(Fields.confid, num_conf_counter)
                 record.set_value(Fields.title, flask_title)
-                record.set_value(Fields.flask, conf_mol)
+                record.set_value(Fields.primary_molecule, conf_mol)
 
                 num_conf_counter += 1
 
@@ -316,10 +314,12 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
         try:
             opt = dict(self.opt)
 
-            if not record.has_value(Fields.flask):
-                raise ValueError("Missing the Flask Molecule Field")
+            if not record.has_value(Fields.md_components):
+                raise ValueError("Missing the MD Components Field")
 
-            solute = record.get_value(Fields.flask)
+            md_components = record.get_value(Fields.md_components)
+
+            solute = md_components.create_flask
 
             if not record.has_value(Fields.title):
                 self.log.warn("Missing Title field")
@@ -342,15 +342,79 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
                                                                                                 solute.GetTitle(),
                                                                                                 field_name,
                                                                                                 rec_value))
+            # Set the flag to return the solvent molecule components
+            opt['return_components'] = True
+
             # Solvate the system
-            sol_system = packmol.oesolvate(solute, **opt)
+            sol_system, solvent, salt, counter_ions = packmol.oesolvate(solute, **opt)
+
+            # Separate the Water from the solvent
+            pred_water = oechem.OEIsWater(checkHydrogens=True)
+            water = oechem.OEMol()
+            oechem.OESubsetMol(water, solvent, pred_water)
+
+            if water.NumAtoms():
+                if md_components.has_water:
+
+                    water_comp = md_components.get_water
+
+                    if not oechem.OEAddMols(water_comp, water):
+                        raise ValueError("Cannot add the MD Component Water and the Packmol Water")
+
+                    md_components.set_water(water_comp)
+
+                else:
+                    md_components.set_water(water)
+
+                pred_not_water = oechem.OENotAtom(oechem.OEIsWater(checkHydrogens=True))
+                solvent_not_water = oechem.OEMol()
+                oechem.OESubsetMol(solvent_not_water, solvent, pred_not_water)
+
+                if solvent_not_water.NumAtoms():
+                    solvent = solvent_not_water
+                else:
+                    solvent = oechem.OEMol()
 
             self.log.info("[{}] Solvated simulation flask {} yielding {} atoms overall".format(self.title,
-                                                                                              solute_title,
-                                                                                              sol_system.NumAtoms()))
+                                                                                               solute_title,
+                                                                                               sol_system.NumAtoms()))
             sol_system.SetTitle(solute.GetTitle())
 
-            record.set_value(Fields.flask, sol_system)
+            if salt is not None and counter_ions is not None:
+                if not oechem.OEAddMols(counter_ions, salt):
+                    raise ValueError("Cannot add the salt component and the counter ion component")
+            elif salt is not None:
+                counter_ions = salt
+            else:
+                pass
+
+            if md_components.has_solvent:
+                solvent_comp = md_components.get_solvent
+                if not oechem.OEAddMols(solvent_comp, solvent):
+                    raise ValueError("Cannot add the MD Component solvent and the Packmol Solvent")
+            else:
+                solvent_comp = solvent
+
+            if solvent_comp.NumAtoms():
+                md_components.set_solvent(solvent_comp)
+
+            if counter_ions is not None:
+                if md_components.has_counter_ions:
+                    counter_ions_comp = md_components.get_counter_ions
+                    if not oechem.OEAddMols(counter_ions_comp, counter_ions):
+                        raise ValueError("Cannot add the MD Component counter ions and the Packmol counter ions")
+                else:
+                    counter_ions_comp = counter_ions
+
+                md_components.set_counter_ions(counter_ions_comp)
+
+            # Set Box Vectors
+            vec_data = pack_utils.getData(sol_system, tag='box_vectors')
+            box_vec = pack_utils.decodePyObj(vec_data)
+            md_components.set_box_vectors(box_vec)
+
+            record.set_value(Fields.md_components, md_components)
+            record.set_value(Fields.flask, md_components.create_flask)
             record.set_value(Fields.title, solute_title)
 
             self.success.emit(record)
@@ -414,6 +478,109 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
             print("Failed to complete", str(e), flush=True)
             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
             self.log.error(traceback.format_exc())
+
+        return
+
+
+class MDComponentCube(RecordPortsMixin, ComputeCube):
+    title = "MD Setting"
+    # version = "0.1.4"
+    classification = [["System Preparation"]]
+    tags = ['Protein']
+    description = """
+    This cube is used to componentize the starting system.
+    The cube detects if a DU is present on the record and will try 
+    to extract the components saving them in ad-hoc container. If the 
+    DU is not found, the cube will try to create a DU and if it fails 
+    the primary molecule present on the record will be componentize. 
+    """
+
+    uuid = "b85d652f-188a-4cc0-aefd-35c98e737f8d"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 14000},
+        "spot_policy": {"default": "Prohibited"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    flask_title = parameters.StringParameter(
+        'flask_title',
+        default='',
+        help_text='Flask Title')
+
+    multiple_flasks = parameters.BooleanParameter(
+        'multiple_flasks',
+        default=False,
+        help_text="If Checked/True multiple flasks will be allowed")
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+        self.count=0
+        self.opt['CubeTitle'] = self.title
+
+    def process(self, record, port):
+        try:
+
+            if self.count > 0 and not self.opt['multiple_flasks']:
+                raise ValueError("Multiple Flasks have been Detected")
+
+            name = self.opt['flask_title']
+
+            if record.has_value(Fields.design_unit_from_spruce):
+
+                du = oechem.OEDesignUnit()
+
+                if not oechem.OEReadDesignUnitFromBytes(du, record.get_value(Fields.design_unit_from_spruce)):
+                    raise ValueError("It was not possible Reading the Design Unit from the record")
+
+                self.opt['Logger'].info("[{}] Design Unit Detected".format(self.title))
+
+                if not name:
+                    title_first12 = du.GetTitle()[0:12]
+
+                    if title_first12:
+                        name = title_first12
+                    else:
+                        name = 'Flask'
+
+                md_components = MDComponents(du, components_title=name)
+
+            else:  # The extended protein is already prepared to MD standard
+
+                if not record.has_value(Fields.primary_molecule):
+                    raise ValueError("Missing Primary Molecule field")
+
+                molecules = record.get_value(Fields.primary_molecule)
+
+                if not name:
+                    title_first12 = molecules.GetTitle()[0:12]
+
+                    if title_first12:
+                        name = title_first12
+                    else:
+                        name = 'protein'
+
+                md_components = MDComponents(molecules, components_title=name)
+
+            # self.opt['Logger'].info(md_components.get_info)
+
+            record.set_value(Fields.md_components, md_components)
+            record.set_value(Fields.title, name)
+            record.set_value(Fields.flaskid, self.count)
+
+            self.count += 1
+
+            self.success.emit(record)
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
 
         return
 

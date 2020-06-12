@@ -42,6 +42,9 @@ import glob
 from orionclient.helpers.collections import (try_hard_to_create_shard,
                                              try_hard_to_download_shard)
 
+from MDOrion.ForceField.utils import MDComponents
+
+
 def mdstages(f):
 
     def wrapper(*pos, **named):
@@ -1434,3 +1437,57 @@ class MDDataRecord(object):
         except AttributeError:
             raise AttributeError(
                 "'%s' object has no attribute '%s'" % (type(self).__name__, name))
+
+    @property
+    def get_md_components(self):
+        """
+        This method returns the MD Components if present on the record
+
+        Return:
+        -------
+            : MDComponents
+            The MD Components object
+        """
+
+        if not self.rec.has_field(Fields.md_components):
+            raise ValueError("The MD Components Field has not been found on the record")
+
+        return self.rec.get_value(Fields.md_components)
+
+    def set_md_components(self, md_components):
+        """
+        This method sets the MD Components on the record
+
+        Parameters:
+        -----------
+        md_components: MDComponents
+            The MD Components instance
+
+        Return:
+        -------
+            : Bool
+            True if the the md componets  field was successfully set on the record
+        """
+
+        if not isinstance(md_components, MDComponents):
+            raise ValueError("The passed components is not an object of type MDComponents: {}".format(type(md_components)))
+
+        self.rec.set_value(Fields.md_components, md_components)
+
+        return True
+
+    @property
+    def has_md_components(self):
+        """
+        This method returns true if the MD Components object  is present on the record
+
+        Return:
+        -------
+            : Bool
+            True if the ligand molecule is present on the record
+        """
+
+        if self.rec.has_field(Fields.md_components):
+            return True
+        else:
+            return False
