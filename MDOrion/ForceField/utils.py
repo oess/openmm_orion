@@ -287,13 +287,21 @@ class MDComponents:
 
     def __setstate__(self, state):
 
+        # Supported component Names
+        self._component_names = ['protein', 'ligand',
+                                 'other_ligands', 'counter_ions',
+                                 'metals', 'excipients',
+                                 'solvent', 'water', 'cofactors',
+                                 'other_cofactors', 'lipids',
+                                 'nucleics', 'other_nucleics']
+
         def mol_from_bytes(mol_bytes):
             mol = oechem.OEMol()
             oechem.OEReadMolFromBytes(mol, oechem.OEFormat_OEB, True, mol_bytes)
             return mol
 
         self._components = dict()
-        self._total_atoms = 0
+        # self._total_atoms = 0
 
         for comp_name, comp in state.items():
 
