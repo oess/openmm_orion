@@ -398,6 +398,22 @@ def ColorblindRGBMarkerColors(nColors=0):
         return(moreRGB[:nColors])
 
 
+
+def ColorblindHexMarkerColors(nColors=0):
+    palette = ['#0072b2', '#009e73', '#d55e00', '#cc79a7',
+               '#f0e442', '#e69f00', '#56b4e9', '#969696']
+    if nColors < 1:
+        return palette
+    elif nColors < 9:
+        return palette[:nColors]
+    else:
+        n = int(nColors/8)
+        moreHex = palette
+        for i in range(n):
+            moreHex = moreHex+palette
+        return(moreHex[:nColors])
+
+
 def PoseInteractionsSVG(ligand, proteinOrig, width=400, height=300):
     """Generate a OEGrapheme interaction plot for a protein-ligand complex.
     The input protein may have other non-protein components as well so

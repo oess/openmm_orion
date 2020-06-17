@@ -275,3 +275,85 @@ def trim_svg(svg):
     return svg[idx:]
 
 
+def HtmlGridColColorRule(rulePrefix,nColums,colToColor,color):
+    stride = ':nth-child({:d}n+{:d})'.format(nColums,colToColor)
+    rule = rulePrefix+stride+' {\n  background-color: '+color+';\n  color: white;\n}\n\n'
+    return rule
+
+
+def HtmlGridRowColorRule(rulePrefix,nColums,rowToColor,color):
+    strt = 1+(rowToColor-1)*nColums
+    end = rowToColor*nColums
+    stride = ':nth-child(n+{:d}):nth-child(-n+{:d})'.format(strt, end)
+    rule = rulePrefix+stride+' {\n  background-color: '+color+';\n  color: white;\n}\n\n'
+    return rule
+
+
+def HtmlTableType1(tabName,colNames,rowNames,tabVals,colors,colorBy='column',fieldWidth=12):
+    # Setup
+    nCols = len(colNames)
+    nRows = len(rowNames)+1
+    #
+    # Header
+    grdHeader = tabName+'-container {\n  display: grid;\n  grid-template-columns:'
+    for i in range(nCols):
+        grdHeader += ' auto'
+    grdHeader += ';\n  grid-template-rows:'
+    for i in range(nRows):
+        grdHeader += ' 1fr'
+    grdHeader += ';\n  grid-row-gap: 10px;\n  grid-column-gap: 0px;\n  padding: 2px;\n'
+    grdHeader += '  max-width: '+str(15*fieldWidth*nCols)+'px;\n'
+    grdHeader += '  margin: auto;\n'
+    grdHeader += '  background-color: #a0a0a0;\n}\n'
+    grdHeader += '\n.'+tabName+'-bold {\n  font-weight: bold;\n}\n'
+    #
+    # General rule for elements in the table
+    grdItemRule = '\n'+tabName+'-item  {\n  background-color: #fafafa;\n'
+    grdItemRule += '  text-align: center;\n  padding: 10px 0;\n  font-size: 20px;\n}\n'
+    #
+    # Specific child rules to color columns or rows according to color vector
+    grdChildRules = ''
+    for i,color in enumerate(colors):
+        if color is None:
+            continue
+        if colorBy=='column':
+            grdChildRules += HtmlGridColColorRule(tabName+'-item',nCols,i+1,color)
+        else:
+            grdChildRules += HtmlGridRowColorRule(tabName+'-item',nCols,i+2,color)
+    #
+    grdStyle = grdHeader+grdItemRule+grdChildRules
+    #
+    # table body
+    strtBold = '  <'+tabName+'-item class="STMD_ClusFracByConf-bold">'
+    strt = '  <'+tabName+'-item>'
+    end = '</'+tabName+'-item>\n'
+    grdBody = '\n<'+tabName+'-container>\n'
+    for field in colNames:
+        grdBody += strtBold+field+end
+    for name, rowVals in zip(rowNames, tabVals):
+        grdBody += strtBold+name+end
+        for val in rowVals:
+            grdBody += strt+val+end
+    grdBody+= '</'+tabName+'-container>\n\n'
+    #
+    return grdStyle, grdBody
+
+
+def HtmlWriteTableBody(htmlTableDict,headermods=''):
+    html = ''
+    chunk = htmlTableDict['title']
+    if chunk is not None:
+        html += '  <br><br>\n  <h2 class="'+headermods+'">'+chunk+'</h2><br>\n'
+    chunk = htmlTableDict['subtitle']
+    if chunk is not None:
+        html += '  <h3 class="'+headermods+'">'+chunk+'</h3><br>\n'
+    chunk = htmlTableDict['body']
+    if chunk is not None:
+        html += chunk
+    chunk = htmlTableDict['descr']
+    if chunk is not None:
+        html += '  <br>\n  <p class="'+headermods+'">'+chunk+'</p><br>\n'
+    html += '<hr style="max-width: 800px;">\n'
+    return html
+
+
