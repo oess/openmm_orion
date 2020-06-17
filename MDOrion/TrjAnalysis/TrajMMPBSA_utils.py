@@ -98,10 +98,10 @@ def ProtLigWatInteractionEFromParmedOETraj(pmed, ligOETraj, protOETraj, water_tr
     # Check that protein and ligand atoms match between parmed subsystems, ligOETraj, and protOETraj
     if not ParmedAndOEMolAtomsMatch(ligandPmed, ligOETraj):
         opt['Logger'].info('ligand atoms do not match between parmed and ligOETraj')
-        return None, None, None, None, None, None, None, None
+        return None
     if not ParmedAndOEMolAtomsMatch(proteinPmed, protOETraj):
         opt['Logger'].info('protein atoms do not match between parmed and protOETraj')
-        return None, None, None, None, None, None, None, None
+        return None
 
     opt['Logger'].info('protein and ligand atoms match between parmed subsystems, ligOETraj, and protOETraj')
 
@@ -234,7 +234,17 @@ def ProtLigWatInteractionEFromParmedOETraj(pmed, ligOETraj, protOETraj, water_tr
 
     opt['Logger'].info('OpenMM energies computed for protein, ligand, complex and water trajectories')
 
-    return plIntE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE
+    results = dict()
+    results['protein_ligand_interE'] = plIntE
+    results['ligand_intraE'] = ligE
+    results['protein_intraE'] = protE
+    results['complex_intraE'] = cplxE
+    results['water_intraE'] = watE
+    results['ligand_water_interE'] = lwIntE
+    results['protein_water_interE'] = pwIntE
+    results['protein_and_water_ligand_interE'] = pw_lIntE
+
+    return results
 
 
 def PBSA(ligand, protein):
@@ -261,20 +271,21 @@ def TrajPBSA(ligOETraj, protOETraj, radiiType=oechem.OERadiiType_Zap9):
     oechem.OEAssignRadii(protOETraj, radiiType, oechem.OERadiiType_HonigIonicCavity)
     oechem.OEAssignRadii(ligOETraj, radiiType)
 
-    zapBind = []
-    zapBindEl = []
-    zapDesolEl = []
-    zapIntEl = []
-    zapBindSA25 = []
-    saBuried = []
+    PBSAdata = dict()
+    PBSAdata['OEZap_PBSA25_Bind'] = []
+    PBSAdata['OEZap_PB_Bind'] = []
+    PBSAdata['OEZap_PB_Desolvation'] = []
+    PBSAdata['OEZap_PB_Interaction'] = []
+    PBSAdata['OEZap_SA25_Bind'] = []
+    PBSAdata['OEZap_BuriedArea'] = []
 
     for protConf, ligConf in zip(protOETraj.GetConfs(), ligOETraj.GetConfs()):
         Ebind, EbindEl, EdesolEl, EintEl, EbindSA, buriedSA = PBSA(ligConf, protConf)
-        zapBind.append(Ebind)
-        zapBindEl.append(EbindEl)
-        zapDesolEl.append(EdesolEl)
-        zapIntEl.append(EintEl)
-        zapBindSA25.append(EbindSA)
-        saBuried.append(buriedSA)
+        PBSAdata['OEZap_PBSA25_Bind'].append(Ebind)
+        PBSAdata['OEZap_PB_Bind'].append(EbindEl)
+        PBSAdata['OEZap_PB_Desolvation'].append(EdesolEl)
+        PBSAdata['OEZap_PB_Interaction'].append(EintEl)
+        PBSAdata['OEZap_SA25_Bind'].append(EbindSA)
+        PBSAdata['OEZap_BuriedArea'].append(buriedSA)
 
-    return zapBind, zapBindEl, zapDesolEl, zapIntEl, zapBindSA25, saBuried
+    return PBSAdata

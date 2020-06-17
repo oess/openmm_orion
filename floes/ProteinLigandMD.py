@@ -41,18 +41,11 @@ from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
                                   ParallelRecordSizeCheck)
 
-from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
-                                       ParallelTrajInteractionEnergyCube,
-                                       ParallelTrajPBSACube,
-                                       ParallelClusterOETrajCube,
-                                       ParallelMDTrajAnalysisClusterReport,
-                                       MDFloeReportCube)
-
-job = WorkFloe('Short Trajectory MD Test1',
-               title='Short Trajectory MD Test1')
+job = WorkFloe('Protein-Ligand MD',
+               title='Protein-Ligand MD')
 
 job.description = """
-The Short Trajectory MD (STMD) protocol performs MD simulations given
+The Protein-Ligand MD floe performs MD simulations given
 a prepared protein and a set of posed and prepared ligands as input.
 The ligands need to have coordinates, all atoms, and correct chemistry. Each
 ligand can have multiple conformers but each conformer will be run separately
@@ -65,26 +58,17 @@ Given the inputs of the protein and posed ligands,
 the complex is formed with each ligand/conformer
 separately, and the complex is solvated and parametrized according to the
 selected force fields. A minimization stage is peformed on the system followed
-by a warm up (NVT ensemble) and three equilibration stages (NPT ensemble). In the
+by a warm up (NVT ensemble) and several equilibration stages (NPT ensemble). In the
 minimization, warm up, and equilibration stages, positional harmonic restraints are
-applied on the ligand and protein. At the end of the equilibration stages a short
-(default 2ns) production run is performed on the unrestrained system.
-The production run is then analyzed in terms of interactions between the
-ligand and the active site and in terms of ligand RMSD after fitting the trajectory
-based on active site C_alphas.
+applied on the ligand and protein. At the end of the equilibration stages a 
+production run (by default only 2 ns) is performed on the unrestrained system.
+The trajectory and final state are written out in the results record;
+no analysis is performed.
 
 Required Input Parameters:
---------------------------
-ligands (file): dataset of prepared ligands posed in the protein active site.
-protein (file): dataset of the prepared protein structure.
-
-Outputs:
---------
-floe report: html page of the Analysis of each ligand.
-out (.oedb file): file of the Analysis results for all ligands.
+* A ligand dataset of prepared ligands posed in the protein active site.
+* A protein dataset of the prepared MD-ready protein structure, including cofactors and structured waters.
 """
-# Locally the floe can be invoked by running the terminal command:
-# python floes/ShortTrajMD.py --ligands ligands.oeb --protein protein.oeb --out prod.oeb
 
 job.classification = [['Molecular Dynamics']]
 # job.uuid = "372e1890-d053-4027-970a-85b209e4676f"
@@ -131,15 +115,15 @@ coll_open.set_parameters(open=True)
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
-ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.1.0')
+ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='OpenFF_1.1.0')
 ff.modify_parameter(ff.lig_res_name, promoted=False, default='LIG')
 
 # Protein Setting
 protset = ProteinSetting("ProteinSetting", title="Protein Setting")
 protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
 protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber14SB')
-protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='Gaff2')
+protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='OpenFF_1.1.0')
 
 prod = ParallelMDNptCube("Production", title="Production")
 prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
@@ -177,10 +161,9 @@ warmup.set_parameters(save_md_stage=True)
 warmup.set_parameters(md_engine='OpenMM')
 
 
-# The system is equilibrated at the right pressure and temperature in 3 stages
-# The main difference between the stages is related to the restraint force used
-# to keep the ligand and protein in their starting positions. A relatively strong force
-# is applied in the first stage while a relatively small one is applied in the latter
+# The system is equilibrated at the desired pressure and temperature in several stages
+# The main difference between the stages is pregressively weakening the restraint force used
+# to keep the ligand and protein in their starting positions.
 
 # NPT Equilibration stage 1
 equil1 = ParallelMDNptCube('equil1', title='Equilibration I')
@@ -239,17 +222,6 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
-trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
-IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
-PBSACube = ParallelTrajPBSACube("TrajPBSACube")
-clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
-report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
-
-analysis_group = ParallelCubeGroup(cubes=[trajCube, IntECube, PBSACube, clusCube, report_gen])
-job.add_group(analysis_group)
-
-report = MDFloeReportCube("report", title="Floe Report")
-
 # This cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection")
 coll_close.set_parameters(open=False)
@@ -259,8 +231,7 @@ check_rec = ParallelRecordSizeCheck("Record Check Success")
 job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx,
               solvate, coll_open, ff,
               minComplex, warmup, equil1, equil2, equil3, equil4, prod,
-              trajCube, IntECube, PBSACube, clusCube, report_gen,
-              report, coll_close, check_rec, ofs, fail)
+              coll_close, check_rec, ofs, fail)
 
 iligs.success.connect(ligset.intake)
 ligset.success.connect(chargelig.intake)
@@ -279,21 +250,8 @@ equil1.success.connect(equil2.intake)
 equil2.success.connect(equil3.intake)
 equil3.success.connect(equil4.intake)
 equil4.success.connect(prod.intake)
-prod.success.connect(trajCube.intake)
+prod.success.connect(coll_close.intake)
 prod.failure.connect(check_rec.fail_in)
-# prod.success.connect(ofs.intake)
-trajCube.success.connect(IntECube.intake)
-trajCube.failure.connect(check_rec.fail_in)
-IntECube.success.connect(PBSACube.intake)
-IntECube.failure.connect(check_rec.fail_in)
-PBSACube.success.connect(clusCube.intake)
-PBSACube.failure.connect(check_rec.fail_in)
-clusCube.success.connect(report_gen.intake)
-clusCube.failure.connect(check_rec.fail_in)
-report_gen.success.connect(report.intake)
-report_gen.failure.connect(check_rec.fail_in)
-report.failure.connect(check_rec.fail_in)
-report.success.connect(coll_close.intake)
 coll_close.success.connect(check_rec.intake)
 coll_close.failure.connect(check_rec.fail_in)
 check_rec.success.connect(ofs.intake)

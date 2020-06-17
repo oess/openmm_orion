@@ -748,11 +748,22 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
 
             # Get the PBSA data dict from the record
             if not record.has_field(Fields.Analysis.oepbsa_dict):
-                raise ValueError('{} could not find the PBSA JSON object'.format(system_title))
-            opt['Logger'].info('{} found the PBSA JSON record'.format(system_title))
+                raise ValueError('{} could not find the PBSA data JSON object'.format(system_title))
+            opt['Logger'].info('{} found the PBSA data JSON record'.format(system_title))
             PBSAdata = utl.RequestOEFieldType(record, Fields.Analysis.oepbsa_dict)
             for key in PBSAdata.keys():
                 opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])))
+
+            # Clean MMPBSA mean and serr to avoid nans and high zap energy values
+            if 'OEZap_MMPBSA6_Bind' in PBSAdata.keys():
+                avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(PBSAdata['OEZap_MMPBSA6_Bind'])
+
+                # Add to the record the MMPBSA mean and std
+                record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
+                record.set_value(Fields.Analysis.mmpbsa_traj_serr, serr_mmpbsa)
+                # Add to the record the Average MMPBSA floe report label
+                record.set_value(Fields.floe_report_label, "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".
+                                 format(avg_mmpbsa, serr_mmpbsa))
 
             # BEGIN TESTING Bayly 2020jun
             # Get the clusConf population data dict from the record

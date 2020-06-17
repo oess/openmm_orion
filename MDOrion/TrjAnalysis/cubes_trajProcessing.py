@@ -82,7 +82,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             # Logger string
             opt['Logger'].info(' ')
             system_title = mdrecord.get_title
-            sys_id = mdrecord.get_flask_id
+            #sys_id = mdrecord.get_flask_id
             opt['Logger'].info('{}: Attempting MD Traj conversion into OEMols'.format(system_title))
 
             traj_fn = mdrecord.get_stage_trajectory()
@@ -203,48 +203,26 @@ class ConcatenateTrajMMPBSACube(RecordPortsMixin, ComputeCube):
                 opt['Logger'].info('{} found the conformer record'.format(system_title))
             list_conf_rec = record.get_value(Fields.Analysis.oetrajconf_rec)
 
-            # find the PBSAdata dict from inside the first conf
-            #if not rec0.has_field(Fields.Analysis.oepbsa_dict):
-            #    raise ValueError('{} could not find the PBSAdata dict for confID {}'.format(system_title, confid))
-            #opt['Logger'].info('{}: found PBSAdata dict for confID {}'.format(system_title, confid))
-            #PBSAdata = rec0.get_value(Fields.Analysis.oepbsa_dict)
-            #for key in PBSAdata:
-            #    opt['Logger'].info('{}: PBSAdata {} : {} values'.format(system_title, key, len(PBSAdata[key])))
-
-            # make a dict of all FloatVec fields from inside the trajPBSA_rec record of the first conf
+            # combine all data from the conf traj PBSA data for all conformers
             PBSAdata = dict()
             for confrec in list_conf_rec:
                 confid = utl.RequestOEFieldType(confrec, Fields.confid)
-                if not confrec.has_field(Fields.Analysis.oepbsa_rec):
-                    raise ValueError('{} could not find the trajPBSA record for confid {}'.
+                if not confrec.has_field(Fields.Analysis.oepbsa_dict):
+                    raise ValueError('{} could not find the conf traj PBSA data for confid {}'.
                                      format(system_title, confid))
-                trajPBSA_rec = confrec.get_value(Fields.Analysis.oepbsa_rec)
-                for field in trajPBSA_rec.get_fields():
-                    fname = field.get_name()
-                    if field.get_type() is Types.FloatVec:
-                        if fname not in PBSAdata.keys():
-                            PBSAdata[fname] = trajPBSA_rec.get_value(field)
-                        else:
-                            PBSAdata[fname] += trajPBSA_rec.get_value(field)
+                confPBSAdata = confrec.get_value(Fields.Analysis.oepbsa_dict)
+
+                for key in confPBSAdata.keys():
+                    if key not in PBSAdata.keys():
+                        PBSAdata[key] = confPBSAdata[key]
                     else:
-                        opt['Logger'].info('ConcatenateTrajMMPBSACube skipping field {}'.format(fname))
+                        PBSAdata[key] += confPBSAdata[key]
+
             for key in PBSAdata.keys():
                 opt['Logger'].info('ConcatenateTrajMMPBSACube PBSAdata[{}] length {}'.format(key, len(PBSAdata[key])))
 
             # Add the PBSAdata dict to the parent record
             record.set_value(Fields.Analysis.oepbsa_dict, PBSAdata)
-
-            # Generate clean average, stderr MMPBSA to avoid nans and high zap energy values
-            avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(PBSAdata['OEZap_MMPBSA6_Bind'])
-
-            # Add to the record the MMPBSA mean and std
-            record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
-            record.set_value(Fields.Analysis.mmpbsa_traj_serr, serr_mmpbsa)
-            # Add to the record the Average MMPBSA floe report label
-            record.set_value(Fields.floe_report_label, "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".
-                             format(avg_mmpbsa, serr_mmpbsa))
-
-            opt['Logger'].info('{} finished ConcatenateTrajMMPBSACube'.format(system_title))
 
             self.success.emit(record)
 
@@ -343,107 +321,44 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                                .format(system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
 
             # Compute PBSA energies for the protein-ligand complex
-            zapBind, zapBindPB, zapDesolEl, zapIntEl, zapBindSA25, saBuried = mmpbsa.TrajPBSA(
-                                       ligTraj, protTraj)
-            if zapBind is None:
+            PBSAdata = mmpbsa.TrajPBSA(ligTraj, protTraj)
+            if PBSAdata is None:
                 raise ValueError('{} Calculation of PBSA energies failed'.format(system_title))
 
             # generate Surface Areas energy for buried SA based on 0.006 kcal/mol/A^2
-            zapBindSA6 = [sa * -0.006 for sa in saBuried]
-
-            # make a dict of these energy terms to store on the record
-            PBSAdata = dict()
-            PBSAdata['OEZap_PBSA25_Bind'] = zapBind
-            PBSAdata['OEZap_PB_Bind'] = zapBindPB
-            PBSAdata['OEZap_PB_Desolvation'] = zapDesolEl
-            PBSAdata['OEZap_PB_Interaction'] = zapIntEl
-            PBSAdata['OEZap_SA25_Bind'] = zapBindSA25
-            PBSAdata['OEZap_BuriedArea'] = saBuried
-            PBSAdata['OEZap_SA6_Bind'] = zapBindSA6
-
-            # Create new record with traj interaction energy results
-            opt['Logger'].info('{} writing trajPBSA OERecord'.format(system_title) )
-            trajPBSA = OERecord()
-
-            zapBind_field = OEField("OEZap_PBSA25_Bind", Types.FloatVec,
-                                    meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajPBSA.set_value(zapBind_field, zapBind)
-
-            zapBindPB_field = OEField("OEZap_PB_Bind", Types.FloatVec,
-                                      meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajPBSA.set_value(zapBindPB_field, zapBindPB)
-
-            zapDesolEl_field = OEField("OEZap_PB_Desolvation", Types.FloatVec,
-                                       meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajPBSA.set_value(zapDesolEl_field, zapDesolEl)
-
-            zapIntEl_field = OEField("OEZap_PB_Interaction", Types.FloatVec,
-                                     meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajPBSA.set_value(zapIntEl_field, zapIntEl)
-
-            zapBindSA25_field = OEField("OEZap_SA25_Bind", Types.FloatVec,
-                                        meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajPBSA.set_value(zapBindSA25_field, zapBindSA25)
-
-            saBuried_field = OEField("OEZap_BuriedArea", Types.FloatVec)
-            trajPBSA.set_value(saBuried_field, saBuried)
-
-            zapBindSA6_field = OEField("OEZap_SA6_Bind", Types.FloatVec,
-                                       meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajPBSA.set_value(zapBindSA6_field, zapBindSA6)
+            PBSAdata['OEZap_SA6_Bind'] = [sa * -0.006 for sa in PBSAdata['OEZap_BuriedArea']]
 
             # If the OETraj Interaction Energies has been done calculate MMPBSA values
             if 'TrajIntE' in analysesDone:
                 opt['Logger'].info('{} found TrajIntE analyses'.format(system_title) )
 
                 # Extract the relevant P-L Interaction Energies from the record
-                oeTrjIntERecord = utl.RequestOEFieldType( record, Fields.Analysis.oeintE_rec)
-                opt['Logger'].info('{} found TrajIntE record'.format(system_title))
+                intEdata = record.get_value(Fields.Analysis.oeintE_dict)
+                opt['Logger'].info('{} found Traj intEdata data'.format(system_title))
 
                 if self.opt['explicit_water']:
 
-                    PLIntE = utl.RequestOEField(oeTrjIntERecord,
-                                                'protein_and_water_ligand_interactionEnergy', Types.FloatVec)
+                    PLIntE = intEdata['protein_and_water_ligand_interE']
                     opt['Logger'].info('{} found Protein-Water and Ligand force field interaction energies'
                                        .format(system_title))
                 else:
 
-                    PLIntE = utl.RequestOEField(oeTrjIntERecord,
-                                                'protein_ligand_interactionEnergy', Types.FloatVec)
+                    PLIntE = intEdata['protein_ligand_interE']
                     opt['Logger'].info('{} found Protein-Ligand force field interaction energies'
                                        .format(system_title))
 
                 # Calculate  and store MMPB and MMPBSA energies on the trajPBSA record
-                zapMMPB = [eInt+eDesol for eInt, eDesol in zip(PLIntE, zapDesolEl)]
+                PBSAdata['OEZap_MMPB_Bind'] = [eInt+eDesol for eInt, eDesol in
+                                               zip(PLIntE, PBSAdata['OEZap_PB_Desolvation'])]
+                PBSAdata['OEZap_MMPBSA6_Bind'] = [eMMPB+eSA6 for eMMPB,eSA6 in
+                                                  zip(PBSAdata['OEZap_MMPB_Bind'], PBSAdata['OEZap_SA6_Bind'])]
 
-                zapMMPB_field = OEField("OEZap_MMPB_Bind", Types.FloatVec,
-                                        meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-                trajPBSA.set_value(zapMMPB_field, zapMMPB)
-
-                zapMMPBSA = [eMMPB+eSA6 for eMMPB,eSA6 in zip(zapMMPB, zapBindSA6)]
-                zapMMPBSA_field = OEField("OEZap_MMPBSA6_Bind", Types.FloatVec,
-                                          meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-                trajPBSA.set_value(Fields.Analysis.zapMMPBSA_fld, zapMMPBSA)
-
-                # Add these energy terms to the earlier dict to store on the record
-                PBSAdata['OEZap_MMPB_Bind'] = zapMMPB
-                PBSAdata['OEZap_MMPBSA6_Bind'] = zapMMPBSA
-
-                # Clean average MMPBSA to avoid nans and high zap energy values
-                avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(zapMMPBSA)
-
-                # Add to the record the MMPBSA mean and std
-                record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
-                record.set_value(Fields.Analysis.mmpbsa_traj_serr, serr_mmpbsa)
-                # Add to the record the Average MMPBSA floe report label
-                record.set_value(Fields.floe_report_label, "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".
-                                 format(avg_mmpbsa, serr_mmpbsa))
+            for key in PBSAdata.keys():
+                opt['Logger'].info('TrajPBSACube PBSAdata[{}] length {}'.format(key, len(PBSAdata[key])))
 
             # Add the PBSAdata dict to the record
             record.set_value(Fields.Analysis.oepbsa_dict, PBSAdata)
 
-            # Add the trajPBSA record to the parent record
-            record.set_value(Fields.Analysis.oepbsa_rec, trajPBSA)
             analysesDone.append('TrajPBSA')
             record.set_value(Fields.Analysis.analysesDone, analysesDone)
             opt['Logger'].info('{} finished writing TrajPBSA OERecord'.format(system_title))
@@ -531,65 +446,26 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
             prmed = mdrecord.get_parmed(sync_stage_name='last')
 
             # Compute interaction energies for the protein, ligand, complex and water subsystems
-            intE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE = mmpbsa.ProtLigWatInteractionEFromParmedOETraj(
-                prmed, ligTraj, protTraj, water_traj, opt)
+            intEdata = mmpbsa.ProtLigWatInteractionEFromParmedOETraj(prmed, ligTraj, protTraj, water_traj, opt)
 
-            if intE is None:
+            if intEdata is None:
                 raise ValueError('{} Calculation of Interaction Energies failed'.format(system_title))
 
             # protein and ligand traj OEMols now have parmed charges on them; save these
             oetrajRecord.set_value(OEField('LigTraj', Types.Chem.Mol), ligTraj)
             record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
 
-            # make a dict of these energy terms to store on the record
-            intEdata = dict()
-            intE, cplxE, protE, ligE, watE, lwIntE, pwIntE, pw_lIntE
-
-            # Create new record with traj interaction energy results
-            opt['Logger'].info('{} writing trajIntE OERecord'.format(system_title))
-            trajIntE = OERecord()
-
-            intE_field = OEField("protein_ligand_interactionEnergy", Types.FloatVec,
-                                 meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajIntE.set_value(intE_field, intE)
-
-            ligE_field = OEField("ligand_intraEnergy", Types.FloatVec,
-                                 meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajIntE.set_value(ligE_field, ligE)
-
-            protE_field = OEField("protein_intraEnergy", Types.FloatVec,
-                                  meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajIntE.set_value(protE_field, protE)
-
-            cplxE_field = OEField("complex_intraEnergy", Types.FloatVec,
-                                  meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-            trajIntE.set_value(cplxE_field, cplxE)
-
-            watE_field = OEField("water_intraEnergy", Types.FloatVec,
-                                 meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-
-            trajIntE.set_value(watE_field, watE)
-
-            lwE_field = OEField("ligand_water_interactionEnergy", Types.FloatVec,
-                                meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-
-            trajIntE.set_value(lwE_field, lwIntE)
-
-            pwE_field = OEField("protein_water_interactionEnergy", Types.FloatVec,
-                                meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-
-            trajIntE.set_value(pwE_field, pwIntE)
-
-            pw_lIntE_field = OEField("protein_and_water_ligand_interactionEnergy", Types.FloatVec,
-                                     meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
-
-            trajIntE.set_value(pw_lIntE_field, pw_lIntE)
+            # list the energy terms in the intEdata dict to be stored on the record
+            for key in intEdata.keys():
+                opt['Logger'].info('{} traj intEdata[{}] of length {}'
+                                   .format(system_title,key,len(intEdata[key])) )
 
             # Add the intEdata dict to the record
             record.set_value(Fields.Analysis.oeintE_dict, intEdata)
 
             # Add the trajIntE record to the parent record
-            record.set_value(Fields.Analysis.oeintE_rec, trajIntE)
+            #record.set_value(Fields.Analysis.oeintE_rec, trajIntE)
+
             analysesDone.append('TrajIntE')
             record.set_value(Fields.Analysis.analysesDone, analysesDone)
             opt['Logger'].info('{} finished writing trajIntE OERecord'.format(system_title) )
