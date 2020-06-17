@@ -41,7 +41,8 @@ ofs = DatasetWriterCube('ofs', title='OFS-Success')
 ofs.promote_parameter("data_out", promoted_name="out", title="System Output OERecord", description="OERecord file name")
 
 fail = DatasetWriterCube('fail', title='Failures')
-fail.promote_parameter("data_out", promoted_name="fail")
+fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
+                       description="MD Dataset Failures out")
 
 job.add_cubes(ifs,
               confGather, catLigTraj, catLigMMPBSA, clusCube, clusPop, clusOEMols,
