@@ -41,15 +41,10 @@ from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
                                   ParallelRecordSizeCheck)
 
-from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
+from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajToOEMolCube,
                                        ParallelTrajInteractionEnergyCube,
-                                       ParallelTrajPBSACube,
-                                       ConformerGatheringData,
-                                       ParallelClusterOETrajCube,
-                                       ParallelMakeClusterTrajOEMols,
-                                       ParallelConcatenateTrajMMPBSACube,
-                                       ParallelMDTrajAnalysisClusterReport,
-                                       MDFloeReportCube)
+                                       ParallelTrajPBSACube)
+
 
 job = WorkFloe('Short Trajectory MD Test3 No Clustering',
                title='Short Trajectory MD Test 3 No Clustering')
@@ -142,7 +137,7 @@ ff.modify_parameter(ff.lig_res_name, promoted=False, default='LIG')
 protset = ProteinSetting("ProteinSetting", title="Protein Setting")
 protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
 protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber14SB')
-protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='Gaff2')
+protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='OpenFF_1.1.0')
 
 prod = ParallelMDNptCube("Production", title="Production")
 prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,

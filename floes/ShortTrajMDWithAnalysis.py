@@ -43,12 +43,14 @@ from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
                                   ParallelRecordSizeCheck)
 
-from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
+from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajToOEMolCube,
                                        ParallelTrajInteractionEnergyCube,
-                                       ParallelTrajPBSACube,
-                                       ParallelClusterOETrajCube,
+                                       ParallelTrajPBSACube)
+
+from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube,
                                        ParallelMDTrajAnalysisClusterReport,
                                        MDFloeReportCube)
+
 
 job = WorkFloe('Short Trajectory MD with Analysis',
                title='Short Trajectory MD with Analysis')

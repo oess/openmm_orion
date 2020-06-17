@@ -41,13 +41,14 @@ from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
                                   ParallelRecordSizeCheck)
 
-from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
+from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajToOEMolCube,
                                        ParallelTrajInteractionEnergyCube,
                                        ParallelTrajPBSACube,
                                        ConformerGatheringData,
                                        ParallelConfTrajsToLigTraj,
-                                       ParallelConcatenateTrajMMPBSACube,
-                                       ParallelClusterOETrajCube,
+                                       ParallelConcatenateTrajMMPBSACube)
+
+from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube,
                                        ParallelMakeClusterTrajOEMols,
                                        ParallelMDTrajAnalysisClusterReport,
                                        MDFloeReportCube)
