@@ -28,7 +28,9 @@ import parmed
 
 import openmoltools
 
-from openmoltools.openeye import *
+# from openmoltools.openeye import *
+
+import os, shutil
 
 from simtk.openmm.app import AmberInpcrdFile, AmberPrmtopFile
 from simtk.openmm import app
@@ -42,6 +44,87 @@ from openforcefield.topology import Topology, Molecule
 from MDOrion.LigPrep.ff_utils import assignELF10charges
 
 from MDOrion.ForceField.ff_library import ff_library
+
+import mdtraj.utils
+
+import subprocess
+
+# TODO TEMPORARY SOLUTION FOR OPENMOLTOOLS BUG
+# https://github.com/choderalab/openmoltools/issues/299
+
+
+def run_tleap(molecule_name,
+              gaff_mol2_filename,
+              frcmod_filename,
+              prmtop_filename=None,
+              inpcrd_filename=None,
+              leaprc='leaprc.gaff'):
+
+    """Run AmberTools tleap to create simulation files for AMBER
+
+    Parameters
+    ----------
+    molecule_name : str
+        The name of the molecule
+    gaff_mol2_filename : str
+        GAFF format mol2 filename produced by antechamber
+    frcmod_filename : str
+        Amber frcmod file produced by prmchk
+    prmtop_filename : str, optional, default=None
+        Amber prmtop file produced by tleap, defaults to molecule_name
+    inpcrd_filename : str, optional, default=None
+        Amber inpcrd file produced by tleap, defaults to molecule_name
+    leaprc : str, optional, default = 'leaprc.gaff'
+        Optionally, specify alternate leaprc to use, such as `leaprc.gaff2`
+
+    Returns
+    -------
+    prmtop_filename : str
+        Amber prmtop file produced by tleap
+    inpcrd_filename : str
+        Amber inpcrd file produced by tleap
+    """
+    if prmtop_filename is None:
+        prmtop_filename = "%s.prmtop" % molecule_name
+    if inpcrd_filename is None:
+        inpcrd_filename = "%s.inpcrd" % molecule_name
+
+    # Get absolute paths for input/output
+    gaff_mol2_filename = os.path.abspath(gaff_mol2_filename)
+    frcmod_filename = os.path.abspath(frcmod_filename)
+    prmtop_filename = os.path.abspath(prmtop_filename)
+    inpcrd_filename = os.path.abspath(inpcrd_filename)
+
+    # Work in a temporary directory, on hard coded filenames,
+    # to avoid any issues AMBER may have with spaces and other special characters in filenames
+    with mdtraj.utils.enter_temp_directory():
+        shutil.copy(gaff_mol2_filename, 'file.mol2')
+        shutil.copy(frcmod_filename, 'file.frcmod')
+
+        tleap_input = """
+    source oldff/leaprc.ff99SB
+    source %s
+    LIG = loadmol2 file.mol2
+    loadamberparams file.frcmod
+    check LIG
+    saveamberparm LIG out.prmtop out.inpcrd
+    quit
+
+""" % leaprc
+
+        file_handle = open('tleap_commands', 'w')
+        file_handle.writelines(tleap_input)
+        file_handle.close()
+
+        cmd = "tleap -f %s " % file_handle.name
+
+        subprocess.getoutput(cmd)
+
+        # Copy back target files
+        shutil.copy('out.prmtop', prmtop_filename)
+        shutil.copy('out.inpcrd', inpcrd_filename)
+
+    return prmtop_filename, inpcrd_filename
 
 
 class ParamMolStructure(object):
@@ -106,7 +189,10 @@ class ParamMolStructure(object):
             with open(fffn) as ffxml:
                 ff = ForceField(ffxml, allow_cosmetic_attributes=True)
 
-        elif self.forcefield in [ff_library.ligandff['OpenFF_1.0.0'],  ff_library.ligandff['OpenFF_1.1.0']]:
+        elif self.forcefield in [ff_library.ligandff['OpenFF_1.0.0'],
+                                 ff_library.ligandff['OpenFF_1.1.1'],
+                                 ff_library.ligandff['OpenFF_1.2.0']]:
+
             ff = ForceField(self.forcefield, allow_cosmetic_attributes=True)
 
         else:
@@ -148,14 +234,23 @@ class ParamMolStructure(object):
 
         # Run antechamber to type and parmchk for frcmod
         # requires openmoltools 0.7.5 or later, which should be conda-installable via omnia
+        # gaff_mol2_filename, frcmod_filename = openmoltools.amber.run_antechamber(self.prefix_name, mol2filename,
+        #                                                                          gaff_version=forcefield.lower(),
+        #                                                                          charge_method=None)
+
         gaff_mol2_filename, frcmod_filename = openmoltools.amber.run_antechamber(self.prefix_name, mol2filename,
                                                                                  gaff_version=forcefield.lower(),
                                                                                  charge_method=None)
 
         # Run tleap using specified forcefield
-        prmtop, inpcrd = openmoltools.amber.run_tleap(self.prefix_name, gaff_mol2_filename,
-                                                      frcmod_filename,
-                                                      leaprc='leaprc.{}'.format(forcefield.lower()))
+        # prmtop, inpcrd = openmoltools.amber.run_tleap(self.prefix_name, gaff_mol2_filename,
+        #                                               frcmod_filename,
+        #                                               leaprc='leaprc.{}'.format(forcefield.lower()))
+        #
+        prmtop, inpcrd = run_tleap(self.prefix_name,
+                                   gaff_mol2_filename,
+                                   frcmod_filename,
+                                   leaprc='leaprc.{}'.format(forcefield.lower()))
 
         # TODO Load via ParmEd: This is causing Problems
         #  Merging two structures (OpenMM PMD structure and
@@ -180,7 +275,11 @@ class ParamMolStructure(object):
 
     def parameterize(self):
 
-        if self.forcefield in [ff_library.ligandff['OpenFF_1.0.0'], ff_library.ligandff['OpenFF_1.1.0'], ff_library.ligandff['Smirnoff99Frosst']]:
+        if self.forcefield in [ff_library.ligandff['OpenFF_1.0.0'],
+                               ff_library.ligandff['OpenFF_1.1.1'],
+                               ff_library.ligandff['OpenFF_1.2.0'],
+                               ff_library.ligandff['Smirnoff99Frosst']]:
+
             structure = self.getSmirnoffStructure()
 
         elif self.forcefield in ['GAFF', 'GAFF2']:

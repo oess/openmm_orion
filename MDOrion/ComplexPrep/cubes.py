@@ -131,6 +131,8 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
 
                 complex_title = 'p' + self.md_components.get_title + '_l' + ligand_title
 
+                self.md_components.set_title(complex_title)
+
                 # the ligand is the primary molecule
                 new_record = OERecord(record)
 

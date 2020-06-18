@@ -37,7 +37,7 @@ job.tags = [tag for lists in job.classification for tag in lists]
 ifs = DatasetReaderCube("SystemReader", title="System Reader")
 ifs.promote_parameter("data_in", promoted_name="system",
                       title='STMDA Input File',
-                      description="The Dataset produce by the Short Trajectory with Analysis floe")
+                      description="The Dataset produced by the Short Trajectory MD with Analysis floe")
 
 data = ExtractMDDataCube("MDData", title="Extract MD Data")
 

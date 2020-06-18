@@ -687,8 +687,8 @@ class MDComponents:
 class ParametrizeMDComponents:
     def __init__(self, md_component,
                  protein_ff='Amber14SB',
-                 ligand_ff='OpenFF_1.0.0',
-                 other_ff='OpenFF_1.0.0'):
+                 ligand_ff='OpenFF_1.2.0',
+                 other_ff='OpenFF_1.2.0'):
 
         # MD Components
         self.md_components = md_component

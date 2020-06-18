@@ -34,7 +34,8 @@ ligandff = {'Gaff': 'GAFF',
             'Gaff2': 'GAFF2',
             'Smirnoff99Frosst': 'smirnoff99Frosst.offxml',
             'OpenFF_1.0.0': "openff_unconstrained-1.0.0.offxml",
-            'OpenFF_1.1.0': "openff_unconstrained-1.1.0.offxml"}
+            'OpenFF_1.1.1': "openff_unconstrained-1.1.1.offxml",
+            'OpenFF_1.2.0': "openff_unconstrained-1.2.0.offxml"}
 
 
 solventff = {'Tip3p': 'tip3p.xml'}
@@ -56,7 +57,8 @@ otherff = {'Gaff': 'GAFF',
            'Gaff2': 'GAFF2',
            'Smirnoff99Frosst': 'smirnoff99Frosst.offxml',
            'OpenFF_1.0.0': "openff_unconstrained-1.0.0.offxml",
-           'OpenFF_1.1.0': "openff_unconstrained-1.1.0.offxml"}
+           'OpenFF_1.1.1': "openff_unconstrained-1.1.1.offxml",
+           'OpenFF_1.2.0': "openff_unconstrained-1.2.0.offxml"}
 
 
 protein_standard_residue_names = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS',

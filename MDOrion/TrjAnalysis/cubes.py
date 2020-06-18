@@ -237,7 +237,7 @@ class ExtractMDDataCube(RecordPortsMixin, ComputeCube):
     tags = ['Report']
     description = """
     This Cube extract the relevant MD data from the dara record 
-    and saving the results as file in S3.  
+    and save the results as file in S3.  
     """
 
     uuid = "35a8a2b8-b765-4a6f-8d8e-6e2198feea22"
