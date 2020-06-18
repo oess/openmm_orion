@@ -296,14 +296,14 @@ def info_extraction(ctx):
 
             field_type = field.get_type()
 
-            rec_size += record.get_value_size(field)
-
             blank = "       "
             print("{} |".format(blank * (level + 1)))
             print("{} |".format(blank * (level + 1)))
             dis = "______"
 
             if not field_type == RecordData and not field_type == RecordVecData:
+
+                rec_size += record.get_value_size(field)
 
                 if (field.get_type() is Types.String or
                         field.get_type() is Types.Int or
