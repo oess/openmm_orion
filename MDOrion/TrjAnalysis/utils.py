@@ -385,7 +385,7 @@ def RequestOEFieldType(record, field):
 
 def ColorblindRGBMarkerColors(nColors=0):
     palette = [(0, 114, 178), (0, 158, 115), (213, 94, 0), (204, 121, 167),
-               (240, 228, 66), (230, 159, 0), (86, 180, 233), (150, 150, 150)]
+               (86, 180, 233), (230, 159, 0), (240, 228, 66), (150, 150, 150)]
     if nColors < 1:
         return palette
     elif nColors < 9:
@@ -401,7 +401,7 @@ def ColorblindRGBMarkerColors(nColors=0):
 
 def ColorblindHexMarkerColors(nColors=0):
     palette = ['#0072b2', '#009e73', '#d55e00', '#cc79a7',
-               '#f0e442', '#e69f00', '#56b4e9', '#969696']
+               '#56b4e9', '#e69f00', '#f0e442', '#969696']
     if nColors < 1:
         return palette
     elif nColors < 9:
@@ -747,21 +747,24 @@ def MeanSerrByClusterEnsemble(confPopDict, floatVec):
 def ClusterRMSDByConf(ligand, ligTraj, clusResults):
     # Setup
     nconfs = ligand.NumConfs()
+    clusVec = clusResults['ClusterVec']
     nMajorClusters = clusResults['nMajorClusters']
     majorClusIds = list(range(nMajorClusters))
     nMajorPlus1 = nMajorClusters+1
-    clusVec = clusResults['ClusterVec']
+    #
+    results = dict()
+    results['nConfs'] = nconfs
+    results['nMajorPlus1'] = nMajorPlus1
     #
     # make major-cluster OEMols
-    majorClusIds = list(range(clusResults['nMajorClusters']))
     clusOEMols = []
     for clusID in majorClusIds:
-        clusOEMol = clusutl.TrajOEMolFromCluster( ligTraj, clusResults['ClusterVec'], clusID)
+        clusOEMol = clusutl.TrajOEMolFromCluster( ligTraj, clusVec, clusID)
         clusOEMols.append(clusOEMol)
     #
     # final OEMol OEMol combines outliers and minor clusters
-    otherVec = [-1]*len(clusResults['ClusterVec'])
-    for i, clusID in enumerate(clusResults['ClusterVec']):
+    otherVec = [-1]*len(clusVec)
+    for i, clusID in enumerate(clusVec):
         if clusID in majorClusIds:
             otherVec[i] = clusID
     clusOEMol = clusutl.TrajOEMolFromCluster( ligTraj, otherVec, -1)
@@ -780,6 +783,9 @@ def ClusterRMSDByConf(ligand, ligTraj, clusResults):
             confRMSDsByClusMean[conf][clus] = rmsdVec.mean()
             confRMSDsByClusSerr[conf][clus] = rmsdVec.std()/np.sqrt(len(rmsdVec))
     #
-    return confRMSDsByClusMean, confRMSDsByClusSerr
+    results['confRMSDsByClusMean'] = confRMSDsByClusMean
+    results['confRMSDsByClusSerr'] = confRMSDsByClusSerr
+    #
+    return results
 
 

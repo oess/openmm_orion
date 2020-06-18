@@ -218,8 +218,8 @@ class ConcatenateTrajMMPBSACube(RecordPortsMixin, ComputeCube):
                     else:
                         PBSAdata[key] += confPBSAdata[key]
 
-            for key in PBSAdata.keys():
-                opt['Logger'].info('ConcatenateTrajMMPBSACube PBSAdata[{}] length {}'.format(key, len(PBSAdata[key])))
+            #for key in PBSAdata.keys():
+            #    opt['Logger'].info('ConcatenateTrajMMPBSACube PBSAdata[{}] length {}'.format(key, len(PBSAdata[key])))
 
             # Add the PBSAdata dict to the parent record
             record.set_value(Fields.Analysis.oepbsa_dict, PBSAdata)

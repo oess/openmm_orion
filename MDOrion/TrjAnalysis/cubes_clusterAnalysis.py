@@ -40,15 +40,7 @@ from datarecord import (Types,
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
-from MDOrion.TrjAnalysis.TrajAnFloeReport_utils import (_clus_floe_report_header,
-                                                        _clus_floe_report_header2,
-                                                        _clus_floe_report_midHtml0,
-                                                        _clus_floe_report_midHtml1,
-                                                        _clus_floe_report_midHtml2,
-                                                        _clus_floe_report_stripPlots,
-                                                        _clus_floe_report_Trailer,
-                                                        trim_svg,
-                                                        MakeClusterInfoText)
+import MDOrion.TrjAnalysis.TrajAnFloeReport_utils as flrpt
 
 
 class MDFloeReportCube(RecordPortsMixin, ComputeCube):
@@ -301,23 +293,26 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
 
             # Clusters are ordered by decreasing size, so first n clusters will be major clusters
             clusterCounts = clusResults['ClusterCounts']
-            largeClusThreshold = 0.05
+            majorClusThreshold = 0.05
+            clusResults['MajorClusThreshold'] = majorClusThreshold
             nLarge = 0
             for count in clusterCounts:
-                if count/clusResults['nFrames'] >= largeClusThreshold:
+                if count/clusResults['nFrames'] >= majorClusThreshold:
                     nLarge += 1
             clusResults['nMajorClusters'] = nLarge
 
             # Create new record with trajClus results
-            opt['Logger'].info('{} writing trajClus OERecord'.format(system_title) )
             trajClus = OERecord()
             #
             # store trajClus results dict (Plain Old Data only) on the record as a JSON object
             trajClus.set_value(Fields.Analysis.oeclus_dict, clusResults)
+            opt['Logger'].info('{} Saved clustering results in dict with keys:'.format(system_title) )
+            for key in clusResults.keys():
+                opt['Logger'].info('{} : TrajClusDict key {}'.format(system_title, key) )
 
             # Set the TrajClus record on the top-level record
             record.set_value(Fields.Analysis.oeclus_rec, trajClus)
-            opt['Logger'].info('{} cluster results written to trajClus OERecord'.format(system_title) )
+            opt['Logger'].info('{} cluster results written to TrajClus OERecord'.format(system_title) )
 
             self.success.emit(record)
 
@@ -427,18 +422,11 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
             oetrajRecord.set_value(TrajSVG_field, trajSVG)
             record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
 
-            # make a list of major clusters (major= 10% or more of traj)
-            majorClusters = []
-            nMajorClusters = 0
-            for clusID, count in enumerate(trajClus['ClusterCounts']):
-                if count/trajClus['nFrames'] >= 0.1:
-                    nMajorClusters += 1
-                    majorClusters.append(clusID)
-            opt['Logger'].info('Found {} major clusters for {}'.format(nMajorClusters, system_title))
-
-            byClusTrajSVG = []
             # Generate per-cluster info for major clusters
+            nMajorClusters = trajClus['nMajorClusters']
+            byClusTrajSVG = []
             if nMajorClusters > 0:
+                opt['Logger'].info('{}: Making cluster mols for {} major clusters'.format(system_title,nMajorClusters))
                 clusLigAvgMol = oechem.OEMol(ligTraj)
                 clusLigAvgMol.DeleteConfs()
                 clusProtAvgMol = oechem.OEMol(protTraj)
@@ -449,7 +437,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 clusProtMedMol.DeleteConfs()
 
                 # for each major cluster generate SVG and average and median for protein and ligand
-                for clusID in majorClusters:
+                for clusID in range(nMajorClusters):
                     opt['Logger'].info('Extracting cluster {} from {}'.format( clusID, system_title ))
                     clusLig = clusutl.TrajOEMolFromCluster( ligTraj, trajClus['ClusterVec'], clusID)
                     opt['Logger'].info( 'ligand cluster {} with {} confs'.format(clusID,clusLig.NumConfs()) )
@@ -616,16 +604,16 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} found the cluster record'.format(system_title))
             oeclusRecord = record.get_value(Fields.Analysis.oeclus_rec)
             clusResults = utl.RequestOEFieldType( oeclusRecord, Fields.Analysis.oeclus_dict)
-            for key in clusResults.keys():
-                opt['Logger'].info('{} : clusResults key {}'.format(system_title, key) )
+            #for key in clusResults.keys():
+            #    opt['Logger'].info('{} : clusResults key {}'.format(system_title, key) )
 
             # Get the PBSA data dict from the record
             if not record.has_field(Fields.Analysis.oepbsa_dict):
                 raise ValueError('{} could not find the PBSA JSON object'.format(system_title))
             opt['Logger'].info('{} found the PBSA JSON record'.format(system_title))
             PBSAdata = utl.RequestOEFieldType(record,Fields.Analysis.oepbsa_dict)
-            for key in PBSAdata.keys():
-                opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])) )
+            #for key in PBSAdata.keys():
+            #    opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])) )
 
             # Generate the fractional cluster populations by conformer, and conformer populations by cluster
             popResults = utl.AnalyzeClustersByConfs(ligand, confIdVec, clusResults)
@@ -638,9 +626,9 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
             popResults['OEZap_MMPBSA6_ByConfSerr'] = MMPBSAbyClus['ByConfSerr']
 
             # Generate by-cluster mean and serr RMSDs to the starting confs
-            confRMSDsByClusMean, confRMSDsByClusSerr = utl.ClusterRMSDByConf(ligand, ligTraj, clusResults)
-            popResults['confRMSDsByClusMean'] = confRMSDsByClusMean
-            popResults['confRMSDsByClusSerr'] = confRMSDsByClusSerr
+            ClusRMSDByConf = utl.ClusterRMSDByConf(ligand, ligTraj, clusResults)
+            popResults['confRMSDsByClusMean'] = ClusRMSDByConf['confRMSDsByClusMean']
+            popResults['confRMSDsByClusSerr'] = ClusRMSDByConf['confRMSDsByClusSerr']
 
             # Put these results on the record as a POD JSON object
             record.set_value(Fields.Analysis.cluspop_dict,popResults)
@@ -693,9 +681,9 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
             opt = dict(self.opt)
 
             # Logger string
-            opt['Logger'].info(' Beginning ClusterPopAnalysis')
+            opt['Logger'].info(' Beginning TrajAnalysisReportDataset')
             system_title = utl.RequestOEFieldType(record, Fields.title)
-            opt['Logger'].info('{} Attempting Population Analysis of Traj Clusters'
+            opt['Logger'].info('{} Prepare the Traj Analysis Dataset for Report'
                                .format(system_title))
 
             # Get the ligand which will be a multiconformer molecule with the starting
@@ -718,8 +706,8 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} found the cluster record'.format(system_title))
             oeclusRecord = record.get_value(Fields.Analysis.oeclus_rec)
             clusResults = utl.RequestOEFieldType(oeclusRecord, Fields.Analysis.oeclus_dict)
-            for key in clusResults.keys():
-                opt['Logger'].info('{} : clusResults key {}'.format(system_title, key))
+            #for key in clusResults.keys():
+            #    opt['Logger'].info('{} : clusResults key {}'.format(system_title, key))
 
             # Generate simple plots for floe report
             opt['Logger'].info('{} plotting cluster strip plot'.format(system_title) )
@@ -751,8 +739,9 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
                 raise ValueError('{} could not find the PBSA data JSON object'.format(system_title))
             opt['Logger'].info('{} found the PBSA data JSON record'.format(system_title))
             PBSAdata = utl.RequestOEFieldType(record, Fields.Analysis.oepbsa_dict)
-            for key in PBSAdata.keys():
-                opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])))
+            opt['Logger'].info('{} : PBSAdata keys {}'.format(system_title, PBSAdata.keys()))
+            #for key in PBSAdata.keys():
+            #    opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])))
 
             # Clean MMPBSA mean and serr to avoid nans and high zap energy values
             if 'OEZap_MMPBSA6_Bind' in PBSAdata.keys():
@@ -764,19 +753,6 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
                 # Add to the record the Average MMPBSA floe report label
                 record.set_value(Fields.floe_report_label, "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".
                                  format(avg_mmpbsa, serr_mmpbsa))
-
-            # BEGIN TESTING Bayly 2020jun
-            # Get the clusConf population data dict from the record
-            if not record.has_field(Fields.Analysis.cluspop_dict):
-                raise ValueError('{} could not find the clusConf population JSON object'.format(system_title))
-            opt['Logger'].info('{} found the clusConf population JSON record'.format(system_title))
-            popDict = utl.RequestOEFieldType(record, Fields.Analysis.cluspop_dict)
-            for key in popDict.keys():
-                opt['Logger'].info(' popDict[{}] :'.format(key) )
-                if key == 'TrajIdxs':
-                    continue
-                opt['Logger'].info(' {} '.format(popDict[key]) )
-            # END TESTING Bayly 2020jun
 
             self.success.emit(record)
 
@@ -879,6 +855,13 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             clusData = clusRecord.get_value(Fields.Analysis.oeclus_dict)
             opt['Logger'].info('{} found the cluster info'.format(system_title))
 
+            # Get the results dict for the Cluster Population analysis
+            if not record.has_field(Fields.Analysis.cluspop_dict):
+                raise ValueError('{} could not find the clusConf population JSON object'.format(system_title))
+            opt['Logger'].info('{} found the clusConf population JSON record'.format(system_title))
+            popResults = utl.RequestOEFieldType(record, Fields.Analysis.cluspop_dict)
+            popTableStyles, popTableBody = flrpt.HtmlMakeClusterPopTables(popResults)
+
             # Make a copy of the ligand starting pose.
             # OE Prepare Depiction is removing hydrogens
             ligand_init = oechem.OEMol(ligInitPose)
@@ -900,26 +883,28 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
                 report_file = open(reportFName, 'w')
 
-                report_file.write(_clus_floe_report_header)
+                report_file.write(flrpt._clus_floe_report_header)
 
                 for i in range(len(byClusTrajSVG)+2):
                     report_file.write("""
                   div.cb-floe-report__tab-wrapper input:nth-of-type({clusID}):checked ~ .cb-floe-report__tab-content:nth-of-type({clusID}) {{ display: block; }}
                 """.format(clusID=i+1))
 
-                report_file.write(_clus_floe_report_header2)
+                report_file.write(popTableStyles)
 
-                report_file.write(_clus_floe_report_midHtml0.format(
+                report_file.write(flrpt._clus_floe_report_header2)
+
+                report_file.write(flrpt._clus_floe_report_midHtml0.format(
                     query_depiction=oedepict.OEWriteImageToString("svg", img).decode("utf-8")))
 
                 report_file.write("""      <h3>
                         {mmpbsaLabel}
                       </h3>""".format(mmpbsaLabel=mmpbsaLabelStr))
 
-                analysis_txt = MakeClusterInfoText(clusData, clusRGB)
+                analysis_txt = flrpt.MakeClusterInfoText(clusData, popResults, clusRGB)
                 report_file.write("".join(analysis_txt))
 
-                report_file.write(_clus_floe_report_midHtml1)
+                report_file.write(flrpt._clus_floe_report_midHtml1)
 
                 report_file.write("""      <input type="radio" name="tab" id="cb-floe-report__tab-1-header" checked>
                       <label class="cb-floe-report__tab-label" for="cb-floe-report__tab-1-header">Overall</label>""")
@@ -940,27 +925,30 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
                 report_file.write("""      <div class="cb-floe-report__tab-content">
                         {traj}
-                      </div>""".format(traj=trim_svg(trajSVG)))
+                      </div>""".format(traj=flrpt.trim_svg(trajSVG)))
 
                 for clusSVG in byClusTrajSVG:
                     report_file.write("""      <div class="cb-floe-report__tab-content">
                         {traj}
                       </div>
-                      """.format(traj=trim_svg(clusSVG)))
+                      """.format(traj=flrpt.trim_svg(clusSVG)))
 
                 report_file.write("""      <div class="cb-floe-report__tab-content">
                         {traj}
                       </div>
-                      """.format(traj=trim_svg(asiteSVG)))
+                      """.format(traj=flrpt.trim_svg(asiteSVG)))
 
-                report_file.write(_clus_floe_report_midHtml2)
+                #report_file.write(flrpt._clus_floe_report_midHtml2)
 
-                report_file.write(_clus_floe_report_stripPlots.format(
-                    clusters=trim_svg(trajClus_svg)))
-                    #rmsdInit=trim_svg(rmsdInit_svg)))
+                report_file.write(flrpt._clus_floe_report_midHtml2a)
+                report_file.write(flrpt._clus_floe_report_stripPlots.format(
+                    clusters=flrpt.trim_svg(trajClus_svg)))
+                    #rmsdInit=flrpt.trim_svg(rmsdInit_svg)))
+                report_file.write('</div>')
 
+                report_file.write(popTableBody)
 
-                report_file.write(_clus_floe_report_Trailer)
+                report_file.write(flrpt._clus_floe_report_Trailer)
 
                 report_file.close()
 
