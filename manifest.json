@@ -31,7 +31,7 @@
         "openforcefields==1.2.0",
         "openmm==7.4.2",
         "openmmtools==0.18.3",
-        "openmoltools==0.8.7",
+        "openmoltools==0.8.3",
         "packmol==18.169",
         "parmed==3.2.0",
         "pdbfixer==1.5",
