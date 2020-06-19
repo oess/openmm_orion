@@ -51,6 +51,8 @@ from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajToOEMolCube,
 from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube,
                                        ParallelMakeClusterTrajOEMols,
                                        ParallelMDTrajAnalysisClusterReport,
+                                       ParallelClusterPopAnalysis,
+                                       ParallelTrajAnalysisReportDataset,
                                        MDFloeReportCube)
 
 job = WorkFloe('Short Trajectory MD Test2',
@@ -136,15 +138,15 @@ coll_open.set_parameters(open=True)
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
-ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.1.0')
+ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='OpenFF_1.1.0')
 ff.modify_parameter(ff.lig_res_name, promoted=False, default='LIG')
 
 # Protein Setting
 protset = ProteinSetting("ProteinSetting", title="Protein Setting")
 protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
 protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber14SB')
-protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='Gaff2')
+protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='OpenFF_1.1.0')
 
 prod = ParallelMDNptCube("Production", title="Production")
 prod.promote_parameter('time', promoted_name='prod_ns', default=2.0,
@@ -255,10 +257,12 @@ confGather = ConformerGatheringData("Gathering Conformer Records")
 catLigTraj = ParallelConfTrajsToLigTraj("ConfTrajsToLigTraj")
 catLigMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube')
 clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
+clusPop = ParallelClusterPopAnalysis('ClusterPopAnalysis')
 clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols')
+prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset')
 report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 
-analysis_group = ParallelCubeGroup(cubes=[catLigTraj, catLigMMPBSA, clusCube, clusOEMols, report_gen])
+analysis_group = ParallelCubeGroup(cubes=[catLigTraj, catLigMMPBSA, clusCube, clusPop, clusOEMols])
 job.add_group(analysis_group)
 
 report = MDFloeReportCube("report", title="Floe Report")
@@ -273,7 +277,8 @@ job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx,
               solvate, coll_open, ff,
               minComplex, warmup, equil1, equil2, equil3, equil4, prod,
               trajCube, IntECube, PBSACube, confGather,
-              catLigTraj, catLigMMPBSA, clusCube, clusOEMols, report_gen, report,
+              catLigTraj, catLigMMPBSA, clusCube, clusPop, clusOEMols,
+              prepDataset, report_gen, report,
               coll_close, check_rec, ofs, fail)
 
 iligs.success.connect(ligset.intake)
@@ -307,10 +312,14 @@ catLigTraj.success.connect(catLigMMPBSA.intake)
 catLigTraj.failure.connect(check_rec.fail_in)
 catLigMMPBSA.success.connect(clusCube.intake)
 catLigMMPBSA.failure.connect(check_rec.fail_in)
-clusCube.success.connect(clusOEMols.intake)
+clusCube.success.connect(clusPop.intake)
 clusCube.failure.connect(check_rec.fail_in)
-clusOEMols.success.connect(report_gen.intake)
+clusPop.success.connect(clusOEMols.intake)
+clusPop.failure.connect(check_rec.fail_in)
+clusOEMols.success.connect(prepDataset.intake)
 clusOEMols.failure.connect(check_rec.fail_in)
+prepDataset.success.connect(report_gen.intake)
+prepDataset.failure.connect(check_rec.fail_in)
 report_gen.success.connect(report.intake)
 report_gen.failure.connect(check_rec.fail_in)
 report.failure.connect(check_rec.fail_in)
