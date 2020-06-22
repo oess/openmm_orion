@@ -105,8 +105,6 @@ def data_trajectory_extraction(ctx, name, only):
 
     for record in tqdm(ctx.obj['records']):
 
-        mdrecord = MDDataRecord(record)
-
         new_record = OERecord(record)
 
         if not record.has_field(Fields.collection):
@@ -116,14 +114,17 @@ def data_trajectory_extraction(ctx, name, only):
 
         collection = session.get_resource(ShardCollection, collection_id)
 
-        stages = mdrecord.get_stages
-
-        system_title = mdrecord.get_title
-        sys_id = mdrecord.get_flask_id
-
         new_stages = []
 
         if 'a' in only or 'stages' in only:
+
+            mdrecord = MDDataRecord(record)
+
+            stages = mdrecord.get_stages
+
+            system_title = mdrecord.get_title
+            sys_id = mdrecord.get_flask_id
+
             for stage in stages:
 
                 stg_type = stage.get_value(Fields.stage_type)
@@ -295,14 +296,14 @@ def info_extraction(ctx):
 
             field_type = field.get_type()
 
-            rec_size += record.get_value_size(field)
-
             blank = "       "
             print("{} |".format(blank * (level + 1)))
             print("{} |".format(blank * (level + 1)))
             dis = "______"
 
             if not field_type == RecordData and not field_type == RecordVecData:
+
+                rec_size += record.get_value_size(field)
 
                 if (field.get_type() is Types.String or
                         field.get_type() is Types.Int or

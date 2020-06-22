@@ -424,7 +424,6 @@ class TestMDOrionFloes(FloeTestCase):
         # Check the out record list
         self.assertEqual(count, 1)
 
-    @pytest.mark.multi
     @pytest.mark.orion
     def test_omm_multi_ligs_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
@@ -811,7 +810,6 @@ class TestMDOrionFloes(FloeTestCase):
         # Check the out record list
         self.assertEqual(count, 1)
 
-    @pytest.mark.multi
     @pytest.mark.orion
     def test_gmx_STMD_Analysis_multi_ligs_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(

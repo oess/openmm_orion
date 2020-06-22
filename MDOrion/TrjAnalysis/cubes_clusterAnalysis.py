@@ -1,3 +1,20 @@
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
+#
+# TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
+# provided to current licensees or subscribers of OpenEye products or
+# SaaS offerings (each a "Customer").
+# Customer is hereby permitted to use, copy, and modify the Sample Code,
+# subject to these terms. OpenEye claims no rights to Customer's
+# modifications. Modification of Sample Code is at Customer's sole and
+# exclusive risk. Sample Code may require Customer to have a then
+# current license or subscription to the applicable OpenEye offering.
+# THE SAMPLE CODE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED.  OPENEYE DISCLAIMS ALL WARRANTIES, INCLUDING, BUT
+# NOT LIMITED TO, WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. In no event shall OpenEye be
+# liable for any damages or liability in connection with the Sample Code
+# or its use.
+
 from orionplatform.mixins import RecordPortsMixin
 
 from floe.api import (ParallelMixin,
@@ -6,11 +23,15 @@ from floe.api import (ParallelMixin,
 
 from MDOrion.Standards import Fields, MDStageNames
 
+from pathlib import Path
+
 from floereport import FloeReport, LocalFloeReport
 
-from orionclient.session import in_orion, OrionSession
+from orionclient.session import in_orion, OrionSession, get_session
 
 from orionclient.types import File
+
+import os
 
 from os import environ
 
@@ -28,8 +49,6 @@ import oetrajanalysis.Clustering_utils as clusutl
 
 from openeye import oedepict
 
-import os
-
 import traceback
 
 from datarecord import (Types,
@@ -41,6 +60,13 @@ from datarecord import (Types,
 from MDOrion.Standards.mdrecord import MDDataRecord
 
 import MDOrion.TrjAnalysis.TrajAnFloeReport_utils as flrpt
+
+import tarfile
+
+import shutil
+
+from MDOrion.TrjAnalysis.dowload_fr_utils import download_report
+
 
 
 class MDFloeReportCube(RecordPortsMixin, ComputeCube):
@@ -986,6 +1012,212 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             self.failure.emit(record)
 
         return
+
+
+class ExtractMDDataCube(RecordPortsMixin, ComputeCube):
+    title = "MDExtractDataCube"
+    # version = "0.1.4"
+    classification = [["Analysis"]]
+    tags = ['Report']
+    description = """
+    This Cube extract the relevant MD data from the dara record 
+    and save the results as file in S3.  
+    """
+
+    uuid = "35a8a2b8-b765-4a6f-8d8e-6e2198feea22"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 14000},
+        "spot_policy": {"default": "Prohibited"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    out_file_name = parameters.StringParameter(
+        'out_file_name',
+        default="md_data.tar.gz",
+        help_text=""""Output File name""")
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+        self.dirs = []
+        self.protein_name = None
+        self.floe_report_collection_id = None
+
+    def process(self, record, port):
+
+        try:
+
+            # TODO CHANGE TO THE SCRATCH DIRS FOR ORION
+            if not record.has_field(Fields.title):
+                raise ValueError("The record is missing the title field")
+
+            title = record.get_value(Fields.title)
+
+            if not record.has_field(Fields.protein_name):
+                raise ValueError("The record is missing the protein name field")
+
+            if self.protein_name is None:
+                self.protein_name = record.get_value(Fields.protein_name)
+
+            if self.floe_report_collection_id is None:
+                if in_orion():
+
+                    if not record.has_field(Fields.floe_report_collection_id):
+                        raise ValueError("Floe report collection id filed is missing from tje record")
+
+                    self.floe_report_collection_id = record.get_value(Fields.floe_report_collection_id)
+
+            Path(title).mkdir(parents=True, exist_ok=False)
+
+            self.dirs.append(title)
+
+            if not record.has_field(Fields.Analysis.oeclus_rec):
+                raise ValueError("Cluster record field is missing")
+
+            oeclus_rec = record.get_value(Fields.Analysis.oeclus_rec)
+
+            for fd in oeclus_rec.get_fields():
+
+                name = fd.get_name()
+
+                if name in "ClusLigAvgMol":
+                    clus_lig_avg = oeclus_rec.get_value(fd)
+                    clus_lig_avg.SetTitle("ClusLigAvg")
+                    fn = os.path.join(title, "cluster_ligand_average.oeb")
+                    with oechem.oemolostream(fn) as ofs:
+                        oechem.OEWriteConstMolecule(ofs, clus_lig_avg)
+
+                elif name in "ClusLigMedMol":
+                    clus_lig_med = oeclus_rec.get_value(fd)
+                    clus_lig_med.SetTitle("ClusLigMed")
+                    fn = os.path.join(title, "cluster_ligand_median.oeb")
+                    with oechem.oemolostream(fn) as ofs:
+                        oechem.OEWriteConstMolecule(ofs, clus_lig_med)
+
+                elif name in "ClusProtAvgMol":
+                    clus_prot_avg = oeclus_rec.get_value(fd)
+                    clus_prot_avg.SetTitle("ClusProtAvg")
+                    fn = os.path.join(title, "cluster_protein_average.oeb")
+                    with oechem.oemolostream(fn) as ofs:
+                        oechem.OEWriteConstMolecule(ofs, clus_prot_avg)
+
+                elif name in "ClusProtMedMol":
+                    clus_prot_med = oeclus_rec.get_value(fd)
+                    clus_prot_med.SetTitle("ClusProtMed")
+                    fn = os.path.join(title, "cluster_protein_median.oeb")
+                    with oechem.oemolostream(fn) as ofs:
+                        oechem.OEWriteConstMolecule(ofs, clus_prot_med)
+
+            if not record.has_field(Fields.Analysis.oetraj_rec):
+                raise ValueError("Multi Conf Trajectory record field is missing")
+
+            oetraj_rec = record.get_value(Fields.Analysis.oetraj_rec)
+
+            for fd in oetraj_rec.get_fields():
+
+                name = fd.get_name()
+
+                if name in "ProtTraj_OPLMD":
+                    mdtrajrecord = MDDataRecord(oetraj_rec)
+                    prot = mdtrajrecord.get_protein_traj
+                    prot.SetTitle("ProteinTraj")
+                    fn = os.path.join(title, "protein_trajectory.oeb")
+                    with oechem.oemolostream(fn) as ofs:
+                        oechem.OEWriteConstMolecule(ofs, prot)
+
+                elif name in "WatTraj":
+                    wat = oetraj_rec.get_value(fd)
+                    wat.SetTitle("WatTraj")
+                    fn = os.path.join(title, "water_trajectory.oeb")
+                    with oechem.oemolostream(fn) as ofs:
+                        oechem.OEWriteConstMolecule(ofs, wat)
+
+                elif name in "LigTraj":
+                    lig = oetraj_rec.get_value(fd)
+                    lig.SetTitle("LigTraj")
+                    fn = os.path.join(title, "ligand_trajectory.oeb")
+                    with oechem.oemolostream(fn) as ofs:
+                        oechem.OEWriteConstMolecule(ofs, lig)
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
+
+        return
+
+    def end(self):
+
+        try:
+            # Floe Report
+            report_zip_fn = None
+            if in_orion():
+                session = OrionSession(
+                    requests_session=get_session(
+                        retry_dict={
+                            403: 5,
+                            404: 20,
+                            409: 45,
+                            460: 15,
+                            500: 2,
+                            502: 45,
+                            503: 45,
+                            504: 45,
+                        }
+                    )
+                )
+
+                report_zip_fn = "floe_report.zip"
+                download_report(self.floe_report_collection_id, session, report_zip_fn)
+
+            # Tar the files dir with its content:
+            tar_fn = self.protein_name + '.tar.gz'
+
+            with tarfile.open(tar_fn, mode='w:gz') as archive:
+                for d in self.dirs:
+                    archive.add(d)
+                if report_zip_fn is not None:
+                    archive.add(report_zip_fn)
+
+            if in_orion():
+
+                session = OrionSession(
+                    requests_session=get_session(
+                        retry_dict={
+                            403: 5,
+                            404: 20,
+                            409: 45,
+                            460: 15,
+                            500: 2,
+                            502: 45,
+                            503: 45,
+                            504: 45,
+                        }
+                    )
+                )
+
+                file_upload = File.upload(session, self.opt['out_file_name'], tar_fn)
+
+                session.tag_resource(file_upload, "MD Data")
+
+                job_id = environ.get('ORION_JOB_ID')
+
+                if job_id:
+                    session.tag_resource(file_upload, "Job {}".format(job_id))
+
+            for d in self.dirs:
+                shutil.rmtree(d)
+
+            return
+
+        except Exception as e:
+            print("Failed to complete", str(e), flush=True)
+            self.log.error(traceback.format_exc())
 
 
 class ParallelClusterOETrajCube(ParallelMixin, ClusterOETrajCube):
