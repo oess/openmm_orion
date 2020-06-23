@@ -229,25 +229,21 @@ class ParamMolStructure(object):
         # Write out mol to a mol2 file to process via AmberTools
         mol2file = tempfile.NamedTemporaryFile(suffix='.mol2')
         mol2filename = mol2file.name
+
         with oechem.oemolostream(mol2filename) as ofs:
             oechem.OEWriteConstMolecule(ofs, molecule)
 
-        # Run antechamber to type and parmchk for frcmod
-        # requires openmoltools 0.7.5 or later, which should be conda-installable via omnia
-        # gaff_mol2_filename, frcmod_filename = openmoltools.amber.run_antechamber(self.prefix_name, mol2filename,
-        #                                                                          gaff_version=forcefield.lower(),
-        #                                                                          charge_method=None)
+        prefix = self.prefix_name + '_' + os.path.basename(mol2filename).split('.')[0]
 
-        gaff_mol2_filename, frcmod_filename = openmoltools.amber.run_antechamber(self.prefix_name, mol2filename,
+        gaff_mol2_filename, frcmod_filename = openmoltools.amber.run_antechamber(prefix, mol2filename,
                                                                                  gaff_version=forcefield.lower(),
                                                                                  charge_method=None)
-
         # Run tleap using specified forcefield
         # prmtop, inpcrd = openmoltools.amber.run_tleap(self.prefix_name, gaff_mol2_filename,
         #                                               frcmod_filename,
         #                                               leaprc='leaprc.{}'.format(forcefield.lower()))
         #
-        prmtop, inpcrd = run_tleap(self.prefix_name,
+        prmtop, inpcrd = run_tleap(prefix,
                                    gaff_mol2_filename,
                                    frcmod_filename,
                                    leaprc='leaprc.{}'.format(forcefield.lower()))
