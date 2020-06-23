@@ -131,7 +131,8 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
 
                 complex_title = 'p' + self.md_components.get_title + '_l' + ligand_title
 
-                self.md_components.set_title(complex_title)
+                mdcomp = self.md_components.copy
+                mdcomp.set_title(complex_title)
 
                 # the ligand is the primary molecule
                 new_record = OERecord(record)
@@ -140,7 +141,7 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 new_record.set_value(Fields.ligand, ligand)
                 new_record.set_value(Fields.protein, protein)
                 new_record.set_value(Fields.protein_name, protein.GetTitle())
-                new_record.set_value(Fields.md_components, self.md_components)
+                new_record.set_value(Fields.md_components, mdcomp)
 
                 self.success.emit(new_record)
 
