@@ -245,7 +245,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
     density = parameters.DecimalParameter(
         'density',
-        default=1.0,
+        default=1.03,
         help_text="Solution density in g/ml")
 
     padding_distance = parameters.DecimalParameter(
@@ -296,7 +296,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
     salt_concentration = parameters.DecimalParameter(
         'salt_concentration',
-        default=0.0,
+        default=50.0,
         help_text="Salt concentration in millimolar")
 
     neutralize_solute = parameters.BooleanParameter(

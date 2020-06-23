@@ -243,7 +243,7 @@ class ParamMolStructure(object):
         #                                               frcmod_filename,
         #                                               leaprc='leaprc.{}'.format(forcefield.lower()))
         #
-        prmtop, inpcrd = run_tleap(self.prefix_name,
+        prmtop, inpcrd = run_tleap(prefix,
                                    gaff_mol2_filename,
                                    frcmod_filename,
                                    leaprc='leaprc.{}'.format(forcefield.lower()))
