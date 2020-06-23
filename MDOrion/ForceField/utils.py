@@ -39,6 +39,8 @@ from io import StringIO
 
 from oeommtools.utils import sanitizeOEMolecule
 
+import copy
+
 
 class MDComponents:
 
@@ -350,6 +352,11 @@ class MDComponents:
 
             if mol:
                 self._components[comp_name] = mol
+
+    @property
+    def copy(self):
+        data = copy.deepcopy(self)
+        return data
 
     @property
     def num_atoms(self):

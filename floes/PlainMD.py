@@ -56,6 +56,8 @@ ifs.promote_parameter("data_in", promoted_name="solute", title='Solute Input Fil
 sysid = IDSettingCube("System Ids")
 
 md_comp = MDComponentCube("MD Components")
+md_comp.set_parameters(multiple_flasks=True)
+
 
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
 solvate = ParallelSolvationCube("Hydration", title="Hydration")
