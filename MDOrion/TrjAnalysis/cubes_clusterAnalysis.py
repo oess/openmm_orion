@@ -366,7 +366,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
     protein and ligand average and median structures.
     """
 
-    # uuid = "b503c2f4-12e6-49c7-beb6-ee17da177ec2"
+    uuid = "d500eaf0-b775-4caf-af5e-a6d79f5c0603"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -574,7 +574,7 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
     their occurrence, size, and proximity to the starting pose(s).
     """
 
-    #uuid = "b503c2f4-12e6-49c7-beb6-ee17da177ec2"
+    uuid = "ddffa0d3-6958-4df6-b322-5020e049a040"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -684,7 +684,7 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
     trim down and focus the results for display in Orion the associated Floe Report.
     """
 
-    # uuid = "b503c2f4-12e6-49c7-beb6-ee17da177ec2"
+    uuid = "f4e2359b-aab5-499c-a4fc-735856fea93b"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -1229,19 +1229,19 @@ class ParallelClusterOETrajCube(ParallelMixin, ClusterOETrajCube):
 class ParallelMakeClusterTrajOEMols(ParallelMixin, MakeClusterTrajOEMols):
     title = "Parallel " + MakeClusterTrajOEMols.title
     description = "(Parallel) " + MakeClusterTrajOEMols.description
-    # uuid = "216973c9-5f13-46f9-b79d-dee9d90398e9"
+    uuid = "3415b9cb-ee9b-4138-a558-27e7f357d71d"
 
 
 class ParallelClusterPopAnalysis(ParallelMixin, ClusterPopAnalysis):
     title = "Parallel " + ClusterPopAnalysis.title
     description = "(Parallel) " + ClusterPopAnalysis.description
-    # uuid = "216973c9-5f13-46f9-b79d-dee9d90398e9"
+    uuid = "bd607413-9fd8-4cb5-a802-54575cdf9833"
 
 
 class ParallelTrajAnalysisReportDataset(ParallelMixin, TrajAnalysisReportDataset):
     title = "Parallel " + TrajAnalysisReportDataset.title
     description = "(Parallel) " + TrajAnalysisReportDataset.description
-    # uuid = "216973c9-5f13-46f9-b79d-dee9d90398e9"
+    uuid = "8d5308e6-58b4-4562-ae85-35bc47dcea0c"
 
 
 class ParallelMDTrajAnalysisClusterReport(ParallelMixin,  MDTrajAnalysisClusterReport):

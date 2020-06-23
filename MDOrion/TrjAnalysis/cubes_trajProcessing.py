@@ -191,7 +191,7 @@ class ConcatenateTrajMMPBSACube(RecordPortsMixin, ComputeCube):
     The energy units are in kcal/mol.
     """
 
-    # uuid = "f6c96295-51fd-42df-8763-0f3b6f6d0e0d"
+    uuid = "4a36f62f-9eb2-4589-b884-aa4ca653c5cd"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -516,7 +516,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
     It will do this for both the protein and ligand components of the complex.
     """
 
-    #uuid = "b503c2f4-12e6-49c7-beb6-ee17da177ec2"
+    uuid = "16e88f36-28fe-4de2-8e61-bb0e5efff96f"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -855,13 +855,13 @@ class ParallelTrajInteractionEnergyCube(ParallelMixin, TrajInteractionEnergyCube
 class ParallelConfTrajsToLigTraj(ParallelMixin, ConfTrajsToLigTraj):
     title = "Parallel " + ConfTrajsToLigTraj.title
     description = "(Parallel) " + ConfTrajsToLigTraj.description
-    # uuid = "a6a11dbb-bc25-4548-bf1a-471bda2f0406"
+    uuid = "5b81622a-fbc9-47e1-a8f2-6a7e5675df8a"
 
 
 class ParallelConcatenateTrajMMPBSACube(ParallelMixin, ConcatenateTrajMMPBSACube):
     title = "Parallel " + ConcatenateTrajMMPBSACube.title
     description = "(Parallel) " + ConcatenateTrajMMPBSACube.description
-    #uuid = "a6a11dbb-bc25-4548-bf1a-471bda2f0406"
+    uuid = "ca6b8b5d-a7d1-494b-ae12-253ea96ecabf"
 
 
 class ParallelTrajPBSACube(ParallelMixin, TrajPBSACube):

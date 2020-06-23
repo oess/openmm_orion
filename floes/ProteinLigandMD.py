@@ -70,7 +70,7 @@ Required Input Parameters:
 """
 
 job.classification = [['Molecular Dynamics']]
-# job.uuid = "372e1890-d053-4027-970a-85b209e4676f"
+job.uuid = "ae561d76-a2b6-4d89-b621-b979f1930b40"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
@@ -113,7 +113,7 @@ coll_open.set_parameters(open=True)
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.1.0')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.2.0')
 
 # Protein Setting
 mdcomp = MDComponentCube("MD Components", title="MD Components")
