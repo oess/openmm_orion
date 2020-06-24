@@ -17,6 +17,8 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
+from os import path
+
 from floe.api import (WorkFloe,
                       ParallelCubeGroup)
 
@@ -40,34 +42,9 @@ from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
                                   ParallelRecordSizeCheck)
 
-job = WorkFloe('Protein-Ligand MD',
-               title='Protein-Ligand MD')
+job = WorkFloe('Protein-Ligand MD', title='Protein-Ligand MD')
 
-job.description = """
-The Protein-Ligand MD floe performs MD simulations given
-a prepared protein and a set of posed and prepared ligands as input.
-The ligands need to have coordinates, all atoms, and correct chemistry. Each
-ligand can have multiple conformers but each conformer will be run separately
-as a different ligand.
-The protein needs to be prepared to MD standards: protein chains must be capped,
-all atoms in protein residues (including hydrogens) must be present, and missing
-protein loops resolved. Crystallographic internal waters should be retained where
-possible. The parametrization of some common nonstandard residues is partially supported.
-Given the inputs of the protein and posed ligands,
-the complex is formed with each ligand/conformer
-separately, and the complex is solvated and parametrized according to the
-selected force fields. A minimization stage is peformed on the system followed
-by a warm up (NVT ensemble) and several equilibration stages (NPT ensemble). In the
-minimization, warm up, and equilibration stages, positional harmonic restraints are
-applied on the ligand and protein. At the end of the equilibration stages a 
-production run (by default only 2 ns) is performed on the unrestrained system.
-The trajectory and final state are written out in the results record;
-no analysis is performed.
-
-Required Input Parameters:
-* A ligand dataset of prepared ligands posed in the protein active site.
-* A protein dataset of the prepared MD-ready protein structure, including cofactors and structured waters.
-"""
+job.description = open(path.join(path.dirname(__file__), 'ProteinLigandMD_desc.rst'), 'r').read()
 
 job.classification = [['Molecular Dynamics']]
 job.uuid = "ae561d76-a2b6-4d89-b621-b979f1930b40"
