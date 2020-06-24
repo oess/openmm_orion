@@ -105,6 +105,21 @@ class GromacsSimulations(MDSimulations):
             else:
                 return False
 
+        # Rename all the water molecules to avoid Gromacs
+        # settling errors
+        for r in topology.residues():
+            if check_water(r):
+                h1 = False
+                for a in r.atoms():
+                    if a.element.atomic_number == 1:
+                        if not h1:
+                            a.name = 'H1'
+                            h1 = True
+                        else:
+                            a.name = 'H2'
+                    else:
+                        a.name = 'O'
+
         for c in topology.chains():
             for r in c.residues():
                 for a in r.atoms():
