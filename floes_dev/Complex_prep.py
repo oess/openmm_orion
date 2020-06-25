@@ -105,7 +105,7 @@ ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
 
 mdcomp = MDComponentCube("MDComponentSetting", title="MDComponentSetting")
-mdcomp.promote_parameter("flask_title", promoted_name="flask_title", default='MCL1')
+# mdcomp.promote_parameter("flask_title", promoted_name="flask_title", default='MCL1')
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",

@@ -27,18 +27,20 @@ from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 from MDOrion.System.cubes import (ParallelRecordSizeCheck)
 
 from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajToOEMolCube,
-                                       ParallelTrajInteractionEnergyCube,
-                                       ParallelTrajPBSACube,
-                                       ConformerGatheringData,
-                                       ParallelConfTrajsToLigTraj,
-                                       ParallelConcatenateTrajMMPBSACube)
+                                                      ParallelTrajInteractionEnergyCube,
+                                                      ParallelTrajPBSACube,
+                                                      ConformerGatheringData,
+                                                      ParallelConfTrajsToLigTraj,
+                                                      ParallelConcatenateTrajMMPBSACube)
 
 from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube,
-                                       ParallelMakeClusterTrajOEMols,
-                                       ParallelMDTrajAnalysisClusterReport,
-                                       ParallelClusterPopAnalysis,
-                                       ParallelTrajAnalysisReportDataset,
-                                       MDFloeReportCube)
+                                                       ParallelMakeClusterTrajOEMols,
+                                                       ParallelMDTrajAnalysisClusterReport,
+                                                       ParallelClusterPopAnalysis,
+                                                       ParallelTrajAnalysisReportDataset,
+                                                       MDFloeReportCube)
+
+from MDOrion.System.cubes import CollectionSetting
 
 job = WorkFloe('Analyze Protein-Ligand MD',
                title='Analyze Protein-Ligand MD')
@@ -62,6 +64,10 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
+# This cube is necessary for the correct work of collection and shard
+coll_open = CollectionSetting("OpenCollection", title="Open Collection")
+coll_open.set_parameters(open=True)
+
 trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
 IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
 PBSACube = ParallelTrajPBSACube("TrajPBSACube")
@@ -84,16 +90,21 @@ job.add_group(analysis_group)
 
 report = MDFloeReportCube("report", title="Floe Report")
 
+# This cube is necessary for the correct working of collection and shard
+coll_close = CollectionSetting("CloseCollection", title="Close Collection")
+coll_close.set_parameters(open=False)
+
 check_rec = ParallelRecordSizeCheck("Record Check Success")
 
-job.add_cubes(iMDInput,
+job.add_cubes(iMDInput, coll_open,
               trajCube, IntECube, PBSACube, confGather,
               catLigTraj, catLigMMPBSA, clusCube, clusPop, clusOEMols,
               prepDataset, report_gen, report,
-              check_rec, ofs, fail)
+              coll_close, check_rec,  ofs, fail)
 
 # Success Connections
-iMDInput.success.connect(trajCube.intake)
+iMDInput.success.connect(coll_open)
+coll_open.success.connect(trajCube.intake)
 trajCube.success.connect(IntECube.intake)
 IntECube.success.connect(PBSACube.intake)
 PBSACube.success.connect(confGather.intake)
@@ -105,10 +116,12 @@ clusPop.success.connect(clusOEMols.intake)
 clusOEMols.success.connect(prepDataset.intake)
 prepDataset.success.connect(report_gen.intake)
 report_gen.success.connect(report.intake)
-report.success.connect(check_rec.intake)
+report.success.connect(coll_close.intake)
+coll_close.success.connect(check_rec.intake)
 check_rec.success.connect(ofs.intake)
 
 # Fail Connections
+coll_open.failure.connect(check_rec.fail_in)
 trajCube.failure.connect(check_rec.fail_in)
 IntECube.failure.connect(check_rec.fail_in)
 PBSACube.failure.connect(check_rec.fail_in)
@@ -121,6 +134,7 @@ clusOEMols.failure.connect(check_rec.fail_in)
 prepDataset.failure.connect(check_rec.fail_in)
 report_gen.failure.connect(check_rec.fail_in)
 report.failure.connect(check_rec.fail_in)
+coll_close.failure.connect(check_rec.fail_in)
 check_rec.failure.connect(fail.intake)
 
 

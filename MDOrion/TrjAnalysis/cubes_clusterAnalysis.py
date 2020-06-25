@@ -90,11 +90,6 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    upload = parameters.BooleanParameter(
-        'upload',
-        default=False,
-        help_text="Upload floe report to Amazon S3")
-
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -114,8 +109,9 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             mdrecord = MDDataRecord(record)
 
             system_title = mdrecord.get_title
+
             if mdrecord.has_conf_id:
-                sort_key = (1000*mdrecord.get_lig_id) + mdrecord.get_conf_id
+                sort_key = (1000 * mdrecord.get_lig_id) + mdrecord.get_conf_id
             else:
                 sort_key = mdrecord.get_lig_id
 
@@ -151,22 +147,8 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
 
             self.floe_report_dic[sort_key] = (page_link, ligand_svg, floe_report_label)
 
-            # Upload Floe Report
-            if self.opt['upload']:
-
-                if in_orion():
-                    session = OrionSession()
-
-                    file_upload = File.upload(session,
-                                              "{}.html".format(system_title),
-                                              report_string)
-
-                    session.tag_resource(file_upload, "floe_report")
-
-                    job_id = environ.get('ORION_JOB_ID')
-
-                    if job_id:
-                        session.tag_resource(file_upload, "Job {}".format(job_id))
+            if in_orion():
+                record.set_value(Fields.floe_report_collection_id, self.floe_report.collection.id)
 
             self.success.emit(record)
 
@@ -849,7 +831,6 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} found OETraj record'.format(system_title))
             trajSVG = utl.RequestOEField(oetrajRecord, 'TrajSVG', Types.String)
             ligand_bfactor = utl.RequestOEField(oetrajRecord, 'LigAverage', Types.Chem.Mol)
-
 
             # Extract the label for the MMPBSA score for the whole trajectory
             if not record.has_value(Fields.Analysis.mmpbsa_traj_mean):
