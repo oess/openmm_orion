@@ -181,8 +181,10 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
 
                         if self.opt['open']:
 
-                            self.collection.open()
-
+                            if self.collection.state == "open":
+                                pass
+                            else:
+                                self.collection.open()
                 else:
                     if self.collection is None:
 
@@ -212,7 +214,10 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
         if in_orion():
             if not self.opt['open']:
                 if self.collection is not None:
-                    self.collection.close()
+                    if self.collection.state == "close":
+                        pass
+                    else:
+                        self.collection.close()
 
 
 class SolvationCube(RecordPortsMixin, ComputeCube):
