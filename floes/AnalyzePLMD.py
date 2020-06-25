@@ -103,7 +103,7 @@ job.add_cubes(iMDInput, coll_open,
               coll_close, check_rec,  ofs, fail)
 
 # Success Connections
-iMDInput.success.connect(coll_open)
+iMDInput.success.connect(coll_open.intake)
 coll_open.success.connect(trajCube.intake)
 trajCube.success.connect(IntECube.intake)
 IntECube.success.connect(PBSACube.intake)
