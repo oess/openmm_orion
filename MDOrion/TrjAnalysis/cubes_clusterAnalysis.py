@@ -518,17 +518,6 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
             record.set_value(Fields.Analysis.oeclus_rec, trajClusRecord)
             opt['Logger'].info('{} finished adding to trajClus OERecord'.format(system_title) )
 
-            # Set the number of major clusters and revise label
-            record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
-
-            # Revise top-level floe report label to include nMajorClusters
-            if not record.has_value(Fields.floe_report_label):
-                floe_report_label = ""
-            else:
-                floe_report_label = record.get_value(Fields.floe_report_label)
-            floe_report_label = "# clusters: " + str(nMajorClusters) + "<br>" + floe_report_label
-            record.set_value(Fields.floe_report_label, floe_report_label)
-
             self.success.emit(record)
 
 
@@ -716,6 +705,10 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
             #for key in clusResults.keys():
             #    opt['Logger'].info('{} : clusResults key {}'.format(system_title, key))
 
+            # Set the number of major clusters at the top level
+            nMajorClusters = clusResults['nMajorClusters']
+            record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
+
             # Generate simple plots for floe report
             opt['Logger'].info('{} plotting cluster strip plot'.format(system_title) )
             trajClus_svg = clusutl.ClusterLigTrajClusPlot(clusResults)
@@ -750,6 +743,7 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
             #for key in PBSAdata.keys():
             #    opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])))
 
+            floe_report_label = ""
             # Clean MMPBSA mean and serr to avoid nans and high zap energy values
             if 'OEZap_MMPBSA6_Bind' in PBSAdata.keys():
                 avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(PBSAdata['OEZap_MMPBSA6_Bind'])
@@ -758,8 +752,12 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
                 record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
                 record.set_value(Fields.Analysis.mmpbsa_traj_serr, serr_mmpbsa)
                 # Add to the record the Average MMPBSA floe report label
-                record.set_value(Fields.floe_report_label, "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".
-                                 format(avg_mmpbsa, serr_mmpbsa))
+                floe_report_label = "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".format(
+                    avg_mmpbsa, serr_mmpbsa)
+
+            # Revise floe report label to include nMajorClusters
+            floe_report_label = "# clusters: " + str(nMajorClusters) + "<br>" + floe_report_label
+            record.set_value(Fields.floe_report_label, floe_report_label)
 
             self.success.emit(record)
 
