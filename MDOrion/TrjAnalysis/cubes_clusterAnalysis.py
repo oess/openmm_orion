@@ -68,7 +68,6 @@ import shutil
 from MDOrion.TrjAnalysis.dowload_fr_utils import download_report
 
 
-
 class MDFloeReportCube(RecordPortsMixin, ComputeCube):
     title = "MDFloeReportCube"
     # version = "0.1.4"

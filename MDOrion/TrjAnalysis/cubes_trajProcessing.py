@@ -656,7 +656,7 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 14000},
+        "memory_mb": {"default": 32000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -696,10 +696,10 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
         for sys_id, list_conf_rec in self.lig_sys_ids.items():
 
             # catch case where for some reason the conf list list_conf_rec is empty
-            if len(list_conf_rec)<1:
+            if len(list_conf_rec) < 1:
                 print('{} does not have any conformer data'.format(sys_id) )
                 continue
-            elif len(list_conf_rec)>1:
+            elif len(list_conf_rec) > 1:
                 # Conformers for each ligand are sorted based on their confid in each ligand record
                 list_conf_rec.sort(key=lambda x: x.get_value(Fields.confid))
 
