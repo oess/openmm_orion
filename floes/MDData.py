@@ -19,7 +19,7 @@
 
 from floe.api import WorkFloe
 
-from MDOrion.TrjAnalysis.cubes import ExtractMDDataCube
+from MDOrion.TrjAnalysis.cubes_clusterAnalysis import ExtractMDDataCube
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 

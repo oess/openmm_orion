@@ -75,6 +75,9 @@ _metaProtHidden = OEFieldMeta(options=[Meta.Hints.Chem.Protein, Meta.Display.Hid
 # ---------------- Field Standards -------------- #
 class Fields:
 
+    # The LigInitialRecord Field is for the initial ligand record read in at the start
+    ligInit_rec = OEField("LigInitial", Types.Record, meta=_metaHidden)
+
     # The Title field is a string name for the flask which used to compose file names
     title = OEField("Title_OPLMD", Types.String, meta=_metaIDHidden)
 
@@ -161,17 +164,32 @@ class Fields:
 
     class Analysis:
 
+        # The ConfIdVec vector addresses an input confid for each traj frame
+        confIdVec = OEField("ConfIdVec", Types.IntVec, meta=_metaHidden)
+
         # The OETraj Field is for the record containing Traj OEMols and energies
         oetraj_rec = OEField("OETraj", Types.Record, meta=_metaHidden)
 
         # The TrajIntE Field is for the record containing Traj interaction energies
         oeintE_rec = OEField("TrajIntE", Types.Record, meta=_metaHidden)
 
+        # The TrajIntEDict Field is for the POD Dictionary containing Traj interaction energies
+        oeintE_dict = OEField("TrajIntEDict", Types.JSONObject, meta=_metaHidden)
+
         # The TrajPBSA Field is for the record containing Traj PBSA energies
         oepbsa_rec = OEField("TrajPBSA", Types.Record, meta=_metaHidden)
 
+        # The TrajPBSADict Field is for the POD Dictionary containing Traj PBSA energies
+        oepbsa_dict = OEField("TrajPBSADict", Types.JSONObject, meta=_metaHidden)
+
         # The TrajClus Field is for the record containing Traj ligand clustering results
         oeclus_rec = OEField("TrajClus", Types.Record, meta=_metaHidden)
+
+        # The TrajClusDict Field is for the POD Dictionary containing Traj ligand clustering results
+        oeclus_dict = OEField("TrajClusDict", Types.JSONObject, meta=_metaHidden)
+
+        # The ClusPopDict Field is for the POD Dictionary containing conf/cluster population results
+        cluspop_dict = OEField("ClusPopDict", Types.JSONObject, meta=_metaHidden)
 
         # The AnalysesDone Field is for a list of the analyses that have been done
         analysesDone = OEField("AnalysesDone", Types.StringVec, meta=_metaHidden)
@@ -182,6 +200,10 @@ class Fields:
         # The vector of ligand Traj RMSDs from the initial pose
         lig_traj_rmsd = OEField('LigTrajRMSD', Types.FloatVec,
                                 meta=OEFieldMeta().set_option(Meta.Units.Length.Ang))
+
+        # The mmpbsa Field contains the vector of per-frame mmpbsa values over the whole trajectory
+        zapMMPBSA_fld = OEField("OEZap_MMPBSA6_Bind", Types.FloatVec,
+                                  meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
 
         # mmpbsa ensemble average over the whole trajectory
         mmpbsa_traj_mean = OEField('MMPBSATrajMean', Types.Float,

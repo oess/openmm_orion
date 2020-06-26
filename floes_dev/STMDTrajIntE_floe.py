@@ -4,25 +4,15 @@ from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import ParallelTrajToOEMolCube
+from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajToOEMolCube,
+                                       ParallelTrajInteractionEnergyCube,
+                                       ParallelTrajPBSACube)
 
-from MDOrion.TrjAnalysis.cubes import ParallelTrajInteractionEnergyCube
-
-from MDOrion.TrjAnalysis.cubes import ParallelTrajPBSACube
-
-job = WorkFloe("Trajectory Interaction Energies from Short Trajectory MD")
+job = WorkFloe("Calculate Trajectory Protein-Ligand MMPBSA Energies from Short Trajectory MD")
 
 job.description = """
-Analyse the trajectory from Short Trajectory MD in terms of interactions between the
-ligand and the active site after fitting the trajectory based on active site C_alphas.
-
-Required Input Parameters:
---------------------------
-in: Collection of OERecords (one per ligand) of Short Trajectory MD results.
-
-Outputs:
---------
-out (.oedb file): file of the Analysis results for all ligands.
+Analyse the trajectory from Short Trajectory MD in terms of MMPBSA interaction energies between the
+between the ligand and the protein after fitting the trajectory based on active site C_alphas.
 """
 
 job.uuid = "d00de553-5f78-4496-ae96-9c8adc527f53"

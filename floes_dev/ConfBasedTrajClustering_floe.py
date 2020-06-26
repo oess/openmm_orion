@@ -4,17 +4,14 @@ from floe.api import (WorkFloe, ParallelCubeGroup)
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import (ConformerGatheringData,
-                                       ParallelClusterOETrajCube,
-                                       ParallelMakeClusterTrajOEMols,
-                                       ParallelConcatenateTrajMMPBSACube)
+from MDOrion.TrjAnalysis.cubes import ParallelClusterOETrajCube, ParallelMakeClusterTrajOEMols
 
-job = WorkFloe("Testing Traj OEMol Clustering on a ligand")
+job = WorkFloe("Testing Traj OEMol Clustering on a conformer")
 
 job.description = """
 Testing Ligand Clustering Floe on a conformer
 #
-Ex. python floes/LigBasedTrajClustering.py --in STMD_TrajOEMol.oedb  --out STMD_LigClus.oedb
+Ex. python floes/ConfBasedTrajClustering.py --in STMD_TrajOEMol.oedb  --out STMD_LigClus.oedb
 #
 Parameters:
 -----------
@@ -31,22 +28,16 @@ ifs = DatasetReaderCube("ifs")
 
 ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecord", description="OERecord file name")
 
-confGather = ConformerGatheringData("Gathering Conformer Records")
 clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
 clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols')
-trajMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube')
 
 ofs = DatasetWriterCube('ofs', title='OFS-Success')
 ofs.promote_parameter("data_out", promoted_name="out", title="System Output OERecord", description="OERecord file name")
 
-job.add_cubes(ifs, confGather,
-              clusCube, trajMMPBSA, clusOEMols,
-              ofs)
+job.add_cubes(ifs, clusCube, clusOEMols, ofs)
 
-ifs.success.connect(confGather.intake)
-confGather.success.connect(clusCube.intake)
-clusCube.success.connect(trajMMPBSA.intake)
-trajMMPBSA.success.connect(clusOEMols.intake)
+ifs.success.connect(clusCube.intake)
+clusCube.success.connect(clusOEMols.intake)
 clusOEMols.success.connect(ofs.intake)
 
 if __name__ == "__main__":

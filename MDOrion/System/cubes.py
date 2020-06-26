@@ -181,8 +181,10 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
 
                         if self.opt['open']:
 
-                            self.collection.open()
-
+                            if self.collection.state == "open":
+                                pass
+                            else:
+                                self.collection.open()
                 else:
                     if self.collection is None:
 
@@ -212,7 +214,10 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
         if in_orion():
             if not self.opt['open']:
                 if self.collection is not None:
-                    self.collection.close()
+                    if self.collection.state == "close":
+                        pass
+                    else:
+                        self.collection.close()
 
 
 class SolvationCube(RecordPortsMixin, ComputeCube):
@@ -245,7 +250,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
     density = parameters.DecimalParameter(
         'density',
-        default=1.0,
+        default=1.03,
         help_text="Solution density in g/ml")
 
     padding_distance = parameters.DecimalParameter(
@@ -296,7 +301,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
     salt_concentration = parameters.DecimalParameter(
         'salt_concentration',
-        default=0.0,
+        default=50.0,
         help_text="Salt concentration in millimolar")
 
     neutralize_solute = parameters.BooleanParameter(
@@ -462,7 +467,6 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
                 tot_size = 0
                 for field in record.get_fields():
                     tot_size += record.get_value_size(field)
-
                 if tot_size > 100 * 1024 * 1024:
                     raise ValueError("The record size exceeds the 100 MB: {}".format(get_human_readable(tot_size)))
                 else:

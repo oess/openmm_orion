@@ -20,9 +20,8 @@ from tempfile import TemporaryDirectory
 
 from oeommtools import utils as oeommutils
 
-from scipy.signal import medfilt
-
-from pymbar import timeseries
+# Needed for ClusterRMSDByConf
+import oetrajanalysis.Clustering_utils as clusutl
 
 from MDOrion.TrjAnalysis.water_utils import nmax_waters
 
@@ -382,7 +381,7 @@ def RequestOEFieldType(record, field):
 
 def ColorblindRGBMarkerColors(nColors=0):
     palette = [(0, 114, 178), (0, 158, 115), (213, 94, 0), (204, 121, 167),
-               (240, 228, 66), (230, 159, 0), (86, 180, 233), (150, 150, 150)]
+               (86, 180, 233), (230, 159, 0), (240, 228, 66), (150, 150, 150)]
     if nColors < 1:
         return palette
     elif nColors < 9:
@@ -393,6 +392,22 @@ def ColorblindRGBMarkerColors(nColors=0):
         for i in range(n):
             moreRGB = moreRGB+palette
         return(moreRGB[:nColors])
+
+
+
+def ColorblindHexMarkerColors(nColors=0):
+    palette = ['#0072b2', '#009e73', '#d55e00', '#cc79a7',
+               '#56b4e9', '#e69f00', '#f0e442', '#969696']
+    if nColors < 1:
+        return palette
+    elif nColors < 9:
+        return palette[:nColors]
+    else:
+        n = int(nColors/8)
+        moreHex = palette
+        for i in range(n):
+            moreHex = moreHex+palette
+        return(moreHex[:nColors])
 
 
 def PoseInteractionsSVG(ligand, proteinOrig, width=400, height=300):
@@ -516,53 +531,6 @@ def ligand_to_svg_stmd(ligand, ligand_name):
     return svg_lines
 
 
-def clean_mean_serr(data):
-
-    def pwc_medfiltit(y, W):
-
-        xold = y  # Initialize iterated running medians
-
-        # Iterate
-        stop = False
-
-        while not stop:
-            xnew = medfilt(xold, W)
-            stop = np.all(xnew == xold)
-            xold = xnew
-
-        return xold
-
-    # Change the data in a numpy array
-    np_arr = np.array(data)
-
-    # Remove all nans from the array if any; this becomes our working set of values
-    np_no_nans = np_arr[~np.isnan(np_arr)]
-
-    # De-noise the data to prepare it to make low_std and high_std
-    smooth = pwc_medfiltit(np_no_nans, 15)
-
-    # Estimate the average and standard deviation from which we make make low_std and high_std
-    tmp_avg = smooth.mean()
-    tmp_std = smooth.std()
-
-    # 4 std range
-    low_std = tmp_avg - 8.0 * tmp_std
-    high_std = tmp_avg + 8.0 * tmp_std
-
-    # Detect all the elements that are inside 4 std from the average in the original data set
-    clean_index = np.where(np.logical_and(np_no_nans >= low_std, np_no_nans <= high_std))
-
-    new_arr = np_no_nans.take(clean_index[0])
-
-    # since this is a timeseries, data is probably not independent so get g (statistical inefficiency)
-    [t0, g, Neff_max] = timeseries.detectEquilibration(new_arr)
-    # effective number of uncorrelated samples is totalSamples/g
-    neff = len(new_arr)/g
-    # use neff to calculate the standard error of the mean
-    serr = new_arr.std()/np.sqrt(neff)
-
-    return new_arr.mean(), serr
-
 def HighlightStyleMolecule(mol):
     hiliteColorer = oechem.OEMolStyleColorer(oechem.OEAtomColorScheme_Element)
     hiliteCarbonColor = oechem.OEColor( 245, 210,150 )
@@ -622,5 +590,4 @@ def StyleTrajProteinLigandClusters( protein, ligand):
         #print( pconf.GetTitle(), lconf.GetTitle(), colorRGB)
         SetProteinLigandVizStyle( pconf, lconf, colorRGB)
     return True
-
 

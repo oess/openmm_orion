@@ -42,27 +42,12 @@ from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
                                   ParallelRecordSizeCheck)
 
-from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajToOEMolCube,
-                                                      ParallelTrajInteractionEnergyCube,
-                                                      ParallelTrajPBSACube,
-                                                      ConformerGatheringData,
-                                                      ParallelConfTrajsToLigTraj,
-                                                      ParallelConcatenateTrajMMPBSACube)
+job = WorkFloe('Protein-Ligand MD', title='Protein-Ligand MD')
 
-from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube,
-                                                       ParallelMakeClusterTrajOEMols,
-                                                       ParallelMDTrajAnalysisClusterReport,
-                                                       ParallelClusterPopAnalysis,
-                                                       ParallelTrajAnalysisReportDataset,
-                                                       MDFloeReportCube)
+job.description = open(path.join(path.dirname(__file__), 'ProteinLigandMD_desc.rst'), 'r').read()
 
-job = WorkFloe('Short Trajectory MD with Analysis',
-               title='Short Trajectory MD with Analysis')
-
-job.description = open(path.join(path.dirname(__file__), 'ShortTrajMDWithAnalysis_desc.rst'), 'r').read()
-
-job.classification = [['Specialized MD']]
-job.uuid = "c831d03e-c0cb-48b0-aa02-f848da8fd1a6"
+job.classification = [['Molecular Dynamics']]
+job.uuid = "ae561d76-a2b6-4d89-b621-b979f1930b40"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
@@ -142,7 +127,7 @@ warmup.set_parameters(save_md_stage=True)
 warmup.promote_parameter("md_engine", promoted_name="md_engine")
 
 
-# The system is equilibrated at the right pressure and temperature in 3 stages
+# The system is equilibrated at the right pressure and temperature in several stages
 # The main difference between the stages is related to the restraint force used
 # to keep the ligand and protein in their starting positions. A relatively strong force
 # is applied in the first stage while a relatively small one is applied in the latter
@@ -203,28 +188,6 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
-trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
-IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
-PBSACube = ParallelTrajPBSACube("TrajPBSACube")
-
-trajproc_group = ParallelCubeGroup(cubes=[trajCube, IntECube, PBSACube])
-job.add_group(trajproc_group)
-
-confGather = ConformerGatheringData("Gathering Conformer Records")
-catLigTraj = ParallelConfTrajsToLigTraj("ConfTrajsToLigTraj")
-catLigMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube')
-clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
-clusPop = ParallelClusterPopAnalysis('ClusterPopAnalysis')
-clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols')
-prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset')
-report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
-
-analysis_group = ParallelCubeGroup(cubes=[catLigTraj, catLigMMPBSA, clusCube, clusPop,
-                                          clusOEMols, prepDataset, report_gen])
-job.add_group(analysis_group)
-
-report = MDFloeReportCube("report", title="Floe Report")
-
 # This cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
@@ -234,9 +197,6 @@ check_rec = ParallelRecordSizeCheck("Record Check Success")
 job.add_cubes(iligs, ligset, iprot, mdcomp, chargelig, complx,
               solvate, coll_open, ff,
               minComplex, warmup, equil1, equil2, equil3, equil4, prod,
-              trajCube, IntECube, PBSACube, confGather,
-              catLigTraj, catLigMMPBSA, clusCube, clusPop, clusOEMols,
-              prepDataset, report_gen, report,
               coll_close, check_rec, ofs, fail)
 
 # Success Connections
@@ -256,19 +216,7 @@ equil1.success.connect(equil2.intake)
 equil2.success.connect(equil3.intake)
 equil3.success.connect(equil4.intake)
 equil4.success.connect(prod.intake)
-prod.success.connect(trajCube.intake)
-trajCube.success.connect(IntECube.intake)
-IntECube.success.connect(PBSACube.intake)
-PBSACube.success.connect(confGather.intake)
-confGather.success.connect(catLigTraj.intake)
-catLigTraj.success.connect(catLigMMPBSA.intake)
-catLigMMPBSA.success.connect(clusCube.intake)
-clusCube.success.connect(clusPop.intake)
-clusPop.success.connect(clusOEMols.intake)
-clusOEMols.success.connect(prepDataset.intake)
-prepDataset.success.connect(report_gen.intake)
-report_gen.success.connect(report.intake)
-report.success.connect(coll_close.intake)
+prod.success.connect(coll_close.intake)
 coll_close.success.connect(check_rec.intake)
 check_rec.success.connect(ofs.intake)
 
@@ -288,18 +236,6 @@ equil2.failure.connect(check_rec.fail_in)
 equil3.failure.connect(check_rec.fail_in)
 equil4.failure.connect(check_rec.fail_in)
 prod.failure.connect(check_rec.fail_in)
-trajCube.failure.connect(check_rec.fail_in)
-IntECube.failure.connect(check_rec.fail_in)
-PBSACube.failure.connect(check_rec.fail_in)
-confGather.failure.connect(check_rec.fail_in)
-catLigTraj.failure.connect(check_rec.fail_in)
-catLigMMPBSA.failure.connect(check_rec.fail_in)
-clusCube.failure.connect(check_rec.fail_in)
-clusPop.failure.connect(check_rec.fail_in)
-clusOEMols.failure.connect(check_rec.fail_in)
-prepDataset.failure.connect(check_rec.fail_in)
-report_gen.failure.connect(check_rec.fail_in)
-report.failure.connect(check_rec.fail_in)
 coll_close.failure.connect(check_rec.fail_in)
 check_rec.failure.connect(fail.intake)
 

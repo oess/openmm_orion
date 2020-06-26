@@ -472,12 +472,12 @@ class MDDataRecord(object):
     @property
     def get_title(self):
         """
-        This method returns the system title present on the record
+        This method returns the title present on the record
 
         Return:
         -------
             : String
-            The system title string
+            The title string
         """
 
         if not self.rec.has_field(Fields.title):
