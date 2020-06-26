@@ -1,6 +1,5 @@
 channels:
 - anaconda
-- conda-forge
 - mobleylab
 - omnia/label/cuda100
 - omnia
@@ -8,6 +7,7 @@ channels:
 - plotly
 - SolvationTools
 - nividic
+- conda-forge
 dependencies:
 - ambermini==16.16.0
 - alchemy==1.2.3
