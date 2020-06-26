@@ -38,14 +38,13 @@ from os import environ
 import MDOrion.TrjAnalysis.utils as utl
 
 import oetrajanalysis.OETrajBasicAnalysis_utils as oetrjutl
+import oetrajanalysis.Clustering_utils as clusutl
 
 import ensemble2img
 
 from tempfile import TemporaryDirectory
 
 from openeye import oechem
-
-import oetrajanalysis.Clustering_utils as clusutl
 
 from openeye import oedepict
 
@@ -612,17 +611,17 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
             #    opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])) )
 
             # Generate the fractional cluster populations by conformer, and conformer populations by cluster
-            popResults = utl.AnalyzeClustersByConfs(ligand, confIdVec, clusResults)
+            popResults = clusutl.AnalyzeClustersByConfs(ligand, confIdVec, clusResults)
 
             # Generate the cluster MMPBSA mean and standard error
-            MMPBSAbyClus = utl.MeanSerrByClusterEnsemble(popResults, PBSAdata['OEZap_MMPBSA6_Bind'])
+            MMPBSAbyClus = clusutl.MeanSerrByClusterEnsemble(popResults, PBSAdata['OEZap_MMPBSA6_Bind'])
             popResults['OEZap_MMPBSA6_ByClusMean'] = MMPBSAbyClus['ByClusMean']
             popResults['OEZap_MMPBSA6_ByClusSerr'] = MMPBSAbyClus['ByClusSerr']
             popResults['OEZap_MMPBSA6_ByConfMean'] = MMPBSAbyClus['ByConfMean']
             popResults['OEZap_MMPBSA6_ByConfSerr'] = MMPBSAbyClus['ByConfSerr']
 
             # Generate by-cluster mean and serr RMSDs to the starting confs
-            ClusRMSDByConf = utl.ClusterRMSDByConf(ligand, ligTraj, clusResults)
+            ClusRMSDByConf = clusutl.ClusterRMSDByConf(ligand, ligTraj, clusResults)
             popResults['confRMSDsByClusMean'] = ClusRMSDByConf['confRMSDsByClusMean']
             popResults['confRMSDsByClusSerr'] = ClusRMSDByConf['confRMSDsByClusSerr']
 
@@ -746,7 +745,7 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
             floe_report_label = ""
             # Clean MMPBSA mean and serr to avoid nans and high zap energy values
             if 'OEZap_MMPBSA6_Bind' in PBSAdata.keys():
-                avg_mmpbsa, serr_mmpbsa = utl.clean_mean_serr(PBSAdata['OEZap_MMPBSA6_Bind'])
+                avg_mmpbsa, serr_mmpbsa = clusutl.clean_mean_serr(PBSAdata['OEZap_MMPBSA6_Bind'])
 
                 # Add to the record the MMPBSA mean and std
                 record.set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
