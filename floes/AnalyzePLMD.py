@@ -54,7 +54,7 @@ job.tags = [tag for lists in job.classification for tag in lists]
 # Ligand setting
 iMDInput = DatasetReaderCube("MDInputReader", title="MD Input Reader")
 iMDInput.promote_parameter("data_in", promoted_name="in",
-                             title="MD Input Dataset", description="MD Input Dataset")
+                           title="MD Input Dataset", description="MD Input Dataset")
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",

@@ -18,7 +18,7 @@ from os import environ
 
 import MDOrion.TrjAnalysis.utils as utl
 
-import MDOrion.TrjAnalysis.TrajMMPBSA_utils as mmpbsa
+import oetrajanalysis.TrajMMPBSA_utils as mmpbsa
 
 from MDOrion.TrjAnalysis.water_utils import nmax_waters
 

@@ -140,7 +140,14 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 new_record.set_value(Fields.title, complex_title)
                 new_record.set_value(Fields.ligand, ligand)
                 new_record.set_value(Fields.protein, protein)
-                new_record.set_value(Fields.protein_name, protein.GetTitle())
+
+                # Check Protein Name
+                if protein.GetTitle():
+                    protein_name = protein.GetTitle()
+                else:
+                    protein_name = "prot"
+
+                new_record.set_value(Fields.protein_name, protein_name)
                 new_record.set_value(Fields.md_components, mdcomp)
 
                 self.success.emit(new_record)

@@ -143,7 +143,6 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
             mdrecord_traj.set_protein_traj(ptraj, shard_name="ProteinTrajConfs_")
 
-
             record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
 
             # update or initiate the list of analyses that have been done
