@@ -9,6 +9,7 @@ channels:
 - nividic
 - conda-forge
 dependencies:
+- libstdcxx-ng==9.2.0
 - ambermini==16.16.0
 - alchemy==1.2.3
 - cerberus==1.1
