@@ -1,0 +1,50 @@
+channels:
+- anaconda
+- conda-forge
+- omnia/label/cuda100
+- omnia
+- OpenEye/label/Orion
+- plotly
+dependencies:
+- cerberus==1.1
+- h5py==2.9.0
+- hdbscan==0.8.26
+- matplotlib==3.2.1
+- networkx==2.3
+- numpy==1.18.5
+- oeommtools==0.1.14
+- openforcefield==0.6.0
+- openforcefields==1.2.0
+- openmm==7.4.2
+- openmoltools==0.8.7
+- packmol==18.169
+- parmed==3.2.0
+- pdbfixer==1.6
+- pip==18.0
+- plotly==4.5.0
+- plotly-orca==1.2.1
+- pymbar==3.0.5
+- pyyaml==3.13
+- pyparsing==2.3.0
+- python==3.7.7
+- scikit-learn==0.23.1
+- seaborn==0.10.1
+- smirnoff99frosst=1.1.0
+- tqdm==4.42.0
+- pip:
+# Leave this here to avoid pip install issues
+  - OpenEye-orionplatform==2.4.6
+  - OpenEye-artemis
+  - attrs==18.2.0
+  - invoke==1.2.0
+  - lxml==4.5.0
+  - OpenEye-ensemble2img==0.1.1
+  - Openeye-floe-pkg-tools==0.8.4
+  - OpenEye-floereport==0.1.5
+  - openeye-oemdtoolbox==0.0.3
+  - OpenEye_oetrajanalysis==0.7.0.0
+  - Openeye-toolkits==2019.10.2
+  - psutil==5.6.7
+  - pytest==3.10.1
+  - six==1.12.0
+  - wcwidth==0.1.7
