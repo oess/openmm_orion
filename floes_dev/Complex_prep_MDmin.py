@@ -78,7 +78,6 @@ iprot = DatasetReaderCube("Protein Reader", title="Protein Reader")
 iprot.promote_parameter("data_in", promoted_name="protein", title="Protein Input File", description="Protein file name")
 
 complx = ComplexPrepCube("Complex")
-complx.set_parameters(lig_res_name='LIG')
 
 solvate = ParallelSolvationCube("Hydration", title='System Hydration')
 solvate.promote_parameter('density', promoted_name='density', default=1.03,
@@ -90,8 +89,6 @@ solvate.set_parameters(close_solvent=True)
 ff = ParallelForceFieldCube("ForceField", title="System Parametrization")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
-ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
-ff.set_parameters(lig_res_name='LIG')
 
 mdcomp = MDComponentCube("MDComponentSetting", title="MDComponentSetting")
 mdcomp.promote_parameter("flask_title", promoted_name="slack_title", default="")
