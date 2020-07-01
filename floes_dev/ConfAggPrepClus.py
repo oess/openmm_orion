@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
-from floe.api import (WorkFloe, ParallelCubeGroup)
+from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import (ConformerGatheringData,
-                                       ParallelConfTrajsToLigTraj,
-                                       ParallelConcatenateTrajMMPBSACube,
-                                       ParallelClusterOETrajCube,
-                                       ParallelMakeClusterTrajOEMols)
+from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube,
+                                                       ParallelMakeClusterTrajOEMols)
+
+from MDOrion.TrjAnalysis.cubes_trajProcessing import (ConformerGatheringData,
+                                                      ParallelConfTrajsToLigTraj,
+                                                      ParallelConcatenateTrajMMPBSACube)
 
 job = WorkFloe("Test from combining confs Traj OEMols through Clustering")
 

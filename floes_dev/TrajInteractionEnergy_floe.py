@@ -4,7 +4,7 @@ from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import ParallelTrajInteractionEnergyCube
+from MDOrion.TrjAnalysis.cubes_trajProcessing import ParallelTrajInteractionEnergyCube
 
 job = WorkFloe("Testing Traj Protein-Ligand Interaction Energies")
 

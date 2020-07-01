@@ -17,18 +17,14 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-from floe.api import (WorkFloe,
-                      ParallelCubeGroup)
+from floe.api import WorkFloe
+
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
 from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
-from MDOrion.System.cubes import ParallelSolvationCube
-
-from MDOrion.ForceField.cubes import ParallelForceFieldCube
-
-from MDOrion.ProtPrep.cubes import ProteinSetting
+from MDOrion.System.cubes import MDComponentCube
 
 from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
@@ -94,10 +90,7 @@ complx = ComplexPrepCube("Complex", title="Complex Preparation")
 complx.set_parameters(lig_res_name='LIG')
 
 # Protein Setting
-protset = ProteinSetting("ProteinSetting", title="Protein Setting")
-protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
-protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber99SBildn')
-protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='Gaff2')
+protset = MDComponentCube("ProteinSetting", title="Protein Setting")
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",

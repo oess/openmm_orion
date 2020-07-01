@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from floe.api import (WorkFloe, ParallelCubeGroup)
+from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import ParallelClusterOETrajCube, ParallelMakeClusterTrajOEMols
+from MDOrion.TrjAnalysis.cubes_clusterAnalysis import ParallelClusterOETrajCube, ParallelMakeClusterTrajOEMols
 
 job = WorkFloe("Testing Traj OEMol Clustering on a conformer")
 

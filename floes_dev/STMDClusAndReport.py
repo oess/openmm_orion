@@ -21,9 +21,9 @@ from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import ( ParallelClusterOETrajCube,
-                                       ParallelMDTrajAnalysisClusterReport,
-                                       MDFloeReportCube)
+from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube,
+                                                       ParallelMDTrajAnalysisClusterReport,
+                                                       MDFloeReportCube)
 
 job = WorkFloe('Short Trajectory MD cluster and report',
                title='Short Trajectory MD cluster and report')

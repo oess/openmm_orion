@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from floe.api import (WorkFloe, ParallelCubeGroup)
+from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import ConformerGatheringData
+from MDOrion.TrjAnalysis.cubes_trajProcessing import ConformerGatheringData
 
 job = WorkFloe("Test Gathering Traj OEMol Confs")
 
@@ -37,7 +37,7 @@ ofs.promote_parameter("data_out", promoted_name="out", title="System Output OERe
 job.add_cubes(ifs, confGather, ofs)
 
 ifs.success.connect(confGather.intake)
-scube.success.connect(ofs.intake)
+confGather.success.connect(ofs.intake)
 
 if __name__ == "__main__":
     job.run()

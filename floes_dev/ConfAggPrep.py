@@ -4,9 +4,9 @@ from floe.api import (WorkFloe, ParallelCubeGroup)
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import (ConformerGatheringData,
-                                       ParallelConfTrajsToLigTraj,
-                                       ParallelConcatenateTrajMMPBSACube)
+from MDOrion.TrjAnalysis.cubes_trajProcessing import (ConformerGatheringData,
+                                                      ParallelConfTrajsToLigTraj,
+                                                      ParallelConcatenateTrajMMPBSACube)
 
 job = WorkFloe("Testing combining confs Traj OEMols to lig Traj OEMol")
 

@@ -4,11 +4,9 @@ from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import ParallelClusterOETrajCube
-
-from MDOrion.TrjAnalysis.cubes import ParallelMDTrajAnalysisClusterReport
-
-from MDOrion.TrjAnalysis.cubes import MDFloeReportCube
+from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube,
+                                                       ParallelMDTrajAnalysisClusterReport,
+                                                       MDFloeReportCube)
 
 job = WorkFloe("Analysing Trajectory from Short Trajectory MD")
 
