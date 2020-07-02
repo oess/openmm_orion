@@ -519,7 +519,6 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
 
             self.success.emit(record)
 
-
         except Exception as e:
             print("Failed to complete", str(e), flush=True)
             opt['Logger'].info('Exception {} in ClusterOETrajCube on {}'.format(str(e), system_title))
@@ -626,7 +625,8 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
             popResults['confRMSDsByClusSerr'] = ClusRMSDByConf['confRMSDsByClusSerr']
 
             # Put these results on the record as a POD JSON object
-            record.set_value(Fields.Analysis.cluspop_dict,popResults)
+            oeclusRecord.set_value(Fields.Analysis.cluspop_dict, popResults)
+            record.set_value(Fields.Analysis.oeclus_rec, oeclusRecord)
 
             self.success.emit(record)
 
@@ -859,10 +859,10 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} found the cluster info'.format(system_title))
 
             # Get the results dict for the Cluster Population analysis
-            if not record.has_field(Fields.Analysis.cluspop_dict):
+            if not clusRecord.has_field(Fields.Analysis.cluspop_dict):
                 raise ValueError('{} could not find the clusConf population JSON object'.format(system_title))
             opt['Logger'].info('{} found the clusConf population JSON record'.format(system_title))
-            popResults = utl.RequestOEFieldType(record, Fields.Analysis.cluspop_dict)
+            popResults = utl.RequestOEFieldType(clusRecord, Fields.Analysis.cluspop_dict)
             popTableStyles, popTableBody = flrpt.HtmlMakeClusterPopTables(popResults)
 
             # Make a copy of the ligand starting pose.
