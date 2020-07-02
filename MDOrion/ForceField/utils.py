@@ -371,8 +371,15 @@ class MDComponents:
     def create_flask(self):
         flask = oechem.OEMol()
         for comp_name, comp in self._components.items():
-            if not oechem.OEAddMols(flask, comp):
+
+            # amap is a list. The index i in the list is the atom Idx in the
+            # source molecule and the corresponding list element at position i
+            # is the OE Atom in the destination molecule
+            amap, bmap = oechem.OEAddMols(flask, comp)
+
+            if not amap:
                 raise ValueError("The flask cannot be created. Problems with the component: {}".format(comp_name))
+
         flask.SetTitle(self._components_title)
         return flask
 
