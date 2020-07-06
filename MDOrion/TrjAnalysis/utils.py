@@ -20,7 +20,6 @@ from tempfile import TemporaryDirectory
 
 from oeommtools import utils as oeommutils
 
-# Needed for ClusterRMSDByConf
 import oetrajanalysis.Clustering_utils as clusutl
 
 from MDOrion.TrjAnalysis.water_utils import nmax_waters
@@ -379,37 +378,6 @@ def RequestOEFieldType(record, field):
         return record.get_value(field)
 
 
-def ColorblindRGBMarkerColors(nColors=0):
-    palette = [(0, 114, 178), (0, 158, 115), (213, 94, 0), (204, 121, 167),
-               (86, 180, 233), (230, 159, 0), (240, 228, 66), (150, 150, 150)]
-    if nColors < 1:
-        return palette
-    elif nColors < 9:
-        return palette[:nColors]
-    else:
-        n = int(nColors/8)
-        moreRGB = palette
-        for i in range(n):
-            moreRGB = moreRGB+palette
-        return(moreRGB[:nColors])
-
-
-
-def ColorblindHexMarkerColors(nColors=0):
-    palette = ['#0072b2', '#009e73', '#d55e00', '#cc79a7',
-               '#56b4e9', '#e69f00', '#f0e442', '#969696']
-    if nColors < 1:
-        return palette
-    elif nColors < 9:
-        return palette[:nColors]
-    else:
-        n = int(nColors/8)
-        moreHex = palette
-        for i in range(n):
-            moreHex = moreHex+palette
-        return(moreHex[:nColors])
-
-
 def PoseInteractionsSVG(ligand, proteinOrig, width=400, height=300):
     """Generate a OEGrapheme interaction plot for a protein-ligand complex.
     The input protein may have other non-protein components as well so
@@ -583,7 +551,7 @@ def StyleTrajProteinLigandClusters( protein, ligand):
     if protein.NumConfs()!=ligand.NumConfs():
         print('Cannot style; protein and ligand must have same number of conformers')
         return False
-    confRGB = ColorblindRGBMarkerColors( protein.NumConfs())
+    confRGB = clusutl.ColorblindRGBMarkerColors( protein.NumConfs())
     #print( confRGB)
     SetProteinLigandVizStyle( protein, ligand, confRGB[0])
     for pconf, lconf, colorRGB in zip(protein.GetConfs(), ligand.GetConfs(), confRGB):

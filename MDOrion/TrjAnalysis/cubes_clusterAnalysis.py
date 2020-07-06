@@ -32,8 +32,9 @@ from orionclient.session import in_orion, OrionSession, get_session
 from orionclient.types import File
 
 import os
-
 from os import environ
+
+import numpy as np
 
 import MDOrion.TrjAnalysis.utils as utl
 
@@ -710,41 +711,75 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
 
             # Generate simple plots for floe report
             opt['Logger'].info('{} plotting cluster strip plot'.format(system_title) )
-            trajClus_svg = clusutl.ClusterLigTrajClusPlot(clusResults)
+            trajClus_svg = clusutl.ClusterMembersshipPlot(clusResults, confIdVec)
+            #trajClus_svg = clusutl.ClusterLigTrajClusPlot(clusResults)
+            ClusSVG_field = OEField( 'TrajClusSVG', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
+            oeclusRecord.set_value( ClusSVG_field, trajClus_svg)
 
             # Calculate RMSD of ligand traj from ligand initial pose
             #ligInitPose = utl.RequestOEFieldType(record, Fields.ligand)
             #vecRmsd = oechem.OEDoubleArray(ligTraj.GetMaxConfIdx())
-
             #oechem.OERMSD(ligInitPose, ligTraj, vecRmsd)
             #trajClus.set_value(Fields.Analysis.lig_traj_rmsd, list(vecRmsd) )
             #opt['Logger'].info('{} plotting strip plot of ligand RMSD from initial pose'.format(system_title) )
             #rmsdInit_svg = clusutl.RmsdFromInitialPosePlot( clusResults['ClusterVec'], vecRmsd)
-
             # Put simple plot results on trajClus record
             #
             #rmsdInit_field = OEField( 'rmsdInitPose', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
             #trajClus.set_value(rmsdInit_field, rmsdInit_svg)
             #
-            ClusSVG_field = OEField( 'TrajClusSVG', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
-            oeclusRecord.set_value( ClusSVG_field, trajClus_svg)
 
             # Set the TrajClus record on the top-level record
             record.set_value(Fields.Analysis.oeclus_rec, oeclusRecord)
             opt['Logger'].info('{} added report info to oeclusRecord OERecord'.format(system_title) )
 
-            # Get the PBSA data dict from the record
-            if not record.has_field(Fields.Analysis.oepbsa_dict):
-                raise ValueError('{} could not find the PBSA data JSON object'.format(system_title))
-            opt['Logger'].info('{} found the PBSA data JSON record'.format(system_title))
-            PBSAdata = utl.RequestOEFieldType(record, Fields.Analysis.oepbsa_dict)
-            opt['Logger'].info('{} : PBSAdata keys {}'.format(system_title, PBSAdata.keys()))
-            #for key in PBSAdata.keys():
-            #    opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])))
-
+            # This last section is about setting the trajectory ensemble MMPBSA value. There are 2 cases:
+            # 1) There is at least one major cluster, so make a Boltzmann-weighted average of all major clusters
+            # 2) There are no major clusters, so make a simple ensemble average of the whole traj.
             floe_report_label = ""
-            # Clean MMPBSA mean and serr to avoid nans and high zap energy values
-            if 'OEZap_MMPBSA6_Bind' in PBSAdata.keys():
+            #
+            if nMajorClusters>0:
+                # 1) There is at least one major cluster, so make a Boltzmann-weighted average of all major clusters:
+                #
+                # Get the results dict for the Cluster Population analysis
+                if not oeclusRecord.has_field(Fields.Analysis.cluspop_dict):
+                    raise ValueError('{} could not find the clusConf population JSON object'.format(system_title))
+                opt['Logger'].info('{} found the clusConf population JSON record'.format(system_title))
+                opt['Logger'].info('{} calculating Boltzmann-weighted MMPBSA average'.format(system_title))
+                popResults = utl.RequestOEFieldType(oeclusRecord, Fields.Analysis.cluspop_dict)
+                if 'OEZap_MMPBSA6_ByClusMean' not in popResults.keys():
+                    raise ValueError('{} could not find OEZap_MMPBSA6_ByClusMean in popResults'.format(system_title))
+                #
+                # If >1 field, exclude the last field in the energy vector since it is Outliers+MinorClusters
+                if len(popResults['OEZap_MMPBSA6_ByClusMean'])>1:
+                    MMPBSA6_ByClusMean = np.array(popResults['OEZap_MMPBSA6_ByClusMean'][:-1])
+                    MMPBSA6_ByClusSerr = np.array(popResults['OEZap_MMPBSA6_ByClusSerr'][:-1])
+                else:
+                    MMPBSA6_ByClusMean = np.array(popResults['OEZap_MMPBSA6_ByClusMean'])
+                    MMPBSA6_ByClusSerr = np.array(popResults['OEZap_MMPBSA6_ByClusSerr'])
+                # Calculate the Boltzmann-weighted probabilities for each cluster as a numpy array
+                BoltzWtProb = oetrjutl.BoltzmannWeightedProbabilities(MMPBSA6_ByClusMean)
+                boltzMean = (MMPBSA6_ByClusMean * BoltzWtProb).sum()
+                boltzSerr = (MMPBSA6_ByClusSerr * BoltzWtProb).sum()
+                # Add to the record the MMPBSA mean and std
+                record.set_value(Fields.Analysis.mmpbsa_traj_mean, boltzMean)
+                record.set_value(Fields.Analysis.mmpbsa_traj_serr, boltzSerr)
+                # Add to the record the Average MMPBSA floe report label
+                floe_report_label = "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".format(
+                    boltzMean, boltzSerr)
+
+            else:
+                # 2) There are no major clusters, so make a simple ensemble average of the whole traj.
+                # Get the PBSA data dict from the record
+                if not record.has_field(Fields.Analysis.oepbsa_dict):
+                    raise ValueError('{} could not find the PBSA data JSON object'.format(system_title))
+                opt['Logger'].info('{} found the PBSA data JSON record'.format(system_title))
+                opt['Logger'].info('{} calculating simple ensemble MMPBSA average'.format(system_title))
+                PBSAdata = utl.RequestOEFieldType(record, Fields.Analysis.oepbsa_dict)
+                if 'OEZap_MMPBSA6_Bind' not in PBSAdata.keys():
+                    raise ValueError('{} could not find OEZap_MMPBSA6_Bind in PBSAdata'.format(system_title))
+
+                # Clean MMPBSA mean and serr to avoid nans and high zap energy values
                 avg_mmpbsa, serr_mmpbsa = clusutl.clean_mean_serr(PBSAdata['OEZap_MMPBSA6_Bind'])
 
                 # Add to the record the MMPBSA mean and std
@@ -829,15 +864,6 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             trajSVG = utl.RequestOEField(oetrajRecord, 'TrajSVG', Types.String)
             ligand_bfactor = utl.RequestOEField(oetrajRecord, 'LigAverage', Types.Chem.Mol)
 
-            # Extract the label for the MMPBSA score for the whole trajectory
-            if not record.has_value(Fields.Analysis.mmpbsa_traj_mean):
-                mmpbsaLabelStr = lig_name
-            else:
-                mmpbsa_traj_mean = record.get_value(Fields.Analysis.mmpbsa_traj_mean)
-                mmpbsa_traj_std = record.get_value(Fields.Analysis.mmpbsa_traj_serr)
-                mmpbsaLabelStr = "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".format(mmpbsa_traj_mean,
-                                                                                               mmpbsa_traj_std)
-
             # Extract the three plots from the TrajClus record
             if not record.has_field(Fields.Analysis.oeclus_rec):
                 raise ValueError('{} does not have TrajClus record'.format(system_title))
@@ -858,6 +884,19 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             clusData = clusRecord.get_value(Fields.Analysis.oeclus_dict)
             opt['Logger'].info('{} found the cluster info'.format(system_title))
 
+            # Extract the label for the MMPBSA score for the whole trajectory
+            if not record.has_value(Fields.Analysis.mmpbsa_traj_mean):
+                mmpbsaLabelStr = lig_name
+            else:
+                mmpbsa_traj_mean = record.get_value(Fields.Analysis.mmpbsa_traj_mean)
+                mmpbsa_traj_std = record.get_value(Fields.Analysis.mmpbsa_traj_serr)
+                if clusData['nClusters']>0:
+                    mmpbsaLabelStr = "Boltzman-weighted<br>"
+                else:
+                    mmpbsaLabelStr = "Ensemble average<br>"
+                mmpbsaLabelStr += "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".format(mmpbsa_traj_mean,
+                                                                                               mmpbsa_traj_std)
+
             # Get the results dict for the Cluster Population analysis
             if not clusRecord.has_field(Fields.Analysis.cluspop_dict):
                 raise ValueError('{} could not find the clusConf population JSON object'.format(system_title))
@@ -876,7 +915,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
             # get the palette of graph marker colors
             nClustersP1 = clusData['nClusters']+1
-            clusRGB = utl.ColorblindRGBMarkerColors(nClustersP1)
+            clusRGB = clusutl.ColorblindRGBMarkerColors(nClustersP1)
             clusRGB[-1] = (76, 76, 76)
 
             with TemporaryDirectory() as output_directory:
@@ -900,7 +939,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 report_file.write(flrpt._clus_floe_report_midHtml0.format(
                     query_depiction=oedepict.OEWriteImageToString("svg", img).decode("utf-8")))
 
-                report_file.write("""      <h3>
+                report_file.write("""      <h3 style="text-align: center; width: 100%">
                         {mmpbsaLabel}
                       </h3>""".format(mmpbsaLabel=mmpbsaLabelStr))
 

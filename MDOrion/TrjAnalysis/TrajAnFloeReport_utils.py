@@ -2,7 +2,7 @@ import base64
 
 import re
 
-import MDOrion.TrjAnalysis.utils as utl
+import oetrajanalysis.Clustering_utils as clusutl
 
 _clus_floe_report_header = """
 <html>
@@ -195,16 +195,19 @@ _clus_floe_report_midHtml2a = """      </div>
   </div>
 
   <div class="cb-floe-report__row">
-    <div class="cb-floe-report__column cb-floe-report__sidebar">
 """
+#  <div class="cb-floe-report__row">
+#    <div class="cb-floe-report__column cb-floe-report__sidebar">
+#"""
 
 _clus_floe_report_stripPlots = """    </div>
 
     <div class="cb-floe-report__column cb-floe-report__content">
       <h3 class="cb-floe-report-element--header"> Cluster membership of ligand by Trajectory frame </h3>
       {clusters}
-    </div>
-  </div>"""
+    </div>"""
+#    </div>
+#  </div>"""
 # removed from _clus_floe_report_stripPlots but commented out here in case needed again
 #      <h3 class="cb-floe-report-element--header"> RMSD of ligand compared to initial pose, colored by cluster </h3>
 #      {rmsdInit}
@@ -219,7 +222,7 @@ def MakeClusterInfoText(dataDict, popResults, rgbVec):
     nFrames = dataDict['nFrames']
     nMajor = dataDict['nMajorClusters']
     nMajorThresh = dataDict['MajorClusThreshold']
-    rowColors = utl.ColorblindHexMarkerColors(nMajor) + ['#4c4c4c']
+    rowColors = clusutl.ColorblindHexMarkerColors(nMajor) + ['#4c4c4c']
     #
     text.append("""
       <br/>
@@ -234,8 +237,8 @@ def MakeClusterInfoText(dataDict, popResults, rgbVec):
     else:
         text.append('        <br>- Produced {} clusters'.format( dataDict['nClusters']))
     nOutliers = dataDict['ClusterVec'].count(-1)
-    text.append(' and {:4d} outliers\n'.format( nOutliers))
-    text.append('        <br>   with {} major clusters (>{:.0%})\n'.
+    text.append(' and {:4d} Outliers,'.format( nOutliers))
+    text.append(' with {} Major clusters (>{:.0%} of trajectory)\n'.
                 format( nMajor,nMajorThresh) )
 
     text.append('<br><br>Major Clusters (> {:.0%} of trajectory):<br>'.format( nMajorThresh) )
@@ -245,8 +248,9 @@ def MakeClusterInfoText(dataDict, popResults, rgbVec):
           <div class="cb-floe-report__analysis-table-row">
             <span>Cluster</span>
             <span>Size</span>
-            <span>&lt;MMPBSA&gt;* &plusmn; StdErr</span>
+            <span>MMPBSA* &plusmn; StdErr</span>
           </div>\n""")
+           #<span>&lt;MMPBSA&gt;* &plusmn; StdErr</span>
 
     clusSize = popResults['ClusTot']
     ByClusMean = popResults['OEZap_MMPBSA6_ByClusMean']
@@ -269,7 +273,7 @@ def MakeClusterInfoText(dataDict, popResults, rgbVec):
                              hexColor=color))
     # Footnotes to Table.
     text.append('*Values in kcal/mol.\n')
-    text.append('**Other includes minor clusters as well as Outliers from the clustering.\n')
+    text.append('**Other includes Minor clusters as well as Outliers from the clustering.\n')
 
     text.append("""
         </div>
@@ -385,7 +389,7 @@ def HtmlMakeClusterPopTables(popResults):
 
     # Column colors are None for col 1, then cluster colors to last col, then gray for Other
     colorBy = 'column'
-    rowColors = utl.ColorblindHexMarkerColors(nMajorPlus1 - 1) + ['#4c4c4c']
+    rowColors = clusutl.ColorblindHexMarkerColors(nMajorPlus1 - 1) + ['#4c4c4c']
     colColors = [None] + rowColors
     # print(colColors)
 
