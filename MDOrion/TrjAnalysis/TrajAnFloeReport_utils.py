@@ -28,6 +28,11 @@ _clus_floe_report_header = """
     width: 100%;
     height: auto;
   }
+  .cb-floe-report__plot {
+    padding-left: 4vw;
+    padding-right: 4vw;
+    text-align: center;
+  }
   .cb-floe-report__dev-alert {
     background-color: rgb(255, 80, 80);
     color: white;
@@ -73,7 +78,7 @@ _clus_floe_report_header = """
 
   h2.cb-floe-report-element--header {
     margin-bottom: 0;
-    text-align: left;
+    text-align: center;
   }
   h3.cb-floe-report-element--header {
     margin-bottom: 0;
@@ -189,9 +194,10 @@ _clus_floe_report_midHtml2 = """      </div>
 _clus_floe_report_midHtml2a = """      </div>
     </div>
   </div>
-  <br><hr><br>
+  <br><hr>
   <div class="cb-floe-report__row">
     <h2 style="text-align: center; width: 100%"> Ligand Clustering based on Active Site Alignment </h2>
+    <br>
   </div>
 
   <div class="cb-floe-report__row">
@@ -202,8 +208,8 @@ _clus_floe_report_midHtml2a = """      </div>
 
 _clus_floe_report_stripPlots = """    </div>
 
-    <div class="cb-floe-report__column cb-floe-report__content">
-      <h3 class="cb-floe-report-element--header"> Cluster membership of ligand by Trajectory frame </h3>
+    <div class="cb-floe-report__column cb-floe-report__plot">
+      <h2 class="cb-floe-report-element--header"> Cluster membership of ligand by Trajectory frame </h2>
       {clusters}
     </div>"""
 #    </div>

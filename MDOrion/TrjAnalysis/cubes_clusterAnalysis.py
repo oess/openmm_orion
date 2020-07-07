@@ -986,7 +986,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 report_file.write(flrpt._clus_floe_report_stripPlots.format(
                     clusters=flrpt.trim_svg(trajClus_svg)))
                     #rmsdInit=flrpt.trim_svg(rmsdInit_svg)))
-                report_file.write('</div>')
+                report_file.write('</div><hr style="max-width: 1000px;">')
 
                 report_file.write(popTableBody)
 
