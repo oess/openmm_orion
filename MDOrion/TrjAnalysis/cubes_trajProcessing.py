@@ -118,6 +118,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
             ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, flask, traj_fn, opt,
                                                                         water_cutoff=opt['water_cutoff'])
+
             ltraj.SetTitle(record.get_value(Fields.ligand_name))
             ptraj.SetTitle(record.get_value(Fields.protein_name))
 

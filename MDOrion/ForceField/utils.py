@@ -41,6 +41,8 @@ from oeommtools.utils import sanitizeOEMolecule
 
 import copy
 
+import numpy as np
+
 
 class MDComponents:
 
@@ -370,6 +372,7 @@ class MDComponents:
     @property
     def create_flask(self):
         flask = oechem.OEMol()
+        map_dic = dict()
         for comp_name, comp in self._components.items():
 
             # amap is a list. The index i in the list is the atom Idx in the
@@ -380,8 +383,59 @@ class MDComponents:
             if not amap:
                 raise ValueError("The flask cannot be created. Problems with the component: {}".format(comp_name))
 
+            map_dic[comp_name] = [at.GetIdx() for at in amap]
+
         flask.SetTitle(self._components_title)
-        return flask
+        return flask, map_dic
+
+    def update_components_coords(self, flask_new_coords):
+
+        flask, map_dic = self.create_flask
+
+        for at_flask, at_flask_nc in zip(flask.GetAtoms(), flask_new_coords.GetAtoms()):
+            if at_flask.GetName() != at_flask_nc.GetName():
+                raise ValueError("The provided topology in not in sync with the MD Components topology")
+
+        new_coords = flask_new_coords.GetCoords()
+
+        for comp_name, oe_comp in self.get_components.items():
+
+            with oechem.oemolostream(comp_name+'.oeb') as ofs:
+                oechem.OEWriteConstMolecule(ofs, oe_comp)
+
+            idx_comp = map_dic[comp_name]
+            coords = []
+            for at in oe_comp.GetAtoms():
+                coords.append(new_coords[idx_comp[at.GetIdx()]])
+
+            oe_comp.SetCoords(oechem.OEFloatArray(np.array(coords).ravel()))
+
+            if comp_name == 'protein':
+                self.set_protein(oe_comp)
+            elif comp_name == 'ligand':
+                self.set_ligand(oe_comp)
+            elif comp_name == 'other_ligands':
+                self.set_other_ligands(oe_comp)
+            elif comp_name == 'counter_ions':
+                self.set_counter_ions(oe_comp)
+            elif comp_name == 'metals':
+                self.set_metals(oe_comp)
+            elif comp_name == 'excipients':
+                self.set_excipients(oe_comp)
+            elif comp_name == 'solvent':
+                self.set_solvent(oe_comp)
+            elif comp_name == 'water':
+                self.set_water(oe_comp)
+            elif comp_name == 'cofactors':
+                self.set_cofactors(oe_comp)
+            elif comp_name == 'other_cofactors':
+                self.set_other_cofactors(oe_comp)
+            elif comp_name == 'lipids':
+                self.set_lipids(oe_comp)
+            elif comp_name == 'nucleics':
+                self.set_nucleics(oe_comp)
+            elif comp_name == 'other_nucleics':
+                self.set_other_nucleics(oe_comp)
 
     @property
     def get_protein(self):

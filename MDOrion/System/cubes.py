@@ -324,7 +324,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
             md_components = record.get_value(Fields.md_components)
 
-            solute = md_components.create_flask
+            solute, map_comp = md_components.create_flask
 
             if not record.has_value(Fields.title):
                 self.log.warn("Missing Title field")
@@ -418,8 +418,9 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
             box_vec = pack_utils.decodePyObj(vec_data)
             md_components.set_box_vectors(box_vec)
 
+            flask, map_comp = md_components.create_flask
             record.set_value(Fields.md_components, md_components)
-            record.set_value(Fields.flask, md_components.create_flask)
+            record.set_value(Fields.flask, flask)
             record.set_value(Fields.title, solute_title)
 
             self.success.emit(record)

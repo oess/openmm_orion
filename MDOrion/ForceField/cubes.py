@@ -104,7 +104,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                 raise ValueError("MD Components Field is missing")
 
             md_components = record.get_value(Fields.md_components)
-            flask = md_components.create_flask
+            flask, map_comp = md_components.create_flask
 
             opt['Logger'].info(md_components.get_info)
 

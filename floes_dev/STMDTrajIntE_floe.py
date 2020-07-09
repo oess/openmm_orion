@@ -5,8 +5,8 @@ from floe.api import WorkFloe
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
 from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajToOEMolCube,
-                                       ParallelTrajInteractionEnergyCube,
-                                       ParallelTrajPBSACube)
+                                                      ParallelTrajInteractionEnergyCube,
+                                                      ParallelTrajPBSACube)
 
 job = WorkFloe("Calculate Trajectory Protein-Ligand MMPBSA Energies from Short Trajectory MD")
 
