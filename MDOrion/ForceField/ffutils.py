@@ -359,9 +359,12 @@ def parametrize_component(component, component_ff, other_ff):
 
         mol_part_i = part_mols[part_i]
         omm_top_part_i, omm_pos_part_i = oeommutils.oemol_to_openmmTop(mol_part_i)
+
         if not forcefield.getUnmatchedResidues(omm_top_part_i):
-            omm_sys_part_i = forcefield.createSystem(topology, rigidWater=False, constraints=None)
-            pmd_part_i = parmed.openmm.load_topology(topology, omm_sys_part_i, xyz=omm_pos_part_i)
+
+            omm_sys_part_i = forcefield.createSystem(omm_top_part_i, rigidWater=False, constraints=None)
+
+            pmd_part_i = parmed.openmm.load_topology(omm_top_part_i, omm_sys_part_i, xyz=omm_pos_part_i)
             # print("Parametrize full part: {}".format(part_i))
         else:
             mol_part_i_clean = oeommutils.sanitizeOEMolecule(mol_part_i)

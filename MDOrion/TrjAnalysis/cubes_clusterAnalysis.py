@@ -852,9 +852,14 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
 
             lig_name = utl.RequestOEFieldType(record, Fields.ligand_name)
 
-            protInitPose = utl.RequestOEFieldType(record, Fields.protein)
+            # protInitPose = utl.RequestOEFieldType(record, Fields.protein)
 
-            asiteSVG = utl.PoseInteractionsSVG(ligInitPose, protInitPose, width=400, height=265)
+            if not record.has_field(Fields.md_components):
+                raise ValueError("Missing MD Components field")
+
+            md_components = record.get_value(Fields.md_components)
+
+            asiteSVG = utl.PoseInteractionsSVG(md_components, width=400, height=265)
 
             # Extract the traj SVG and Ligand average Bfactor from the OETraj record
             if not record.has_field(Fields.Analysis.oetraj_rec):

@@ -410,32 +410,34 @@ class MDComponents:
 
             oe_comp.SetCoords(oechem.OEFloatArray(np.array(coords).ravel()))
 
-            if comp_name == 'protein':
-                self.set_protein(oe_comp)
-            elif comp_name == 'ligand':
-                self.set_ligand(oe_comp)
-            elif comp_name == 'other_ligands':
-                self.set_other_ligands(oe_comp)
-            elif comp_name == 'counter_ions':
-                self.set_counter_ions(oe_comp)
-            elif comp_name == 'metals':
-                self.set_metals(oe_comp)
-            elif comp_name == 'excipients':
-                self.set_excipients(oe_comp)
-            elif comp_name == 'solvent':
-                self.set_solvent(oe_comp)
-            elif comp_name == 'water':
-                self.set_water(oe_comp)
-            elif comp_name == 'cofactors':
-                self.set_cofactors(oe_comp)
-            elif comp_name == 'other_cofactors':
-                self.set_other_cofactors(oe_comp)
-            elif comp_name == 'lipids':
-                self.set_lipids(oe_comp)
-            elif comp_name == 'nucleics':
-                self.set_nucleics(oe_comp)
-            elif comp_name == 'other_nucleics':
-                self.set_other_nucleics(oe_comp)
+            self.set_component_by_name(comp_name, oe_comp)
+
+            # if comp_name == 'protein':
+            #     self.set_protein(oe_comp)
+            # elif comp_name == 'ligand':
+            #     self.set_ligand(oe_comp)
+            # elif comp_name == 'other_ligands':
+            #     self.set_other_ligands(oe_comp)
+            # elif comp_name == 'counter_ions':
+            #     self.set_counter_ions(oe_comp)
+            # elif comp_name == 'metals':
+            #     self.set_metals(oe_comp)
+            # elif comp_name == 'excipients':
+            #     self.set_excipients(oe_comp)
+            # elif comp_name == 'solvent':
+            #     self.set_solvent(oe_comp)
+            # elif comp_name == 'water':
+            #     self.set_water(oe_comp)
+            # elif comp_name == 'cofactors':
+            #     self.set_cofactors(oe_comp)
+            # elif comp_name == 'other_cofactors':
+            #     self.set_other_cofactors(oe_comp)
+            # elif comp_name == 'lipids':
+            #     self.set_lipids(oe_comp)
+            # elif comp_name == 'nucleics':
+            #     self.set_nucleics(oe_comp)
+            # elif comp_name == 'other_nucleics':
+            #     self.set_other_nucleics(oe_comp)
 
     @property
     def get_protein(self):

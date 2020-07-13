@@ -107,16 +107,16 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} Temp Directory: {}'.format(system_title, os.path.dirname(traj_fn)))
             opt['Logger'].info('{} Trajectory filename: {}'.format(system_title, traj_fn))
 
-            setupOEMol = mdrecord.get_stage_topology(stg_name=MDStageNames.ForceField)
-
-            opt['Logger'].info('{} Setup topology has {} atoms'.format(system_title, setupOEMol.NumAtoms()))
-
             # Generate multi-conformer protein and ligand OEMols from the trajectory
             opt['Logger'].info('{} Generating protein and ligand trajectory OEMols'.format(system_title))
 
             flask = mdrecord.get_flask
 
-            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, flask, traj_fn, opt,
+            md_components = record.get_value(Fields.md_components)
+
+            # opt['Logger'].info(md_components.get_info)
+
+            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(md_components, flask, traj_fn, opt,
                                                                         water_cutoff=opt['water_cutoff'])
 
             ltraj.SetTitle(record.get_value(Fields.ligand_name))
@@ -709,6 +709,8 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
             rec0 = list_conf_rec[0]
             #   copy all the initial fields in Fields.ligInit_rec up to the top level
             init_rec = rec0.get_value(Fields.ligInit_rec)
+
+            # TODO METADATA IS NOT COPIED?
             for field in init_rec.get_fields():
                 new_rec.set_value(field, init_rec.get_value(field))
             #   next, fields that will simply be copied and not further used here
@@ -722,6 +724,9 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
             #   finally, fields that will be copied and also further used here
             lig_multi_conf = oechem.OEMol(rec0.get_value(Fields.ligand))
             protein_name = rec0.get_value(Fields.protein_name)
+
+            # MD Components copied at the ligi top level
+            new_rec.set_value(Fields.md_components, rec0.get_value(Fields.md_components))
 
             # if >1 confs, add their confs to the parent ligand at the top level
             for rec in list_conf_rec[1:]:
