@@ -53,7 +53,7 @@ os.chdir(FILE_DIR)
 class TestMDOrionFloes(FloeTestCase):
 
     @pytest.mark.local
-    def test_compex_prep_floe(self):
+    def test_compex_prep_split_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
             os.path.join(FLOES_DEV_DIR, "Complex_prep.py"),
             run_timeout=43200,
@@ -151,3 +151,80 @@ class TestMDOrionFloes(FloeTestCase):
 
             top_mol = mdrecord.get_stage_topology()
             self.assertEqual(top_mol.NumAtoms(), complx.NumAtoms())
+
+    @pytest.mark.local
+    def test_compex_prep_md_comp_floe(self):
+        workfloe = WorkFloeWrapper.get_workfloe(
+            os.path.join(FLOES_DEV_DIR, "Complex_prep.py"),
+            run_timeout=43200,
+            queue_timeout=2000
+        )
+
+        ligand_file = DatasetWrapper.get_dataset(
+            os.path.join(
+                FILE_DIR,
+                "retigabine.oeb"
+            )
+        )
+
+        protein_file = DatasetWrapper.get_dataset(
+            os.path.join(
+                FILE_DIR,
+                "kcnq_fix_ARG_fc.oeb"
+            )
+        )
+
+        output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+
+        workfloe.start(
+            {
+                "promoted": {
+                    "ligands": ligand_file.identifier,
+                    "protein": protein_file.identifier,
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
+                }
+
+            }
+        )
+
+        self.assertWorkFloeComplete(workfloe)
+
+        fail_ifs = oechem.oeifstream()
+        records_fail = []
+
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
+
+        ifs = oeifstream(output_file.path)
+        records = []
+
+        for rec in read_records(ifs):
+            records.append(rec)
+        ifs.close()
+
+        count = len(records)
+        # Check the out record list
+        self.assertEqual(count, 1)
+
+        for record in records:
+
+            md_components = record.get_value(Fields.md_components)
+
+            protein = md_components.get_protein
+            ligand = md_components.get_ligand
+            counter_ions = md_components.get_counter_ions
+            excipients = md_components.get_excipients
+            water = md_components.get_water
+
+            self.assertEqual(protein.NumAtoms(), 7353)
+            self.assertEqual(ligand.NumAtoms(), 40)
+            self.assertEqual(water.NumAtoms(), 58308)
+            self.assertEqual(excipients.NumAtoms(), 44)
+            self.assertEqual(counter_ions.NumAtoms(), 54)

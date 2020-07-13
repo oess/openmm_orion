@@ -216,7 +216,7 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             self.floe_report.finish_report()
 
         except Exception as e:
-            self.opt['Warning'].warn("It was not possible to generate the floe report: {}".format(str(e)))
+            self.opt['Logger'].warn("It was not possible to generate the floe report: {}".format(str(e)))
 
         return
 
@@ -373,13 +373,13 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
             opt['Logger'].info(' Beginning MakeClusterTrajOEMols Cube')
             system_title = utl.RequestOEFieldType(record, Fields.title)
             opt['Logger'].info('{} Attempting to make trajectory OEMols for Ligand and Protein by Cluster'
-                .format(system_title) )
-
+                               .format(system_title))
 
             if not record.has_field(Fields.Analysis.oeclus_rec):
                 raise ValueError('{} does not have TrajClus record'.format(system_title))
             else:
                 opt['Logger'].info('{} found TrajClus record'.format(system_title))
+
             trajClusRecord = utl.RequestOEFieldType(record, Fields.Analysis.oeclus_rec)
 
             # Get the cluster info dict off the oeclus_dict field
