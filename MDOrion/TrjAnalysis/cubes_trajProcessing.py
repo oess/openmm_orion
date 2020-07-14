@@ -542,7 +542,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
             opt['Logger'].info(' Beginning ConfTrajsToLigTraj')
             system_title = utl.RequestOEFieldType(record, Fields.title)
             opt['Logger'].info('{} Attempting to combine conf traj OEMols into ligand traj OEMol'
-                .format(system_title) )
+                               .format(system_title))
 
             # Go find the ligand and LigTraj fields in each of the conformer records
             if not record.has_field(Fields.Analysis.oetrajconf_rec):
@@ -584,7 +584,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
                     system_title, confid, protTraj.NumAtoms(), protTraj.NumConfs()) )
                 del mdtrajrecord
 
-            if len(ligTrajConfs)<1 or len(protTrajConfs)<1:
+            if len(ligTrajConfs) < 1 or len(protTrajConfs) < 1:
                 raise ValueError('{} empty list of lig or protein trajectory OEMols'.format(system_title))
 
             ligTraj = oechem.OEMol(ligTrajConfs[0])
@@ -612,8 +612,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
                     conf.GetCoords(xyz)
                     protTraj.NewConf(xyz)
             opt['Logger'].info('{} composite protTraj has {} atoms, {} confs'.format(
-                system_title, protTraj.NumAtoms(), protTraj.NumConfs()) )
-
+                system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
 
             record.set_value(OEField('ConfIdVec', Types.IntVec), confIdVec)
 
