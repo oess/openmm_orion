@@ -843,7 +843,7 @@ class ParametrizeMDComponents:
                 ffxml_nsr_template_list = nsr_template_generator(protein,
                                                                  topology,
                                                                  forcefield,
-                                                                 openff=ff_library.ligandff['OpenFF_1.0.0'])
+                                                                 openff=ff_library.ligandff['OpenFF_1.2.0'])
 
                 for ffxml_template in ffxml_nsr_template_list:
                     forcefield.loadFile(StringIO(ffxml_template))
