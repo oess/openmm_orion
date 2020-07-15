@@ -18,58 +18,9 @@ import glob
 
 from tempfile import TemporaryDirectory
 
-from oeommtools import utils as oeommutils
-
 import oetrajanalysis.Clustering_utils as clusutl
 
 from MDOrion.TrjAnalysis.water_utils import nmax_waters
-
-
-def GetCardinalOrderOfProteinResNums(mol):
-    # make map of protein res nums to the residue cardinal order index
-    resmap = {}
-    currRes = -10000
-    currIdx = -1
-    for atom in mol.GetAtoms(oechem.OEIsBackboneAtom()):
-        thisRes = oechem.OEAtomGetResidue(atom)
-        resnum = thisRes.GetResidueNumber()
-        if resnum != currRes:
-            currIdx += 1
-            currRes = resnum
-            resmap[currRes] = currIdx
-    return resmap, currIdx
-
-
-# def ExtractProtLigActsiteResNums(mol, fromLigCutoff=5.0):
-#     '''Extracts the protein and ligand from a single OEMol containing a protein-ligand
-#     complex plus other components. A list of protein residues within a cutoff distance
-#     from the ligand is also returned.
-#     Inputs:
-#         mol: The OEMol containing protein, ligand, and all other components
-#         fromLigCutoff: The cutoff distance in angstroms to include protein residues
-#             close to the ligand.
-#     Returns:
-#         protein: An OEMol containing only the protein
-#         ligand: An OEMol containing only the ligand
-#         actSiteResNums: A list of integers, one per residue number for protein residues
-#             with any atom within fromLigCutoff distance of the ligand.'''
-#     # perceive residue hierarchy of total system
-#     if not oechem.OEHasResidues(mol):
-#         oechem.OEPerceiveResidues(mol, oechem.OEPreserveResInfo_All)
-#     # split the total system into components
-#
-#     protein, ligand, water, excipients = oeommutils.split(mol, ligand_res_name="LIG")
-#
-#     # use residue-based distance cutoff (in angstroms) from ligand to define an active site residue
-#     nn = oechem.OENearestNbrs(protein, fromLigCutoff)
-#
-#     actSiteResNums = set()
-#
-#     for nbrs in nn.GetNbrs(ligand):
-#         residue = oechem.OEAtomGetResidue(nbrs.GetBgn())
-#         actSiteResNums.add(residue.GetResidueNumber())
-#
-#     return protein, ligand, actSiteResNums
 
 
 def extract_aligned_prot_lig_wat_traj(md_components, flask, trj_fn, opt, nmax=30, water_cutoff=15.0):
@@ -93,7 +44,7 @@ def extract_aligned_prot_lig_wat_traj(md_components, flask, trj_fn, opt, nmax=30
             The system flask
 
         trj_fn: String
-            The filename of the hdf5-format MD trajectory or Gromacs .xtc file format
+            The filename of the hdf5-format MD trajectory or Gromacs .trr file format
         water_cutoff: Float
             The cutoff distance between the PL binding site and the waters in angstroms
         nmax: Integer
@@ -105,7 +56,7 @@ def extract_aligned_prot_lig_wat_traj(md_components, flask, trj_fn, opt, nmax=30
     """
 
     # Extract protein, ligand, water and excipients from the flask
-    #protein, ligand, water, excipients = oeommutils.split(flask, ligand_res_name="LIG")
+    # protein, ligand, water, excipients = oeommutils.split(flask, ligand_res_name="LIG")
 
     set_up_flask, map_dic = md_components.create_flask
     protein = md_components.get_protein
@@ -124,9 +75,9 @@ def extract_aligned_prot_lig_wat_traj(md_components, flask, trj_fn, opt, nmax=30
     if traj_ext == '.h5':
         trj = md.load_hdf5(trj_fn)
 
-    elif traj_ext == '.xtc':
+    elif traj_ext == '.trr':
         pdb_fn = glob.glob(os.path.join(traj_dir, '*.pdb'))[0]
-        trj = md.load_xtc(trj_fn, top=pdb_fn)
+        trj = md.load_trr(trj_fn, top=pdb_fn)
         trj = trj[1:]
     else:
         raise ValueError("Trajectory file format {} not recognized in the trajectory {}".format(traj_ext, trj_fn))
@@ -135,7 +86,7 @@ def extract_aligned_prot_lig_wat_traj(md_components, flask, trj_fn, opt, nmax=30
     top_trj = trj.topology
 
     # Ligand indexes
-    #lig_idx = top_trj.select("resname LIG")
+    # lig_idx = top_trj.select("resname LIG")
     lig_idx = map_dic['ligand']
 
     # Protein indexes
@@ -166,9 +117,11 @@ def extract_aligned_prot_lig_wat_traj(md_components, flask, trj_fn, opt, nmax=30
     protlig = trj[0].atom_slice(np.concatenate((prot_idx, lig_idx)))
     protligAtoms = [atom for atom in protlig.topology.atoms]
 
-    with open(os.devnull, 'w') as devnull:
-        with contextlib.redirect_stderr(devnull):
-            trjImaged = trj.image_molecules(inplace=False, anchor_molecules=[protligAtoms], make_whole=True)
+    # with open(os.devnull, 'w') as devnull:
+    #     with contextlib.redirect_stderr(devnull):
+    #         trjImaged = trj.image_molecules(inplace=False, anchor_molecules=[protligAtoms], make_whole=True)
+
+    trjImaged = trj.image_molecules(inplace=False, anchor_molecules=[protligAtoms], make_whole=True)
 
     count = 0
     water_max_frames = []
@@ -524,9 +477,10 @@ def HighlightStyleMolecule(mol):
     oechem.OESetStyle( mol, hiliteConfStyle)
     return
 
-def SetProteinLigandVizStyle( protein, ligand, carbonRGB=(180,180,180)):
+
+def SetProteinLigandVizStyle(protein, ligand, carbonRGB=(180, 180, 180)):
     # set the carbon color (and phosphorus to magenta)
-    carbonColor = oechem.OEColor( carbonRGB[0], carbonRGB[1], carbonRGB[2] )
+    carbonColor = oechem.OEColor(carbonRGB[0], carbonRGB[1], carbonRGB[2])
     acolorer = oechem.OEMolStyleColorer(oechem.OEAtomColorScheme_Element)
     acolorer.AddColor(15, oechem.OEMagenta)
     acolorer.AddColor(6, carbonColor)
@@ -557,15 +511,16 @@ def SetProteinLigandVizStyle( protein, ligand, carbonRGB=(180,180,180)):
         oechem.OESetStyle(atom, asite_style)
     return
 
+
 def StyleTrajProteinLigandClusters( protein, ligand):
-    if protein.NumConfs()!=ligand.NumConfs():
+    if protein.NumConfs() != ligand.NumConfs():
         print('Cannot style; protein and ligand must have same number of conformers')
         return False
     confRGB = clusutl.ColorblindRGBMarkerColors( protein.NumConfs())
-    #print( confRGB)
+    # print( confRGB)
     SetProteinLigandVizStyle( protein, ligand, confRGB[0])
     for pconf, lconf, colorRGB in zip(protein.GetConfs(), ligand.GetConfs(), confRGB):
-        #print( pconf.GetTitle(), lconf.GetTitle(), colorRGB)
+        # print( pconf.GetTitle(), lconf.GetTitle(), colorRGB)
         SetProteinLigandVizStyle( pconf, lconf, colorRGB)
     return True
 

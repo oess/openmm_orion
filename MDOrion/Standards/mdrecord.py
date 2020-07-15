@@ -890,14 +890,12 @@ class MDDataRecord(object):
         trj_meta = trj_field.get_meta()
         md_engine = trj_meta.get_attribute(Meta.Annotation.Description)
 
-        # TODO I do not like this a lot
         if md_engine == MDEngines.OpenMM and not stg_type == MDStageTypes.FEC:
             traj_fn = glob.glob(os.path.join(traj_dir, '*.h5'))[0]
         elif md_engine == MDEngines.Gromacs:
-            traj_fn = glob.glob(os.path.join(traj_dir, '*.xtc'))[0]
-        else:  # TODO Yank trajectory - just take one of the .nc files for now
-            exp_dir = os.path.join(traj_dir, "experiments")
-            traj_fn = glob.glob(os.path.join(exp_dir, '*.nc'))[0]
+            traj_fn = glob.glob(os.path.join(traj_dir, '*.trr'))[0]
+        else:
+            raise ValueError("MD Engine Not Supported")
 
         exists = os.path.isfile(traj_fn)
 
