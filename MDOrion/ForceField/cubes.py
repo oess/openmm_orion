@@ -23,7 +23,7 @@ from floe.api import (ParallelMixin,
                       parameters,
                       ComputeCube)
 
-from MDOrion.ForceField.ff_library import ff_library
+from oemdtoolbox.ForceField.ff_library import ff_library
 
 from MDOrion.Standards import MDStageNames, MDStageTypes
 

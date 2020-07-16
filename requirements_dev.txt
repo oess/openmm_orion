@@ -15,6 +15,6 @@ OpenEye-orionplatform==2.4.6
 OpenEye-ensemble2img==0.1.1
 OpenEye-floereport==0.1.5
 OpenEye_oetrajanalysis==0.7.0b3
-openeye-oemdtoolbox==0.0.3
+openeye-oemdtoolbox==0.1.0
 Openeye-toolkits==2019.10.2
 

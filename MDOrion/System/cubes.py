@@ -45,7 +45,8 @@ from MDOrion.Standards import Fields
 
 from openeye import oechem
 
-from MDOrion.ForceField.utils import MDComponents
+
+from oemdtoolbox.ForceField.md_components import MDComponents
 
 
 class IDSettingCube(RecordPortsMixin, ComputeCube):

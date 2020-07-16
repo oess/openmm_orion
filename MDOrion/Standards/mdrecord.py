@@ -42,7 +42,7 @@ import glob
 from orionclient.helpers.collections import (try_hard_to_create_shard,
                                              try_hard_to_download_shard)
 
-from MDOrion.ForceField.utils import MDComponents
+from oemdtoolbox.ForceField.md_components import MDComponents
 
 
 def mdstages(f):
