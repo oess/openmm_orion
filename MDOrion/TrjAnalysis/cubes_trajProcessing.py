@@ -116,6 +116,17 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
             # opt['Logger'].info(md_components.get_info)
 
+            # Check Ligand Isomeric Smiles
+            lig_comp = md_components.get_ligand
+            lig_ref = record.get_value(Fields.ligand)
+
+            smi_lig_comp = oechem.OECreateSmiString(lig_comp)
+            smi_lig_ref = oechem.OECreateSmiString(lig_ref)
+
+            if smi_lig_ref != smi_lig_comp:
+                raise ValueError("Ligand Isomeric Smiles String check failure: {} vs {}".format(smi_lig_comp,
+                                                                                                smi_lig_ref))
+
             ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(md_components, flask, traj_fn, opt,
                                                                         water_cutoff=opt['water_cutoff'])
 
