@@ -1,4 +1,4 @@
-The Protein-Ligand MD floe performs MD simulations given
+The Solvate and Run Protein-Ligand MD floe performs MD simulations given
 a prepared protein and a set of posed and prepared ligands as input.
 The ligands need to have coordinates, all atoms, and correct chemistry. Each
 ligand can have multiple conformers but each conformer will be run separately
