@@ -14,7 +14,7 @@ General Notice
 
 New Floes
 --------------------------------------------------------------------------------
-* Solvate and Run Protein-Ligand MD floe. Runs MD on a Protein-Ligand system
+* Solvate and Run Protein-Ligand MD. Runs MD on a Protein-Ligand system
 * Analyze Protein-Ligand MD. Performs Energetic and Clustering Analysis on the output produced by the
   ``Solvate and Run Protein-Ligand MD`` floe
 * Extract Short Trajectory MD results for Download. Extract the results produced by the
