@@ -2,6 +2,38 @@
 Release Notes
 #############
 
+v2.0.0
+======================
+
+General Notice
+--------------------------------------------------------------------------------
+* Ligand centric cluster Analysis
+* New Parametrization Engine
+* OpenFF 1.2.0 (Parsley) support
+* Bug Fixing
+
+New Floes
+--------------------------------------------------------------------------------
+* Solvate and Run Protein-Ligand MD floe. Runs MD on a Protein-Ligand system
+* Analyze Protein-Ligand MD. Performs Energetic and Clustering Analysis on the output produced by the
+  ``Solvate and Run Protein-Ligand MD`` floe
+* Extract Short Trajectory MD results for Download. Extract the results produced by the
+  ``Short Trajectory MD with Analysis`` floe as file to download
+
+Floe Updates
+--------------------------------------------------------------------------------
+* A new Equilibration IV stage has been added to the Short Trajectory MD floe
+
+New Cubes
+--------------------------------------------------------------------------------
+* A new  ``MD Components`` cube has been added to support the new Parametrization Engine
+
+Cube Updates
+--------------------------------------------------------------------------------
+* The default number of minimization steps has been set to 2000 in the Minimization Cube
+
+======================
+
 v1.0.0
 ======================
 
