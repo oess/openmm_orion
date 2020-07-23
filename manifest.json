@@ -18,6 +18,7 @@
         "hdbscan==0.8.26",
         "orion_gromacs_gpu",
         "matplotlib==3.2.1",
+        "mdtraj==1.9.3",
         "networkx==2.3",
         "numpy==1.18.5",
         "oeommtools==0.1.14",
@@ -43,5 +44,5 @@
     "python_version": "3.7.7",
     "requirements": "requirements_dev.txt",
     "uuid": "8ad7e185-9b86-4112-a2e7-a367e5123e29",
-    "version": "2.0.0b43"
+    "version": "2.0.0b44"
 }
