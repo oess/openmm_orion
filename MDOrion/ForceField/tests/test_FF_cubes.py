@@ -49,7 +49,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_Gaff2(self):
         print('Testing cube:', self.cube.name)
         # File name
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -71,7 +71,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_Smirnoff99Frosst(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -91,7 +91,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_OpenFF1_0(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -111,7 +111,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_OpenFF1_1(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -131,7 +131,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_OpenFF1_2(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -151,7 +151,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_non_std_residue(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p1H1Q_l2A6_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -168,7 +168,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_force_field_amber_99sbildn_Gaff2(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -191,7 +191,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_force_field_amber_99sbildn_OFF_1_2(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -214,7 +214,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_force_field_amber_14_Gaff2(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -237,7 +237,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_force_field_amber_14_OFF_1_2(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -260,7 +260,7 @@ class ForceFieldPrepTester(unittest.TestCase):
     def test_protein_force_field_amber_fb15_Gaff2(self):
         print('Testing cube:', self.cube.name)
 
-        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+        ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
         for record in read_records(ifs):
             pass
@@ -283,7 +283,7 @@ class ForceFieldPrepTester(unittest.TestCase):
         def test_protein_force_field_amber_fb15_OFF_1_2(self):
             print('Testing cube:', self.cube.name)
 
-            ifs = oechem.oeifstream(os.path.join(FILE_DIR, "p4JOO_lHunt13_1a_solvated_complex.oedb"))
+            ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
             for record in read_records(ifs):
                 pass
