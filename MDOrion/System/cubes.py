@@ -494,11 +494,14 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['Protein']
     description = """
-    This cube is used to componentize the starting system.
-    The cube detects if a DU is present on the record and will try 
-    to extract the components saving them in ad-hoc container. If the 
-    DU is not found, the cube will try to create a DU and if it fails 
-    the primary molecule present on the record will be componentize. 
+    This cube is used to componentize the cube input system.
+    The cube detects if a Design Unit (DU) is present on the record 
+    and it will extract the DU components in an ad-hoc container 
+    (MDComponents). If the DU is not found on the input record, 
+    the cube will try to create a DU by using the primary molecule
+    present on the record; if it fails the primary molecule 
+    will be split in components by using a more canonical splitting 
+    function. 
     """
 
     uuid = "b85d652f-188a-4cc0-aefd-35c98e737f8d"

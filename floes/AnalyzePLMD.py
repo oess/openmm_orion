@@ -56,33 +56,25 @@ iMDInput = DatasetReaderCube("MDInputReader", title="MD Input Reader")
 iMDInput.promote_parameter("data_in", promoted_name="in",
                            title="MD Input Dataset", description="MD Input Dataset")
 
-ofs = DatasetWriterCube('ofs', title='MD Out')
-ofs.promote_parameter("data_out", promoted_name="out",
-                      title="MD Out", description="MD Dataset out")
-
-fail = DatasetWriterCube('fail', title='Failures')
-fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
-                       description="MD Dataset Failures out")
-
 # This cube is necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
-trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
-IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
-PBSACube = ParallelTrajPBSACube("TrajPBSACube")
+trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube", title="Trajectory To OEMols")
+IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")
+PBSACube = ParallelTrajPBSACube("TrajPBSACube", title="PBSA Energies")
 
 trajproc_group = ParallelCubeGroup(cubes=[trajCube, IntECube, PBSACube])
 job.add_group(trajproc_group)
 
-confGather = ConformerGatheringData("Gathering Conformer Records")
-catLigTraj = ParallelConfTrajsToLigTraj("ConfTrajsToLigTraj")
-catLigMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube')
-clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
-clusPop = ParallelClusterPopAnalysis('ClusterPopAnalysis')
-clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols')
-prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset')
-report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
+confGather = ConformerGatheringData("Gathering Conformer Records",  title="Gathering Conformer Records")
+catLigTraj = ParallelConfTrajsToLigTraj("ConfTrajsToLigTraj", title="Combine Pose Trajectories")
+catLigMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube', title="Concatenate MMPBSA Energies")
+clusCube = ParallelClusterOETrajCube("ClusterOETrajCube", title="Clustering")
+clusPop = ParallelClusterPopAnalysis('ClusterPopAnalysis',  title="Clustering Analysis")
+clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols', title="Per-Cluster Analysis")
+prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset', title="Analysis Report")
+report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport", title="Relevant Output Extraction")
 
 analysis_group = ParallelCubeGroup(cubes=[catLigTraj, catLigMMPBSA, clusCube, clusPop,
                                           clusOEMols, prepDataset, report_gen])
@@ -94,7 +86,15 @@ report = MDFloeReportCube("report", title="Floe Report")
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 
-check_rec = ParallelRecordSizeCheck("Record Check Success")
+check_rec = ParallelRecordSizeCheck("Record Check Success", title="Record Check Success")
+
+ofs = DatasetWriterCube('ofs', title='MD Out')
+ofs.promote_parameter("data_out", promoted_name="out",
+                      title="MD Out", description="MD Dataset out")
+
+fail = DatasetWriterCube('fail', title='Failures')
+fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
+                       description="MD Dataset Failures out")
 
 job.add_cubes(iMDInput, coll_open,
               trajCube, IntECube, PBSACube, confGather,
