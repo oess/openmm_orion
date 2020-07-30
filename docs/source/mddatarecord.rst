@@ -1,43 +1,43 @@
-.. |A|         replace:: Å
-
 #############
-MD DataRecord API
+MD DataRecord
 #############
 
-These are tutorials for how to use specific floes.
 
-MD DataRecord API overview
-==========================
+MD DataRecord a brief overview
+==============================
 
 Molecular Dynamics (MD) simulations are notoriously time consuming and
-computational resources demanding. In terms of data consuming many information
+very computational demanding. In terms of data, a lot of information
 need to be stored and retrieved such as atomic coordinates, atomic velocities,
-forces and energies to cite only few. Extracting and managing these data
-is crucial. The MD DataRecord API is an attempt to simplify the storing and
-accessing to it. In the OpenEye Datarecord API data is exchanged between
-OpenEye cubes in form of records where POD data, custom objects, json data etc.
-can be stored and retrieved by using the associated field names and types.
-The MD Datarecord API is built on the top of the OpenEye Datarecord API
-formatting the record content data produced during the MD runs and providing
-getters and setters functions to access to it.
+forces and energies just to cite only few and extracting and managing this data
+becomes crucial. The MD DataRecord API is an attempt to simplify the storing and
+retrieving of this information in the MD floe programming for Orion.
+In the OpenEye Datarecord data is exchanged between cubes in format of
+data records where POD data, custom objects, json data etc.  are stored
+and retrieved by using the associated field names and types. The MD Datarecord API
+is built on the top of the OpenEye Datarecord, standardizing the record content
+data produced during MD runs in a well-structured format and providing
+an API point to its access.
 
-MD Data Record view
--------------------
-The MD data produced along MD runs is structured as follow in a md record:
 
-    * the md record contains a sub-record named “md-stages” where md-stage information is saved;
+MD DataRecord structure
+-----------------------
+The MD data produced along MD runs is structured as follow in what is named the *md record*:
 
-    * each md-stage is a record itself with a name, type, log data, system topology and MD State info.
-      The latter is a custom object that stores data such, atomic positions, velocities and box information
-      related to the last md frame recorded along a MD run;
+    * the md record contains a sub-record named *md stages* where md information is saved. This sub-record is
+      a list of *md stage* records;
 
-    * the md record at the top level can contain a Parmed object used to carry on the system parametrization
-    * the md record at the top level can contain a MDComponents object used to carry info related to the different
-      system parts such as ligand, protein, cofactors etc.;
-    * finally, other info can be present at the top level such as the starting ligand and protein with their names,
-      a unique identifier such as the flask id and the flask name and also minor other information
+    * each *md stage* is a record itself with an associated name, type, log data, topology and MD State info.
+      The latter is a custom object that stores data useful to restart MD runs such as, atomic positions,
+      velocities and box information;
 
-The following diagram shows the structure of the md record.
+    * the md record at the top level contains a Parmed object used to carry the whole system parametrization data
+
+    * the md record at the top level can also contain other data such as the MDComponents object used to carry info
+      related to the different md system parts such as ligand, protein, solvent, cofactors etc. or can contains the
+      starting ligand and protein with their names, unique identifiers such as the flask id , cofactor ids etc.
+
+The following picture shows the structure of the *md record* and its main components
 
 .. figure_MDRecord:
 
@@ -48,8 +48,9 @@ The following diagram shows the structure of the md record.
 
    **Structure of the MD Record**
 
-In order to use the MD Datarecord API, the MDOrion package must be installed. The API has been designed
-to transparently work locally and in Orion.
+The *md record* is user accessible by using an API. In order to use it, the `MDOrion <https://github.com/oess/openmm_orion>`_
+package must be installed. The installation of the package also requires to have access to the OpenEye Magpie repository
+for some dependencies. The API has been designed to transparently work locally and in Orion.
 
 Code snippets
 -------------------
@@ -59,17 +60,21 @@ The following code snippets give an idea on how to use the API.
 .. warning::
 
     In the following examples **record** is an *OpenEye Datarecord* produced
-    running the MD floes
+    running MD floes such as *Solvate and Run MD* or *Solvate and Run Protein-Ligand MD*.
+    Starting from the MDOrion pkg v2.0.0, the datasets produced from the *Short Trajectory MD
+    with analysis* floe is "ligand centric" and the MDDatarecord API cannot be directly applied
+    to the produced records. However, the API still works on the conformer (poses) ligand sub-records
+    which are still *md records"
 
 .. code:: python
 
     from MDOrion.Standards.mdrecord import MDDataRecord
 
-    # To use the MD Datarecord API an OERecord is converted into a MD DataRecord
+    # To use the MD Datarecord API an MDDataRecord instance is built starting from an OERecord
     md_record = MDDataRecord(record)
 
     # At this point getters and setters can be used to
-    # extract info from the record
+    # extract info from the md record
 
     # MD Stage name available
     stage_names = md_record.get_stages_names
@@ -84,7 +89,7 @@ The following code snippets give an idea on how to use the API.
     md_set_up_state = md_record.get_stage_state(stg_name=stage_names[0])
 
     # Extract the Parmed Structure from the md record and synchronize the
-    # positions, velocities and box data to the stage state
+    # positions, velocities and box data to the selected stage state
     pmd_structure = md_record.get_parmed(sync_stage_name=stage_names[2])
 
     # Extract the OEMol system flask from the record and its title
@@ -102,3 +107,12 @@ The following code snippets give an idea on how to use the API.
                             topology=flask,
                             mdstate=md_set_up_state,
                             data_fn="test.tar.gz")
+
+
+MDDatatecord API Documentation
+==============================
+
+Follow the API documentation
+
+.. automodule:: MDOrion.Standards.mdrecord
+   :members:

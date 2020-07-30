@@ -10,7 +10,6 @@ The Molecular Dynamics Orion package provides capability to run certain kinds of
     intro.rst
     tutorials.rst
     mddatarecord.rst
-    mddatarecordapi.rst
     floes/floes.rst
     cubes/cubes.rst
     releasenotes.rst

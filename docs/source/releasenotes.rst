@@ -30,7 +30,7 @@ New Cubes
 
 Cube Updates
 --------------------------------------------------------------------------------
-* The default number of minimization steps has been set to 2000 in the Minimization Cube
+* None
 
 ======================
 
