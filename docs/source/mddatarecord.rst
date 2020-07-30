@@ -7,12 +7,12 @@ MD DataRecord a brief overview
 ==============================
 
 Molecular Dynamics (MD) simulations are notoriously time consuming and
-very computational demanding. In terms of data, a lot of information
+computational demanding. In terms of data, a lot of information
 need to be stored and retrieved such as atomic coordinates, atomic velocities,
-forces and energies just to cite only few and extracting and managing this data
-becomes crucial. The MD DataRecord API is an attempt to simplify the storing and
-retrieving of this information in the MD floe programming for Orion.
-In the OpenEye Datarecord data is exchanged between cubes in format of
+forces and energies just to cite only few; extracting and managing this data then
+becomes crucial. The MD DataRecord API simplifies the access to the md data in
+the MD floe programming for Orion.
+In the OpenEye Datarecord model, data is exchanged between cubes in format of
 data records where POD data, custom objects, json data etc.  are stored
 and retrieved by using the associated field names and types. The MD Datarecord API
 is built on the top of the OpenEye Datarecord, standardizing the record content
@@ -22,7 +22,7 @@ an API point to its access.
 
 MD DataRecord structure
 -----------------------
-The MD data produced along MD runs is structured as follow in what is named the *md record*:
+The MD data produced along MD runs is structured in what is named the *md record*:
 
     * the md record contains a sub-record named *md stages* where md information is saved. This sub-record is
       a list of *md stage* records;
@@ -37,7 +37,7 @@ The MD data produced along MD runs is structured as follow in what is named the 
       related to the different md system parts such as ligand, protein, solvent, cofactors etc. or can contains the
       starting ligand and protein with their names, unique identifiers such as the flask id , cofactor ids etc.
 
-The following picture shows the structure of the *md record* and its main components
+The following picture shows the *md record* structure and its main components
 
 .. figure_MDRecord:
 
@@ -48,7 +48,7 @@ The following picture shows the structure of the *md record* and its main compon
 
    **Structure of the MD Record**
 
-The *md record* is user accessible by using an API. In order to use it, the `MDOrion <https://github.com/oess/openmm_orion>`_
+The *md record* is user accessible by using the *MDDataRecord*  API. In order to use it, the `MDOrion <https://github.com/oess/openmm_orion>`_
 package must be installed. The installation of the package also requires to have access to the OpenEye Magpie repository
 for some dependencies. The API has been designed to transparently work locally and in Orion.
 
@@ -64,7 +64,7 @@ The following code snippets give an idea on how to use the API.
     Starting from the MDOrion pkg v2.0.0, the datasets produced from the *Short Trajectory MD
     with analysis* floe is "ligand centric" and the MDDatarecord API cannot be directly applied
     to the produced records. However, the API still works on the conformer (poses) ligand sub-records
-    which are still *md records"
+    which are still *md records*
 
 .. code:: python
 
@@ -74,9 +74,9 @@ The following code snippets give an idea on how to use the API.
     md_record = MDDataRecord(record)
 
     # At this point getters and setters can be used to
-    # extract info from the md record
+    # extract/set info from/to the md record
 
-    # MD Stage name available
+    # MD Stage names available
     stage_names = md_record.get_stages_names
 
     # Get a MD Record Stage
