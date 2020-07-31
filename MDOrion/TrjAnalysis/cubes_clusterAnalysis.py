@@ -270,12 +270,11 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
             ligand = utl.RequestOEFieldType(record, Fields.ligand)
             lig_name = utl.RequestOEFieldType(record, Fields.ligand_name)
 
-            # Get the confId vector which addresses each frame of the trajectory to its
+            # Get the poseId vector which addresses each frame of the trajectory to its
             # parent starting conformer.
-            confIdVecField = OEField( 'ConfIdVec', Types.IntVec)
-            if not record.has_field(confIdVecField):
-                raise ValueError('{} could not find the confId vector'.format(system_title))
-            confIdVec = utl.RequestOEFieldType(record, confIdVecField)
+            if not record.has_field(Fields.Analysis.poseIdVec):
+                raise ValueError('{} could not find the poseId vector'.format(system_title))
+            poseIdVec = utl.RequestOEFieldType(record, Fields.Analysis.poseIdVec)
 
             # Get the ligand trajectory OEMol with one conformer per trajectory frame
             if not record.has_field(Fields.Analysis.oetraj_rec):
@@ -288,10 +287,10 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
 
             # Cluster ligand trajs into a clustering results dictionary by RMSD and rotBond features
             opt['Logger'].info('{} starting clustering {} traj frames by RMSD and rotBond features'.format(
-                system_title, len(confIdVec)) )
+                system_title, len(poseIdVec)) )
             torScale = 0.5
             epsScal = 0.05
-            clusResults = clusutl.ClusterLigTrajDBSCAN(ligand, confIdVec, ligTraj, torScale, epsScal)
+            clusResults = clusutl.ClusterLigTrajDBSCAN(ligand, poseIdVec, ligTraj, torScale, epsScal)
 
             opt['Logger'].info('{} clustering completed finding {} clusters with {} outliers'.format(
                 system_title, clusResults['nClusters'], clusResults['nOutliers']) )
@@ -586,12 +585,11 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} got ligTraj with {} atoms, {} confs'.format(
                 system_title, ligTraj.NumAtoms(), ligTraj.NumConfs()))
 
-            # Get the confId vector which addresses each frame of the trajectory to its
+            # Get the poseId vector which addresses each frame of the trajectory to its
             # parent starting conformer.
-            confIdVecField = OEField( 'ConfIdVec', Types.IntVec)
-            if not record.has_field(confIdVecField):
-                raise ValueError('{} could not find the confId vector'.format(system_title))
-            confIdVec = utl.RequestOEFieldType(record, confIdVecField)
+            if not record.has_field(Fields.Analysis.poseIdVec):
+                raise ValueError('{} could not find the poseId vector'.format(system_title))
+            poseIdVec = utl.RequestOEFieldType(record, Fields.Analysis.poseIdVec)
 
             # Get the clustering results dict from the traj clustering record
             if not record.has_field(Fields.Analysis.oeclus_rec):
@@ -611,7 +609,7 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
             #    opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])) )
 
             # Generate the fractional cluster populations by conformer, and conformer populations by cluster
-            popResults = clusutl.AnalyzeClustersByConfs(ligand, confIdVec, clusResults)
+            popResults = clusutl.AnalyzeClustersByConfs(ligand, poseIdVec, clusResults)
 
             # Generate the cluster MMPBSA mean and standard error
             MMPBSAbyClus = clusutl.MeanSerrByClusterEnsemble(popResults, PBSAdata['OEZap_MMPBSA6_Bind'])
@@ -689,12 +687,11 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
             ligand = utl.RequestOEFieldType(record, Fields.ligand)
             lig_name = utl.RequestOEFieldType(record, Fields.ligand_name)
 
-            # Get the confId vector which addresses each frame of the trajectory to its
+            # Get the poseId vector which addresses each frame of the trajectory to its
             # parent starting conformer.
-            confIdVecField = OEField('ConfIdVec', Types.IntVec)
-            if not record.has_field(confIdVecField):
-                raise ValueError('{} could not find the confId vector'.format(system_title))
-            confIdVec = utl.RequestOEFieldType(record, confIdVecField)
+            if not record.has_field(Fields.Analysis.poseIdVec):
+                raise ValueError('{} could not find the poseId vector'.format(system_title))
+            poseIdVec = utl.RequestOEFieldType(record, Fields.Analysis.poseIdVec)
 
             # Get the clustering results dict from the traj clustering record
             if not record.has_field(Fields.Analysis.oeclus_rec):
@@ -711,7 +708,7 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
 
             # Generate simple plots for floe report
             opt['Logger'].info('{} plotting cluster strip plot'.format(system_title) )
-            trajClus_svg = clusutl.ClusterMembersshipPlot(clusResults, confIdVec)
+            trajClus_svg = clusutl.ClusterMembersshipPlot(clusResults, poseIdVec)
             #trajClus_svg = clusutl.ClusterLigTrajClusPlot(clusResults)
             ClusSVG_field = OEField( 'TrajClusSVG', Types.String, meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
             oeclusRecord.set_value( ClusSVG_field, trajClus_svg)

@@ -562,7 +562,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
                 opt['Logger'].info('{} found the conformer record'.format(system_title))
 
             # set up ligand and LigTraj lists then loop over conformer records
-            confIdVec = []
+            poseIdVec = []
             ligTrajConfs = []
             protTrajConfs = []
             watTrajConfs = []
@@ -576,7 +576,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
 
                 # Extract the ligand traj OEMol from the OETraj record
                 ligTraj = utl.RequestOEField( oetrajRecord, 'LigTraj', Types.Chem.Mol)
-                confIdVec += [confid]*ligTraj.NumConfs()
+                poseIdVec += [confid]*ligTraj.NumConfs()
                 ligTrajConfs.append(ligTraj)
                 opt['Logger'].info('{} confID {}: adding ligTraj with {} atoms, {} confs'.format(
                     system_title, confid, ligTraj.NumAtoms(), ligTraj.NumConfs()) )
@@ -625,7 +625,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} composite protTraj has {} atoms, {} confs'.format(
                 system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
 
-            record.set_value(OEField('ConfIdVec', Types.IntVec), confIdVec)
+            record.set_value(Fields.Analysis.poseIdVec, poseIdVec)
 
             # Create new record with OETraj results
             oetrajRecord = OERecord()
