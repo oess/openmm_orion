@@ -51,6 +51,8 @@ The following picture shows the *md record* structure and its main components
 The *md record* is user accessible by using the *MDDataRecord*  API. In order to use it, the `MDOrion <https://github.com/oess/openmm_orion>`_
 package must be installed. The installation of the package also requires to have access to the OpenEye Magpie repository
 for some dependencies. The API has been designed to transparently work locally and in Orion.
+To use the API the user needs to create a *MDDatarecord* object starting from an *OERecord* object, after that
+getter and setter functions can be used to access the md data (see full `MDDatatecord API Documentation`_).
 
 Code snippets
 -------------------
