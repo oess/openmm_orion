@@ -123,7 +123,7 @@ prod.set_parameters(suffix='prod')
 minComplex = ParallelMDMinimizeCube('minComplex', title='Minimization')
 minComplex.modify_parameter(minComplex.restraints, promoted=False, default="noh (ligand or protein)")
 minComplex.modify_parameter(minComplex.restraintWt, promoted=False, default=5.0)
-# minComplex.set_parameters(steps=0)
+minComplex.modify_parameter(minComplex.steps, promoted=False, default=0)
 minComplex.set_parameters(center=True)
 minComplex.set_parameters(save_md_stage=True)
 minComplex.set_parameters(hmr=False)
@@ -150,7 +150,7 @@ warmup.promote_parameter("md_engine", promoted_name="md_engine")
 # NPT Equilibration stage 1
 equil1 = ParallelMDNptCube('equil1', title='Equilibration I')
 equil1.set_parameters(time=0.01)
-equil1.promote_parameter("hmr", promoted_name="HMR")
+equil1.promote_parameter("hmr", promoted_name="HMR", default=True)
 equil1.modify_parameter(equil1.restraints, promoted=False, default="noh (ligand or protein)")
 equil1.modify_parameter(equil1.restraintWt, promoted=False, default=1.0)
 equil1.set_parameters(trajectory_interval=0.0)
@@ -162,7 +162,7 @@ equil1.promote_parameter("md_engine", promoted_name="md_engine")
 # NPT Equilibration stage 2
 equil2 = ParallelMDNptCube('equil2', title='Equilibration II')
 equil2.set_parameters(time=0.02)
-equil2.promote_parameter("hmr", promoted_name="HMR")
+equil2.promote_parameter("hmr", promoted_name="HMR", default=True)
 equil2.modify_parameter(equil2.restraints, promoted=False, default="noh (ligand or protein)")
 equil2.modify_parameter(equil2.restraintWt, promoted=False, default=0.5)
 equil2.set_parameters(trajectory_interval=0.0)
@@ -184,7 +184,7 @@ equil3.promote_parameter("md_engine", promoted_name="md_engine")
 # NPT Equilibration stage 4
 equil4 = ParallelMDNptCube('equil4', title='Equilibration IV')
 equil4.modify_parameter(equil4.time, promoted=False, default=0.1)
-equil4.promote_parameter("hmr", promoted_name="HMR")
+equil4.promote_parameter("hmr", promoted_name="HMR", default=True)
 equil4.modify_parameter(equil4.restraints, promoted=False, default="ca_protein or (noh ligand)")
 equil4.modify_parameter(equil4.restraintWt, promoted=False, default=0.1)
 equil4.set_parameters(trajectory_interval=0.0)
@@ -195,29 +195,21 @@ equil4.promote_parameter("md_engine", promoted_name="md_engine")
 md_group = ParallelCubeGroup(cubes=[minComplex, warmup, equil1, equil2, equil3, equil4, prod])
 job.add_group(md_group)
 
-ofs = DatasetWriterCube('ofs', title='MD Out')
-ofs.promote_parameter("data_out", promoted_name="out",
-                      title="MD Out", description="MD Dataset out")
-
-fail = DatasetWriterCube('fail', title='Failures')
-fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
-                       description="MD Dataset Failures out")
-
-trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube")
-IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube")
-PBSACube = ParallelTrajPBSACube("TrajPBSACube")
+trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube", title="Trajectory To OEMols")
+IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")
+PBSACube = ParallelTrajPBSACube("TrajPBSACube", title="PBSA Energies")
 
 trajproc_group = ParallelCubeGroup(cubes=[trajCube, IntECube, PBSACube])
 job.add_group(trajproc_group)
 
-confGather = ConformerGatheringData("Gathering Conformer Records")
-catLigTraj = ParallelConfTrajsToLigTraj("ConfTrajsToLigTraj")
-catLigMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube')
-clusCube = ParallelClusterOETrajCube("ClusterOETrajCube")
-clusPop = ParallelClusterPopAnalysis('ClusterPopAnalysis')
-clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols')
-prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset')
-report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
+confGather = ConformerGatheringData("Gathering Conformer Records", title="Gathering Conformer Records")
+catLigTraj = ParallelConfTrajsToLigTraj("ConfTrajsToLigTraj", title="Combine Pose Trajectories")
+catLigMMPBSA = ParallelConcatenateTrajMMPBSACube('ConcatenateTrajMMPBSACube', title="Concatenate MMPBSA Energies")
+clusCube = ParallelClusterOETrajCube("ClusterOETrajCube", title="Clustering")
+clusPop = ParallelClusterPopAnalysis('ClusterPopAnalysis', title="Clustering Analysis")
+clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols', title="Per-Cluster Analysis")
+prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset', title="Analysis Report")
+report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport", title="Relevant Output Extraction")
 
 analysis_group = ParallelCubeGroup(cubes=[catLigTraj, catLigMMPBSA, clusCube, clusPop,
                                           clusOEMols, prepDataset, report_gen])
@@ -229,7 +221,15 @@ report = MDFloeReportCube("report", title="Floe Report")
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 
-check_rec = ParallelRecordSizeCheck("Record Check Success")
+check_rec = ParallelRecordSizeCheck("Record Check Success", title="Record Check Success")
+
+ofs = DatasetWriterCube('ofs', title='MD Out')
+ofs.promote_parameter("data_out", promoted_name="out",
+                      title="MD Out", description="MD Dataset out")
+
+fail = DatasetWriterCube('fail', title='Failures')
+fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
+                       description="MD Dataset Failures out")
 
 job.add_cubes(iligs, ligset, iprot, mdcomp, chargelig, complx,
               solvate, coll_open, ff,

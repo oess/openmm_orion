@@ -1038,8 +1038,12 @@ class ExtractMDDataCube(RecordPortsMixin, ComputeCube):
     classification = [["Analysis"]]
     tags = ['Report']
     description = """
-    This Cube extract the relevant MD data from the dara record 
-    and save the results as file in S3.  
+    The cube extracts the relevant MD data generated from the Short
+    Trajectory MD with Analysis floe saving the results as file in Amazon S3 
+    ready to be downloaded. The extracted MD data includes the protein, 
+    ligand and binding site water oemol trajectories, the recorded average 
+    and median cluster poses for the protein and ligand and the generated 
+    floe report.
     """
 
     uuid = "35a8a2b8-b765-4a6f-8d8e-6e2198feea22"
