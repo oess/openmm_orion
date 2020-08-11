@@ -15,12 +15,15 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '2.0.0b49'
+__version__ = '2.0.0b50'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
 from .ForceField.cubes import ForceFieldCube
 from .ForceField.cubes import ParallelForceFieldCube
+
+from .ForceField.cubes import EnergyCube
+from .ForceField.cubes import ParallelEnergyCube
 
 from .LigPrep.cubes import LigandChargeCube
 from .LigPrep.cubes import ParallelLigandChargeCube

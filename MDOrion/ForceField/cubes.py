@@ -39,6 +39,9 @@ from simtk import unit
 
 import os
 
+from oemdtoolbox.ForceField.md_components import ParametrizeMDComponents
+from simtk import openmm
+from datarecord import OEField, Types
 
 class ForceFieldCube(RecordPortsMixin, ComputeCube):
     title = "Force Field Application"
@@ -217,8 +220,135 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
         return
 
 
+class EnergyCube(RecordPortsMixin, ComputeCube):
+    title = "OpenMM Energy Decomposition"
+    classification = [["OpenMM Energy"]]
+    tags = ['OpenMMEnergy']
+    description = """
+    Energy Testing Cube
+    """
+
+    uuid = "b2e567f7-7e5b-42b1-a54e-e64936c9ca31"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 14000},
+        "spot_policy": {"default": "Allowed"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    protein_forcefield = parameters.StringParameter(
+        'protein_forcefield',
+        default=sorted(ff_library.proteinff)[0],
+        choices=sorted(ff_library.proteinff),
+        help_text='Force field parameters to be applied to the protein')
+
+    ligand_forcefield = parameters.StringParameter(
+        'ligand_forcefield',
+        default=sorted(ff_library.ligandff)[0],
+        choices=sorted(ff_library.ligandff),
+        help_text='Force field to be applied to the ligand')
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+
+    def process(self, record, port):
+        try:
+            opt = self.opt
+            opt['CubeTitle'] = self.title
+
+            if not record.has_value(Fields.md_components):
+                raise ValueError("MD Components Field is missing")
+
+            md_components = record.get_value(Fields.md_components)
+
+            opt['Logger'].info(md_components.get_info)
+
+            params = ParametrizeMDComponents(md_components,
+                                             protein_ff=opt['protein_forcefield'],
+                                             ligand_ff=opt['ligand_forcefield'],
+                                             other_ff=opt['ligand_forcefield'])
+
+            pmd_protein = params.parametrize_protein
+
+            protein_omm_sys = pmd_protein.createSystem(nonbondedMethod=app.NoCutoff,
+                                                       constraints=None,
+                                                       removeCMMotion=False,
+                                                       rigidWater=False)
+
+            for force in protein_omm_sys.getForces():
+                if isinstance(force, openmm.HarmonicBondForce):
+                    force.setForceGroup(0)
+                if isinstance(force, openmm.HarmonicAngleForce):
+                    force.setForceGroup(1)
+                if isinstance(force, openmm.PeriodicTorsionForce):
+                    force.setForceGroup(2)
+                if isinstance(force, openmm.NonbondedForce):
+                    force.setForceGroup(3)
+
+            integrator = openmm.LangevinIntegrator(300 * unit.kelvin, 1.0 / unit.picosecond, 0.002 * unit.picoseconds)
+            platform = openmm.Platform.getPlatformByName('Reference')
+            simulation = openmm.app.Simulation(pmd_protein.topology, protein_omm_sys, integrator, platform)
+            simulation.context.setPositions(pmd_protein.positions)
+
+            eng_bonds = simulation.context.getState(getEnergy=True, groups=1 << 0).getPotentialEnergy().value_in_unit(
+                unit.kilocalories_per_mole)
+            eng_angles = simulation.context.getState(getEnergy=True, groups=1 << 1).getPotentialEnergy().value_in_unit(
+                unit.kilocalories_per_mole)
+            eng_torsions = simulation.context.getState(getEnergy=True,
+                                                       groups=1 << 2).getPotentialEnergy().value_in_unit(
+                unit.kilocalories_per_mole)
+            eng_nonbonded = simulation.context.getState(getEnergy=True,
+                                                        groups=1 << 3).getPotentialEnergy().value_in_unit(
+                unit.kilocalories_per_mole)
+
+            eng_tot_sum = eng_bonds + eng_angles + eng_torsions + eng_nonbonded
+
+            state = simulation.context.getState(getEnergy=True)
+            eng_tot = state.getPotentialEnergy().value_in_unit(unit.kilocalories_per_mole)
+
+            if abs(eng_tot_sum - eng_tot) > 0.001:
+                raise ValueError("Energy Error delta: {} vs {}".format(eng_tot_sum, eng_tot))
+
+            print("EBonds: {}".format(eng_bonds))
+            print("EAngles: {}".format(eng_angles))
+            print("ETorsions: {}".format(eng_torsions))
+            print("ENonBonded: {}".format(eng_nonbonded))
+
+            print("TOT: {}".format(eng_tot))
+
+            energies = dict()
+            energies['bonds'] = eng_bonds
+            energies['angles'] = eng_angles
+            energies['torsions'] = eng_torsions
+            energies['nonbonded'] = eng_nonbonded
+            energies['total'] = eng_tot
+
+            eng_field = OEField("energies", Types.JSONObject)
+
+            record.set_value(eng_field, energies)
+
+            self.success.emit(record)
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
+
+        return
+
+
 class ParallelForceFieldCube(ParallelMixin, ForceFieldCube):
     title = "Parallel " + ForceFieldCube.title
     description = "(Parallel) " + ForceFieldCube.description
     uuid = "deb6b453-0ddf-4f1c-a709-cda1f3c47af1"
 
+
+class ParallelEnergyCube(ParallelMixin, EnergyCube):
+    title = "Parallel " + EnergyCube.title
+    description = "(Parallel) " + EnergyCube.description
+    uuid = "ce5057c5-c11d-4e3c-ad4c-a4eece8e5c26"

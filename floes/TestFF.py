@@ -17,52 +17,48 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-from os import path
-
 from floe.api import WorkFloe
 
-from MDOrion.MDEngines.Gromacs.cubes import (InputGromacs,
-                                             GromacsProxyCube,
-                                             GromacsRunCube,
-                                             WriterRecordCube)
+from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from orionplatform.cubes import DatasetWriterCube
+from MDOrion.ForceField.cubes import ParallelEnergyCube
 
-job = WorkFloe('PlainGromacs', title='Plain Gromacs')
+from MDOrion.System.cubes import MDComponentCube
 
-job.description = open(path.join(path.dirname(__file__), 'PlainGromacs_desc.rst'), 'r').read()
+
+job = WorkFloe('Test Amber FF',
+               title='Test Amber FF')
 
 job.classification = [['General MD']]
-job.uuid = "f092b164-7400-403d-8861-b25ff741cab5"
+job.uuid = "054ef9ab-f93a-4a8f-8679-cbf90bfc9def"
 job.tags = [tag for lists in job.classification for tag in lists]
 
-ifs = InputGromacs("Input File", title="Input file")
-ifs.promote_parameter('tpr', promoted_name='tpr', default=None)
-ifs.promote_parameter("prefix_name", promoted_name="Flask prefix", default="Flask")
-ifs.promote_parameter("data_in", promoted_name='in')
+ifs = DatasetReaderCube("SystemReader", title="System Reader")
+ifs.promote_parameter("data_in", promoted_name="protein", title='Protein Input File',
+                      description="Protein input file")
 
-proxy = GromacsProxyCube("GromacsProxy", title="Gromacs Proxy Cube")
-gmx = GromacsRunCube("GromacsRun", title="Gromacs Run")
-gmx.promote_parameter("verbose", promoted_name="verbose", default=False)
+md_comp = MDComponentCube("MD Components")
+md_comp.set_parameters(multiple_flasks=True)
 
-ofs = WriterRecordCube("OutputRecords", title="Output Records")
+eng = ParallelEnergyCube("EnergyDecomposition")
+eng.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
+
+ofs = DatasetWriterCube('ofs', title='MD Out')
+ofs.promote_parameter("data_out", promoted_name="out",
+                      title="MD Out", description="MD Dataset out")
 
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
+job.add_cubes(ifs, md_comp, eng, ofs, fail)
 
-job.add_cubes(ifs, proxy, gmx, ofs, fail)
+ifs.success.connect(md_comp.intake)
+md_comp.success.connect(eng.intake)
+eng.success.connect(ofs.intake)
 
-ifs.success.connect(proxy.intake)
-proxy.success.connect(gmx.intake)
-gmx.success.connect(proxy.intake)
-gmx.success.connect(ofs.intake)
-
-# Fail Connections
-proxy.failure.connect(fail.intake)
-gmx.failure.connect(fail.intake)
-
+md_comp.failure.connect(fail.intake)
+eng.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()
