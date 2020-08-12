@@ -468,7 +468,9 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
 
                 tot_size = 0
                 for field in record.get_fields():
-                    tot_size += record.get_value_size(field)
+
+                    tot_size += len(record.get_bytes(field))
+
                 if tot_size > 100 * 1024 * 1024:
                     raise ValueError("The record size exceeds the 100 MB: {}".format(get_human_readable(tot_size)))
                 else:
