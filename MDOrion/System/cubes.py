@@ -542,10 +542,7 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
 
             if record.has_value(Fields.design_unit_from_spruce):
 
-                du = oechem.OEDesignUnit()
-
-                if not oechem.OEReadDesignUnitFromBytes(du, record.get_value(Fields.design_unit_from_spruce)):
-                    raise ValueError("It was not possible Reading the Design Unit from the record")
+                du = record.get_value(Fields.design_unit_from_spruce)
 
                 self.opt['Logger'].info("[{}] Design Unit Detected".format(self.title))
 
