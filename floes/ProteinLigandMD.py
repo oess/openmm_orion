@@ -46,7 +46,7 @@ job = WorkFloe('Solvate and Run Protein-Ligand MD', title='Solvate and Run Prote
 
 job.description = open(path.join(path.dirname(__file__), 'ProteinLigandMD_desc.rst'), 'r').read()
 
-job.classification = [['Molecular Dynamics']]
+job.classification = [['Specialized MD']]
 job.uuid = "ae561d76-a2b6-4d89-b621-b979f1930b40"
 job.tags = [tag for lists in job.classification for tag in lists]
 
