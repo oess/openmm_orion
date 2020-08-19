@@ -28,6 +28,8 @@ from floe.api import ComputeCube
 from orionplatform.mixins import RecordPortsMixin
 from orionplatform.ports import RecordInputPort
 
+from openeye import oechem
+
 
 class ComplexPrepCube(RecordPortsMixin, ComputeCube):
     title = "Complex Preparation"
@@ -133,6 +135,14 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
 
                 mdcomp = self.md_components.copy
                 mdcomp.set_title(complex_title)
+
+                # Check Ligand
+                lig_check = mdcomp.get_ligand
+                smi_lig_check = oechem.OECreateSmiString(lig_check)
+                smi_ligand = oechem.OECreateSmiString(ligand)
+
+                if smi_ligand != smi_lig_check:
+                    raise ValueError("Ligand IsoSmiles String check failure: {} vs {}".format(smi_lig_check, smi_ligand))
 
                 # the ligand is the primary molecule
                 new_record = OERecord(record)

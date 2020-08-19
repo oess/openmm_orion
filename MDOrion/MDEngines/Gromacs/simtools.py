@@ -287,7 +287,7 @@ class GromacsSimulations(MDSimulations):
         opt['grm_def_fn'] = os.path.join(opt['out_directory'], opt['outfname']+"_run")
         opt['grm_log_fn'] = opt['grm_def_fn'] + '.log'
         opt['grm_trj_fn'] = os.path.join(opt['out_directory'], opt['outfname'] + ".trr")
-        opt['grm_trj_comp_fn'] = os.path.join(opt['out_directory'], opt['outfname'] + ".xtc")
+        # opt['grm_trj_comp_fn'] = os.path.join(opt['out_directory'], opt['outfname'] + ".xtc")
 
         opt['mdp_template'] = mdp_template
 
@@ -746,16 +746,16 @@ class GromacsSimulations(MDSimulations):
             if self.opt['trajectory_interval'] or self.opt['trajectory_frames']:
 
                 # Generate whole system trajectory
-                p = subprocess.Popen(['gmx',
-                                      'trjconv',
-                                      '-f', self.opt['grm_trj_fn'],
-                                      '-s', self.opt['grm_tpr_fn'],
-                                      '-o', self.opt['grm_trj_comp_fn'],
-                                      '-pbc', b'whole'],
-                                     stdin=subprocess.PIPE)
-
-                # Select the entire System
-                p.communicate(b'0')
+                # p = subprocess.Popen(['gmx',
+                #                       'trjconv',
+                #                       '-f', self.opt['grm_trj_fn'],
+                #                       '-s', self.opt['grm_tpr_fn'],
+                #                       '-o', self.opt['grm_trj_comp_fn'],
+                #                       '-pbc', b'whole'],
+                #                      stdin=subprocess.PIPE)
+                #
+                # # Select the entire System
+                # p.communicate(b'0')
 
                 # Tar the files dir with its content:
                 tar_fn = self.opt['trj_fn']
@@ -765,7 +765,8 @@ class GromacsSimulations(MDSimulations):
                     archive.add(self.opt['grm_gro_fn'], arcname=os.path.basename(self.opt['grm_gro_fn']))
                     archive.add(self.opt['grm_pdb_fn'], arcname=os.path.basename(self.opt['grm_pdb_fn']))
                     archive.add(self.opt['grm_top_fn'], arcname=os.path.basename(self.opt['grm_top_fn']))
-                    archive.add(self.opt['grm_trj_comp_fn'], arcname=os.path.basename(self.opt['grm_trj_comp_fn']))
+                    archive.add(self.opt['grm_trj_fn'], arcname=os.path.basename(self.opt['grm_trj_fn']))
+                    # archive.add(self.opt['grm_trj_comp_fn'], arcname=os.path.basename(self.opt['grm_trj_comp_fn']))
                     archive.add(self.opt['grm_log_fn'], arcname=os.path.basename(self.opt['grm_log_fn']))
 
                 # with tarfile.open(tar_fn, mode='w:gz') as archive:

@@ -23,7 +23,7 @@ from floe.api import (ParallelMixin,
                       parameters,
                       ComputeCube)
 
-from MDOrion.ForceField.ff_library import ff_library
+from oemdtoolbox.ForceField.ff_library import ff_library
 
 from MDOrion.Standards import MDStageNames, MDStageTypes
 
@@ -31,6 +31,7 @@ from MDOrion.Standards.mdrecord import MDDataRecord, Fields
 
 from MDOrion.MDEngines.utils import MDState
 
+from openeye import oechem
 
 from simtk.openmm import app
 
@@ -104,7 +105,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                 raise ValueError("MD Components Field is missing")
 
             md_components = record.get_value(Fields.md_components)
-            flask = md_components.create_flask
+            flask, map_comp = md_components.create_flask
 
             opt['Logger'].info(md_components.get_info)
 
@@ -155,6 +156,24 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
                         format(parm_at.atomic_number, oe_at.GetAtomicNum()))
 
                 oe_at.SetPartialCharge(parm_at.charge)
+
+            # Set the component charges
+            for comp_name, comp in md_components.get_components.items():
+                for at_comp in comp.GetAtoms():
+
+                    pred = oechem.OEHasAtomIdx(map_comp[comp_name][at_comp.GetIdx()])
+                    at_flask = flask.GetAtom(pred)
+
+                    if at_flask.GetAtomicNum() != at_comp.GetAtomicNum():
+                        "Atomic number mismatch between the component {}  atom {} and the flask atom {}".\
+                            format(comp_name, at_comp, at_flask)
+
+                    at_comp.SetPartialCharge(at_flask.GetPartialCharge())
+
+                md_components.set_component_by_name(comp_name, comp)
+
+            # Update the components after setting the charges
+            record.set_value(Fields.md_components, md_components)
 
             # Check if it is possible to create the OpenMM System
             if is_periodic:

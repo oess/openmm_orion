@@ -107,17 +107,29 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} Temp Directory: {}'.format(system_title, os.path.dirname(traj_fn)))
             opt['Logger'].info('{} Trajectory filename: {}'.format(system_title, traj_fn))
 
-            setupOEMol = mdrecord.get_stage_topology(stg_name=MDStageNames.ForceField)
-
-            opt['Logger'].info('{} Setup topology has {} atoms'.format(system_title, setupOEMol.NumAtoms()))
-
             # Generate multi-conformer protein and ligand OEMols from the trajectory
             opt['Logger'].info('{} Generating protein and ligand trajectory OEMols'.format(system_title))
 
             flask = mdrecord.get_flask
 
-            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(setupOEMol, flask, traj_fn, opt,
+            md_components = record.get_value(Fields.md_components)
+
+            # opt['Logger'].info(md_components.get_info)
+
+            # Check Ligand Isomeric Smiles
+            lig_comp = md_components.get_ligand
+            lig_ref = record.get_value(Fields.ligand)
+
+            smi_lig_comp = oechem.OECreateSmiString(lig_comp)
+            smi_lig_ref = oechem.OECreateSmiString(lig_ref)
+
+            if smi_lig_ref != smi_lig_comp:
+                raise ValueError("Ligand Isomeric Smiles String check failure: {} vs {}".format(smi_lig_comp,
+                                                                                                smi_lig_ref))
+
+            ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(md_components, flask, traj_fn, opt,
                                                                         water_cutoff=opt['water_cutoff'])
+
             ltraj.SetTitle(record.get_value(Fields.ligand_name))
             ptraj.SetTitle(record.get_value(Fields.protein_name))
 
@@ -541,7 +553,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
             opt['Logger'].info(' Beginning ConfTrajsToLigTraj')
             system_title = utl.RequestOEFieldType(record, Fields.title)
             opt['Logger'].info('{} Attempting to combine conf traj OEMols into ligand traj OEMol'
-                .format(system_title) )
+                               .format(system_title))
 
             # Go find the ligand and LigTraj fields in each of the conformer records
             if not record.has_field(Fields.Analysis.oetrajconf_rec):
@@ -550,7 +562,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
                 opt['Logger'].info('{} found the conformer record'.format(system_title))
 
             # set up ligand and LigTraj lists then loop over conformer records
-            confIdVec = []
+            poseIdVec = []
             ligTrajConfs = []
             protTrajConfs = []
             watTrajConfs = []
@@ -564,7 +576,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
 
                 # Extract the ligand traj OEMol from the OETraj record
                 ligTraj = utl.RequestOEField( oetrajRecord, 'LigTraj', Types.Chem.Mol)
-                confIdVec += [confid]*ligTraj.NumConfs()
+                poseIdVec += [confid]*ligTraj.NumConfs()
                 ligTrajConfs.append(ligTraj)
                 opt['Logger'].info('{} confID {}: adding ligTraj with {} atoms, {} confs'.format(
                     system_title, confid, ligTraj.NumAtoms(), ligTraj.NumConfs()) )
@@ -583,7 +595,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
                     system_title, confid, protTraj.NumAtoms(), protTraj.NumConfs()) )
                 del mdtrajrecord
 
-            if len(ligTrajConfs)<1 or len(protTrajConfs)<1:
+            if len(ligTrajConfs) < 1 or len(protTrajConfs) < 1:
                 raise ValueError('{} empty list of lig or protein trajectory OEMols'.format(system_title))
 
             ligTraj = oechem.OEMol(ligTrajConfs[0])
@@ -611,10 +623,9 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
                     conf.GetCoords(xyz)
                     protTraj.NewConf(xyz)
             opt['Logger'].info('{} composite protTraj has {} atoms, {} confs'.format(
-                system_title, protTraj.NumAtoms(), protTraj.NumConfs()) )
+                system_title, protTraj.NumAtoms(), protTraj.NumConfs()))
 
-
-            record.set_value(OEField('ConfIdVec', Types.IntVec), confIdVec)
+            record.set_value(Fields.Analysis.poseIdVec, poseIdVec)
 
             # Create new record with OETraj results
             oetrajRecord = OERecord()
@@ -692,54 +703,69 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
 
     def end(self):
 
-        for sys_id, list_conf_rec in self.lig_sys_ids.items():
+        try:
+            for sys_id, list_conf_rec in self.lig_sys_ids.items():
 
-            # catch case where for some reason the conf list list_conf_rec is empty
-            if len(list_conf_rec) < 1:
-                print('{} does not have any conformer data'.format(sys_id) )
-                continue
-            elif len(list_conf_rec) > 1:
-                # Conformers for each ligand are sorted based on their confid in each ligand record
-                list_conf_rec.sort(key=lambda x: x.get_value(Fields.confid))
+                # Save the first record to emit in failure cases
+                self.record = list_conf_rec
 
-            new_rec = OERecord()
-            new_rec.set_value(Fields.Analysis.oetrajconf_rec, list_conf_rec)
-            # Get the first conf to move some general ligand data up to the top level
-            rec0 = list_conf_rec[0]
-            #   copy all the initial fields in Fields.ligInit_rec up to the top level
-            init_rec = rec0.get_value(Fields.ligInit_rec)
-            for field in init_rec.get_fields():
-                new_rec.set_value(field, init_rec.get_value(field))
-            #   next, fields that will simply be copied and not further used here
-            protein = rec0.get_value(Fields.protein)
-            new_rec.set_value(Fields.protein, protein)
-            ligid = rec0.get_value(Fields.ligid)
-            new_rec.set_value(Fields.ligid, ligid)
-            if in_orion():
-                collection_id = rec0.get_value(Fields.collection)
-                new_rec.set_value(Fields.collection, collection_id)
-            #   finally, fields that will be copied and also further used here
-            lig_multi_conf = oechem.OEMol(rec0.get_value(Fields.ligand))
-            protein_name = rec0.get_value(Fields.protein_name)
+                # catch case where for some reason the conf list list_conf_rec is empty
+                if len(list_conf_rec) < 1:
+                    print('{} does not have any conformer data'.format(sys_id) )
+                    continue
+                elif len(list_conf_rec) > 1:
+                    # Conformers for each ligand are sorted based on their confid in each ligand record
+                    list_conf_rec.sort(key=lambda x: x.get_value(Fields.confid))
 
-            # if >1 confs, add their confs to the parent ligand at the top level
-            for rec in list_conf_rec[1:]:
-                lig_multi_conf.NewConf(rec.get_value(Fields.ligand))
+                new_rec = OERecord()
+                new_rec.set_value(Fields.Analysis.oetrajconf_rec, list_conf_rec)
+                # Get the first conf to move some general ligand data up to the top level
+                rec0 = list_conf_rec[0]
+                #   copy all the initial fields in Fields.ligInit_rec up to the top level
+                init_rec = rec0.get_value(Fields.ligInit_rec)
 
-            # get name of initial molecule
-            init_mol = new_rec.get_value(OEField('Molecule', Types.Chem.Mol))
-            lig_title = init_mol.GetTitle()
-            lig_multi_conf.SetTitle(lig_title)
-            # regenerate protein-ligand title since all titles on conformers include conformer id
-            title = 'p' + protein_name + '_l' + lig_title
-            # set other fields on the new record
-            new_rec.set_value(Fields.title, title)
-            new_rec.set_value(Fields.ligand, lig_multi_conf)
-            new_rec.set_value(Fields.primary_molecule, lig_multi_conf)
-            new_rec.set_value(Fields.protein_name, protein_name)
-            new_rec.set_value(Fields.ligand_name, lig_title)
+                # TODO METADATA IS NOT COPIED?
+                for field in init_rec.get_fields():
+                    new_rec.set_value(field, init_rec.get_value(field))
+                #   next, fields that will simply be copied and not further used here
+                protein = rec0.get_value(Fields.protein)
+                new_rec.set_value(Fields.protein, protein)
+                ligid = rec0.get_value(Fields.ligid)
+                new_rec.set_value(Fields.ligid, ligid)
+                if in_orion():
+                    collection_id = rec0.get_value(Fields.collection)
+                    new_rec.set_value(Fields.collection, collection_id)
+                #   finally, fields that will be copied and also further used here
+                lig_multi_conf = oechem.OEMol(rec0.get_value(Fields.ligand))
+                protein_name = rec0.get_value(Fields.protein_name)
 
-            self.success.emit(new_rec)
+                # MD Components copied at the ligi top level
+                new_rec.set_value(Fields.md_components, rec0.get_value(Fields.md_components))
+
+                # if >1 confs, add their confs to the parent ligand at the top level
+                for rec in list_conf_rec[1:]:
+                    lig_multi_conf.NewConf(rec.get_value(Fields.ligand))
+
+                # get name of initial molecule
+                init_mol = new_rec.get_value(OEField('Molecule', Types.Chem.Mol))
+                lig_title = init_mol.GetTitle()
+                lig_multi_conf.SetTitle(lig_title)
+                # regenerate protein-ligand title since all titles on conformers include conformer id
+                title = 'p' + protein_name + '_l' + lig_title
+                # set other fields on the new record
+                new_rec.set_value(Fields.title, title)
+                new_rec.set_value(Fields.ligand, lig_multi_conf)
+                new_rec.set_value(Fields.primary_molecule, lig_multi_conf)
+                new_rec.set_value(Fields.protein_name, protein_name)
+                new_rec.set_value(Fields.ligand_name, lig_title)
+
+                self.success.emit(new_rec)
+
+        except Exception as e:
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(self.record)
 
 
 class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):

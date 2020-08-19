@@ -45,7 +45,8 @@ from MDOrion.Standards import Fields
 
 from openeye import oechem
 
-from MDOrion.ForceField.utils import MDComponents
+
+from oemdtoolbox.ForceField.md_components import MDComponents
 
 
 class IDSettingCube(RecordPortsMixin, ComputeCube):
@@ -324,7 +325,7 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
 
             md_components = record.get_value(Fields.md_components)
 
-            solute = md_components.create_flask
+            solute, map_comp = md_components.create_flask
 
             if not record.has_value(Fields.title):
                 self.log.warn("Missing Title field")
@@ -418,8 +419,9 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
             box_vec = pack_utils.decodePyObj(vec_data)
             md_components.set_box_vectors(box_vec)
 
+            flask, map_comp = md_components.create_flask
             record.set_value(Fields.md_components, md_components)
-            record.set_value(Fields.flask, md_components.create_flask)
+            record.set_value(Fields.flask, flask)
             record.set_value(Fields.title, solute_title)
 
             self.success.emit(record)
@@ -466,7 +468,9 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
 
                 tot_size = 0
                 for field in record.get_fields():
-                    tot_size += record.get_value_size(field)
+
+                    tot_size += len(record.get_bytes(field))
+
                 if tot_size > 100 * 1024 * 1024:
                     raise ValueError("The record size exceeds the 100 MB: {}".format(get_human_readable(tot_size)))
                 else:
@@ -492,11 +496,14 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['Protein']
     description = """
-    This cube is used to componentize the starting system.
-    The cube detects if a DU is present on the record and will try 
-    to extract the components saving them in ad-hoc container. If the 
-    DU is not found, the cube will try to create a DU and if it fails 
-    the primary molecule present on the record will be componentize. 
+    This cube is used to componentize the cube input system.
+    The cube detects if a Design Unit (DU) is present on the record 
+    and it will extract the DU components in an ad-hoc container 
+    (MDComponents). If the DU is not found on the input record, 
+    the cube will try to create a DU by using the primary molecule
+    present on the record; if it fails the primary molecule 
+    will be split in components by using a more canonical splitting 
+    function. 
     """
 
     uuid = "b85d652f-188a-4cc0-aefd-35c98e737f8d"
@@ -535,10 +542,7 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
 
             if record.has_value(Fields.design_unit_from_spruce):
 
-                du = oechem.OEDesignUnit()
-
-                if not oechem.OEReadDesignUnitFromBytes(du, record.get_value(Fields.design_unit_from_spruce)):
-                    raise ValueError("It was not possible Reading the Design Unit from the record")
+                du = record.get_value(Fields.design_unit_from_spruce)
 
                 self.opt['Logger'].info("[{}] Design Unit Detected".format(self.title))
 

@@ -1,6 +1,20 @@
-#############################################################################
-# Copyright (C) 2020 OpenEye Scientific Software, Inc.
-#############################################################################
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
+#
+# TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
+# provided to current licensees or subscribers of OpenEye products or
+# SaaS offerings (each a "Customer").
+# Customer is hereby permitted to use, copy, and modify the Sample Code,
+# subject to these terms. OpenEye claims no rights to Customer's
+# modifications. Modification of Sample Code is at Customer's sole and
+# exclusive risk. Sample Code may require Customer to have a then
+# current license or subscription to the applicable OpenEye offering.
+# THE SAMPLE CODE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED.  OPENEYE DISCLAIMS ALL WARRANTIES, INCLUDING, BUT
+# NOT LIMITED TO, WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. In no event shall OpenEye be
+# liable for any damages or liability in connection with the Sample Code
+# or its use.
+
 import numpy as np
 
 from openeye import (oechem,
@@ -18,62 +32,12 @@ import glob
 
 from tempfile import TemporaryDirectory
 
-from oeommtools import utils as oeommutils
-
-# Needed for ClusterRMSDByConf
 import oetrajanalysis.Clustering_utils as clusutl
 
 from MDOrion.TrjAnalysis.water_utils import nmax_waters
 
 
-def GetCardinalOrderOfProteinResNums(mol):
-    # make map of protein res nums to the residue cardinal order index
-    resmap = {}
-    currRes = -10000
-    currIdx = -1
-    for atom in mol.GetAtoms(oechem.OEIsBackboneAtom()):
-        thisRes = oechem.OEAtomGetResidue(atom)
-        resnum = thisRes.GetResidueNumber()
-        if resnum != currRes:
-            currIdx += 1
-            currRes = resnum
-            resmap[currRes] = currIdx
-    return resmap, currIdx
-
-
-def ExtractProtLigActsiteResNums(mol, fromLigCutoff=5.0):
-    '''Extracts the protein and ligand from a single OEMol containing a protein-ligand
-    complex plus other components. A list of protein residues within a cutoff distance
-    from the ligand is also returned.
-    Inputs:
-        mol: The OEMol containing protein, ligand, and all other components
-        fromLigCutoff: The cutoff distance in angstroms to include protein residues
-            close to the ligand.
-    Returns:
-        protein: An OEMol containing only the protein
-        ligand: An OEMol containing only the ligand
-        actSiteResNums: A list of integers, one per residue number for protein residues
-            with any atom within fromLigCutoff distance of the ligand.'''
-    # perceive residue hierarchy of total system
-    if not oechem.OEHasResidues(mol):
-        oechem.OEPerceiveResidues(mol, oechem.OEPreserveResInfo_All)
-    # split the total system into components
-
-    protein, ligand, water, excipients = oeommutils.split(mol, ligand_res_name="LIG")
-
-    # use residue-based distance cutoff (in angstroms) from ligand to define an active site residue
-    nn = oechem.OENearestNbrs(protein, fromLigCutoff)
-
-    actSiteResNums = set()
-
-    for nbrs in nn.GetNbrs(ligand):
-        residue = oechem.OEAtomGetResidue(nbrs.GetBgn())
-        actSiteResNums.add(residue.GetResidueNumber())
-
-    return protein, ligand, actSiteResNums
-
-
-def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, water_cutoff=15.0):
+def extract_aligned_prot_lig_wat_traj(md_components, flask, trj_fn, opt, nmax=30, water_cutoff=15.0):
     """
     Extracts the aligned protein trajectory and aligned ligand trajectory and aligned
     Water trajectory from a MD trajectory of a larger system that includes other
@@ -87,13 +51,14 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
     within the cutoff distance for each trajectory snapshot
 
     Inputs:
-        setup_mol: An OEMol giving the topology for the trajectory and the reference xyz
-            coordinates for the alignment.
+        md_components: MDComponents object
+            The md components carrying the setup starting flask.
+
         flask: OEMol
             The system flask
 
         trj_fn: String
-            The filename of the hdf5-format MD trajectory or Gromacs .xtc file format
+            The filename of the hdf5-format MD trajectory or Gromacs .trr file format
         water_cutoff: Float
             The cutoff distance between the PL binding site and the waters in angstroms
         nmax: Integer
@@ -105,7 +70,11 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
     """
 
     # Extract protein, ligand, water and excipients from the flask
-    protein, ligand, water, excipients = oeommutils.split(flask, ligand_res_name="LIG")
+    # protein, ligand, water, excipients = oeommutils.split(flask, ligand_res_name="LIG")
+
+    set_up_flask, map_dic = md_components.create_flask
+    protein = md_components.get_protein
+    ligand = md_components.get_ligand
 
     check_nmax = nmax_waters(protein, ligand, water_cutoff)
 
@@ -120,9 +89,9 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
     if traj_ext == '.h5':
         trj = md.load_hdf5(trj_fn)
 
-    elif traj_ext == '.xtc':
+    elif traj_ext == '.trr':
         pdb_fn = glob.glob(os.path.join(traj_dir, '*.pdb'))[0]
-        trj = md.load_xtc(trj_fn, top=pdb_fn)
+        trj = md.load_trr(trj_fn, top=pdb_fn)
         trj = trj[1:]
     else:
         raise ValueError("Trajectory file format {} not recognized in the trajectory {}".format(traj_ext, trj_fn))
@@ -131,15 +100,17 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
     top_trj = trj.topology
 
     # Ligand indexes
-    lig_idx = top_trj.select("resname LIG")
+    # lig_idx = top_trj.select("resname LIG")
+    lig_idx = map_dic['ligand']
 
     # Protein indexes
     # prot_idx = top_trj.select("protein")
 
     # It is safer to use OE toolkits than mdtraj which is missing the protein caps
-    prot_idx = []
-    for at in protein.GetAtoms():
-        prot_idx.append(at.GetIdx())
+    prot_idx = map_dic['protein']
+
+    # for at in protein.GetAtoms():
+    #     prot_idx.append(at.GetIdx())
 
     # Water oxygen indexes
     water_O_idx = top_trj.select("water and element O")
@@ -163,6 +134,8 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
     with open(os.devnull, 'w') as devnull:
         with contextlib.redirect_stderr(devnull):
             trjImaged = trj.image_molecules(inplace=False, anchor_molecules=[protligAtoms], make_whole=True)
+
+    # trjImaged = trj.image_molecules(inplace=False, anchor_molecules=[protligAtoms], make_whole=True)
 
     count = 0
     water_max_frames = []
@@ -227,8 +200,8 @@ def extract_aligned_prot_lig_wat_traj(setup_mol, flask, trj_fn, opt, nmax=30, wa
         count += 1
 
     # Put the reference mol xyz into the 1-frame topologyTraj to use as a reference in the fit
-    setup_mol_array_coords = oechem.OEDoubleArray(3 * setup_mol.GetMaxAtomIdx())
-    setup_mol.GetCoords(setup_mol_array_coords)
+    setup_mol_array_coords = oechem.OEDoubleArray(3 * set_up_flask.GetMaxAtomIdx())
+    set_up_flask.GetCoords(setup_mol_array_coords)
 
     setup_mol_xyzArr = np.array(setup_mol_array_coords)
     setup_mol_xyzArr.shape = (-1, 3)
@@ -379,51 +352,23 @@ def RequestOEFieldType(record, field):
         return record.get_value(field)
 
 
-def ColorblindRGBMarkerColors(nColors=0):
-    palette = [(0, 114, 178), (0, 158, 115), (213, 94, 0), (204, 121, 167),
-               (86, 180, 233), (230, 159, 0), (240, 228, 66), (150, 150, 150)]
-    if nColors < 1:
-        return palette
-    elif nColors < 9:
-        return palette[:nColors]
-    else:
-        n = int(nColors/8)
-        moreRGB = palette
-        for i in range(n):
-            moreRGB = moreRGB+palette
-        return(moreRGB[:nColors])
-
-
-
-def ColorblindHexMarkerColors(nColors=0):
-    palette = ['#0072b2', '#009e73', '#d55e00', '#cc79a7',
-               '#56b4e9', '#e69f00', '#f0e442', '#969696']
-    if nColors < 1:
-        return palette
-    elif nColors < 9:
-        return palette[:nColors]
-    else:
-        n = int(nColors/8)
-        moreHex = palette
-        for i in range(n):
-            moreHex = moreHex+palette
-        return(moreHex[:nColors])
-
-
-def PoseInteractionsSVG(ligand, proteinOrig, width=400, height=300):
+def PoseInteractionsSVG(md_components, width=400, height=300):
     """Generate a OEGrapheme interaction plot for a protein-ligand complex.
     The input protein may have other non-protein components as well so
     the input protein is first split into components to isolate the protein
     only for the plot. This may have to be changed if other components need
     to be included in the plot.
     """
-    # perceive residue hierarchy of total system
-    if not oechem.OEHasResidues(proteinOrig):
-        oechem.OEPerceiveResidues(proteinOrig, oechem.OEPreserveResInfo_All)
-        print('Perceiving residues')
+    # # perceive residue hierarchy of total system
+    # if not oechem.OEHasResidues(proteinOrig):
+    #     oechem.OEPerceiveResidues(proteinOrig, oechem.OEPreserveResInfo_All)
+    #     print('Perceiving residues')
 
     # split the total system into components
-    protein, ligandPsuedo, water, other = oeommutils.split(proteinOrig)
+    #protein, ligandPsuedo, water, other = oeommutils.split(proteinOrig)
+
+    protein = md_components.get_protein
+    ligand = md_components.get_ligand
 
     # make the OEHintInteractionContainer
     asite = oechem.OEInteractionHintContainer(protein, ligand)
@@ -546,9 +491,10 @@ def HighlightStyleMolecule(mol):
     oechem.OESetStyle( mol, hiliteConfStyle)
     return
 
-def SetProteinLigandVizStyle( protein, ligand, carbonRGB=(180,180,180)):
+
+def SetProteinLigandVizStyle(protein, ligand, carbonRGB=(180, 180, 180)):
     # set the carbon color (and phosphorus to magenta)
-    carbonColor = oechem.OEColor( carbonRGB[0], carbonRGB[1], carbonRGB[2] )
+    carbonColor = oechem.OEColor(carbonRGB[0], carbonRGB[1], carbonRGB[2])
     acolorer = oechem.OEMolStyleColorer(oechem.OEAtomColorScheme_Element)
     acolorer.AddColor(15, oechem.OEMagenta)
     acolorer.AddColor(6, carbonColor)
@@ -579,15 +525,16 @@ def SetProteinLigandVizStyle( protein, ligand, carbonRGB=(180,180,180)):
         oechem.OESetStyle(atom, asite_style)
     return
 
+
 def StyleTrajProteinLigandClusters( protein, ligand):
-    if protein.NumConfs()!=ligand.NumConfs():
+    if protein.NumConfs() != ligand.NumConfs():
         print('Cannot style; protein and ligand must have same number of conformers')
         return False
-    confRGB = ColorblindRGBMarkerColors( protein.NumConfs())
-    #print( confRGB)
+    confRGB = clusutl.ColorblindRGBMarkerColors( protein.NumConfs())
+    # print( confRGB)
     SetProteinLigandVizStyle( protein, ligand, confRGB[0])
     for pconf, lconf, colorRGB in zip(protein.GetConfs(), ligand.GetConfs(), confRGB):
-        #print( pconf.GetTitle(), lconf.GetTitle(), colorRGB)
+        # print( pconf.GetTitle(), lconf.GetTitle(), colorRGB)
         SetProteinLigandVizStyle( pconf, lconf, colorRGB)
     return True
 

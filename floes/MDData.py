@@ -25,7 +25,8 @@ from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
 from os import path
 
-job = WorkFloe("MD Data Extraction Floe", title="MD Data Extraction Floe")
+job = WorkFloe("Extract Short Trajectory MD Results for Download",
+               title="Extract Short Trajectory MD Results for Download")
 
 
 job.description = open(path.join(path.dirname(__file__), 'MDData_desc.rst'), 'r').read()

@@ -17,7 +17,9 @@
 
 import traceback
 
-from MDOrion.LigPrep import ff_utils
+# from MDOrion.LigPrep import ff_utils
+
+from oemdtoolbox.ForceField import utils as ff_utils
 
 from floe.api import (parameters,
                       ComputeCube,

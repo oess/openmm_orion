@@ -16,7 +16,7 @@
 # or its use.
 
 
-from datarecord.types import CustomHandler
+from datarecord import CustomHandler
 
 import pickle
 
@@ -24,7 +24,7 @@ import parmed
 
 from MDOrion.MDEngines.utils import MDState
 
-from MDOrion.ForceField.utils import MDComponents
+from oemdtoolbox.ForceField.md_components import MDComponents
 
 import copy
 

@@ -79,7 +79,7 @@ class OpenMMSimulations(MDSimulations):
         # Time step in ps
         if opt['hmr']:
             self.stepLen = 0.004 * unit.picoseconds
-            opt['Logger'].info("Hydrogen Mass reduction is On")
+            opt['Logger'].info("Hydrogen Mass repartitioning is On")
         else:
             self.stepLen = 0.002 * unit.picoseconds
 
