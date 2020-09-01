@@ -32,7 +32,6 @@ from orionclient.types import (ShardCollection,
                                Shard)
 
 from orionclient.session import (in_orion,
-                                 APISession,
                                  OrionSession,
                                  get_session)
 
@@ -41,6 +40,9 @@ import glob
 
 from orionclient.helpers.collections import (try_hard_to_create_shard,
                                              try_hard_to_download_shard)
+
+from oemdtoolbox.ForceField.md_components import MDComponents
+
 
 def mdstages(f):
 
@@ -90,8 +92,26 @@ def stage_system(f):
 
 
 class MDDataRecord(object):
+    """
+
+    This Class Implements the MD Datarecord API by using
+    getter and setter functions
+
+    """
 
     def __init__(self, record, inplace=True):
+        """
+        The Initialization function used to create the
+        MDDatarecord object
+
+        Parameters
+        ---------
+        record: OERecord object
+            The OERecord used to create the MDDatarecord
+        inplace: Bool
+            if True the record will be update in place otherwise
+            a copy of the record will be made
+        """
         if inplace:
             self.rec = record
         else:
@@ -123,10 +143,13 @@ class MDDataRecord(object):
         """
         This method returns the record
 
-        Return:
+        Parameters
+        ---------
+
+        Returns
         -------
         record: OERecord
-            The record
+            The record to be passed with the cubes
         """
         return self.rec
 
@@ -135,8 +158,12 @@ class MDDataRecord(object):
         """
         This method returns the primary molecule present on the record
 
-        Return:
+        Parameters
+        ---------
+
+        Returns
         -------
+
         record: OEMol
             The Primary Molecule
         """
@@ -150,14 +177,15 @@ class MDDataRecord(object):
         """
         This method sets the primary molecule on the record
 
-        Parameters:
+        Parameters
         -----------
+
         primary_mol: OEMol
             The primary molecule to set on the record
 
-        Return:
+        Returns
         -------
-        record: Bool
+        boolean: Bool
             True if the primary molecule has been set on the record
         """
 
@@ -173,10 +201,14 @@ class MDDataRecord(object):
         """
         This method returns the ligand molecule present on the record
 
-        Return:
+        Parameters
+        -----------
+
+        Returns
         -------
-            : OEMol
-            The ligand molecule
+        ligand: OEMol
+            The ligand molecule if the ligand has been set on the record otherwise
+            an error is raised
         """
 
         if not self.rec.has_field(Fields.ligand):
@@ -187,12 +219,15 @@ class MDDataRecord(object):
     @property
     def has_ligand(self):
         """
-        This method returns true if ligand molecule is present on the record
+        This method returns True if ligand molecule is present on the record
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Bool
-            True if the ligand molecule is present on the record
+        boolean : Bool
+            True if the ligand molecule is present on the record otherwise False
         """
 
         if self.rec.has_field(Fields.ligand):
@@ -204,10 +239,14 @@ class MDDataRecord(object):
         """
         This method sets the ligand molecule  on the record
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Bool
-            returns True if the ligand has been set on the record
+        boolean: Bool
+            returns True if the ligand has been set on the record otherwise an error
+            is raised
         """
 
         if not isinstance(ligand, oechem.OEMol):
@@ -222,10 +261,14 @@ class MDDataRecord(object):
         """
         This method returns the protein molecule present on the record
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : OEMol
-            The protein molecule
+        protein : OEMol
+            The protein molecule if the protein has been set on the record otherwise
+            an error is raised
         """
 
         if not self.rec.has_field(Fields.protein):
@@ -238,10 +281,13 @@ class MDDataRecord(object):
         """
         This method returns true if the protein molecule is present on the record
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Bool
-            True if the protein molecule is present on the record
+        boolean : Bool
+            True if the protein molecule is present on the record otherwise False
         """
 
         if self.rec.has_field(Fields.protein):
@@ -253,10 +299,14 @@ class MDDataRecord(object):
         """
         This method sets the protein molecule  on the record
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Bool
-            returns True if the protein has been set on the record
+        boolean: Bool
+            returns True if the protein has been set on the record otherwise an
+            error is raised
         """
 
         if not isinstance(protein, oechem.OEMol):
@@ -271,10 +321,14 @@ class MDDataRecord(object):
         """
         This method returns the flask molecule present on the record
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-        record: OEMol
-            The Primary Molecule
+
+        flask: OEMol
+            The flask present on the record otherwise an error is raised
         """
 
         if not self.rec.has_field(Fields.flask):
@@ -286,15 +340,16 @@ class MDDataRecord(object):
         """
         This method sets the flask molecule on the record
 
-        Parameters:
-        -----------
-        flask OEMol
+        Parameters
+        ----------
+        flask : OEMol
             The flask molecule to set on the record
 
-        Return:
+        Returns
         -------
         record: Bool
             True if the flask molecule has been set on the record
+            otherwise an error is raised
         """
 
         if not isinstance(flask, oechem.OEMol):
@@ -309,10 +364,13 @@ class MDDataRecord(object):
         """
         This method returns the integer value of the flask identification field present on the record
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Int
-            The flask ID
+        flask_id : Int
+            The unique flask identifier
         """
 
         if not self.rec.has_field(Fields.flaskid):
@@ -325,9 +383,12 @@ class MDDataRecord(object):
         """
         This method checks if the flask identification field is present on the record
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Bool
+        boolean: Bool
             True if the flask ID field is present on the record otherwise False
         """
 
@@ -340,14 +401,14 @@ class MDDataRecord(object):
         """
         This method sets the integer value of the flask identification field on the record
 
-        Parameters:
+        Parameters
         -----------
         id: Int
             An integer value for the flask identification field
 
-        Return:
+        Returns
         -------
-            : Bool
+        boolean : Bool
             True if the flask identification ID has been set as an integer on the record
         """
 
@@ -363,10 +424,13 @@ class MDDataRecord(object):
         """
         This method returns the ligand identification field present on the record
 
-        Return:
+        Parameters
+        -----------
+
+        Returns
         -------
-            : Int
-            The integer value of the ligand identification field
+        ligand_id: Int
+            The ligand identification id number
         """
 
         if not self.rec.has_field(Fields.ligid):
@@ -379,9 +443,12 @@ class MDDataRecord(object):
         """
         This method checks if the ligand identification field is present on the record
 
-        Return:
+        Parameters
+        -----------
+
+        Returns
         -------
-            : Bool
+        boolean : Bool
             True if the ligand identification field is present on the record otherwise False
         """
 
@@ -394,14 +461,14 @@ class MDDataRecord(object):
         """
         This method sets the ligand identification field on the record
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         sys_id: Int
             An integer value for the ligand identification field
 
-        Return:
+        Returns
         -------
-            : Bool
+        boolean: Bool
             True if the value for the ligand identification field was successfully set on the record
         """
 
@@ -417,10 +484,13 @@ class MDDataRecord(object):
         """
         This method returns the identification field CONF ID present on the record
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Int
-            The record CONF ID
+        conformed_id: Int
+            The conformer id
         """
 
         if not self.rec.has_field(Fields.confid):
@@ -433,10 +503,13 @@ class MDDataRecord(object):
         """
         This method checks if the identification field CONF ID is present on the record
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Bool
-            True if the CONF ID field is resent on the record otherwise False
+        boolean : Bool
+            True if the conformer id field is present on the record otherwise False
         """
 
         if not self.rec.has_field(Fields.confid):
@@ -446,21 +519,21 @@ class MDDataRecord(object):
 
     def set_conf_id(self, conf_id):
         """
-        This method sets the identification field CONF ID on the record
+        This method sets the identification field for the conformer on the record
 
-        Parameters:
+        Parameters
         -----------
-        sys_id: Int
+        conf_id: Int
             An identification integer for the record
 
-        Return:
+        Returns
         -------
-            : Bool
-            True if the CONF ID has been set on the record
+        boolean : Bool
+            True if the conformed id has been set on the record otherwise an error is raised
         """
 
         if not isinstance(conf_id, int):
-            raise ValueError("The conf id must be an integer: {}".format(conf_id))
+            raise ValueError("The conformer id must be an integer: {}".format(conf_id))
 
         self.rec.set_value(Fields.confid, conf_id)
 
@@ -469,12 +542,15 @@ class MDDataRecord(object):
     @property
     def get_title(self):
         """
-        This method returns the system title present on the record
+        This method returns the title present on the record
 
-        Return:
+        Parameters
+        -----------
+
+        Returns
         -------
-            : String
-            The system title string
+        title : String
+            The title string if present on the record otherwise an error is raised
         """
 
         if not self.rec.has_field(Fields.title):
@@ -487,9 +563,12 @@ class MDDataRecord(object):
         """
         This method checks if the Title field is present on the record
 
-        Return:
+        Parameters
+        -----------
+
+        Returns
         -------
-            : Bool
+        boolean : Bool
             True if the Title field is resent on the record otherwise False
         """
 
@@ -502,14 +581,14 @@ class MDDataRecord(object):
         """
         This method sets the system Title field on the record
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         title: String
-            A string used to identify the  molecular system
+            A string used to identify the molecular system
 
-        Return:
+        Returns
         -------
-            : Bool
+        boolean : Bool
             True if the system Title has been set on the record
         """
 
@@ -524,15 +603,15 @@ class MDDataRecord(object):
         """
         This method sets a collection field on the record to be used in Orion
 
-        Parameters:
+        Parameters
         -----------
         name: String
-            A string used to identify in the Orion UI the record collection
+            A string used to identify in the Orion UI the collection
 
-        Return:
+        Returns
         -------
-            : Bool
-                True if the collection creation was successful
+        boolean : Bool
+                True if the collection creation in Orion was successful otherwise False
         """
 
         if in_orion():
@@ -574,7 +653,10 @@ class MDDataRecord(object):
         """
         This method returns the last MD stage of the MD record stages
 
-        Return:
+        Parameters
+        -----------
+
+        Returns
         -------
         record: OERecord
             The last stage of the MD record stages
@@ -590,12 +672,13 @@ class MDDataRecord(object):
         have the same name the first occurrence is returned. If no stage name has been found
         an exception is raised.
 
-        Parameters:
+        Parameters
         -----------
         stg_name: String
             The MD stage name
 
-        Return:
+
+        Returns
         -------
         record: OERecord
             The MD stage selected by its name
@@ -619,15 +702,15 @@ class MDDataRecord(object):
     @mdstages
     def get_stage_by_idx(self, idx):
         """
-        This method returns a MD stage selected by passing the an index. If the index is not present
+        This method returns a MD stage selected by passing an index. If the stage is not found
         an exception is raised.
 
-        Parameters:
+        Parameters
         -----------
         idx: Int
             The stage index to retrieve
 
-        Return:
+        Returns
         -------
         record: OERecord
             The MD stage selected by its index
@@ -646,14 +729,14 @@ class MDDataRecord(object):
         string "last" is passed (default) the last MD stage is deleted. If no stage name
         has been found an exception is raised.
 
-        Parameters:
+        Parameters
         -----------
         stg_name: String
             The MD stage name
 
-        Return:
+        Returns
         -------
-        record: Bool
+        boolean: Bool
             True if the deletion was successful
         """
         stages = self.rec.get_value(Fields.md_stages)
@@ -719,14 +802,14 @@ class MDDataRecord(object):
         This method deletes an MD stage selected by passing its index. If the stage index
         cannot be found an exception is raised.
 
-        Parameters:
+        Parameters
         -----------
         idx: Int
             The MD stage index
 
-        Return:
+        Returns
         -------
-        record: Bool
+        boolean: Bool
             True if the deletion was successful
         """
 
@@ -741,14 +824,14 @@ class MDDataRecord(object):
         This method returns True if MD stage selected by passing the string name is present
         on the MD stage record otherwise False.
 
-        Parameters:
+        Parameters
         -----------
-        name: String
+        stg_name: String
             The MD stage name
 
-        Return:
+        Returns
         -------
-        record: Bool
+        boolean: Bool
             True if the MD stage name is present on the MD stages record otherwise False
         """
 
@@ -767,14 +850,14 @@ class MDDataRecord(object):
         This method returns the info related to the selected stage name. If no stage name is passed
         the last stage is selected.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         stg_name: String
             The MD stage name
 
-        Return:
+        Returns
         -------
-            : String
+        info_string: String
             The info associated with the selected MD stage
         """
 
@@ -794,13 +877,14 @@ class MDDataRecord(object):
         This method returns the MD State of the selected stage name. If no stage name is passed
         the last stage is selected
 
-        Parameters:
+        Parameters
         -----------
         stg_name: String
             The MD stage name
-        Return:
+
+        Returns
         -------
-            : OERecord
+        state : MDState
             The MD state of the selected MD stage
         """
         stage = self.get_stage_by_name(stg_name)
@@ -823,14 +907,14 @@ class MDDataRecord(object):
         This method returns the MD topology of the selected stage name. If no stage name is passed
         the last stage is selected.
 
-        Parameters:
+        Parameters
         -----------
         stg_name: String
             The MD stage name
 
-        Return:
+        Returns
         -------
-            : OEMol
+        topology : OEMol
             The topology of the selected MD stage
         """
 
@@ -853,17 +937,17 @@ class MDDataRecord(object):
     @mdstages
     def get_stage_trajectory(self, stg_name='last'):
         """
-        This method returns the trajectory file name associated with the md data. If the trajectory is
-        not found None is return
+        This method returns the trajectory file name associated
+        with the md data. If the trajectory is not found None is return
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         stg_name: String
             The MD stage name
 
-        Return:
+        Returns
         -------
-            : String or None
+        trajectory_filename: String or None
             Trajectory file name if the process was successful otherwise None
         """
 
@@ -887,14 +971,12 @@ class MDDataRecord(object):
         trj_meta = trj_field.get_meta()
         md_engine = trj_meta.get_attribute(Meta.Annotation.Description)
 
-        # TODO I do not like this a lot
         if md_engine == MDEngines.OpenMM and not stg_type == MDStageTypes.FEC:
             traj_fn = glob.glob(os.path.join(traj_dir, '*.h5'))[0]
         elif md_engine == MDEngines.Gromacs:
-            traj_fn = glob.glob(os.path.join(traj_dir, '*.xtc'))[0]
-        else:  # TODO Yank trajectory - just take one of the .nc files for now
-            exp_dir = os.path.join(traj_dir, "experiments")
-            traj_fn = glob.glob(os.path.join(exp_dir, '*.nc'))[0]
+            traj_fn = glob.glob(os.path.join(traj_dir, '*.trr'))[0]
+        else:
+            raise ValueError("MD Engine Not Supported")
 
         exists = os.path.isfile(traj_fn)
 
@@ -915,35 +997,36 @@ class MDDataRecord(object):
                       trajectory_engine=None,
                       trajectory_orion_ui='OrionFile'):
         """
-        This method append a new MD stage to the MD stage record.
+        This method add a new MD stage to the MD stage record
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         stage_name: String
             The new MD stage name
         stage_type: String
             The MD stage type e.g. SETUP, MINIMIZATION etc.
         topology: OEMol
             The topology
-        mdstate: OERecord
+        mdstate: MDState
             The new mdstate made of state positions, velocities and box vectors
         data_fn: String
             The data file name is used only locally and is linked to the MD data associated
             with the stage. In Orion the data file name is not used
         append: Bool
             If the flag is set to true the stage will be appended to the MD stages otherwise
-            the last stage will be overwritten but the new created MD stage
+            the last stage will be overwritten by the new created MD stage
         log: String or None
             Log info
-        trajectory: String, Int or None
-            The trajectory name or id associated with the new MD stage
+        trajectory_fn: String, Int or None
+            The trajectory name for local run or id in Orion associated with the new MD stage
         trajectory_engine: String or None
             The MD engine used to generate the new MD stage. Possible names: OpenMM or Gromacs
-        trajectory_ui_orion: String
+        trajectory_orion_ui: String
             The trajectory string name to be displayed in the Orion UI
-         Return:
+
+        Returns
         -------
-            : Bool
+        boolean: Bool
             True if the MD stage creation was successful
         """
 
@@ -1034,10 +1117,13 @@ class MDDataRecord(object):
         """
         This method returns the MD stage record list with all the MD stages.
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : list
-            The list of the MD stages
+        record_list: list
+            The MD stages record list
         """
         return self.rec.get_value(Fields.md_stages)
 
@@ -1045,12 +1131,15 @@ class MDDataRecord(object):
     @mdstages
     def get_stages_names(self):
         """
-        This method returns the name list of the MD stages.
+        This method returns the list names of the MD stages.
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : list
-            The list of the MD stage names
+        list: list
+            The MD stage name list
         """
 
         stages = self.rec.get_value(Fields.md_stages)
@@ -1061,12 +1150,15 @@ class MDDataRecord(object):
     @property
     def has_stages(self):
         """
-        This method returns True if the record has a MD record list, False otherwise.
+        This method returns True if the record has a MD record list otherwise False
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Bool
-            True if the record has a list of MD stages, False otherwise
+        boolean : Bool
+            True if the record has a list of MD stages otherwise False
         """
         if not self.rec.has_field(Fields.md_stages):
             return False
@@ -1075,6 +1167,17 @@ class MDDataRecord(object):
 
     @property
     def delete_stages(self):
+        """
+        This method deletes all the record stages
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        boolean : Bool
+            True if the deletion was successful
+        """
 
         stages = self.get_stages
 
@@ -1097,14 +1200,14 @@ class MDDataRecord(object):
         be found. If sync_stage_name is not None the parmed structure positions, velocities and
         box vectors will be synchronized with the MD State selected by passing the MD stage name
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         sync_stage_name: String or None
             The stage name that is used to synchronize the Parmed structure
 
-        Return:
+        Returns
         -------
-            : Parmed Structure object
+        parmed : Parmed Structure
             The Parmed Structure object
         """
 
@@ -1161,40 +1264,38 @@ class MDDataRecord(object):
 
         return pmd_structure
 
-    def set_parmed(self, pmdobj, sync_stage_name=None, shard_name=""):
+    def set_parmed(self, pmd, sync_stage_name=None, shard_name=""):
         """
         This method sets the Parmed object. Return True if the setting was successful.
         If sync_stage_name is not None the parmed structure positions, velocities and
         box vectors will be synchronized with the MD State selected by passing the MD
         stage name
 
-        Parameters:
-        -----------
-        pmjobj: Parmed Structure object
+        Parameters
+        ----------
+        pmd: Parmed Structure object
             The Parmed Structure object to be set on the record
         sync_stage_name: String or None
             The stage name that is used to synchronize the Parmed structure
         shard_name: String
             In Orion tha shard will be named by using the shard_name
 
-
-
-        Return:
+        Returns
         -------
-            : Bool
+        boolean : Bool
             True if the setting was successful
         """
 
-        if not isinstance(pmdobj, parmed.Structure):
-            raise ValueError("The passed Parmed object is not a valid Parmed Structure: {}".format(type(pmdobj)))
+        if not isinstance(pmd, parmed.Structure):
+            raise ValueError("The passed Parmed object is not a valid Parmed Structure: {}".format(type(pmd)))
 
         if sync_stage_name is not None:
 
             mdstate = self.get_stage_state(stg_name=sync_stage_name)
 
-            pmdobj.positions = mdstate.get_positions()
-            pmdobj.velocities = mdstate.get_velocities()
-            pmdobj.box_vectors = mdstate.get_box_vectors()
+            pmd.positions = mdstate.get_positions()
+            pmd.velocities = mdstate.get_velocities()
+            pmd.box_vectors = mdstate.get_box_vectors()
 
         if in_orion():
 
@@ -1203,7 +1304,7 @@ class MDDataRecord(object):
                 parmed_fn = os.path.join(output_directory, 'parmed.pickle')
 
                 with open(parmed_fn, 'wb') as f:
-                    pickle.dump(pmdobj.__getstate__(), f)
+                    pickle.dump(pmd.__getstate__(), f)
 
                 if self.collection_id is None:
                     raise ValueError("The Collection ID is None")
@@ -1211,8 +1312,6 @@ class MDDataRecord(object):
                 if self.rec.has_field(Fields.pmd_structure):
                     fid = self.rec.get_value(Fields.pmd_structure)
                     utils.delete_data(fid, collection_id=self.collection_id)
-
-                # session = APISession
 
                 session = OrionSession(
                     requests_session=get_session(
@@ -1237,7 +1336,7 @@ class MDDataRecord(object):
 
                 self.rec.set_value(Fields.pmd_structure, shard.id)
         else:
-            self.rec.set_value(Fields.pmd_structure, pmdobj)
+            self.rec.set_value(Fields.pmd_structure, pmd)
 
         return True
 
@@ -1246,9 +1345,12 @@ class MDDataRecord(object):
         """
         This method checks if the Parmed object is on the record.
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Bool
+        boolean : Bool
             True if the Parmed object is on the record otherwise False
         """
 
@@ -1263,9 +1365,12 @@ class MDDataRecord(object):
         This method deletes the Parmed object from the record. True is returned if the deletion was
         successful.
 
-        Return:
+        Parameters
+        ----------
+
+        Returns
         -------
-            : Bool
+        boolean : Bool
             True if Parmed object deletion was successful
         """
 
@@ -1276,8 +1381,6 @@ class MDDataRecord(object):
 
             if self.collection_id is None:
                 raise ValueError("The Collection ID is None")
-
-            # session = APISession
 
             session = OrionSession(
                 requests_session=get_session(
@@ -1309,11 +1412,12 @@ class MDDataRecord(object):
         """
         This method returns the protein molecule where conformers have been set as trajectory frames
 
-
-        Return:
+        Parameters
+        ----------
+        Returns
         -------
-            : OEMol
-            The Protein molecule with trajectory conformers
+        multi_conformer_protein: OEMol
+            The multi conformer protein
         """
 
         if not self.rec.has_field(Fields.protein_traj_confs):
@@ -1364,19 +1468,18 @@ class MDDataRecord(object):
 
     def set_protein_traj(self, protein_conf, shard_name=""):
         """
-        This method sets the protein trajectory conformers on the record
+        This method sets the multi conformer protein trajectory on the record
 
-        Parameters:
+        Parameters
         -----------
         protein_conf: OEChem
-            The Protein molecule with trajectory conformers
-         shard_name: String
+            Th multi conformer protein trajectory
+        shard_name: String
             In Orion tha shard will be named by using the shard_name
 
-
-        Return:
+        Returns
         -------
-            : Bool
+        boolean: Bool
             True if the setting was successful
         """
 
@@ -1434,3 +1537,60 @@ class MDDataRecord(object):
         except AttributeError:
             raise AttributeError(
                 "'%s' object has no attribute '%s'" % (type(self).__name__, name))
+
+    @property
+    def get_md_components(self):
+        """
+        This method returns the MD Components if present on the record
+
+        Parameters
+        -----------
+
+        Returns
+        -------
+        md_components: MDComponents
+            The MD Components object
+        """
+
+        if not self.rec.has_field(Fields.md_components):
+            raise ValueError("The MD Components Field has not been found on the record")
+
+        return self.rec.get_value(Fields.md_components)
+
+    def set_md_components(self, md_components):
+        """
+        This method sets the MD Components on the record
+
+        Parameters
+        ----------
+        md_components: MDComponents
+            The MD Components instance
+
+        Returns
+        -------
+        boolean : Bool
+            True if the the md components field was successfully set on the record
+        """
+
+        if not isinstance(md_components, MDComponents):
+            raise ValueError("The passed components is not an object of type MDComponents: {}".format(type(md_components)))
+
+        self.rec.set_value(Fields.md_components, md_components)
+
+        return True
+
+    @property
+    def has_md_components(self):
+        """
+        This method returns True if the MD Components object is present on the record
+
+        Return:
+        -------
+        boolean: Bool
+            True if the md components object is present on the record otherwise False
+        """
+
+        if self.rec.has_field(Fields.md_components):
+            return True
+        else:
+            return False

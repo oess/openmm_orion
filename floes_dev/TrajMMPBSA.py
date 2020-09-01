@@ -21,12 +21,10 @@ from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import (ParallelTrajToOEMolCube,
-                                       ParallelTrajInteractionEnergyCube,
-                                       ParallelTrajPBSACube,
-                                       ParallelClusterOETrajCube,
-                                       ParallelMDTrajAnalysisClusterReport,
-                                       MDFloeReportCube)
+from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajInteractionEnergyCube,
+                                                      ParallelTrajPBSACube)
+
+from MDOrion.TrjAnalysis.cubes_clusterAnalysis import MDFloeReportCube
 
 job = WorkFloe('Trajectory MMPBSA from Traj OEMOls',
                title='Trajectory MMPBSA from Traj OEMOls')

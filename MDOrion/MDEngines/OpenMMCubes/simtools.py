@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -79,7 +79,7 @@ class OpenMMSimulations(MDSimulations):
         # Time step in ps
         if opt['hmr']:
             self.stepLen = 0.004 * unit.picoseconds
-            opt['Logger'].info("Hydrogen Mass reduction is On")
+            opt['Logger'].info("Hydrogen Mass repartitioning is On")
         else:
             self.stepLen = 0.002 * unit.picoseconds
 
@@ -108,8 +108,23 @@ class OpenMMSimulations(MDSimulations):
 
         # OpenMM system
         if box is not None:
+            box_v = parmed_structure.box_vectors.value_in_unit(unit.angstrom)
+            box_v = np.array([box_v[0][0], box_v[1][1], box_v[2][2]])
+
+            min_box = np.min(box_v)
+
+            threshold = (min_box / 2.0) * 0.85
+
+            if opt['nonbondedCutoff'] < threshold:
+                cutoff_distance = opt['nonbondedCutoff'] * unit.angstroms
+            else:
+                opt['Logger'].warn("[{}] Cutoff Distance too large for the box size. Set the cutoff distance "
+                                   "to {} A".format(opt['CubeTitle'], threshold))
+
+                cutoff_distance = threshold * unit.angstroms
+
             self.system = parmed_structure.createSystem(nonbondedMethod=app.PME,
-                                                        nonbondedCutoff=opt['nonbondedCutoff'] * unit.angstroms,
+                                                        nonbondedCutoff=cutoff_distance,
                                                         constraints=eval("app.%s" % constraints),
                                                         removeCMMotion=False,
                                                         hydrogenMass=4.0 * unit.amu if opt['hmr'] else None)
@@ -323,38 +338,25 @@ class OpenMMSimulations(MDSimulations):
 
         if self.opt['SimType'] == 'min':
 
-            # Run a first minimization on the Reference platform
-            platform_reference = openmm.Platform.getPlatformByName('Reference')
-            integrator_reference = openmm.LangevinIntegrator(self.opt['temperature'] * unit.kelvin,
-                                                             1 / unit.picoseconds, self.stepLen)
-            simulation_reference = app.Simulation(topology, self.system, integrator_reference, platform=platform_reference)
-            # Set starting positions and velocities
-            simulation_reference.context.setPositions(positions)
-
-            state_reference_start = simulation_reference.context.getState(getEnergy=True)
-
-            # Set Box dimensions
-            if box is not None:
-                simulation_reference.context.setPeriodicBoxVectors(box[0], box[1], box[2])
-
-            simulation_reference.minimizeEnergy(tolerance=1e5 * unit.kilojoule_per_mole, maxIterations=self.opt['steps'])
-
-            state_reference_end = simulation_reference.context.getState(getPositions=True)
-
             # Start minimization on the selected platform
             if self.opt['steps'] == 0:
                 self.opt['Logger'].info('[{}] Minimization steps: until convergence is found'.format(self.opt['CubeTitle']))
             else:
                 self.opt['Logger'].info('[{}] Minimization steps: {steps}'.format(self.opt['CubeTitle'], **self.opt))
 
+            if box is not None:
+                self.omm_simulation.context.setPeriodicBoxVectors(box[0], box[1], box[2])
+
             # Set positions after minimization on the Reference Platform
-            self.omm_simulation.context.setPositions(state_reference_end.getPositions())
+            self.omm_simulation.context.setPositions(positions)
+
+            state_start = self.omm_simulation.context.getState(getEnergy=True)
 
             self.omm_simulation.minimizeEnergy(maxIterations=self.opt['steps'])
 
             state = self.omm_simulation.context.getState(getPositions=True, getEnergy=True)
 
-            ie = '{:<25} = {:<10}'.format('Initial Potential Energy', str(state_reference_start.getPotentialEnergy().
+            ie = '{:<25} = {:<10}'.format('Initial Potential Energy', str(state_start.getPotentialEnergy().
                                                                           in_units_of(unit.kilocalorie_per_mole)))
             fe = '{:<25} = {:<10}'.format('Minimized Potential Energy', str(state.getPotentialEnergy().
                                                                             in_units_of(unit.kilocalorie_per_mole)))
@@ -387,6 +389,12 @@ class OpenMMSimulations(MDSimulations):
                 info = '{:<25} = {:<10}'.format('Total trajectory frames', total_frames)
                 self.str_logger += '\n' + info
 
+            elif self.opt['trajectory_frames']:
+                self.opt['Logger'].info(
+                    '[{}] Total trajectory frames : {}'.format(self.opt['CubeTitle'], self.opt['trajectory_frames']))
+                info = '{:<25} = {:<10}'.format('Total trajectory frames', self.opt['trajectory_frames'])
+                self.str_logger += '\n' + info
+
             # Start Simulation
             self.omm_simulation.step(self.opt['steps'])
 
@@ -410,7 +418,7 @@ class OpenMMSimulations(MDSimulations):
                     self.opt['str_logger'] += '\n' + log_string
 
                 # Save trajectory files
-                if self.opt['trajectory_interval']:
+                if self.opt['trajectory_interval'] or self.opt['trajectory_frames']:
 
                     tar_fn = self.opt['trj_fn']
 
@@ -502,7 +510,19 @@ def getReporters(totalSteps=None, outfname=None, **opt):
         trajectory_steps = int(round(opt['trajectory_interval'] / (
                 opt['timestep'].in_units_of(unit.nanoseconds) / unit.nanoseconds)))
 
-        traj_reporter = mdtraj.reporters.HDF5Reporter(opt['omm_trj_fn'], trajectory_steps)
+        traj_reporter = mdtraj.reporters.HDF5Reporter(opt['omm_trj_fn'], trajectory_steps, velocities=True)
+
+        reporters.append(traj_reporter)
+
+    elif opt['trajectory_frames']:
+
+        if opt['steps'] < opt['trajectory_frames']:
+            raise ValueError(" The selected number of frames {} will exceed the total produced md steps {}".
+                             format(opt['trajectory_frames'], opt['steps']))
+
+        trajectory_steps = int(math.floor(opt['steps'] / opt['trajectory_frames']))
+
+        traj_reporter = mdtraj.reporters.HDF5Reporter(opt['omm_trj_fn'], trajectory_steps, velocities=True)
 
         reporters.append(traj_reporter)
 

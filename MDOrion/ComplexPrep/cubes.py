@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -19,18 +19,16 @@
 import traceback
 from datarecord import OERecord
 
-from openeye import oechem
 from oeommtools import utils as oeommutils
 
 from MDOrion.Standards import Fields
 
-from floe.constants import ADVANCED
-
-from floe.api import (parameters,
-                      ComputeCube)
+from floe.api import ComputeCube
 
 from orionplatform.mixins import RecordPortsMixin
 from orionplatform.ports import RecordInputPort
+
+from openeye import oechem
 
 
 class ComplexPrepCube(RecordPortsMixin, ComputeCube):
@@ -55,49 +53,35 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-       "memory_mb": {"default": 14000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    # Ligand Residue Name
-    lig_res_name = parameters.StringParameter('lig_res_name',
-                                              default='LIG',
-                                              help_text='The ligand residue name',
-                                              level=ADVANCED)
-
     protein_port = RecordInputPort("protein_port", initializer=True)
 
     def begin(self):
         for record in self.protein_port:
+
             self.opt = vars(self.args)
             self.opt['Logger'] = self.log
 
-            if not record.has_value(Fields.flask):
-                self.log.error("Missing Protein flask field")
-                self.failure.emit(record)
-                return
+            if not record.has_value(Fields.md_components):
+                raise ValueError("MD Components Field is missing")
 
-            protein = record.get_value(Fields.flask)
+            self.md_components = record.get_value(Fields.md_components)
 
-            if not record.has_value(Fields.title):
-                self.log.warn("Missing Protein Title field")
-                self.protein_title = protein.GetTitle()[0:12]
-            else:
-                self.protein_title = record.get_value(Fields.title)
-
-            self.protein = protein
-            return
+        return
 
     def process(self, record, port):
         try:
             if port == 'intake':
 
-                if not record.has_value(Fields.flask):
-                    raise ValueError("Missing the ligand flask field")
+                if not record.has_value(Fields.primary_molecule):
+                    raise ValueError("Missing the ligand primary molecule field")
 
-                ligand = record.get_value(Fields.flask)
+                ligand = record.get_value(Fields.primary_molecule)
 
                 if ligand.NumConfs() > 1:
                     raise ValueError("The ligand {} has multiple conformers: {}".format(ligand.GetTitle(),
@@ -109,59 +93,72 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 else:
                     ligand_title = record.get_value(Fields.title)
 
-                self.log.info("[{}] forming complex between protein {} and ligand: {}".format(self.title,
-                                                                        self.protein_title, ligand_title))
+                protein = self.md_components.get_protein
 
-                if not record.has_value(Fields.flaskid):
-                    raise ValueError("Missing flask ID for flask {} ".format(Fields.flaskid.get_name()))
-
-                flask_id = record.get_value(Fields.flaskid)
-
-                complx = self.protein.CreateCopy()
-                oechem.OEAddMols(complx, ligand)
-
-                # Split the complex in components
-                protein_split, ligand_split, water, excipients = oeommutils.split(complx,
-                                                                                  ligand_res_name=self.opt['lig_res_name'])
-
-                # If the protein does not contain any atom emit a failure
-                if not protein_split.NumAtoms():  # Error: protein molecule is empty
-                    raise ValueError("The protein molecule does not contains atoms")
-
-                # If the ligand does not contain any atom emit a failure
-                if not ligand_split.NumAtoms():  # Error: ligand molecule is empty
-                    raise ValueError("The Ligand molecule does not contains atoms")
+                self.md_components.set_ligand(ligand)
 
                 # Check if the ligand is inside the binding site. Cutoff distance 3A
-                if not oeommutils.check_shell(ligand_split, protein_split, 3):
-                    raise ValueError("The ligand is probably outside the protein binding site")
+                if not oeommutils.check_shell(ligand, protein, 3):
+                    raise ValueError("The Ligand is probably outside the Protein binding site")
 
-                # Removing possible clashes between the ligand and water or excipients
-                if water.NumAtoms():
-                    water_del = oeommutils.delete_shell(ligand, water, 1.5, in_out='in')
+                # Remove Steric Clashes between the ligand and the other System components
+                for comp_name, comp in self.md_components.get_components.items():
 
-                if excipients.NumAtoms():
-                    excipient_del = oeommutils.delete_shell(ligand, excipients, 1.5, in_out='in')
+                    # Skip clashes between the ligand itself and the protein
+                    if comp_name in ['ligand', 'protein']:
+                        continue
 
-                # Reassemble the complex
-                new_complex = protein_split.CreateCopy()
-                oechem.OEAddMols(new_complex, ligand_split)
-                if excipients.NumAtoms():
-                    oechem.OEAddMols(new_complex, excipient_del)
-                if water.NumAtoms():
-                    oechem.OEAddMols(new_complex, water_del)
+                    # Remove Metal clashes if the distance between the metal and the ligand
+                    # is less than 1A
+                    elif comp_name == 'metals':
+                        metal_del = oeommutils.delete_shell(ligand, comp, 1.0, in_out='in')
 
-                complex_title = 'p' + self.protein_title + '_l' + ligand_title
+                        if metal_del.NumAtoms() != comp.NumAtoms():
+                            self.opt['Logger'].info(
+                                "Detected steric-clashes between the ligand {} and metals".format(ligand_title))
 
-                new_complex.SetTitle(ligand.GetTitle())
+                            self.md_components.set_metals(metal_del)
+                            # Remove  clashes if the distance between the selected component and the ligand
+                            # is less than 1.5A
+                    else:
+                        comp_del = oeommutils.delete_shell(ligand, comp, 1.5, in_out='in')
 
+                        if comp_del.NumAtoms() != comp.NumAtoms():
+                            self.opt['Logger'].info(
+                                "Detected steric-clashes between the ligand {} and component {}".format(
+                                    ligand_title,
+                                    comp_name))
+
+                            self.md_components.set_component_by_name(comp_name, comp)
+
+                complex_title = 'p' + self.md_components.get_title + '_l' + ligand_title
+
+                mdcomp = self.md_components.copy
+                mdcomp.set_title(complex_title)
+
+                # Check Ligand
+                lig_check = mdcomp.get_ligand
+                smi_lig_check = oechem.OECreateSmiString(lig_check)
+                smi_ligand = oechem.OECreateSmiString(ligand)
+
+                if smi_ligand != smi_lig_check:
+                    raise ValueError("Ligand IsoSmiles String check failure: {} vs {}".format(smi_lig_check, smi_ligand))
+
+                # the ligand is the primary molecule
                 new_record = OERecord(record)
 
-                new_record.set_value(Fields.flask, new_complex)
                 new_record.set_value(Fields.title, complex_title)
                 new_record.set_value(Fields.ligand, ligand)
-                new_record.set_value(Fields.protein, self.protein)
-                new_record.set_value(Fields.protein_name, self.protein_title)
+                new_record.set_value(Fields.protein, protein)
+
+                # Check Protein Name
+                if protein.GetTitle():
+                    protein_name = protein.GetTitle()
+                else:
+                    protein_name = "prot"
+
+                new_record.set_value(Fields.protein_name, protein_name)
+                new_record.set_value(Fields.md_components, mdcomp)
 
                 self.success.emit(new_record)
 

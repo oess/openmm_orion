@@ -26,7 +26,7 @@ from MDOrion.LigPrep.cubes import ParallelLigandChargeCube
 
 from MDOrion.System.cubes import IDSettingCube
 
-from MDOrion.ProtPrep.cubes import ProteinSetting
+from MDOrion.System.cubes import MDComponentCube
 
 from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
@@ -78,7 +78,6 @@ iprot = DatasetReaderCube("Protein Reader", title="Protein Reader")
 iprot.promote_parameter("data_in", promoted_name="protein", title="Protein Input File", description="Protein file name")
 
 complx = ComplexPrepCube("Complex")
-complx.set_parameters(lig_res_name='LIG')
 
 solvate = ParallelSolvationCube("Hydration", title='System Hydration')
 solvate.promote_parameter('density', promoted_name='density', default=1.03,
@@ -90,13 +89,9 @@ solvate.set_parameters(close_solvent=True)
 ff = ParallelForceFieldCube("ForceField", title="System Parametrization")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber99SBildn')
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff2')
-ff.promote_parameter('other_forcefield', promoted_name='other_ff', default='Gaff2')
-ff.set_parameters(lig_res_name='LIG')
 
-protset = ProteinSetting("ProteinSetting", title="Protein Setting")
-protset.promote_parameter("protein_title", promoted_name="protein_title", default="")
-protset.promote_parameter("protein_forcefield", promoted_name="protein_ff", default='Amber99SBildn')
-protset.promote_parameter("other_forcefield", promoted_name="other_ff", default='Gaff2')
+mdcomp = MDComponentCube("MDComponentSetting", title="MDComponentSetting")
+mdcomp.promote_parameter("flask_title", promoted_name="slack_title", default="")
 
 # Minimization
 minimize = ParallelMDMinimizeCube('minComplex', title="System Minimization")
@@ -111,15 +106,15 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
 
 job.add_cubes(iligs, chargelig, ligset, ligid,
-              iprot, protset, complx, solvate,
+              iprot, mdcomp, complx, solvate,
               ff, minimize, ofs, fail)
 
 iligs.success.connect(ligset.intake)
 ligset.success.connect(chargelig.intake)
 chargelig.success.connect(ligid.intake)
 ligid.success.connect(complx.intake)
-iprot.success.connect(protset.intake)
-protset.success.connect(complx.protein_port)
+iprot.success.connect(mdcomp.intake)
+mdcomp.success.connect(complx.protein_port)
 complx.success.connect(solvate.intake)
 solvate.success.connect(ff.intake)
 ff.success.connect(minimize.intake)

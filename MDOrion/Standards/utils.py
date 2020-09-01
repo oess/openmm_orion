@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -24,9 +24,11 @@ import parmed
 
 from MDOrion.MDEngines.utils import MDState
 
+from oemdtoolbox.ForceField.md_components import MDComponents
+
 import copy
 
-from orionclient.session import in_orion, APISession, OrionSession, get_session
+from orionclient.session import in_orion, OrionSession, get_session
 
 from orionclient.types import File
 
@@ -39,6 +41,9 @@ from orionclient.types import (Shard,
 
 from orionclient.helpers.collections import (try_hard_to_create_shard,
                                              try_hard_to_download_shard)
+
+
+from openeye import oechem
 
 
 class ParmedData(CustomHandler):
@@ -91,6 +96,60 @@ class MDStateData(CustomHandler):
     def deserialize(data):
         new_state = pickle.loads(bytes(data))
         return new_state
+
+
+class MDComponentData(CustomHandler):
+
+    @staticmethod
+    def get_name():
+        return 'MDComponents'
+
+    @classmethod
+    def validate(cls, value):
+        return isinstance(value, MDComponents)
+
+    @classmethod
+    def copy(cls, components):
+        return copy.deepcopy(components)
+
+    @staticmethod
+    def serialize(components):
+        pkl_obj = pickle.dumps(components)
+        return bytes(pkl_obj)
+
+    @staticmethod
+    def deserialize(components):
+        new_components = pickle.loads(bytes(components))
+        return new_components
+
+
+class DesignUnit(CustomHandler):
+
+    @staticmethod
+    def get_name():
+        return 'DesignUnit'
+
+    @classmethod
+    def validate(cls, value):
+        return isinstance(value, oechem.OEDesignUnit)
+
+    @classmethod
+    def copy(cls, value):
+        return copy.deepcopy(value)
+
+    @staticmethod
+    def serialize(du):
+        return oechem.OEWriteDesignUnitToBytes(du)
+
+    @staticmethod
+    def deserialize(du_bytes):
+
+        design_unit = oechem.OEDesignUnit()
+
+        if not oechem.OEReadDesignUnitFromBytes(design_unit, du_bytes):
+            raise ValueError("It was not possible to deserialize the Design Unit")
+
+        return design_unit
 
 
 def upload_file(filename, orion_ui_name='OrionFile'):

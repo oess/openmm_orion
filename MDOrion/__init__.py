@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -15,11 +15,11 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '1.0.0'
+__version__ = '2.0.0'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
-from . ForceField.cubes import ForceFieldCube
+from .ForceField.cubes import ForceFieldCube
 from .ForceField.cubes import ParallelForceFieldCube
 
 from .LigPrep.cubes import LigandChargeCube
@@ -36,24 +36,19 @@ from .MDEngines.cubes import ParallelMDNvtCube
 from .MDEngines.cubes import MDNptCube
 from .MDEngines.cubes import ParallelMDNptCube
 
-from .ProtPrep.cubes import ProteinSetting
-
 from .System.cubes import IDSettingCube
 from .System.cubes import SolvationCube
 from .System.cubes import ParallelSolvationCube
 from .System.cubes import CollectionSetting
+from .System.cubes import MDComponentCube
 
-from .TrjAnalysis.cubes import MDFloeReportCube
-from .TrjAnalysis.cubes import ParallelTrajToOEMolCube
-from .TrjAnalysis.cubes import ParallelTrajPBSACube
-from .TrjAnalysis.cubes import ParallelTrajInteractionEnergyCube
-from .TrjAnalysis.cubes import ParallelMDTrajAnalysisClusterReport
-from .TrjAnalysis.cubes import ParallelClusterOETrajCube
-from .TrjAnalysis.cubes import ConformerGatheringData
+from .TrjAnalysis.cubes_trajProcessing import (ConformerGatheringData,
+                                               ParallelTrajToOEMolCube,
+                                               ParallelTrajPBSACube,
+                                               ParallelTrajInteractionEnergyCube)
 
-# from .Yank.cubes import YankSolvationFECube
-# from .Yank.cubes import ParallelYankSolvationFECube
-
-# from .Yank.cubes import YankBindingFECube
-# from .Yank.cubes import ParallelYankBindingFECube
-
+from .TrjAnalysis.cubes_clusterAnalysis import (ParallelMDTrajAnalysisClusterReport,
+                                                ParallelClusterOETrajCube,
+                                                ParallelClusterPopAnalysis,
+                                                MDFloeReportCube,
+                                                ExtractMDDataCube)

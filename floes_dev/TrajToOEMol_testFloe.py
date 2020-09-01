@@ -22,7 +22,7 @@ from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.TrjAnalysis.cubes import ParallelTrajToOEMolCube
+from MDOrion.TrjAnalysis.cubes_trajProcessing import ParallelTrajToOEMolCube
 
 job = WorkFloe("Testing TrajToOEMol")
 

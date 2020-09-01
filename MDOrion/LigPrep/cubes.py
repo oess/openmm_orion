@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -17,11 +17,19 @@
 
 import traceback
 
-from MDOrion.LigPrep import ff_utils
+# from MDOrion.LigPrep import ff_utils
+
+from oemdtoolbox.ForceField import utils as ff_utils
 
 from floe.api import (parameters,
                       ComputeCube,
                       ParallelMixin)
+
+from datarecord import (Types,
+                        Meta,
+                        OEFieldMeta,
+                        OEField,
+                        OERecord)
 
 from oeommtools import utils as oeommutils
 
@@ -49,7 +57,7 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-       "memory_mb": {"default": 14000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -128,20 +136,24 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
 
     # Ligand Residue Name
     lig_res_name = parameters.StringParameter('lig_res_name',
-                                             default='LIG',
-                                             help_text='The new ligand residue name')
+                                              default='LIG',
+                                              help_text='The new ligand residue name')
 
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
         self.ligand_count = 0
 
-    def process(self, record, port):
+    def process(self, initialRecord, port):
         try:
-            if not record.has_value(Fields.primary_molecule):
+            if not initialRecord.has_value(Fields.primary_molecule):
                 raise ValueError("Missing Primary Molecule field")
 
-            ligand = record.get_value(Fields.primary_molecule)
+            ligand = initialRecord.get_value(Fields.primary_molecule)
+
+            # place the entire initial record as a sub-record, to be restored when conformer runs are gathered
+            record = OERecord()
+            record.set_value(Fields.ligInit_rec, initialRecord)
 
             if oechem.OECalculateMolecularWeight(ligand) > 900.0:  # Units are in Dalton
                 self.opt['Logger'].warn("[{}] The molecule {} seems to have a large molecular "
@@ -182,7 +194,7 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
             print("Failed to complete", str(e), flush=True)
             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
             self.log.error(traceback.format_exc())
-            self.failure.emit(record)
+            self.failure.emit(initialRecord)
 
 
 class ParallelLigandChargeCube(ParallelMixin, LigandChargeCube):

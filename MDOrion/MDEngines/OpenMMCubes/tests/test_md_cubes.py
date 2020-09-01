@@ -1,4 +1,4 @@
-# (C) 2019 OpenEye Scientific Software Inc. All rights reserved.
+# (C) 2020 OpenEye Scientific Software Inc. All rights reserved.
 #
 # TERMS FOR USE OF SAMPLE CODE The software below ("Sample Code") is
 # provided to current licensees or subscribers of OpenEye products or
@@ -261,6 +261,7 @@ class OmmNVTCubeTester(unittest.TestCase):
         self.cube.args.constraints = "H-Bonds"
         self.cube.args.trajectory_interval = 0.0
         self.cube.args.reporter_interval = 0.0
+        self.cube.args.hmr = False
         self._test_success()
 
 
@@ -339,6 +340,7 @@ class OmmNPTCubeTester(unittest.TestCase):
         self.cube.args.constraints = "H-Bonds"
         self.cube.args.trajectory_interval = 0.0
         self.cube.args.reporter_interval = 0.0
+        self.cube.args.hmr = False
 
         self._test_success()
 
