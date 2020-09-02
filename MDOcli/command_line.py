@@ -11,8 +11,6 @@ from datarecord import (Types,
                         OERecord,
                         Meta, OEFieldMeta)
 
-from datarecord.datarecord import RecordVecData, RecordData
-
 from orionclient.types import File, Shard, ShardCollection
 
 import os
@@ -275,6 +273,7 @@ def info_extraction(ctx):
     rec_size = 0
 
     def GetHumanReadable(size, precision=2):
+
         suffixes = ['B', 'KB', 'MB', 'GB', 'TB']
         suffixIndex = 0
 
@@ -301,9 +300,9 @@ def info_extraction(ctx):
             print("{} |".format(blank * (level + 1)))
             dis = "______"
 
-            if not field_type == RecordData and not field_type == RecordVecData:
+            if not field_type == Types.Record and not field_type == Types.RecordVec:
 
-                rec_size += record.get_value_size(field)
+                rec_size += len(record.get_bytes(field))
 
                 if (field.get_type() is Types.String or
                         field.get_type() is Types.Int or
@@ -315,15 +314,15 @@ def info_extraction(ctx):
                                                dis,
                                                field.get_name(),
                                                blank * (level + 1),
-                                               field.get_type(),
+                                               field.get_type_name(),
                                                blank * (level + 1),
                                                str(record.get_value(field))[0:30],
                                                blank * (level + 1),
-                                               GetHumanReadable(record.get_value_size(field))
+                                               GetHumanReadable(len(record.get_bytes(field)))
                                                ))
                 else:
                     try:
-                        size = GetHumanReadable(record.get_value_size(field))
+                        size = GetHumanReadable(len(record.get_bytes(field)))
                     except:
                         size = "None"
 
@@ -333,16 +332,16 @@ def info_extraction(ctx):
                                                dis,
                                                field.get_name(),
                                                blank * (level + 1),
-                                               field.get_type(),
+                                               field.get_type_name(),
                                                blank * (level + 1),
                                                size
                                                ))
 
-            elif field_type == RecordData:
+            elif field_type == Types.Record:
                 print("{} {} RECORD: {}".format(blank * (level + 1), dis, field.get_name()))
                 recursive_record(record.get_value(field), level + 1)
 
-            elif field_type == RecordVecData:
+            elif field_type == Types.RecordVec:
                 vec = record.get_value(field)
                 print("{} {} RECORD VECTOR: {} containing {} records".format(blank * (level + 1),
                                                                              dis,

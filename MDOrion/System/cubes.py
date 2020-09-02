@@ -468,7 +468,9 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
 
                 tot_size = 0
                 for field in record.get_fields():
-                    tot_size += record.get_value_size(field)
+
+                    tot_size += len(record.get_bytes(field))
+
                 if tot_size > 100 * 1024 * 1024:
                     raise ValueError("The record size exceeds the 100 MB: {}".format(get_human_readable(tot_size)))
                 else:
@@ -540,10 +542,7 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
 
             if record.has_value(Fields.design_unit_from_spruce):
 
-                du = oechem.OEDesignUnit()
-
-                if not oechem.OEReadDesignUnitFromBytes(du, record.get_value(Fields.design_unit_from_spruce)):
-                    raise ValueError("It was not possible Reading the Design Unit from the record")
+                du = record.get_value(Fields.design_unit_from_spruce)
 
                 self.opt['Logger'].info("[{}] Design Unit Detected".format(self.title))
 

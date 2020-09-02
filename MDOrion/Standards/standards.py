@@ -140,7 +140,8 @@ class Fields:
     design_unit = OEField('Design_Unit_OPLMD', DesignUnit)
 
     # Design Unit Field from Spruce
-    design_unit_from_spruce = OEField('du_single', Types.Blob)
+    # design_unit_from_spruce = OEField('du_single', Types.Blob)
+    design_unit_from_spruce = OEField('designunit', Types.Chem.DesignUnit)
 
     # MD Components
     md_components = OEField('MDComponents_OPLMD', MDComponentData)
