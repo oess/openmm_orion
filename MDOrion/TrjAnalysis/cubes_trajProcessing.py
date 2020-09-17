@@ -739,7 +739,7 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
                 lig_multi_conf = oechem.OEMol(rec0.get_value(Fields.ligand))
                 protein_name = rec0.get_value(Fields.protein_name)
 
-                # MD Components copied at the ligi top level
+                # MD Components copied at the ligand top level
                 new_rec.set_value(Fields.md_components, rec0.get_value(Fields.md_components))
 
                 # if >1 confs, add their confs to the parent ligand at the top level
