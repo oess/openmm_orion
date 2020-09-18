@@ -44,5 +44,5 @@
     "python_version": "3.7.7",
     "requirements": "requirements_dev.txt",
     "uuid": "8ad7e185-9b86-4112-a2e7-a367e5123e29",
-    "version": "3.0.0b2"
+    "version": "3.0.0b4"
 }
