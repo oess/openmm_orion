@@ -139,10 +139,15 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
                                               default='LIG',
                                               help_text='The new ligand residue name')
 
+    max_md_runs = parameters.IntegerParameter('max_md_runs',
+                                              default=500,
+                                              help_text='The maximum allowed number of md runs')
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
         self.ligand_count = 0
+        self.max_runs = 0
 
     def process(self, initialRecord, port):
         try:
@@ -188,6 +193,7 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
 
             self.success.emit(record)
             self.ligand_count += 1
+            self.max_runs += ligand.NumConfs()
 
         except Exception as e:
 
@@ -195,6 +201,15 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
             self.log.error(traceback.format_exc())
             self.failure.emit(initialRecord)
+
+    def end(self):
+
+        if self.max_runs > self.opt['max_md_runs']:
+            raise ValueError('IMPORTANT: The detected total number of md runs is greater than the '
+                             'max allowed md run setting: {} vs {}\n. If it is required to run '
+                             'all the detected flasks you have to increase the max_md_runs '
+                             'option. BE AWARE that the job total cost could be expensive'
+                             ''.format(self.max_runs, self.opt['max_md_runs']))
 
 
 class ParallelLigandChargeCube(ParallelMixin, LigandChargeCube):

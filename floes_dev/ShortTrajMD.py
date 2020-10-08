@@ -93,6 +93,9 @@ chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
                             description="Charge the ligand or not", default=True)
 
 ligset = LigandSetting("LigandSetting", title="Ligand Setting")
+ligset.promote_parameter('max_md_runs', promoted_name='max_md_runs',
+                         default=500,
+                         description='The maximum allowed number of md runs')
 ligset.set_parameters(lig_res_name='LIG')
 
 ligid = IDSettingCube("Ligand Ids")
