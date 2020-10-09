@@ -40,8 +40,7 @@ import os
 import traceback
 
 from datarecord import (Types,
-                        Meta,
-                        OEFieldMeta,
+                        OEPrimaryMolField,
                         OEField,
                         OERecord)
 
@@ -747,7 +746,11 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
                     lig_multi_conf.NewConf(rec.get_value(Fields.ligand))
 
                 # get name of initial molecule
-                init_mol = new_rec.get_value(OEField('Molecule', Types.Chem.Mol))
+                if new_rec.has_value(OEPrimaryMolField()):
+                    init_mol = new_rec.get_value(OEPrimaryMolField())
+                else:
+                    print('{} ConformerGatheringData: new_rec cannot find the OEPrimaryMolField'.format(sys_id) )
+                    continue
                 lig_title = init_mol.GetTitle()
                 lig_multi_conf.SetTitle(lig_title)
                 # regenerate protein-ligand title since all titles on conformers include conformer id
