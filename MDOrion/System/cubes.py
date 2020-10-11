@@ -436,6 +436,58 @@ class SolvationCube(RecordPortsMixin, ComputeCube):
         return
 
 
+class MixedSolventSolvationCube(SolvationCube):
+
+    title = "Mixed Solvent Solvation"
+    classification = [["System Preparation"]]
+    tags = ['Complex', 'Protein', 'Ligand', 'Solvation']
+    description = """
+    The mixed solvation cube solvates a given solute input system by a
+    periodic box of a selected mixture of solvents. The solvents can be specified by
+    a list of SMILES strings of each solvent component, being filled in with tip3p water.
+    For each component the user needs to specify its molar fractions as well,
+    with the leftover being used for the water.
+    The solution can be neutralized by adding counter-ions. In addition,
+    the ionic solution strength can be set adding salt. The cube
+    requires a record as input with a solute molecule to solvate
+    and produces an output record with the solvated solute.
+    """
+
+    uuid = None
+
+    solvents = parameters.StringParameter(
+        "solvents",
+        many=True,
+        required=True,
+        help_text="Select solvents. The solvents are specified as a list of SMILES strings"
+                  "e.g. [H]O[H], C(Cl)(Cl)Cl, CS(=O)C",
+    )
+
+    molar_fractions = parameters.DecimalParameter(
+        "molar_fractions",
+        default=[0.05],
+        max_value=1.0,
+        min_value=0.0,
+        many=True,
+        help_text="Molar fractions of each solvent components. The molar fractions are specified"
+                  "as a list of molar fractions e.g. [0.5, 0.2, 0.3]. Leftover fraction will be filled in with tip3p water"
+    )
+
+    def begin(self):
+        if len(self.args.solvents) != len(self.args.molar_fractions):
+            raise RuntimeError("Must provide same number of solvents and molar fractions")
+        super().begin()
+        leftover = 1.0 - sum(self.args.molar_fractions)
+        if leftover < 0:
+            raise RuntimeError("Molar fractions greater than 1.0")
+        self.opt["solvents"] = ",".join(str(x) for x in self.args.solvents)
+        self.opt["molar_fractions"] = ",".join(str(x) for x in self.args.molar_fractions)
+        if leftover != 0.0:
+            print("Solvating with {:.02f} water".format(leftover))
+            self.opt["solvents"] += ",tip3p"
+            self.opt["molar_fractions"] += ",{:.02f}".format(leftover)
+
+
 class RecordSizeCheck(RecordPortsMixin, ComputeCube):
     title = "Record Size Checking"
     # version = "0.1.4"
@@ -597,6 +649,11 @@ class ParallelSolvationCube(ParallelMixin, SolvationCube):
     title = "Parallel " + SolvationCube.title
     description = "(Parallel) " + SolvationCube.description
     uuid = "568ffd29-23e0-4d35-b37c-727596bedf92"
+
+
+class ParallelMixedSolventSolvationCube(ParallelMixin, MixedSolventSolvationCube):
+    title = "Parallel " + SolvationCube.title
+    description = "(Parallel) " + SolvationCube.description
 
 
 class ParallelRecordSizeCheck(ParallelMixin, RecordSizeCheck):
