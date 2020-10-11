@@ -4,4 +4,5 @@ include requirements_dev.txt
 include env.yaml
 include tasks.py
 
-graft floes
+graft floes/
+prune **/__pycache__
