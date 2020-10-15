@@ -35,7 +35,7 @@ from MDOrion.TrjAnalysis.water_utils import nmax_waters
 
 from openeye import oechem
 
-import os
+import os,math
 
 import traceback
 
@@ -45,6 +45,9 @@ from datarecord import (Types,
                         OERecord)
 
 from MDOrion.Standards.mdrecord import MDDataRecord
+
+# use a really large float as a magic number to replace NaNs to avoid Orion WriterCube errors
+magic_big_float_to_replace_NaN = 4.0e+256
 
 
 class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
@@ -380,8 +383,15 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 PBSAdata['OEZap_MMPBSA6_Bind'] = [eMMPB+eSA6 for eMMPB,eSA6 in
                                                   zip(PBSAdata['OEZap_MMPB_Bind'], PBSAdata['OEZap_SA6_Bind'])]
 
+            # list field and change any NaNs to a really big float
             for key in PBSAdata.keys():
-                opt['Logger'].info('TrajPBSACube PBSAdata[{}] length {}'.format(key, len(PBSAdata[key])))
+                opt['Logger'].info('{} TrajPBSACube PBSAdata[{}] of length {}'
+                                   .format(system_title,key,len(PBSAdata[key])) )
+                # change any NaNs to a really big float or else Orion WriterCube fails on JSON dict
+                for i, x in enumerate(PBSAdata[key]):
+                    if math.isnan(x):
+                        opt['Logger'].info('{} found a NaN at PBSAdata[{}][{}]'.format(system_title,key,i))
+                        PBSAdata[key][i] = magic_big_float_to_replace_NaN
 
             # Add the PBSAdata dict to the record
             record.set_value(Fields.Analysis.oepbsa_dict, PBSAdata)
@@ -486,6 +496,11 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
             for key in intEdata.keys():
                 opt['Logger'].info('{} traj intEdata[{}] of length {}'
                                    .format(system_title,key,len(intEdata[key])) )
+                # change any NaNs to a really big float or else Orion WriterCube fails on JSON dict
+                for i, x in enumerate(intEdata[key]):
+                    if math.isnan(x):
+                        opt['Logger'].info('{} found a NaN at intEdata[{}][{}]'.format(system_title,key,i))
+                        intEdata[key][i] = magic_big_float_to_replace_NaN
 
             # Add the intEdata dict to the record
             record.set_value(Fields.Analysis.oeintE_dict, intEdata)
