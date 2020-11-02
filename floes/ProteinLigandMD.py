@@ -46,7 +46,7 @@ job = WorkFloe('Solvate and Run Protein-Ligand MD', title='Solvate and Run Prote
 
 job.description = open(path.join(path.dirname(__file__), 'ProteinLigandMD_desc.rst'), 'r').read()
 
-job.classification = [['Molecular Dynamics']]
+job.classification = [['Specialized MD']]
 job.uuid = "ae561d76-a2b6-4d89-b621-b979f1930b40"
 job.tags = [tag for lists in job.classification for tag in lists]
 
@@ -55,6 +55,9 @@ iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
 iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset", description="Ligand Dataset")
 
 ligset = LigandSetting("LigandSetting", title="Ligand Setting")
+ligset.promote_parameter('max_md_runs', promoted_name='max_md_runs',
+                         default=500,
+                         description='The maximum allowed number of md runs')
 ligset.set_parameters(lig_res_name='LIG')
 
 chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")
@@ -83,7 +86,7 @@ coll_open.set_parameters(open=True)
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.2.0')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.0')
 
 # Protein Setting
 mdcomp = MDComponentCube("MD Components", title="MD Components")

@@ -76,6 +76,9 @@ iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
 iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset", description="Ligand Dataset")
 
 ligset = LigandSetting("LigandSetting", title="Ligand Setting")
+ligset.promote_parameter('max_md_runs', promoted_name='max_md_runs',
+                         default=500,
+                         description='The maximum allowed number of md runs')
 ligset.set_parameters(lig_res_name='LIG')
 
 chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")

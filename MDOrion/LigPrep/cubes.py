@@ -139,10 +139,15 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
                                               default='LIG',
                                               help_text='The new ligand residue name')
 
+    max_md_runs = parameters.IntegerParameter('max_md_runs',
+                                              default=500,
+                                              help_text='The maximum allowed number of md runs')
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
         self.ligand_count = 0
+        self.max_runs = 0
 
     def process(self, initialRecord, port):
         try:
@@ -155,12 +160,11 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
             record = OERecord()
             record.set_value(Fields.ligInit_rec, initialRecord)
 
-            if oechem.OECalculateMolecularWeight(ligand) > 900.0:  # Units are in Dalton
-                self.opt['Logger'].warn("[{}] The molecule {} seems to have a large molecular "
-                                        "weight for a ligand: {:.2f} Da"
-                                        .format(self.title,
-                                                ligand.GetTitle(),
-                                                oechem.OECalculateMolecularWeight(ligand)))
+            if oechem.OECalculateMolecularWeight(ligand) > 1500.0:  # Units are in Dalton
+                raise ValueError("[{}] The molecule {} seems to have a large molecular weight for a "
+                                 "ligand: {:.2f} Da)".format(self.title,
+                                                             ligand.GetTitle(),
+                                                             oechem.OECalculateMolecularWeight(ligand)))
 
             # Removing Interaction Hint Container, Style and PDB Data
             oechem.OEDeleteInteractionsHintSerializationData(ligand)
@@ -188,6 +192,7 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
 
             self.success.emit(record)
             self.ligand_count += 1
+            self.max_runs += ligand.NumConfs()
 
         except Exception as e:
 
@@ -195,6 +200,15 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
             self.log.error(traceback.format_exc())
             self.failure.emit(initialRecord)
+
+    def end(self):
+
+        if self.max_runs > self.opt['max_md_runs']:
+            raise ValueError('IMPORTANT: The detected total number of md runs is greater than the '
+                             'max allowed md run setting: {} vs {}\n. If it is required to run '
+                             'all the detected flasks you have to increase the max_md_runs '
+                             'option. BE AWARE that the job total cost could be expensive'
+                             ''.format(self.max_runs, self.opt['max_md_runs']))
 
 
 class ParallelLigandChargeCube(ParallelMixin, LigandChargeCube):
