@@ -247,7 +247,7 @@ class Fields:
             # Oriented Edge field for relative free energy calculations
             # The first integer of the list is the ligand ID of the starting
             # thermodynamic state and the second the final one
-            edgeid = OEField("EdgeID_OPLMD", Types.Int, meta=_metaHidden)
+            edgeid = OEField("EdgeID_OPLMD", Types.IntVec, meta=_metaHidden)
             edge_name = OEField("EdgeName_OPLMD", Types.String)
 
             # The Thermodynamics leg type is used for Bound and

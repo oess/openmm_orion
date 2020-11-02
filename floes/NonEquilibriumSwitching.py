@@ -21,7 +21,8 @@ from MDOrion.System.cubes import MDComponentCube
 
 from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
-from MDOrion.FEC.RFEC.cubes import BoundUnboundSwitchCube
+from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
+                                    RBFECMapping)
 
 job = WorkFloe("Relative Binding Affinity with NES", title="Non Equilibrium Switching")
 
@@ -52,6 +53,9 @@ iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input 
 
 ligset = LigandSetting("Ligand Setting", title="Ligand Setting")
 ligset.set_parameters(lig_res_name='LIG')
+
+rbfec_map = RBFECMapping("Edge Mapping", title="Edge Mapping")
+rbfec_map.promote_parameter("map_file", promoted_name="map")
 
 chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")
 chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
@@ -99,7 +103,7 @@ prod_uns.promote_parameter('time', promoted_name='prod_us_ns', default=6.0,
 prod_uns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=80,
                            description='Total number of trajectory frames used in the NES calculation')
 prod_uns.promote_parameter('hmr', promoted_name="hmr_us", title='Use Hydrogen Mass Repartitioning '
-                                                                'in the Unbound simulation', default=False,
+                                                                'in the Unbound simulation', default=True,
                            description='Give hydrogens more mass to speed up the MD')
 prod_uns.set_parameters(md_engine='OpenMM')
 prod_uns.set_parameters(reporter_interval=0.002)
@@ -112,7 +116,7 @@ minimize_uns.set_parameters(md_engine='OpenMM')
 minimize_uns.set_parameters(steps=2000)
 minimize_uns.set_parameters(restraintWt=5.0)
 minimize_uns.set_parameters(center=True)
-minimize_uns.promote_parameter("hmr", promoted_name="hmr_us")
+minimize_uns.set_parameters(hmr=False)
 
 # NVT Warm-up of the Unbound-States
 warmup_uns = ParallelMDNvtCube('Warmup Unbound States', title='Warmup Unbound States')
@@ -123,12 +127,12 @@ warmup_uns.set_parameters(restraintWt=2.0)
 warmup_uns.set_parameters(trajectory_interval=0.0)
 warmup_uns.set_parameters(reporter_interval=0.002)
 warmup_uns.set_parameters(suffix='warmup_un')
-warmup_uns.promote_parameter("hmr", promoted_name="hmr_us")
+warmup_uns.set_parameters(hmr=False)
 
 # NPT Equilibration stage of the Unbound-States
 equil_uns = ParallelMDNptCube('Equilibration Unbond States', title='Equilibration Unbond States')
 equil_uns.set_parameters(time=1)
-equil_uns.promote_parameter("hmr", promoted_name="hmr_us")
+equil_uns.promote_parameter("hmr", promoted_name="hmr_us", default=True)
 equil_uns.set_parameters(restraints="noh ligand")
 equil_uns.set_parameters(md_engine='OpenMM')
 equil_uns.set_parameters(restraintWt=0.1)
@@ -146,7 +150,7 @@ prod_bns.promote_parameter('time', promoted_name='prod_bs_ns', default=6.0,
 prod_bns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_bs_frames', default=80,
                            description='Total number of trajectory frames used in the NES calculation')
 prod_bns.promote_parameter('hmr', promoted_name="hmr_bs", title='Use Hydrogen Mass Repartitioning '
-                                                                'in the Bound simulation', default=False,
+                                                                'in the Bound simulation', default=True,
                            description='Give hydrogens more mass to speed up the MD')
 prod_bns.set_parameters(md_engine='OpenMM')
 prod_bns.set_parameters(reporter_interval=0.002)
@@ -160,7 +164,7 @@ minimize_bns.set_parameters(md_engine='OpenMM')
 minimize_bns.set_parameters(steps=2000)
 minimize_bns.set_parameters(center=True)
 minimize_bns.set_parameters(save_md_stage=True)
-minimize_bns.promote_parameter('hmr', promoted_name="hmr_bs")
+minimize_bns.set_parameters(hmr=False)
 minimize_bns.set_parameters()
 
 # NVT Warm-up of the Unbound-States
@@ -172,7 +176,7 @@ warmup_bns.set_parameters(md_engine='OpenMM')
 warmup_bns.set_parameters(trajectory_interval=0.0)
 warmup_bns.set_parameters(reporter_interval=0.001)
 warmup_bns.set_parameters(suffix='warmup_bn')
-warmup_bns.promote_parameter("hmr", promoted_name="hmr_bs")
+warmup_bns.set_parameters(hmr=False)
 warmup_bns.set_parameters(save_md_stage=True)
 
 # The system is equilibrated at the right pressure and temperature in 3 stages
@@ -183,7 +187,7 @@ warmup_bns.set_parameters(save_md_stage=True)
 # NPT Bound Equilibration stage 1
 equil1_bns = ParallelMDNptCube('equil1_bns', title='Equilibration I Bound States')
 equil1_bns.set_parameters(time=0.01)
-equil1_bns.promote_parameter("hmr", promoted_name="hmr_bs")
+equil1_bns.promote_parameter("hmr", promoted_name="hmr_bs", default=True)
 equil1_bns.modify_parameter(equil1_bns.restraints, promoted=False, default="noh (ligand or protein)")
 equil1_bns.modify_parameter(equil1_bns.restraintWt, promoted=False, default=2.0)
 equil_uns.set_parameters(md_engine='OpenMM')
@@ -194,7 +198,7 @@ equil1_bns.set_parameters(suffix='equil1_bn')
 # NPT Bound Equilibration stage 2
 equil2_bns = ParallelMDNptCube('equil2_bs', title='Equilibration II Bound States')
 equil2_bns.set_parameters(time=0.02)
-equil2_bns.promote_parameter("hmr", promoted_name="hmr_bs")
+equil2_bns.promote_parameter("hmr", promoted_name="hmr_bs", default=True)
 equil2_bns.modify_parameter(equil2_bns.restraints, promoted=False, default="noh (ligand or protein)")
 equil2_bns.modify_parameter(equil2_bns.restraintWt, promoted=False, default=0.5)
 equil2_bns.set_parameters(md_engine='OpenMM')
@@ -205,7 +209,7 @@ equil2_bns.set_parameters(suffix='equil2_bs')
 # NPT Bound Equilibration stage 3
 equil3_bns = ParallelMDNptCube('equil3_bs', title='Equilibration III Bound States')
 equil3_bns.set_parameters(time=0.03)
-equil3_bns.promote_parameter("hmr", promoted_name="hmr_bs")
+equil3_bns.promote_parameter("hmr", promoted_name="hmr_bs", default=True)
 equil3_bns.modify_parameter(equil3_bns.restraints, promoted=False, default="ca_protein or (noh ligand)")
 equil3_bns.modify_parameter(equil3_bns.restraintWt, promoted=False, default=0.1)
 equil3_bns.set_parameters(md_engine='OpenMM')
@@ -224,11 +228,11 @@ job.add_group(md_group_bs)
 
 ofs_lig = DatasetWriterCube('ofs_lig', title='MD Ligand Out')
 ofs_lig.promote_parameter("data_out", promoted_name="out_lig",
-                      title="MD Out", description="MD Ligand Dataset out")
+                          title="MD Out", description="MD Ligand Dataset out")
 
 ofs_prot = DatasetWriterCube('ofs_prot', title='MD Protein Out')
 ofs_prot.promote_parameter("data_out", promoted_name="out_prot",
-                      title="MD Out", description="MD Protein Dataset out")
+                           title="MD Out", description="MD Protein Dataset out")
 
 
 # fail = DatasetWriterCube('fail', title='Failures')
@@ -236,7 +240,7 @@ ofs_prot.promote_parameter("data_out", promoted_name="out_prot",
 #                        description="MD Dataset Failures out")
 
 
-job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
+job.add_cubes(iligs, ligset, rbfec_map, chargelig, ligid, md_lig_components, coll_open,
               iprot, md_prot_components, complx, solvate, ff, switch,
               minimize_uns, warmup_uns, equil_uns, prod_uns,
               minimize_bns, warmup_bns, equil1_bns,
@@ -245,7 +249,8 @@ job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
 
 # Ligand Setting
 iligs.success.connect(ligset.intake)
-ligset.success.connect(chargelig.intake)
+ligset.success.connect(rbfec_map.intake)
+rbfec_map.success.connect(chargelig.intake)
 chargelig.success.connect(ligid.intake)
 ligid.success.connect(md_lig_components.intake)
 md_lig_components.success.connect(coll_open.intake)

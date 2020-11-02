@@ -53,3 +53,7 @@ from .TrjAnalysis.cubes_clusterAnalysis import (ParallelMDTrajAnalysisClusterRep
                                                 ParallelClusterPopAnalysis,
                                                 MDFloeReportCube,
                                                 ExtractMDDataCube)
+
+from .FEC.RFEC.cubes import (BoundUnboundSwitchCube,
+                             RBFECMapping,
+                             RBFECEdgeGathering)

@@ -94,7 +94,7 @@ class BoundUnboundSwitchCube(RecordPortsMixin, ComputeCube):
 
 class RBFECMapping(RecordPortsMixin, ComputeCube):
     title = "RBFEC Edge Mapping"
-
+    # version = "0.1.4"
     classification = [["Relative Free Energy"]]
     tags = ['Ligand', 'Edge Mapping']
     description = """
@@ -107,6 +107,7 @@ class RBFECMapping(RecordPortsMixin, ComputeCube):
     lig_i_name >> lig_j_name
     ....
 
+
     Input:
     -------
     Data record Stream - Streamed-in of the ligand molecules
@@ -118,11 +119,111 @@ class RBFECMapping(RecordPortsMixin, ComputeCube):
     been paired to run relative binding free energy calculations.
     """
 
-    uuid = "5b9f7b2f-68e8-4541-a0b7-ddbe6084923f"
+    uuid = "e079546e-a9e7-4d1b-875e-cd180b785992"
 
     # Override defaults for some parameters
     parameter_overrides = {
         "memory_mb": {"default": 2000},
+        "spot_policy": {"default": "Prohibited"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    map_file = FileInputParameter("map_file", title="RBFEC Mapping file",
+                                  description="RBFEC mapping file", required=True,
+                                  default=None)
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+        self.A_State = list()
+        self.B_State = list()
+        self.ligand_names = list()
+        self.ligand_dic = dict()
+
+        file = list(self.args.map_file)
+        for file_obj in file:
+            with TemporaryPath() as path:
+                file_obj.copy_to(path)
+                with open(path, "r") as f:
+                    map_list = f.readlines()
+
+        if not map_list:
+            raise IOError("Map file is empty {}")
+
+        for m in map_list:
+
+            if not m:
+                continue
+
+            # Comment
+            if m.startswith(";"):
+                continue
+
+            expr = utils.edge_map_grammar(m)
+
+            if len(expr) > 3:
+                raise ValueError("Syntax Error Map File: {}".format(expr))
+
+            self.A_State.append(expr[0])
+            self.B_State.append(expr[2])
+
+    def process(self, record, port):
+        try:
+            lig_name = record.get_value(Fields.ligand_name)
+
+            if lig_name in self.ligand_names:
+                raise ValueError("All ligands must have different names. Duplicate: {}".format(lig_name))
+            else:
+                self.ligand_names.append(lig_name)
+
+            self.ligand_dic[lig_name] = record
+
+            return
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
+
+    def end(self):
+        try:
+            state_A_set = set(self.A_State)
+            state_B_set = set(self.B_State)
+            state_AB_set = state_A_set.union(state_B_set)
+
+            if not state_AB_set:
+                raise ValueError("The provide map will not produce any edge with the provided ligands")
+
+            for lig_name in state_AB_set:
+                if lig_name in self.ligand_dic:
+                    rec = self.ligand_dic[lig_name]
+                    self.success.emit(rec)
+                else:
+                    raise ValueError("The following ligand name has not been found: {}".format(lig_name))
+
+        except Exception as e:
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+
+
+class RBFECEdgeGathering(RecordPortsMixin, ComputeCube):
+    title = "RBFEC Edge Gathering"
+
+    classification = [["Relative Free Energy"]]
+    tags = ['Ligand', 'Edge Mapping']
+    description = """
+    TBD
+    """
+
+    uuid = "5b9f7b2f-68e8-4541-a0b7-ddbe6084923f"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
