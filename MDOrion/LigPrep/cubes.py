@@ -160,12 +160,11 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
             record = OERecord()
             record.set_value(Fields.ligInit_rec, initialRecord)
 
-            if oechem.OECalculateMolecularWeight(ligand) > 900.0:  # Units are in Dalton
-                self.opt['Logger'].warn("[{}] The molecule {} seems to have a large molecular "
-                                        "weight for a ligand: {:.2f} Da"
-                                        .format(self.title,
-                                                ligand.GetTitle(),
-                                                oechem.OECalculateMolecularWeight(ligand)))
+            if oechem.OECalculateMolecularWeight(ligand) > 1500.0:  # Units are in Dalton
+                raise ValueError("[{}] The molecule {} seems to have a large molecular weight for a "
+                                 "ligand: {:.2f} Da)".format(self.title,
+                                                             ligand.GetTitle(),
+                                                             oechem.OECalculateMolecularWeight(ligand)))
 
             # Removing Interaction Hint Container, Style and PDB Data
             oechem.OEDeleteInteractionsHintSerializationData(ligand)
