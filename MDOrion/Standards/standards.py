@@ -247,7 +247,7 @@ class Fields:
             # Oriented Edge field for relative free energy calculations
             # The first integer of the list is the ligand ID of the starting
             # thermodynamic state and the second the final one
-            edgeid = OEField("EdgeID_OPLMD", Types.IntVec, meta=_metaHidden)
+            edgeid = OEField("EdgeID_OPLMD", Types.Int, meta=_metaHidden)
             edge_name = OEField("EdgeName_OPLMD", Types.String)
 
             # The Thermodynamics leg type is used for Bound and
@@ -256,8 +256,8 @@ class Fields:
 
             class NESC:
 
-                state_A = OEField("StateA_OPLMD", Types.Record)
-                state_B = OEField("StateB_OPLMD", Types.Record)
+                state_A = OEField("StateA_OPLMD", Types.RecordVec)
+                state_B = OEField("StateB_OPLMD", Types.RecordVec)
 
                 gmx_top = OEField("GMX_Top_OPLMD", Types.String, meta=_metaHidden)
                 gmx_gro = OEField("GMX_Gro_OPLMD", Types.String, meta=_metaHidden)
@@ -273,9 +273,3 @@ class Fields:
                 # different analysis methods used to compute it
                 DDG_rec = OEField("DDG_Record_OPLMD", Types.Record)
 
-
-# def get_meta_attributes(record, field_name):
-#     field_with_meta = record.get_field(field_name, include_meta=True)
-#     meta_from_field = field_with_meta.get_meta()
-#     meta_dict = meta_from_field.to_dict()
-#     return meta_dict
