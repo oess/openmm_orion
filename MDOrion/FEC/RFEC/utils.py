@@ -30,5 +30,16 @@ def edge_map_grammar(word):
     # print(expr)
 
     return expr
+def parmed_find_ligand(pmd, lig_res_name="LIG"):
+    pmd_split = pmd.split()
 
+    # print(pmd_split)
 
+    for idx in range(0, len(pmd_split)):
+        pmd_struc = pmd_split[idx][0]
+
+        for res in pmd_struc.residues:
+            if res.name == lig_res_name:
+                return pmd_struc, idx
+
+    return None, None

@@ -35,6 +35,10 @@ from MDOrion.FEC.RFEC import utils
 
 from datarecord import OERecord
 
+from oemdtoolbox.FEC.RBFEC.chimera import Chimera
+
+from MDOrion.FEC.RFEC.utils import parmed_find_ligand
+
 
 class BoundUnboundSwitchCube(RecordPortsMixin, ComputeCube):
     title = "Bound and UnBound Switching Cube"
@@ -384,6 +388,78 @@ class RBFECEdgeGathering(RecordPortsMixin, ComputeCube):
             self.opt['Logger'].warn("The UnBound edge list is not empty :{}".format(self.Unbound_edges))
 
         return
+
+
+class GMXChimera(RecordPortsMixin, ComputeCube):
+    title = "GMX Chimera"
+
+    classification = [["Relative Free Energy"]]
+    tags = ['Ligand', 'Edge Mapping']
+    description = """
+    TBD
+    """
+
+    uuid = "0ccfad69-bada-48fa-a890-348d7784d7ea"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 14000},
+        "spot_policy": {"default": "Allowed"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+
+    def process(self, record, port):
+        try:
+            rec_list_state_A = record.get_value(Fields.FEC.RBFEC.NESC.state_A)
+            rec_list_state_B = record.get_value(Fields.FEC.RBFEC.NESC.state_B)
+
+            print(record.get_value(Fields.FEC.RBFEC.edge_name))
+
+            lig_A = rec_list_state_A[1].get_value(Fields.md_components).get_ligand
+            lig_B = rec_list_state_B[1].get_value(Fields.md_components).get_ligand
+
+            pmd_flask_A = rec_list_state_A[1].get_value(Fields.pmd_structure)
+            pmd_flask_B = rec_list_state_B[1].get_value(Fields.pmd_structure)
+
+            pmd_lig_A, idxA = parmed_find_ligand(pmd_flask_A)
+            pmd_lig_B, idxB = parmed_find_ligand(pmd_flask_B)
+
+            if pmd_lig_A is None:
+                raise ValueError("It was not possible to extract the ligand parmed from the state A")
+
+            if pmd_lig_B is None:
+                raise ValueError("It was not possible to extract the ligand parmed from the state B")
+
+            chimera = Chimera(lig_A, lig_B, pmd_lig_A, pmd_lig_B)
+
+            pmd_chimera_A_to_B_initial, pmd_chimera_A_to_B_final = chimera.pmd_chimera(morph="A_to_B")
+            pmd_chimera_B_to_A_initial, pmd_chimera_B_to_A_final = chimera.pmd_chimera(morph="B_to_A")
+
+            # pmd_flask_A.save("flaskA.pdb", overwrite=True)
+            # pmd_chimera_A_to_B_initial.save("chimera_ligA.mol2", overwrite=True)
+
+
+            import sys
+            sys.exit(-1)
+
+            self.success.emit(rec_list_state_A[0])
+
+        except Exception as e:
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
+
+
+
+
+
+
 
 
 # class RBFECEdgeGathering(RecordPortsMixin, ComputeCube):
