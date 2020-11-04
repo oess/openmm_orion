@@ -441,7 +441,8 @@ def HtmlMakeClusterPopTables(popResults):
     # print(vals)
     strVals = [['{:.0%}'.format(vals[i][j]) for j in range(nMajorPlus1)] for i in range(nConfs)]
     # format column and row names
-    poseNames = ['Pose ' + str(i) + ' :' for i in range(nConfs)]
+    nPoseToPoseID = popResults['nPoseToPoseID']
+    poseNames = ['Pose ' + str(nPoseToPoseID[i]) + ' :' for i in range(nConfs)]
     # print(poseNames)
     colNames = ['Pose']
     for i in range(nMajorPlus1):

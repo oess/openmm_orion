@@ -1,4 +1,5 @@
 # PIP
+awscli==1.18.168
 attrs==18.2.0
 invoke==1.2.0
 pip==18.0
@@ -7,6 +8,7 @@ six==1.12.0
 wcwidth==0.1.7
 lxml==4.5.0
 sphinxcontrib-bibtex==1.0.0
+twine==3.2.0
 
 # OE Stack
 # Leave this here to avoid pip install issues
@@ -15,7 +17,8 @@ OpenEye-orionplatform==3.1.0dev10
 # # OpenEye-Artemis
 OpenEye-ensemble2img==0.1.1
 OpenEye-floereport==0.1.7
-OpenEye_oetrajanalysis==0.7.0b4
-openeye-oemdtoolbox==1.0.6
+OpenEye_oetrajanalysis==0.7.0b5
+openeye-oemdtoolbox==1.0.7
 Openeye-toolkits==2020.1.1b2
+
 

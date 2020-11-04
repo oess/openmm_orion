@@ -129,7 +129,7 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                                     ligand_title,
                                     comp_name))
 
-                            self.md_components.set_component_by_name(comp_name, comp)
+                            self.md_components.set_component_by_name(comp_name, comp_del)
 
                 complex_title = 'p' + self.md_components.get_title + '_l' + ligand_title
 
