@@ -21,7 +21,8 @@ from orionplatform.mixins import RecordPortsMixin
 from orionplatform.ports import (RecordInputPort,
                                  RecordOutputPort)
 
-from floe.api import ComputeCube
+from floe.api import (parameters,
+                      ComputeCube)
 
 from MDOrion.Standards.standards import Fields
 
@@ -37,7 +38,11 @@ from datarecord import OERecord
 
 from oemdtoolbox.FEC.RBFEC.chimera import Chimera
 
+from MDOrion.FEC.RFEC.utils import gmx_chimera_topology_injection
+
 from MDOrion.FEC.RFEC.utils import parmed_find_ligand
+
+from MDOrion.Standards.mdrecord import MDDataRecord
 
 
 class BoundUnboundSwitchCube(RecordPortsMixin, ComputeCube):
@@ -403,11 +408,16 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 14000},
+        "memory_mb": {"default": 32000},
         "spot_policy": {"default": "Allowed"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
+
+    # Ligand Residue Name
+    lig_res_name = parameters.StringParameter('lig_res_name',
+                                              default='LIG',
+                                              help_text='The new ligand residue name')
 
     def begin(self):
         self.opt = vars(self.args)
@@ -420,14 +430,23 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
 
             print(record.get_value(Fields.FEC.RBFEC.edge_name))
 
-            lig_A = rec_list_state_A[1].get_value(Fields.md_components).get_ligand
-            lig_B = rec_list_state_B[1].get_value(Fields.md_components).get_ligand
+            md_record_state_A_Bound = MDDataRecord(rec_list_state_A[0])
+            md_record_state_B_Bound = MDDataRecord(rec_list_state_B[0])
 
-            pmd_flask_A = rec_list_state_A[1].get_value(Fields.pmd_structure)
-            pmd_flask_B = rec_list_state_B[1].get_value(Fields.pmd_structure)
+            md_record_state_A_Unbound = MDDataRecord(rec_list_state_A[1])
+            md_record_state_B_Unbound = MDDataRecord(rec_list_state_B[1])
 
-            pmd_lig_A, idxA = parmed_find_ligand(pmd_flask_A)
-            pmd_lig_B, idxB = parmed_find_ligand(pmd_flask_B)
+            lig_A = md_record_state_A_Unbound.get_md_components.get_ligand
+            lig_B = md_record_state_B_Unbound.get_md_components.get_ligand
+
+            pmd_flask_state_A_Unbound = md_record_state_A_Unbound.get_parmed(sync_stage_name="System Parametrization")
+            pmd_flask_state_B_Unbound = md_record_state_B_Unbound.get_parmed(sync_stage_name="System Parametrization")
+
+            pmd_flask_state_A_Bound = md_record_state_A_Bound.get_parmed(sync_stage_name="System Parametrization")
+            pmd_flask_state_B_Bound = md_record_state_B_Bound.get_parmed(sync_stage_name="System Parametrization")
+
+            pmd_lig_A, idxA = parmed_find_ligand(pmd_flask_state_A_Unbound)
+            pmd_lig_B, idxB = parmed_find_ligand(pmd_flask_state_B_Unbound)
 
             if pmd_lig_A is None:
                 raise ValueError("It was not possible to extract the ligand parmed from the state A")
@@ -440,14 +459,33 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
             pmd_chimera_A_to_B_initial, pmd_chimera_A_to_B_final = chimera.pmd_chimera(morph="A_to_B")
             pmd_chimera_B_to_A_initial, pmd_chimera_B_to_A_final = chimera.pmd_chimera(morph="B_to_A")
 
-            # pmd_flask_A.save("flaskA.pdb", overwrite=True)
-            # pmd_chimera_A_to_B_initial.save("chimera_ligA.mol2", overwrite=True)
+            gmx_A_to_B_Unbound = gmx_chimera_topology_injection(pmd_flask_state_A_Unbound,
+                                                                pmd_chimera_A_to_B_initial,
+                                                                pmd_chimera_A_to_B_final)
 
+            gmx_B_to_A_Unbound = gmx_chimera_topology_injection(pmd_flask_state_B_Unbound,
+                                                                pmd_chimera_B_to_A_initial,
+                                                                pmd_chimera_B_to_A_final)
+
+            gmx_A_to_B_Bound = gmx_chimera_topology_injection(pmd_flask_state_A_Bound,
+                                                              pmd_chimera_A_to_B_initial,
+                                                              pmd_chimera_A_to_B_final)
+
+            gmx_B_to_A_Bound = gmx_chimera_topology_injection(pmd_flask_state_B_Bound,
+                                                              pmd_chimera_B_to_A_initial,
+                                                              pmd_chimera_B_to_A_final)
 
             import sys
             sys.exit(-1)
 
+
+
             self.success.emit(rec_list_state_A[0])
+
+            del md_record_state_A_Bound
+            del md_record_state_B_Bound
+            del md_record_state_A_Unbound
+            del md_record_state_B_Unbound
 
         except Exception as e:
             print("Failed to complete", str(e), flush=True)
