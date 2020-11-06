@@ -219,6 +219,7 @@ analysis_group = ParallelCubeGroup(cubes=[catLigTraj, catLigMMPBSA, clusCube, cl
 job.add_group(analysis_group)
 
 report = MDFloeReportCube("report", title="Floe Report")
+report.set_parameters(floe_report_title="STMDA Report")
 
 # This cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")

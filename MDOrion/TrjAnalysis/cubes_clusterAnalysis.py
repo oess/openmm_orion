@@ -90,6 +90,8 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
+    floe_report_title = parameters.StringParameter("floe_report_title", default="MD Report")
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -97,9 +99,9 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
 
         if in_orion():
             job_id = environ.get('ORION_JOB_ID')
-            self.floe_report = FloeReport.start_report("floe_report", job_id=job_id)
+            self.floe_report = FloeReport.start_report(self.opt['floe_report_title'], job_id=job_id)
         else:
-            self.floe_report = LocalFloeReport.start_report("floe_report")
+            self.floe_report = LocalFloeReport.start_report(self.opt['floe_report_title'])
 
     def process(self, record, port):
 
