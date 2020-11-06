@@ -27,6 +27,14 @@ from tempfile import TemporaryDirectory
 
 from oemdtoolbox.FEC.RBFEC.chimera import Chimera
 
+from MDOrion.Standards.standards import Fields
+
+from datarecord import Meta
+
+import mdtraj as md
+
+import h5py
+
 
 def edge_map_grammar(word):
 
@@ -126,3 +134,50 @@ def gmx_chimera_topology_injection(pmd_flask, pmd_chimera_start, pmd_chimera_fin
 
     return gmx_out
 
+
+def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames):
+
+    def extract_trj_velocities(trj_fn, trj_type="OpenMM"):
+        if trj_type == "OpenMM":
+            f = h5py.File(trj_fn, 'r')
+
+            velocities = f.get('velocities').value
+
+            f.close()
+
+        # TODO MISSING GMX PART
+
+        return velocities
+
+    md_components = mdrecord.get_components
+    set_up_flask, map_dic = md_components.create_flask
+    ligand = md_components.get_ligand
+    lig_idx = map_dic['ligand']
+
+    stg_name = 'last'
+    stage = mdrecord.get_stage_by_name(stg_name)
+
+    trj_field = stage.get_field(Fields.trajectory.get_name())
+    trj_meta = trj_field.get_meta()
+    md_engine = trj_meta.get_attribute(Meta.Annotation.Description)
+
+    trj_fn = mdrecord.get_stage_trajectory(stg_name=stg_name)
+
+    # Velocities array shape = (frame, atoms, 3) units nm/ps
+    # TODO MISSING GMX PART FROM EQUILIBRIUM SIMULATION
+    velocities = extract_trj_velocities(trj_fn, trj_type=md_engine)
+
+    trj = md.load(trj_fn)
+    pmd_flask = mdrecord.get_parmed(sync_stage_name=stg_name)
+
+
+
+
+
+
+
+
+
+
+
+    return

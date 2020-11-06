@@ -38,7 +38,8 @@ from datarecord import OERecord
 
 from oemdtoolbox.FEC.RBFEC.chimera import Chimera
 
-from MDOrion.FEC.RFEC.utils import gmx_chimera_topology_injection
+from MDOrion.FEC.RFEC.utils import (gmx_chimera_topology_injection,
+                                    gmx_chimera_coordinate_injection)
 
 from MDOrion.FEC.RFEC.utils import parmed_find_ligand
 
@@ -419,6 +420,11 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                                               default='LIG',
                                               help_text='The new ligand residue name')
 
+    trajectory_frames = parameters.IntegerParameter(
+        'trajectory_frames',
+        default=80,
+        help_text="The total number of trajectory frames to run NES")
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -459,21 +465,30 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
             pmd_chimera_A_to_B_initial, pmd_chimera_A_to_B_final = chimera.pmd_chimera(morph="A_to_B")
             pmd_chimera_B_to_A_initial, pmd_chimera_B_to_A_final = chimera.pmd_chimera(morph="B_to_A")
 
-            gmx_A_to_B_Unbound = gmx_chimera_topology_injection(pmd_flask_state_A_Unbound,
-                                                                pmd_chimera_A_to_B_initial,
-                                                                pmd_chimera_A_to_B_final)
+            gmx_top_A_to_B_Unbound = gmx_chimera_topology_injection(pmd_flask_state_A_Unbound,
+                                                                    pmd_chimera_A_to_B_initial,
+                                                                    pmd_chimera_A_to_B_final)
 
-            gmx_B_to_A_Unbound = gmx_chimera_topology_injection(pmd_flask_state_B_Unbound,
-                                                                pmd_chimera_B_to_A_initial,
-                                                                pmd_chimera_B_to_A_final)
+            gmx__top_B_to_A_Unbound = gmx_chimera_topology_injection(pmd_flask_state_B_Unbound,
+                                                                     pmd_chimera_B_to_A_initial,
+                                                                     pmd_chimera_B_to_A_final)
 
-            gmx_A_to_B_Bound = gmx_chimera_topology_injection(pmd_flask_state_A_Bound,
-                                                              pmd_chimera_A_to_B_initial,
-                                                              pmd_chimera_A_to_B_final)
+            gmx_top_A_to_B_Bound = gmx_chimera_topology_injection(pmd_flask_state_A_Bound,
+                                                                  pmd_chimera_A_to_B_initial,
+                                                                  pmd_chimera_A_to_B_final)
 
-            gmx_B_to_A_Bound = gmx_chimera_topology_injection(pmd_flask_state_B_Bound,
-                                                              pmd_chimera_B_to_A_initial,
-                                                              pmd_chimera_B_to_A_final)
+            gmx__top_B_to_A_Bound = gmx_chimera_topology_injection(pmd_flask_state_B_Bound,
+                                                                   pmd_chimera_B_to_A_initial,
+                                                                   pmd_chimera_B_to_A_final)
+
+            gmx_gro_A_to_B_Unbound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
+                                                                      md_record_state_A_Unbound,
+                                                                      self.opt['trajectory_frames'])
+
+
+
+
+
 
             import sys
             sys.exit(-1)
