@@ -1,4 +1,4 @@
-The *Solvate and Run MD* floe performs MD simulations given one or more
+The *Solvate and Run MD* Floe performs MD simulations given one or more
 complete solutes as input, each to be treated in its entirety in a separate simulation.
 Each solute is solvated in a
 The solute need to have coordinates, all atoms, and correct chemistry.

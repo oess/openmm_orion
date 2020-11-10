@@ -386,7 +386,7 @@ from MDOrion.TrjAnalysis.TrajAnFloeReport_utils import (_clus_floe_report_header
 #
 #
 # class SSTMapGist(ParallelMixin, OERecordComputeCube):
-#     # Cube documentation.  This documentation for this cube, and all other cubes in this repository, can be converted
+#     # Cube documentation.  This documentation for This Cube, and all other cubes in this repository, can be converted
 #     # to html by calling 'invoke docs' from the root directory of this repository.  This documentation will also
 #     # appear in the Orion Floe editor.
 #     # version = "0.1.4"

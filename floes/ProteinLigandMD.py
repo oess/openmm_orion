@@ -79,7 +79,7 @@ complx = ComplexPrepCube("Complex", title="Complex Preparation")
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
 solvate = ParallelSolvationCube("Solvation", title="Solvation")
 
-# This cube is necessary for the correct work of collection and shard
+# This Cube is necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
@@ -191,7 +191,7 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
-# This cube is necessary for the correct working of collection and shard
+# This Cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 

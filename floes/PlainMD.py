@@ -67,7 +67,7 @@ solvate.promote_parameter('salt_concentration', promoted_name='salt_concentratio
                           description='Salt concentration (Na+, Cl-) in millimolar')
 solvate.set_parameters(close_solvent=True)
 
-# This cube is necessary for the correct work of collection and shard
+# This Cube is necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
@@ -165,7 +165,7 @@ equil3.promote_parameter("md_engine", promoted_name="md_engine")
 md_group = ParallelCubeGroup(cubes=[minComplex, warmup, equil1, equil2, equil3, prod])
 job.add_group(md_group)
 
-# This cube is necessary for the correct working of collection and shard
+# This Cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 

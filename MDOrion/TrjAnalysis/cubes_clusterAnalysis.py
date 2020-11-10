@@ -232,7 +232,7 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
     description = """
     Cluster Ligand multiconf MD trajectory OEMol
 
-    This cube will take in the MD traj OEMols containing
+    This Cube will take in the MD traj OEMols containing
     the protein and ligand components of the complex and cluster
     them based on ligand RMSD.
     """
@@ -343,7 +343,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
     description = """
     Make multiconf MD trajectory OEMols for Ligand and Protein by Cluster
 
-    This cube will use the clustering results in conjunction with the
+    This Cube will use the clustering results in conjunction with the
     MD trajectory OEMols for protein and ligand to generate per-cluster
     protein and ligand average and median structures.
     """
@@ -540,7 +540,7 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
     description = """
     Population Analysis of Traj Clusters
 
-    This cube analyzes the ligand trajectory cluster in terms of
+    This Cube analyzes the ligand trajectory cluster in terms of
     their occurrence, size, and proximity to the starting pose(s).
     """
 
@@ -814,7 +814,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
     Extract relevant outputs of Ligand and Protein
     Short Traj MD Traj Analysis and write them to files.
 
-    This cube takes as input the OERecord containing the work
+    This Cube takes as input the OERecord containing the work
     product of trajectory analysis on Short Traj MD results.
     """
 

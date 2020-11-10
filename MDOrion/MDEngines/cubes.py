@@ -46,7 +46,7 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
     tags = ['OpenMM', 'Gromacs', 'Minimization']
 
     description = """
-    This cube performs energy minimization on the provided system. The system 
+    This Cube performs energy minimization on the provided system. The system 
     must have been parametrized by the Force Field cube and the system Parmed 
     object must be present on the input record. In addition, a system identification 
     number must be present on the input record as well. This can be accomplished 
@@ -265,7 +265,7 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
     tags = ['Gromacs', 'OpenMM', 'NVT']
 
     description = """
-    This cube performs MD simulation in the NVT ensemble on the provided system. 
+    This Cube performs MD simulation in the NVT ensemble on the provided system. 
     The system must have been parametrized by the Force Field cube and the system Parmed 
     object must be present on the input record. In addition, a system identification 
     number must be present on the input record as well. This can be accomplished 
@@ -542,7 +542,7 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
     tags = ['Gromacs', 'OpenMM', 'NPT']
 
     description = """
-    This cube performs MD simulation in the NPT ensemble on the provided system. 
+    This Cube performs MD simulation in the NPT ensemble on the provided system. 
     The system must have been parametrized by the Force Field cube and the system Parmed 
     object must be present on the input record. In addition, a system identification 
     number must be present on the input record as well. This can be accomplished 

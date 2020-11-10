@@ -46,7 +46,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
     classification = [["Force Field"]]
     tags = ['ForceField']
     description = """
-    This cube parametrizes a flask with the selected force fields. 
+    This Cube parametrizes a flask with the selected force fields. 
     The cube tries to split a flask into components: protein, ligand, 
     water and excipients. The user can select the parametrization to be 
     applied to each component. The protein forcefield is limited to 

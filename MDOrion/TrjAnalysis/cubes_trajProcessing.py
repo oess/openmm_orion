@@ -58,7 +58,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
     description = """
     Converting MD Traj into multiconf OEMols for Ligand and Protein.
-    This cube will take in the MD traj file containing
+    This Cube will take in the MD traj file containing
     the solvated protein:ligand complex and extract
     multiconf OEMols for Ligand and Protein.
     """
@@ -536,7 +536,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
     description = """
     Combine individual conformer trajectory OEMols into single ligand OEMol
 
-    This cube will read in and combine the individual MD traj OEMols for each conformer
+    This Cube will read in and combine the individual MD traj OEMols for each conformer
     into a single MD traj OEMol for the whole ligand, in preparation for clistering.
     It will do this for both the protein and ligand components of the complex.
     """
@@ -674,7 +674,7 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
     tags = ['Ligand', 'Protein']
 
     description = """
-    This cube gathers together conformers related to the same ligand and their information
+    This Cube gathers together conformers related to the same ligand and their information
     in a new record containing the multi conformer ligand and each conformer record info.
     """
 
@@ -793,7 +793,7 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
     tags = ['Ligand', 'Protein', 'Waters']
 
     description = """
-    This cube determines the max number of waters for all the ligands that
+    This Cube determines the max number of waters for all the ligands that
     fits between the protein and ligand molecular surfaces. The cutoff distance
     parameters determines the max distance used between the volume grid points
     and the ligand-protein.
