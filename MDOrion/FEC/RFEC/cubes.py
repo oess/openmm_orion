@@ -425,16 +425,23 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
         default=80,
         help_text="The total number of trajectory frames to run NES")
 
+    protein_port = RecordOutputPort("protein_port", initializer=False)
+
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
 
     def process(self, record, port):
         try:
+
+            edge_id = record.get_value(Fields.FEC.RBFEC.edgeid)
+            edge_name = record.get_value(Fields.FEC.RBFEC.edge_name)
+
             rec_list_state_A = record.get_value(Fields.FEC.RBFEC.NESC.state_A)
             rec_list_state_B = record.get_value(Fields.FEC.RBFEC.NESC.state_B)
 
-            print(record.get_value(Fields.FEC.RBFEC.edge_name))
+            print(edge_name)
 
             md_record_state_A_Bound = MDDataRecord(rec_list_state_A[0])
             md_record_state_B_Bound = MDDataRecord(rec_list_state_B[0])
@@ -488,33 +495,33 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                                                                       chimera,
                                                                       graph_A_to_B_dic)
 
-            # gmx_gro_B_to_A_Unbound = gmx_chimera_coordinate_injection(pmd_chimera_B_to_A_initial,
-            #                                                           md_record_state_B_Unbound,
-            #                                                           self.opt['trajectory_frames'],
-            #                                                           lig_A,
-            #                                                           chimera,
-            #                                                           graph_B_to_A_dic)
+            gmx_gro_B_to_A_Unbound = gmx_chimera_coordinate_injection(pmd_chimera_B_to_A_initial,
+                                                                      md_record_state_B_Unbound,
+                                                                      self.opt['trajectory_frames'],
+                                                                      lig_A,
+                                                                      chimera,
+                                                                      graph_B_to_A_dic)
 
-            # gmx_gro_A_to_B_Bound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
-            #                                                         md_record_state_A_Bound,
-            #                                                         self.opt['trajectory_frames'],
-            #                                                         lig_B,
-            #                                                         chimera,
-            #                                                         graph_A_to_B_dic)
-            #
-            # gmx_gro_B_to_A_Bound = gmx_chimera_coordinate_injection(pmd_chimera_B_to_A_initial,
-            #                                                         md_record_state_B_Bound,
-            #                                                         self.opt['trajectory_frames'],
-            #                                                         lig_A,
-            #                                                         chimera,
-            #                                                         graph_B_to_A_dic)
+            gmx_gro_A_to_B_Bound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
+                                                                    md_record_state_A_Bound,
+                                                                    self.opt['trajectory_frames'],
+                                                                    lig_B,
+                                                                    chimera,
+                                                                    graph_A_to_B_dic)
 
-            with open("flask.top", 'w') as f:
-                f.write(gmx_top_A_to_B_Unbound)
+            gmx_gro_B_to_A_Bound = gmx_chimera_coordinate_injection(pmd_chimera_B_to_A_initial,
+                                                                    md_record_state_B_Bound,
+                                                                    self.opt['trajectory_frames'],
+                                                                    lig_A,
+                                                                    chimera,
+                                                                    graph_B_to_A_dic)
+            for gmx_gro in gmx_gro_A_to_B_Unbound:
+                md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
+                md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.edge_name, edge_name)
 
 
-            with open("flask.gro", 'w') as f:
-                f.write(gmx_gro_A_to_B_Unbound[0])
+
+
 
 
             import sys
