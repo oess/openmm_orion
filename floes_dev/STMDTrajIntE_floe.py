@@ -43,7 +43,7 @@ iMDInput = DatasetReaderCube("MDInputReader", title="MD Input Reader")
 iMDInput.promote_parameter("data_in", promoted_name="in",
                            title="MD Input Dataset", description="MD Input Dataset")
 
-# This cube is necessary for the correct work of collection and shard
+# This Cube is necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
@@ -54,7 +54,7 @@ PBSACube = ParallelTrajPBSACube("TrajPBSACube", title="PBSA Energies")
 trajproc_group = ParallelCubeGroup(cubes=[trajCube, IntECube, PBSACube])
 job.add_group(trajproc_group)
 
-# This cube is necessary for the correct working of collection and shard
+# This Cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 

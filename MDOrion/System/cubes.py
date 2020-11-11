@@ -55,10 +55,10 @@ class IDSettingCube(RecordPortsMixin, ComputeCube):
     classification = [["Simulation Flask Preparation"]]
     tags = ['Simulation', 'Complex', 'Protein', 'Ligand']
     description = """
-    This cube sets the integer ID for each simulation flask as well as a descriptive
+    This Cube sets the integer ID for each simulation flask as well as a descriptive
     title string. If the input molecule 
     on a record has multiple conformers these are split into singles each with 
-    its own ID. If a complex will be formed, this cube should be used on ligands
+    its own ID. If a complex will be formed, This Cube should be used on ligands
     before forming the complex.
     """
 
@@ -137,7 +137,7 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['System', 'Complex', 'Protein', 'Ligand']
     description = """
-    This cube sets a record collection state in open or closed for safety by
+    This Cube sets a record collection state in open or closed for safety by
     using the cube bool parameter open. A True value will open the record
     collection enabling the shard writing and deleting. In Orion if on the record
     the collection field is not present one will be created.
@@ -442,7 +442,7 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['System', 'Complex', 'Protein', 'Ligand']
     description = """
-    This cube checks if the size of the incoming record is less than 100MB
+    This Cube checks if the size of the incoming record is less than 100MB
     to avoid Orion database size issues. Locally does not have any effect.
     """
 
@@ -496,7 +496,7 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['Protein']
     description = """
-    This cube is used to componentize the cube input system.
+    This Cube is used to componentize the cube input system.
     The cube detects if a Design Unit (DU) is present on the record 
     and it will extract the DU components in an ad-hoc container 
     (MDComponents). If the DU is not found on the input record, 

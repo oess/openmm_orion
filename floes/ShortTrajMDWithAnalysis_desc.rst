@@ -12,7 +12,7 @@ possible. The parametrization of some common nonstandard residues is partially s
 Given the inputs of the protein and posed ligands,
 the complex is formed with each ligand/conformer
 separately, and the complex is solvated and parametrized according to the
-selected force fields. A minimization stage is peformed on the system followed
+selected force fields. A minimization stage is performed on the system followed
 by a warm up (NVT ensemble) and three equilibration stages (NPT ensemble). In the
 minimization, warm up, and equilibration stages, positional harmonic restraints are
 applied on the ligand and protein. At the end of the equilibration stages a short

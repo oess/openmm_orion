@@ -94,7 +94,7 @@ complx = ComplexPrepCube("Complex", title="Complex Preparation")
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
 solvate = ParallelSolvationCube("Solvation", title="Solvation")
 
-# This cube is necessary for the correct work of collection and shard
+# This Cube is necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
@@ -219,8 +219,9 @@ analysis_group = ParallelCubeGroup(cubes=[catLigTraj, catLigMMPBSA, clusCube, cl
 job.add_group(analysis_group)
 
 report = MDFloeReportCube("report", title="Floe Report")
+report.set_parameters(floe_report_title="STMDA Report")
 
-# This cube is necessary for the correct working of collection and shard
+# This Cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 

@@ -1,7 +1,7 @@
 This Floe is for Gromacs MD experts who simply want to run Gromacs using as
-input their own (uploaded to Orion) Gromacs *.tpr* files. The floe will run 
+input their own (uploaded to Orion) Gromacs *.tpr* files. The Floe will run
 for *n* hours (10hrs default), outputting the
-trajectory file and a recovery dataset. The Gromacs cube 
+trajectory file and a recovery dataset. The Gromacs Cube
 will then restart from the recovery dataset and run for
 an additional *n* hours in a cycle
 until the number of md steps specified in 

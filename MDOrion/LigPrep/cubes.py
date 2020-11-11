@@ -40,7 +40,7 @@ class LigandChargeCube(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ["Ligand"]
     description = """
-    This cube charges small organic molecules by using the ELF10 charge method 
+    This Cube charges small organic molecules by using the ELF10 charge method 
     (based on am1bcc method). If the ligands are already charged and the user would 
     like to skip this stage the cube parameter “charge_ligand” can be used. 
     The cube requires a record as input with small organic molecules to be charged 
@@ -113,7 +113,7 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['Ligand']
     description = """
-    This cube is used to set the ligand residue name as the cube parameter
+    This Cube is used to set the ligand residue name as the cube parameter
     “lig_res_name” (default: “LIG”). This is necessary to facilitate the
     identification of system components during a system splitting.
     """

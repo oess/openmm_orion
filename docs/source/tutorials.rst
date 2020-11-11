@@ -80,11 +80,13 @@ the docked-pose starting points could be re-evaluated and
 triaged prior to the extra effort and expense of STMD.
 The ligand input datasets used in this tutorial are:
 
-    * MCL1_1poseLig35_elf10.oeb
-    * MCL1_6poseLig35_elf10.oeb
+    * :download:`MCL1_1poseLig35_elf10.oeb <files/MCL1_1poseLig35_elf10.oeb>`
+    * :download:`MCL1_6poseLig35_elf10.oeb <files/MCL1_6poseLig35_elf10.oeb>`
+
+
 
 Protein Input
--------------
+------------
 All the MD floes require correctly prepared protein up to "MD ready" standards.
 This begins with the normal prerequisites for physics-based modeling:
 protein chains must be capped,
@@ -99,7 +101,8 @@ protein structure and dynamics over the course of the MD.
 We **strongly recommend** using *Spruce* for protein preparation.
 The protein input dataset used in this tutorial is:
 
-    * MCL1_SchrodingerFEP_4HW3A_extprot_v2.oeb.gz
+    * :download:`MCL1_SchrodingerFEP_4HW3A_extprot_v2.oeb.gz <files/MCL1_SchrodingerFEP_4HW3A_extprot_v2.oeb.gz>`
+
 
 .. warning::
 

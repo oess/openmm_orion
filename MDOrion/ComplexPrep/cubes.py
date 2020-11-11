@@ -37,7 +37,7 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
     classification = [["System Preparation"]]
     tags = ['Complex', 'Ligand', 'Protein']
     description = """
-    This cube assembles the complex made of a protein and its docked ligands. 
+    This Cube assembles the complex made of a protein and its docked ligands. 
     Each ligand must have just one conformer. In order to deal with multiple 
     conformers, the ligands must be processed by the “ID Setting Cube” which 
     will split ligand conformers in single conformer. In addition, each ligand 
