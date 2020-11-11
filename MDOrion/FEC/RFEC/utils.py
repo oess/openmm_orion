@@ -37,7 +37,19 @@ from simtk import unit
 
 from oeommtools.utils import openmmTop_to_oemol
 
-import itertools
+from MDOrion.FEC.RFEC.gmx_templates import gromacs_nes
+
+import MDOrion.FEC.RFEC.pmx as pmx
+
+import subprocess
+
+from subprocess import STDOUT, PIPE, Popen, DEVNULL
+
+import tarfile
+
+from simtk.openmm import app
+
+import glob
 
 
 def edge_map_grammar(word):
@@ -276,3 +288,161 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
     #     oechem.OEWriteConstMolecule(ofs, oe_chimera)
 
     return gmx_gro_str_list
+
+
+def gmx_nes_run(gmx_gro, gmx_top, opt):
+
+    out_dir = opt['out_directory']
+
+    gmx_gro_fn = os.path.join(out_dir, "gmx_gro.gro")
+    gmx_top_fn = os.path.join(out_dir, "gmx_top.top")
+    gmx_ne_mdp_fn = os.path.join(out_dir, "gmx_ne.mdp")
+    gmx_ne_tpr_fn = os.path.join(out_dir, "gmx_ne.tpr")
+    gmx_deffnm_out = os.path.join(out_dir, "gmx_run" + '_' + str(opt['frame_count']))
+    gmx_trj_fn = gmx_deffnm_out + '.trr'
+
+    with open(gmx_gro_fn, 'w') as f:
+        f.write(gmx_gro)
+
+    with open(gmx_top_fn, 'w') as f:
+        f.write(gmx_top)
+
+    stepLen = 2.0 * unit.femtoseconds
+    nsteps = int(round(opt['time'] / (stepLen.in_units_of(unit.nanoseconds) / unit.nanoseconds)))
+    if opt['enable_switching']:
+        dlambda = 1.0/nsteps
+    else:
+        dlambda = 0
+
+    min_box = opt['min_box']
+
+    # Cutoff in A
+    cutoff = 10
+
+    # in A
+    theshold = (min_box / 2.0) * 0.85
+
+    if cutoff < theshold:
+        cutoff_distance = cutoff * unit.angstroms
+    else:
+        cutoff_distance = theshold * unit.angstroms
+
+        opt['Logger'].warn("Cutoff Distance too large for the box size. Set the cutoff distance "
+                           "to {:.2f} A".format(cutoff_distance.value_in_unit(unit.angstrom)))
+
+    rvdw_switch = cutoff_distance - 1.0 * unit.angstrom
+
+    pressure = opt['pressure'] * unit.atmosphere
+
+    gmx_fe_template = gromacs_nes.format(nsteps=nsteps,
+                                         temperature=opt['temperature'],
+                                         pressure=pressure.value_in_units_of(unit.bar),
+                                         cutoff=cutoff_distance.value_in_unit(unit.nanometer),
+                                         rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
+                                         dlambda=dlambda)
+
+    with open(gmx_ne_mdp_fn, 'w') as f:
+        f.write(gmx_fe_template)
+
+    if opt['verbose']:
+
+        # Assemble the Gromacs system to run
+        subprocess.check_call(['gmx',
+                               'grompp',
+                               '-f', gmx_ne_mdp_fn,
+                               '-c', gmx_gro_fn,
+                               '-p', gmx_top_fn,
+                               '-o', gmx_ne_tpr_fn,
+                               '-maxwarn', '4'
+                               ])
+
+        # Run Gromacs
+        subprocess.check_call(['gmx',
+                               'mdrun',
+                               '-v',
+                               '-s', gmx_ne_tpr_fn,
+                               '-deffnm', gmx_deffnm_out
+                               ])
+
+        # Convert the trajectory in .xtc
+        # p = subprocess.Popen(['gmx',
+        #                       'trjconv',
+        #                       '-f', gmx_trj_fn,
+        #                       '-s', gmx_ne_tpr_fn,
+        #                       '-o', gmx_deffnm_out + '.xtc',
+        #                       '-pbc', b'whole'],
+        #                      stdin=subprocess.PIPE)
+        #
+        # # Select the entire System
+        # p.communicate(b'0')
+
+    else:
+        # Assemble the Gromacs system to run
+        subprocess.check_call(['gmx',
+                               'grompp',
+                               '-f', gmx_ne_mdp_fn,
+                               '-c', gmx_gro_fn,
+                               '-p', gmx_top_fn,
+                               '-o', gmx_ne_tpr_fn,
+                               '-maxwarn', '4'
+                               ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+
+        # Run Gromacs
+        subprocess.check_call(['gmx',
+                               'mdrun',
+                               '-v',
+                               '-s', gmx_ne_tpr_fn,
+                               '-deffnm', gmx_deffnm_out
+                               ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+
+        # Convert the trajectory in .xtc
+        # p = subprocess.Popen(['gmx',
+        #                       'trjconv',
+        #                       '-f', gmx_trj_fn,
+        #                       '-s', gmx_ne_tpr_fn,
+        #                       '-o', gmx_deffnm_out + '.xtc',
+        #                       '-pbc', b'whole'],
+        #                      stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+        #
+        # # Select the entire System
+        # p.communicate(b'0')
+
+    opt['log_fn'] = gmx_deffnm_out + '.log'
+
+    tar_fn = opt['trj_fn']
+
+    with tarfile.open(tar_fn, mode='w:gz') as archive:
+        archive.add(opt['out_directory'], arcname='.')
+
+    # Generate the final Parmed structure
+    gro = app.GromacsGroFile(gmx_deffnm_out+'.gro')
+    top = app.GromacsTopFile(gmx_top_fn, unitCellDimensions=gro.getUnitCellDimensions())
+
+    for chain in top.topology.chains():
+        chain.id = 'A'
+
+    omm_system = top.createSystem(rigidWater=False, constraints=None)
+    final_pmd = parmed.openmm.load_topology(top.topology, omm_system, xyz=gro.positions)
+    final_pmd.box_vectors = omm_system.getDefaultPeriodicBoxVectors()
+    oe_flask = openmmTop_to_oemol(top.topology, gro.positions)
+
+    opt['pmd'] = final_pmd
+    opt['flask'] = oe_flask
+
+    with open(gmx_deffnm_out+'.gro', 'r') as f:
+        gro_str = f.read()
+
+    opt['gro_str'] = gro_str
+
+    if opt['enable_switching']:
+        xvg_fn = glob.glob(os.path.join(out_dir, '*.xvg'))[0]
+
+        w = pmx.parse_dgdl_files([xvg_fn], lambda0=0, invert_values=False)
+
+        if w is None:
+            raise ValueError("Work calculation failed")
+        opt['gmx_work'] = w[0]
+    else:
+        opt['gmx_work'] = None
+
+    return

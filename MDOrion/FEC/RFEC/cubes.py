@@ -22,7 +22,8 @@ from orionplatform.ports import (RecordInputPort,
                                  RecordOutputPort)
 
 from floe.api import (parameters,
-                      ComputeCube)
+                      ComputeCube,
+                      ParallelMixin)
 
 from MDOrion.Standards.standards import Fields
 
@@ -43,7 +44,24 @@ from MDOrion.FEC.RFEC.utils import (gmx_chimera_topology_injection,
 
 from MDOrion.FEC.RFEC.utils import parmed_find_ligand
 
+from datarecord import (Types,
+                        OEField)
+
+from MDOrion.Standards import (MDStageNames,
+                               MDStageTypes,
+                               MDEngines)
+
 from MDOrion.Standards.mdrecord import MDDataRecord
+
+from MDOrion.MDEngines.utils import MDState
+
+import numpy as np
+
+import os
+
+from simtk import unit
+
+import io
 
 
 class BoundUnboundSwitchCube(RecordPortsMixin, ComputeCube):
@@ -476,17 +494,17 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                                                                     pmd_chimera_A_to_B_initial,
                                                                     pmd_chimera_A_to_B_final)
 
-            gmx__top_B_to_A_Unbound = gmx_chimera_topology_injection(pmd_flask_state_B_Unbound,
-                                                                     pmd_chimera_B_to_A_initial,
-                                                                     pmd_chimera_B_to_A_final)
+            gmx_top_B_to_A_Unbound = gmx_chimera_topology_injection(pmd_flask_state_B_Unbound,
+                                                                    pmd_chimera_B_to_A_initial,
+                                                                    pmd_chimera_B_to_A_final)
 
             gmx_top_A_to_B_Bound = gmx_chimera_topology_injection(pmd_flask_state_A_Bound,
                                                                   pmd_chimera_A_to_B_initial,
                                                                   pmd_chimera_A_to_B_final)
 
-            gmx__top_B_to_A_Bound = gmx_chimera_topology_injection(pmd_flask_state_B_Bound,
-                                                                   pmd_chimera_B_to_A_initial,
-                                                                   pmd_chimera_B_to_A_final)
+            gmx_top_B_to_A_Bound = gmx_chimera_topology_injection(pmd_flask_state_B_Bound,
+                                                                  pmd_chimera_B_to_A_initial,
+                                                                  pmd_chimera_B_to_A_final)
 
             gmx_gro_A_to_B_Unbound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
                                                                       md_record_state_A_Unbound,
@@ -515,21 +533,42 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                                                                     lig_A,
                                                                     chimera,
                                                                     graph_B_to_A_dic)
-            for gmx_gro in gmx_gro_A_to_B_Unbound:
+
+            frame_count_field = OEField("frame_count", Types.Int)
+
+            for count, gmx_gro in enumerate(gmx_gro_A_to_B_Unbound):
+                md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Unbound)
+                md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
                 md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.edge_name, edge_name)
+                md_record_state_A_Unbound.set_value(frame_count_field, count)
+                self.success.emit(md_record_state_A_Unbound.get_record)
 
+            for count, gmx_gro in enumerate(gmx_gro_A_to_B_Bound):
+                md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Bound)
+                md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+                md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
+                md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.edge_name, edge_name)
+                md_record_state_A_Bound.set_value(frame_count_field, count)
+                self.protein_port.emit(md_record_state_A_Bound.get_record)
 
+            for count, gmx_gro in enumerate(gmx_gro_B_to_A_Unbound):
+                md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Unbound)
+                md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+                md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
+                b_to_a = edge_name.split("_to_")[1]+"_to_"+edge_name.split("_to_")[0]
+                md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a)
+                md_record_state_B_Unbound.set_value(frame_count_field, count)
+                self.success.emit(md_record_state_B_Unbound.get_record)
 
-
-
-
-            import sys
-            sys.exit(-1)
-
-
-
-            self.success.emit(rec_list_state_A[0])
+            for count, gmx_gro in enumerate(gmx_gro_B_to_A_Bound):
+                md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Bound)
+                md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+                md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
+                b_to_a = edge_name.split("_to_")[1]+"_to_"+edge_name.split("_to_")[0]
+                md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a)
+                md_record_state_B_Bound.set_value(frame_count_field, count)
+                self.protein_port.emit(md_record_state_B_Bound.get_record)
 
             del md_record_state_A_Bound
             del md_record_state_B_Bound
@@ -543,7 +582,171 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
             self.failure.emit(record)
 
 
+class NonEquilibriumGMX(RecordPortsMixin, ComputeCube):
+    title = "NES GMX"
+    # version = "0.1.4"
+    classification = [["Free Energy"]]
+    tags = ["Ligand", "Protein", "Free Energy", "Non Equilibrium"]
+    description = """
+    TO BE DECIDED
+    """
 
+    uuid = "3641fe19-780f-4998-90c5-2ec4102121ba"
+
+    # Override defaults for some parameters
+
+    parameter_overrides = {
+        "gpu_count": {"default": 1},
+        "instance_type": {"default": "g3.4xlarge"},  # Gpu Family selection
+        "memory_mb": {"default": 14000},
+        "spot_policy": {"default": "Allowed"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+
+    }
+
+    temperature = parameters.DecimalParameter(
+        'temperature',
+        default=300.0,
+        help_text="Temperature (Kelvin)")
+
+    pressure = parameters.DecimalParameter(
+        'pressure',
+        default=1.0,
+        help_text="Pressure (atm)")
+
+    time = parameters.DecimalParameter(
+        'time',
+        default=0.05,
+        help_text="NPT simulation time in nanoseconds")
+
+    enable_switching = parameters.BooleanParameter(
+        'enable_switching',
+        default=False,
+        help_text="If True lambda switching between starting and final state will be enabled"
+    )
+
+    verbose = parameters.BooleanParameter(
+        'verbose',
+        default=False,
+        help_text='Increase log file verbosity')
+
+    def begin(self):
+            self.opt = vars(self.args)
+            self.opt['Logger'] = self.log
+            self.edge_dic = dict()
+
+    def process(self, record, port):
+
+        try:
+
+            opt = dict(self.opt)
+            opt['CubeTitle'] = self.title
+
+            if not record.has_field(Fields.title):
+                raise ValueError("Missing title field")
+
+            flask_title = record.get_value(Fields.title)
+
+            if not record.has_field(Fields.FEC.RBFEC.NESC.gmx_gro):
+                raise ValueError("Missing Gromacs coordinate file for the flask: {}".format(flask_title))
+
+            gmx_gro_str = record.get_value(Fields.FEC.RBFEC.NESC.gmx_gro)
+
+            if not record.has_field(Fields.FEC.RBFEC.NESC.gmx_top):
+                raise ValueError("Missing Gromacs topology file for the flask: {}".format(flask_title))
+
+            gmx_top_str = record.get_value(Fields.FEC.RBFEC.NESC.gmx_top)
+
+            frame_count = record.get_value(OEField("frame_count", Types.Int))
+
+            mdrecord = MDDataRecord(record)
+            md_components = mdrecord.get_md_components
+
+            opt['frame_count'] = frame_count
+            opt['out_directory'] = mdrecord.cwd
+            opt['out_prefix'] = os.path.basename(mdrecord.cwd)+'_'+flask_title+'_'+str(frame_count)
+            opt['trj_fn'] = opt['out_prefix'] + '_' + 'traj.tar.gz'
+            # TODO This is not used for now. NES Trajectories are not uploaded
+            trj_fn = opt['trj_fn']
+
+            mdstate = mdrecord.get_stage_state(stg_name='last')
+
+            box = mdstate.get_box_vectors()
+
+            if md_components.get_box_vectors is not None:
+                box_v = box.value_in_units_of(unit.angstrom)
+                box_v = np.array([box_v[0][0], box_v[1][1], box_v[2][2]])
+
+                min_box = np.min(box_v)
+                opt['min_box'] = min_box
+
+            # Run Gromacs
+            utils.gmx_nes_run(gmx_gro_str, gmx_top_str, opt)
+
+            str_logger = '\n' + '-' * 32 + ' SIMULATION FEC NE' + '-' * 32
+
+            with(io.open(os.path.join(opt['out_directory'], opt['log_fn']), 'r', encoding='utf8', errors='ignore')) as flog:
+                str_logger += '\n' + flog.read()
+
+            data_fn = opt['out_prefix'] + '.tar.gz'
+
+            # The Parmed structure, the flask, the gromacs positions and the work
+            # are updated inside the Gromacs NES MD run
+            mdstate = MDState(opt['pmd'])
+
+            # TODO Do not upload the trajectory with the stage for now
+            if not mdrecord.add_new_stage(self.title,
+                                          MDStageTypes.FEC,
+                                          opt['flask'],
+                                          mdstate,
+                                          data_fn,
+                                          append=True,
+                                          log=str_logger,
+                                          # trajectory_fn=trj_fn,
+                                          # trajectory_engine=MDEngines.Gromacs,
+                                          # trajectory_orion_ui=flask_title + '_' + str(frame_count)
+                                          ):
+
+                raise ValueError("Problems adding in the new FEC Stage")
+
+            # Update Gromacs coordinates on the record
+            record.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, opt['gro_str'])
+
+            # Set the calculated work
+            if opt['enable_switching']:
+                record.set_value(Fields.FEC.RBFEC.NESC.work, opt['gmx_work'])
+
+            import sys
+            sys.exit(-1)
+
+            self.success.emit(mdrecord.get_record)
+
+            del mdrecord
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
+
+        return
+
+
+
+
+
+
+class ParallelGMXChimera(ParallelMixin,  GMXChimera):
+    title = "Parallel " + GMXChimera.title
+    description = "(Parallel) " + GMXChimera.description
+    uuid = "676baf05-0571-4f14-9f84-d5b5a63729c2"
+
+class ParallelNonEquilibriumGMX(ParallelMixin,  NonEquilibriumGMX):
+    title = "Parallel " + NonEquilibriumGMX.title
+    description = "(Parallel) " + NonEquilibriumGMX.description
+    uuid = "b6640594-8a5a-4e05-89f2-679c5a46691c"
 
 
 
