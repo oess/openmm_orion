@@ -84,7 +84,7 @@ gen-vel                  = no
 ;continuation	         = no
 
 ; OPTIONS FOR BONDS    
-constraints              = all-bonds
+constraints              = h-bonds
 constraint-algorithm     = lincs
 unconstrained-start      = yes
 Shake-SOR                = no

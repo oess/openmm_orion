@@ -443,7 +443,7 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
         default=80,
         help_text="The total number of trajectory frames to run NES")
 
-    protein_port = RecordOutputPort("protein_port", initializer=False)
+    bound_port = RecordOutputPort("bound_port", initializer=False)
 
 
     def begin(self):
@@ -550,7 +550,7 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.edge_name, edge_name)
                 md_record_state_A_Bound.set_value(frame_count_field, count)
-                self.protein_port.emit(md_record_state_A_Bound.get_record)
+                self.bound_port.emit(md_record_state_A_Bound.get_record)
 
             for count, gmx_gro in enumerate(gmx_gro_B_to_A_Unbound):
                 md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Unbound)
@@ -568,7 +568,7 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                 b_to_a = edge_name.split("_to_")[1]+"_to_"+edge_name.split("_to_")[0]
                 md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a)
                 md_record_state_B_Bound.set_value(frame_count_field, count)
-                self.protein_port.emit(md_record_state_B_Bound.get_record)
+                self.bound_port.emit(md_record_state_B_Bound.get_record)
 
             del md_record_state_A_Bound
             del md_record_state_B_Bound
@@ -582,7 +582,7 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
             self.failure.emit(record)
 
 
-class NonEquilibriumGMX(RecordPortsMixin, ComputeCube):
+class NESGMX(RecordPortsMixin, ComputeCube):
     title = "NES GMX"
     # version = "0.1.4"
     classification = [["Free Energy"]]
@@ -675,7 +675,8 @@ class NonEquilibriumGMX(RecordPortsMixin, ComputeCube):
             box = mdstate.get_box_vectors()
 
             if md_components.get_box_vectors is not None:
-                box_v = box.value_in_units_of(unit.angstrom)
+
+                box_v = box.value_in_unit(unit.angstrom)
                 box_v = np.array([box_v[0][0], box_v[1][1], box_v[2][2]])
 
                 min_box = np.min(box_v)
@@ -717,9 +718,6 @@ class NonEquilibriumGMX(RecordPortsMixin, ComputeCube):
             if opt['enable_switching']:
                 record.set_value(Fields.FEC.RBFEC.NESC.work, opt['gmx_work'])
 
-            import sys
-            sys.exit(-1)
-
             self.success.emit(mdrecord.get_record)
 
             del mdrecord
@@ -743,9 +741,9 @@ class ParallelGMXChimera(ParallelMixin,  GMXChimera):
     description = "(Parallel) " + GMXChimera.description
     uuid = "676baf05-0571-4f14-9f84-d5b5a63729c2"
 
-class ParallelNonEquilibriumGMX(ParallelMixin,  NonEquilibriumGMX):
-    title = "Parallel " + NonEquilibriumGMX.title
-    description = "(Parallel) " + NonEquilibriumGMX.description
+class ParallelNESGMX(ParallelMixin,  NESGMX):
+    title = "Parallel " + NESGMX.title
+    description = "(Parallel) " + NESGMX.description
     uuid = "b6640594-8a5a-4e05-89f2-679c5a46691c"
 
 

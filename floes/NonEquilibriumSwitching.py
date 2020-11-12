@@ -22,7 +22,10 @@ from MDOrion.System.cubes import MDComponentCube
 from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
 from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
-                                    RBFECMapping)
+                                    RBFECMapping,
+                                    RBFECEdgeGathering,
+                                    ParallelGMXChimera,
+                                    ParallelNESGMX)
 
 job = WorkFloe("Relative Binding Affinity with NES", title="Non Equilibrium Switching")
 
@@ -220,6 +223,28 @@ equil3_bns.set_parameters(suffix='equil3_bn')
 md_group_bs = ParallelCubeGroup(cubes=[minimize_bns, warmup_bns, equil1_bns, equil2_bns, equil3_bns, prod_bns])
 job.add_group(md_group_bs)
 
+gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
+gathering.promote_parameter('map_file', promoted_name='map')
+
+chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
+
+unbound_eq_nes = ParallelNESGMX("GMXUnboundEQ", title="GMX Unbound Equilibrium for NES")
+unbound_eq_nes.set_parameters(time=0.01)
+unbound_eq_nes.set_parameters(enable_switching=False)
+
+unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
+unbound_nes.promote_parameter("time", promoted_name="nes_time", default=0.05)
+unbound_nes.set_parameters(enable_switching=True)
+
+bound_eq_nes = ParallelNESGMX("GMXBoundEQ", title="GMX Bound Equilibrium for NES")
+bound_eq_nes.set_parameters(time=0.02)
+bound_eq_nes.set_parameters(enable_switching=False)
+
+bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
+bound_nes.promote_parameter("time", promoted_name="nes_time")
+bound_nes.set_parameters(enable_switching=True)
+
+
 # This cube is necessary for the correct working of collections and shards
 # coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 # coll_close.set_parameters(open=False)
@@ -244,7 +269,10 @@ job.add_cubes(iligs, ligset, rbfec_map, chargelig, ligid, md_lig_components, col
               iprot, md_prot_components, complx, solvate, ff, switch,
               minimize_uns, warmup_uns, equil_uns, prod_uns,
               minimize_bns, warmup_bns, equil1_bns,
-              equil2_bns, equil3_bns, prod_bns,  ofs_lig,  ofs_prot)
+              equil2_bns, equil3_bns, prod_bns, gathering,
+              chimera, unbound_eq_nes, unbound_nes,
+              bound_eq_nes, bound_nes,
+              ofs_lig,  ofs_prot)
 
 
 # Ligand Setting
@@ -271,7 +299,8 @@ switch.success.connect(minimize_uns.intake)
 minimize_uns.success.connect(warmup_uns.intake)
 warmup_uns.success.connect(equil_uns.intake)
 equil_uns.success.connect(prod_uns.intake)
-prod_uns.success.connect(ofs_lig.intake)
+prod_uns.success.connect(gathering.intake)
+
 
 # Bound MD run
 switch.bound_port.connect(minimize_bns.intake)
@@ -280,7 +309,19 @@ warmup_bns.success.connect(equil1_bns.intake)
 equil1_bns.success.connect(equil2_bns.intake)
 equil2_bns.success.connect(equil3_bns.intake)
 equil3_bns.success.connect(prod_bns.intake)
-prod_bns.success.connect(ofs_prot.intake)
+prod_bns.success.connect(gathering.bound_port)
+
+# Chimera NES Setting
+gathering.success.connect(chimera.intake)
+
+chimera.success.connect(unbound_eq_nes.intake)
+unbound_eq_nes.success.connect(unbound_nes.intake)
+unbound_nes.success.connect(ofs_lig.intake)
+
+chimera.bound_port.connect(bound_eq_nes.intake)
+bound_eq_nes.success.connect(bound_nes.intake)
+bound_nes.success.connect(ofs_prot.intake)
+
 
 # coll_close.success.connect(check_rec.intake)
 # check_rec.success.connect(ofs.intake)

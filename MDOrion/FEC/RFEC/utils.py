@@ -336,7 +336,7 @@ def gmx_nes_run(gmx_gro, gmx_top, opt):
 
     gmx_fe_template = gromacs_nes.format(nsteps=nsteps,
                                          temperature=opt['temperature'],
-                                         pressure=pressure.value_in_units_of(unit.bar),
+                                         pressure=pressure.value_in_unit(unit.bar),
                                          cutoff=cutoff_distance.value_in_unit(unit.nanometer),
                                          rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
                                          dlambda=dlambda)
@@ -413,6 +413,9 @@ def gmx_nes_run(gmx_gro, gmx_top, opt):
 
     with tarfile.open(tar_fn, mode='w:gz') as archive:
         archive.add(opt['out_directory'], arcname='.')
+
+    import shutil
+    shutil.copy(tar_fn, "/Users/gcalabro/Desktop")
 
     # Generate the final Parmed structure
     gro = app.GromacsGroFile(gmx_deffnm_out+'.gro')
