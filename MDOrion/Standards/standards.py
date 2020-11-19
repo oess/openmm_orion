@@ -256,11 +256,17 @@ class Fields:
 
             class NESC:
 
-                state_A = OEField("StateA_OPLMD", Types.RecordVec)
-                state_B = OEField("StateB_OPLMD", Types.RecordVec)
+                state_A = OEField("StateA_OPLMD", Types.RecordVec, meta=_metaHidden)
+                state_B = OEField("StateB_OPLMD", Types.RecordVec, meta=_metaHidden)
+
+                forward = OEField("Forward_OPLMD", Types.String)
+                reverse = OEField("Reverse_OPLMD", Types.String)
+
+                direction = OEField("Direction_OPLMD", Types.String)
 
                 gmx_top = OEField("GMX_Top_OPLMD", Types.String, meta=_metaHidden)
                 gmx_gro = OEField("GMX_Gro_OPLMD", Types.String, meta=_metaHidden)
+
                 work = OEField("GMX_Work_OPLMD", Types.Float,
                                meta=OEFieldMeta().set_option(Meta.Units.Energy.kJ_per_mol))
                 frame_count = OEField("frame_count", Types.Int, meta=_metaHidden)

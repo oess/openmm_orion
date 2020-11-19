@@ -80,15 +80,12 @@ compressibility          = 4.6E-5
 ref-p                    = {pressure:f} ; reference pressure, in bar
 
 ; GENERATE VELOCITIES FOR STARTUP RUN
-gen-vel                  = no
-;continuation	         = no
+gen-vel                  = {gen_vel}
+continuation	         = {continue_sim}
 
 ; OPTIONS FOR BONDS    
-constraints              = h-bonds
+constraints              = all-bonds
 constraint-algorithm     = lincs
-unconstrained-start      = yes
-Shake-SOR                = no
-shake-tol                = 1e-04
 lincs-order              = 4
 lincs-iter               = 2
 lincs-warnangle          = 30

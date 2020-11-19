@@ -45,7 +45,9 @@ from MDOrion.FEC.RFEC.utils import (gmx_chimera_topology_injection,
 from MDOrion.FEC.RFEC.utils import parmed_find_ligand
 
 from datarecord import (Types,
-                        OEField)
+                        OEField,
+                        Meta,
+                        OEFieldMeta)
 
 from MDOrion.Standards import (MDStageNames,
                                MDStageTypes,
@@ -445,7 +447,6 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
 
     bound_port = RecordOutputPort("bound_port", initializer=False)
 
-
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -459,7 +460,7 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
             rec_list_state_A = record.get_value(Fields.FEC.RBFEC.NESC.state_A)
             rec_list_state_B = record.get_value(Fields.FEC.RBFEC.NESC.state_B)
 
-            print(edge_name)
+            self.opt['Logger'].info("[{}] Processing Edge: {}".format(self.title, edge_name))
 
             md_record_state_A_Bound = MDDataRecord(rec_list_state_A[0])
             md_record_state_B_Bound = MDDataRecord(rec_list_state_B[0])
@@ -534,6 +535,8 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                                                                     chimera,
                                                                     graph_B_to_A_dic)
 
+            self.opt['Logger'].info("GMX Chimera Topology Created")
+
             frame_count_field = OEField("frame_count", Types.Int)
 
             for count, gmx_gro in enumerate(gmx_gro_A_to_B_Unbound):
@@ -541,34 +544,47 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                 md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
                 md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.edge_name, edge_name)
+                md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.direction, "Forward_OPLMD")
                 md_record_state_A_Unbound.set_value(frame_count_field, count)
                 self.success.emit(md_record_state_A_Unbound.get_record)
+
+            self.opt['Logger'].info("GMX Chimera Unbound {} Forward Coordinate Created".format(edge_name))
 
             for count, gmx_gro in enumerate(gmx_gro_A_to_B_Bound):
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Bound)
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.edge_name, edge_name)
+                md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.direction, "Forward_OPLMD")
                 md_record_state_A_Bound.set_value(frame_count_field, count)
                 self.bound_port.emit(md_record_state_A_Bound.get_record)
+
+            self.opt['Logger'].info("GMX Chimera Bound {} Forward Coordinate Created".format(edge_name))
+
+            b_to_a_name = edge_name.split("_to_")[1] + "_to_" + edge_name.split("_to_")[0]
 
             for count, gmx_gro in enumerate(gmx_gro_B_to_A_Unbound):
                 md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Unbound)
                 md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
                 md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
-                b_to_a = edge_name.split("_to_")[1]+"_to_"+edge_name.split("_to_")[0]
-                md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a)
+                md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a_name)
+                md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.direction, "Reverse_OPLMD")
                 md_record_state_B_Unbound.set_value(frame_count_field, count)
                 self.success.emit(md_record_state_B_Unbound.get_record)
+
+            self.opt['Logger'].info("GMX Chimera Unbound {} Reverse Coordinate Created".format(edge_name))
 
             for count, gmx_gro in enumerate(gmx_gro_B_to_A_Bound):
                 md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Bound)
                 md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
                 md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
-                b_to_a = edge_name.split("_to_")[1]+"_to_"+edge_name.split("_to_")[0]
-                md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a)
+                md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a_name)
+                md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.direction, "Reverse_OPLMD")
                 md_record_state_B_Bound.set_value(frame_count_field, count)
                 self.bound_port.emit(md_record_state_B_Bound.get_record)
+
+            self.opt['Logger'].info("GMX Chimera Bound {} Reverse Coordinate Created".format(edge_name))
+            self.opt['Logger'].info("GMX Chimera {} Processed".format(edge_name))
 
             del md_record_state_A_Bound
             del md_record_state_B_Bound
@@ -732,8 +748,231 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         return
 
 
+class NESAnalysis(RecordPortsMixin, ComputeCube):
+    title = "NES Analysis"
+    classification = [["FEC Analysis"]]
+    tags = ['Complex', 'Protein', 'Ligand', 'Solvation']
+    description = """
+    TO BE DECIDED
+    """
 
+    uuid = "50ccc16d-67ae-4b4f-9a98-2e6b8ecb1868"
 
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 16000},
+        "spot_policy": {"default": "Prohibited"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    temperature = parameters.DecimalParameter(
+        'temperature',
+        default=300.0,
+        help_text="Temperature (Kelvin)")
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+        self.edgeid_works = dict()
+        self.edgeid_ligands = dict()
+        self.edgeid_lig_names = dict()
+
+    def process(self, record, port):
+
+        try:
+            lig_name = record.get_value(Fields.ligand_name)
+            md_components = record.get_value(Fields.md_components)
+            ligand = md_components.get_ligand
+            ligand.SetTitle(lig_name)
+            leg_type = record.get_value(Fields.FEC.RBFEC.thd_leg_type)
+            edgeid = record.get_value(Fields.FEC.RBFEC.edgeid)
+
+            if edgeid not in self.edgeid_works:
+                work_forward_bound = dict()
+                work_reverse_bound = dict()
+                work_forward_unbound = dict()
+                work_reverse_unbound = dict()
+
+                self.edgeid_works[edgeid] = [work_forward_bound,
+                                             work_reverse_bound,
+                                             work_forward_unbound,
+                                             work_reverse_unbound]
+
+                self.edgeid_ligands[edgeid] = [None, None]
+                self.edgeid_lig_names[edgeid] = [None, None]
+
+            frame_count = record.get_value(Fields.FEC.RBFEC.NESC.frame_count)
+            work = record.get_value(Fields.FEC.RBFEC.NESC.work)
+
+            # TODO change the OEField in direction
+            direction = record.get_value(Fields.FEC.RBFEC.NESC.direction)
+
+            # Forward
+            if direction == 'Forward_OPLMD':
+
+                # Both ligands in the edge have been already collected
+                if self.edgeid_ligands[edgeid][0] and self.edgeid_ligands[edgeid][1]:
+                    pass
+                elif self.edgeid_ligands[edgeid][0] is None:
+                    self.edgeid_ligands[edgeid][0] = ligand
+                    self.edgeid_lig_names[edgeid][0] = lig_name
+                if leg_type == "Bound_OPLMD":
+                    self.edgeid_works[edgeid][0][frame_count] = work
+                else:
+                    self.edgeid_works[edgeid][2][frame_count] = work
+
+            # Reverse
+            else:
+
+                if self.edgeid_ligands[edgeid][0] and self.edgeid_ligands[edgeid][1]:
+                    pass
+                elif self.edgeid_ligands[edgeid][1] is None:
+                    self.edgeid_ligands[edgeid][1] = ligand
+                    self.edgeid_lig_names[edgeid][1] = lig_name
+
+                if leg_type == "Bound_OPLMD":
+                    self.edgeid_works[edgeid][1][frame_count] = work
+                else:
+                    self.edgeid_works[edgeid][3][frame_count] = work
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
+
+        return
+
+    def end(self):
+        count = 0
+        try:
+            for edgeid, work_list in self.edgeid_works.items():
+                try:
+
+                    if self.edgeid_ligands[edgeid][0] is None and self.edgeid_ligands[edgeid][1] is None:
+                        self.opt['Logger'].warn(
+                            "The edge id {} is missing ligand data in the A and B States. "
+                            "The edge will be skipped".format(edgeid),
+                            flush=True)
+                        continue
+                    elif self.edgeid_ligands[edgeid][0] is None and self.edgeid_ligands[edgeid][1]:
+                        self.opt['Logger'].warn(
+                            "The edge id {} - (None, {}) is missing ligand data in the A State. "
+                            "The edge will be skipped".format(edgeid, self.edgeid_lig_names[edgeid][1]),
+                            flush=True)
+                        continue
+                    elif self.edgeid_ligands[edgeid][0] and self.edgeid_ligands[edgeid][1] is None:
+                        self.opt['Logger'].warn(
+                            "The edge id {} - ({}, None) is missing ligand data in the B State. "
+                            "The edge will be skipped".format(edgeid, self.edgeid_lig_names[edgeid][0]),
+                            flush=True)
+                        continue
+
+                    self.opt['Logger'].info("...Processing Edge {} - {}".
+                                            format(edgeid, self.edgeid_lig_names[edgeid]), flush=True)
+
+                    # Make edge depiction for the floe report tile
+                    ligandA = self.edgeid_ligands[edgeid][0]
+                    ligandB = self.edgeid_ligands[edgeid][1]
+
+                    # The work dictionaries are ordered by frame counts and the reverse
+                    # works are sign inverted. Work values in kJ/mol
+
+                    if None in work_list:
+                        self.opt['Logger'].warn('The edge id {} is missing work data and it will be skipped'.
+                                                format(edgeid),  flush=True)
+                        continue
+
+                    # Ordered Dictionary frame:work
+                    forward_bound = {k: work_list[0][k] for k in sorted(work_list[0])}
+                    reverse_bound = {k: -work_list[1][k] for k in sorted(work_list[1])}
+                    forward_unbound = {k: work_list[2][k] for k in sorted(work_list[2])}
+                    reverse_unbound = {k: -work_list[3][k] for k in sorted(work_list[3])}
+
+                    # NES Data Analysis. Mute output
+                    # with open(os.devnull, 'w') as devnull:
+                    #     with contextlib.redirect_stdout(devnull):
+                    #         results = utils.nes_data_analysis(forward_bound,
+                    #                                           reverse_bound,
+                    #                                           forward_unbound,
+                    #                                           reverse_unbound)
+
+                    results = utils.nes_data_analysis(forward_bound, reverse_bound, forward_unbound, reverse_unbound)
+
+                    title = self.edgeid_lig_names[edgeid][0] + ' to ' + self.edgeid_lig_names[edgeid][1]
+
+                    # Edge Depiction
+                    edge_depiction_string, edge_depiction_image = utils.make_edge_depiction(ligandA, ligandB)
+
+                    # Generate NES floe report
+                    report_string = utils.plot_work_pdf(forward_bound,
+                                                        reverse_bound,
+                                                        forward_unbound,
+                                                        reverse_unbound,
+                                                        results,
+                                                        title, edge_depiction_image)
+                    new_record = OERecord()
+
+                    new_record.set_value(Fields.floe_report, report_string)
+
+                    if edge_depiction_string:
+                        new_record.set_value(Fields.floe_report_svg_lig_depiction, edge_depiction_string)
+                    else:
+                        self.opt['Logger'].warn(
+                            "It was not possible to generate the edge depiction for the edge id {} "
+                            "and it will be skipped".format(edgeid))
+                        continue
+
+                    label = "BAR score:<br>{:.2f}  &plusmn; {:.2f} kJ/mol".format(results['BAR'][0], results['BAR'][1])
+                    new_record.set_value(Fields.floe_report_label, label)
+
+                    new_record.set_value(Fields.FEC.RBFEC.edgeid, edgeid)
+                    new_record.set_value(Fields.FEC.RBFEC.edge_name, title)
+
+                    meta_unit = OEFieldMeta().set_option(Meta.Units.Energy.kJ_per_mol)
+
+                    analysis_rec = OERecord()
+                    analysis_rec.set_value(OEField("DDG_BAR", Types.Float, meta=meta_unit), results['BAR'][0])
+                    analysis_rec.set_value(OEField("dDDG_BAR", Types.Float, meta=meta_unit), results['BAR'][1])
+
+                    new_record.set_value(Fields.FEC.free_energy, results['BAR'][0])
+                    new_record.set_value(Fields.FEC.free_energy_err, results['BAR'][1])
+                    new_record.set_value(Fields.FEC.RBFEC.NESC.DDG_rec, analysis_rec)
+
+                    work_bound_f = [v for k, v in forward_bound.items()]
+                    work_bound_r = [v for k, v in reverse_bound.items()]
+                    work_unbound_f = [v for k, v in forward_unbound.items()]
+                    work_unbound_r = [v for k, v in reverse_unbound.items()]
+
+                    work_rec = OERecord()
+                    work_rec.set_value(OEField("Bound_Forward_Works_OPLMD", Types.FloatVec, meta=meta_unit), work_bound_f)
+                    work_rec.set_value(OEField("Bound_Reverse_Works_OPLD", Types.FloatVec,  meta=meta_unit), work_bound_r)
+                    work_rec.set_value(OEField("Unbound_Forward_Works_OPLMD", Types.FloatVec, meta=meta_unit), work_unbound_f)
+                    work_rec.set_value(OEField("Unbound_Reverse_Works_OPLMD", Types.FloatVec, meta=meta_unit), work_unbound_r)
+                    new_record.set_value(Fields.FEC.RBFEC.NESC.work_rec, work_rec)
+
+                    # These Fields are required by the Floe Report and Record Check
+                    # to correctly work
+                    new_record.set_value(Fields.flask, ligandA)
+                    new_record.set_value(Fields.ligand_name, title)
+                    new_record.set_value(Fields.title, title + '_' + str(count))
+                    new_record.set_value(Fields.ligid, count)
+                    new_record.set_value(Fields.confid, 0)
+                    self.success.emit(new_record)
+                    self.opt['Logger'].info("Edge {} Done".format(edgeid), flush=True)
+                    count += 1
+                except Exception as e:
+                    self.opt['Logger'].warn("Error detected skip edge {}".format(edgeid),
+                                            str(e), flush=True)
+                    continue
+
+        except Exception as e:
+            self.opt['Logger'].error("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+        return
 
 
 class ParallelGMXChimera(ParallelMixin,  GMXChimera):
@@ -741,171 +980,8 @@ class ParallelGMXChimera(ParallelMixin,  GMXChimera):
     description = "(Parallel) " + GMXChimera.description
     uuid = "676baf05-0571-4f14-9f84-d5b5a63729c2"
 
+
 class ParallelNESGMX(ParallelMixin,  NESGMX):
     title = "Parallel " + NESGMX.title
     description = "(Parallel) " + NESGMX.description
     uuid = "b6640594-8a5a-4e05-89f2-679c5a46691c"
-
-
-
-
-
-# class RBFECEdgeGathering(RecordPortsMixin, ComputeCube):
-#     title = "RBFEC Edge Gathering"
-#
-#     classification = [["Relative Free Energy"]]
-#     tags = ['Ligand', 'Edge Mapping']
-#     description = """
-#     TBD
-#     """
-#
-#     uuid = "5b9f7b2f-68e8-4541-a0b7-ddbe6084923f"
-#
-#     # Override defaults for some parameters
-#     parameter_overrides = {
-#         "memory_mb": {"default": 14000},
-#         "spot_policy": {"default": "Prohibited"},
-#         "prefetch_count": {"default": 1},  # 1 molecule at a time
-#         "item_count": {"default": 1}  # 1 molecule at a time
-#     }
-#
-#     map_file = FileInputParameter("map_file", title="RBFEC Mapping file",
-#                                   description="RBFEC mapping file", required=True,
-#                                   default=None)
-#
-#     bound_port = RecordInputPort("bound_port", initializer=False)
-#
-#     def begin(self):
-#         self.opt = vars(self.args)
-#         self.opt['Logger'] = self.log
-#
-#         self.Bound_edges = dict()
-#         self.Bound_records = dict()
-#
-#         self.Unbound_edges = dict()
-#         self.Unbound_records = dict()
-#
-#         file = list(self.args.map_file)
-#         for file_obj in file:
-#             with TemporaryPath() as path:
-#                 file_obj.copy_to(path)
-#                 with open(path, "r") as f:
-#                     edge_list = f.readlines()
-#
-#         if not edge_list:
-#             raise IOError("Edge file is empty {}")
-#
-#         for edge in edge_list:
-#
-#             if not edge:
-#                 continue
-#
-#             # Comment
-#             if edge.startswith(";"):
-#                 continue
-#
-#             edge_str = utils.edge_map_grammar(edge)
-#
-#             if len(edge_str) > 3:
-#                 raise ValueError("Syntax Error Edge File: {}".format(edge_str))
-#
-#             edge_A_State = edge_str[0]
-#             edge_B_State = edge_str[2]
-#
-#             if edge_A_State == edge_B_State:
-#                 self.opt['Logger'].warn("Edge with the same starting and final state detected. "
-#                                         "The edge will be skipped")
-#                 continue
-#
-#             self.count = 0
-#             self.Bound_edges[(edge_A_State, edge_B_State)] = [False, False]
-#             self.Unbound_edges[(edge_A_State, edge_B_State)] = [False, False]
-#
-#     def process(self, record, port):
-#         try:
-#
-#             if port == 'intake':
-#                 edges = self.Unbound_edges
-#                 lig_records = self.Unbound_records
-#
-#             else:
-#                 edges = self.Bound_edges
-#                 lig_records = self.Bound_records
-#
-#             if not record.has_value(Fields.ligand_name):
-#                 raise ValueError("The record is missing the ligand name field")
-#
-#             lig_name = record.get_value(Fields.ligand_name)
-#
-#             # Populate the ligand Bond/Unbond record dictionary
-#             lig_records[lig_name] = record
-#
-#             # Mark True all the occurrences of lig_name in the A and B state
-#             for edge, occurrence in edges.items():
-#
-#                 lig_A_name = edge[0]
-#                 lig_B_name = edge[1]
-#
-#                 if lig_name == lig_A_name:
-#                     occurrence[0] = True
-#
-#                 elif lig_name == lig_B_name:
-#                     occurrence[1] = True
-#
-#             del_edges = [(edge[0], edge[1]) for edge, occ in edges.items()
-#                          if (occ[0] and occ[1])]
-#
-#             # print(del_edges)
-#
-#             for edge_to_del in del_edges:
-#
-#                 if edge_to_del in edges:
-#
-#                     del edges[edge_to_del]
-#
-#                     lig_A_name = edge_to_del[0]
-#                     lig_B_name = edge_to_del[1]
-#
-#                     lig_A_rec = lig_records[lig_A_name]
-#                     lig_B_rec = lig_records[lig_B_name]
-#
-#                     new_record = OERecord()
-#                     new_record.set_value(Fields.FEC.RBFEC.NESC.state_A, lig_A_rec)
-#                     new_record.set_value(Fields.FEC.RBFEC.NESC.state_B, lig_B_rec)
-#                     new_record.set_value(Fields.FEC.RBFEC.edge_name, lig_A_name + '_to_' + lig_B_name)
-#                     new_record.set_value(Fields.FEC.RBFEC.edgeid, self.count)
-#
-#                     self.success.emit(new_record)
-#                     self.count += 1
-#
-#             lig_rec_to_del = []
-#             for ln in lig_records.keys():
-#                 to_del = True
-#                 for edge in edges:
-#                     if ln == edge[0] or ln == edge[1]:
-#                         to_del = False
-#
-#                 if to_del:
-#                     lig_rec_to_del.append(ln)
-#
-#             for ln in lig_rec_to_del:
-#                 del lig_records[ln]
-#
-#         except Exception as e:
-#
-#             print("Failed to complete", str(e), flush=True)
-#             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
-#             self.log.error(traceback.format_exc())
-#             self.failure.emit(record)
-#
-#         return
-#
-#     def end(self):
-#
-#         if self.Bound_edges:
-#             self.opt['Logger'].warn("The Bound edge list is not empty :{}".format(self.Bound_edges))
-#
-#         if self.Unbound_edges:
-#             self.opt['Logger'].warn("The UnBound edge list is not empty :{}".format(self.Unbound_edges))
-#
-#         return

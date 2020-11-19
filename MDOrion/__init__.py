@@ -15,7 +15,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '3.5.0a0'
+__version__ = '3.5.0a6'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
@@ -59,4 +59,5 @@ from .FEC.RFEC.cubes import (BoundUnboundSwitchCube,
                              GMXChimera,
                              ParallelGMXChimera,
                              NESGMX,
-                             ParallelNESGMX)
+                             ParallelNESGMX,
+                             NESAnalysis)
