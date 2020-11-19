@@ -10,7 +10,7 @@ sphinxcontrib-bibtex==1.0.0
 
 # OE Stack
 # Leave this here to avoid pip install issues
-OpenEye-orionplatform==3.1.0dev14
+OpenEye-orionplatform==3.1.0
 
 # # OpenEye-Artemis
 OpenEye-ensemble2img==0.1.1
