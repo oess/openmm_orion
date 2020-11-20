@@ -269,8 +269,9 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
 
     gmx_gro_str_list = list()
 
-    for count, tr in enumerate(trj):
-        # print(">>>", count)
+    # TODO REMOVE[2] DEBUGGING
+    for count, tr in enumerate(trj[2]):
+        print(">>>", count)
         frame_xyz = tr.xyz[0] * 10
         bv = tr.unitcell_vectors[0] * 10 * unit.angstrom
         vel = velocities[count] * unit.nanometer / unit.picosecond
@@ -283,6 +284,15 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
         best_conf = chimera._alignment(ligand_reference, query_mol, morph)
 
         best_conf_coords = best_conf.GetCoords()
+
+
+
+        # if count == 2:
+        #
+        #     with oechem.oemolostream("best_conf.oeb") as ofs:
+        #         oechem.OEWriteConstMolecule(ofs, best_conf)
+        import sys
+        sys.exit(-1)
 
         pmd_initial.coordinates = np.array(lig_xyz_list).reshape(ligand_reference.NumAtoms(), 3)
 
