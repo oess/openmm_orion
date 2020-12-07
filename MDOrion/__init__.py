@@ -15,7 +15,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '3.0.0b20'
+__version__ = '3.0.0b25'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
@@ -52,3 +52,5 @@ from .TrjAnalysis.cubes_clusterAnalysis import (ParallelMDTrajAnalysisClusterRep
                                                 ParallelClusterPopAnalysis,
                                                 MDFloeReportCube,
                                                 ExtractMDDataCube)
+
+from .TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
