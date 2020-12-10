@@ -98,6 +98,8 @@ solvate.modify_parameter(solvate.close_solvent, promoted=False, default=False)
 
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
+ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.0')
 
 # Switching Bound and Unbound runs
 switch = BoundUnboundSwitchCube("Bound/Unbound Switch", title='Bound/Unbound Switch')

@@ -21,9 +21,13 @@ from orionplatform.mixins import RecordPortsMixin
 from orionplatform.ports import (RecordInputPort,
                                  RecordOutputPort)
 
+from orionclient.session import in_orion
+
 from floe.api import (parameters,
                       ComputeCube,
                       ParallelMixin)
+
+from floereport import FloeReport, LocalFloeReport
 
 from MDOrion.Standards.standards import Fields
 
@@ -61,9 +65,13 @@ import numpy as np
 
 import os
 
+from os import environ
+
 from simtk import unit
 
 import io
+
+import math
 
 
 class BoundUnboundSwitchCube(RecordPortsMixin, ComputeCube):
@@ -348,11 +356,17 @@ class RBFECEdgeGathering(RecordPortsMixin, ComputeCube):
             full_edges_to_del = [(edge[0], edge[1]) for edge, v in self.Bound_Unbound_edges.items() if v[0][edge][0]
                                  and v[0][edge][1] and v[1][edge][0] and v[1][edge][1]]
 
+            # full_edges_to_del = []
+            # for ed, v in self.Bound_Unbound_edges.items():
+            #     if v[0][ed][0] and v[0][ed][1] and v[1][ed][0] and v[1][ed][1]:
+            #         full_edges_to_del.append((ed[0], ed[1]))
+
             for edge_to_del in full_edges_to_del:
                 if edge_to_del in edges:
 
                     del self.Bound_edges[edge_to_del]
                     del self.Unbound_edges[edge_to_del]
+                    del self.Bound_Unbound_edges[edge_to_del]
 
                     lig_A_name = edge_to_del[0]
                     lig_B_name = edge_to_del[1]
@@ -507,12 +521,16 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                                                                   pmd_chimera_B_to_A_initial,
                                                                   pmd_chimera_B_to_A_final)
 
-            gmx_gro_A_to_B_Unbound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
-                                                                      md_record_state_A_Unbound,
-                                                                      self.opt['trajectory_frames'],
-                                                                      lig_B,
-                                                                      chimera,
-                                                                      graph_A_to_B_dic)
+            # gmx_gro_A_to_B_Unbound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
+            #                                                           md_record_state_A_Unbound,
+            #                                                           self.opt['trajectory_frames'],
+            #                                                           lig_B,
+            #                                                           chimera,
+            #                                                           graph_A_to_B_dic)
+
+
+
+
 
             gmx_gro_B_to_A_Unbound = gmx_chimera_coordinate_injection(pmd_chimera_B_to_A_initial,
                                                                       md_record_state_B_Unbound,
@@ -521,21 +539,35 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                                                                       chimera,
                                                                       graph_B_to_A_dic)
 
-            gmx_gro_A_to_B_Bound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
-                                                                    md_record_state_A_Bound,
-                                                                    self.opt['trajectory_frames'],
-                                                                    lig_B,
-                                                                    chimera,
-                                                                    graph_A_to_B_dic)
 
-            gmx_gro_B_to_A_Bound = gmx_chimera_coordinate_injection(pmd_chimera_B_to_A_initial,
-                                                                    md_record_state_B_Bound,
-                                                                    self.opt['trajectory_frames'],
-                                                                    lig_A,
-                                                                    chimera,
-                                                                    graph_B_to_A_dic)
 
-            self.opt['Logger'].info("GMX Chimera Topology Created")
+            with open("gmx_top.top", "w") as f:
+                f.write(gmx_top_B_to_A_Unbound)
+
+            # for idx, gro in enumerate(gmx_gro_B_to_A_Unbound):
+            #     with open("gmx_b_to_a_gro_" + str(idx) + '.gro', "w") as f:
+            #         f.write(gro)
+
+            import sys
+            sys.exit(-1)
+
+
+
+            # gmx_gro_A_to_B_Bound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
+            #                                                         md_record_state_A_Bound,
+            #                                                         self.opt['trajectory_frames'],
+            #                                                         lig_B,
+            #                                                         chimera,
+            #                                                         graph_A_to_B_dic)
+            #
+            # gmx_gro_B_to_A_Bound = gmx_chimera_coordinate_injection(pmd_chimera_B_to_A_initial,
+            #                                                         md_record_state_B_Bound,
+            #                                                         self.opt['trajectory_frames'],
+            #                                                         lig_A,
+            #                                                         chimera,
+            #                                                         graph_B_to_A_dic)
+            #
+            # self.opt['Logger'].info("GMX Chimera Topology Created")
 
             frame_count_field = OEField("frame_count", Types.Int)
 
@@ -939,6 +971,7 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
 
                     new_record.set_value(Fields.FEC.free_energy, results['BAR'][0])
                     new_record.set_value(Fields.FEC.free_energy_err, results['BAR'][1])
+
                     new_record.set_value(Fields.FEC.RBFEC.NESC.DDG_rec, analysis_rec)
 
                     work_bound_f = [v for k, v in forward_bound.items()]
@@ -951,6 +984,7 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
                     work_rec.set_value(OEField("Bound_Reverse_Works_OPLD", Types.FloatVec,  meta=meta_unit), work_bound_r)
                     work_rec.set_value(OEField("Unbound_Forward_Works_OPLMD", Types.FloatVec, meta=meta_unit), work_unbound_f)
                     work_rec.set_value(OEField("Unbound_Reverse_Works_OPLMD", Types.FloatVec, meta=meta_unit), work_unbound_r)
+
                     new_record.set_value(Fields.FEC.RBFEC.NESC.work_rec, work_rec)
 
                     # These Fields are required by the Floe Report and Record Check
@@ -972,6 +1006,150 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
             self.opt['Logger'].error("Failed to complete", str(e), flush=True)
             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
             self.log.error(traceback.format_exc())
+        return
+
+
+class PlotRBFEResults(RecordPortsMixin, ComputeCube):
+    title = "RBFE Plot"
+    # version = "0.1.4"
+    classification = [["FEC Analysis"]]
+    tags = ['Complex', 'Protein', 'Ligand']
+    description = """
+    TO BE DECIDED
+    """
+
+    uuid = "a62fd733-132b-4619-bb8b-68f373020a79"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 2000},
+        "spot_policy": {"default": "Prohibited"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    lig_exp_file = FileInputParameter("lig_exp_file", title="Ligand Experimental file results",
+                                      description="Ligand Experimental Results",
+                                      required=True,
+                                      default=None)
+
+    symmetrize = parameters.BooleanParameter(
+        'symmetrize',
+        default=True,
+        help_text="""Select if symmetrize the Relative Binding affinity plot"""
+    )
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+        self.lig_name_dic = dict()
+        self.edge_exp_dic = dict()
+        self.edge_pred_dic = dict()
+
+        if in_orion():
+            job_id = environ.get('ORION_JOB_ID')
+            self.floe_report = FloeReport.start_report("floe_report", job_id=job_id)
+        else:
+            self.floe_report = LocalFloeReport.start_report("floe_report")
+
+        file = list(self.args.lig_exp_file)
+        for file_obj in file:
+            with TemporaryPath() as path:
+                file_obj.copy_to(path)
+                with open(path, "r") as f:
+                    lig_list = f.readlines()
+
+        if not lig_list:
+            raise IOError("Ligand file is empty {}")
+
+        for lig_ln in lig_list:
+
+            if not lig_ln:
+                continue
+
+            expr = utils.rbfe_file_grammar(lig_ln)
+
+            lig_name = expr[0]
+
+            if lig_name in self.lig_name_dic.keys():
+                raise ValueError("Ligand name must be unique: Detected multiple names for: {}".format(lig_name))
+
+            # convert the experimental binding affinity and its error in kJ/mol
+            data = []
+
+            if expr[-1] == 'kcal/mol':
+                data.append(expr[1] * 4.184)
+            else:
+                data.append(expr[1])
+
+            if len(expr) == 4:
+                if expr[-1] == 'kcal/mol':
+                    data.append(expr[2] * 4.184)
+                else:
+                    data.append(expr[2])
+            else:  # Set the experimental error to zero kJ/mol if not provided
+                data.append(0.0)
+
+            # lig_name_dic['lig_name'] : [DG, dG]
+            self.lig_name_dic[lig_name] = data
+
+    def process(self, record, port):
+        try:
+            if not record.has_field(Fields.FEC.RBFEC.edge_name):
+                raise ValueError("The current record is missing the edge name field")
+
+            edge_name = record.get_value(Fields.FEC.RBFEC.edge_name)
+
+            lig_name_state_A = edge_name.split()[0]
+            lig_name_state_B = edge_name.split()[2]
+
+            if lig_name_state_A in self.lig_name_dic.keys() and lig_name_state_B in self.lig_name_dic.keys():
+                # Experimental relative binding affinity in kJ/mol
+                DDG_A_to_B_exp = self.lig_name_dic[lig_name_state_B][0] - self.lig_name_dic[lig_name_state_A][0]
+                # Experimental relative binding affinity error
+                ddG_A_to_B_exp = math.sqrt(self.lig_name_dic[lig_name_state_B][1]**2 + self.lig_name_dic[lig_name_state_A][1]**2)
+
+                self.edge_exp_dic[edge_name] = [DDG_A_to_B_exp, ddG_A_to_B_exp]
+
+            # Predicted relative binding affinity in kJ/mol
+            if not record.has_field(Fields.FEC.RBFEC.NESC.DDG_rec):
+                raise ValueError("The current record is missing the Binding Affinity Record")
+
+            DDG_rec = record.get_value(Fields.FEC.RBFEC.NESC.DDG_rec)
+
+            # Free energy values
+            DDG_A_to_B_pred = DDG_rec.get_value(OEField("DDG_BAR", Types.Float))
+            ddG_A_to_B_pred = DDG_rec.get_value(OEField("dDDG_BAR", Types.Float))
+
+            self.edge_pred_dic[edge_name] = [DDG_A_to_B_pred, ddG_A_to_B_pred]
+
+            # self.success.emit(record)
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
+
+    def end(self):
+
+        try:
+            self.opt['Logger'].info("....Generating Floe Report")
+
+            repport_html_str = utils.generate_plots_and_stats(self.edge_exp_dic,
+                                                              self.edge_pred_dic,
+                                                              DDG_symmetrize=self.opt['symmetrize'])
+
+            index = self.floe_report.create_page("index", is_index=True)
+
+            index.set_from_string(repport_html_str)
+
+            self.floe_report.finish_report()
+
+        except Exception as e:
+            self.opt['Warning'].warn("It was not possible to generate the floe report: {}".format(str(e)))
+
         return
 
 

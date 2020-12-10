@@ -17,8 +17,12 @@
 
 
 from pyparsing import (Word,
+                       alphanums,
+                       pyparsing_common,
+                       Literal,
+                       Combine,
+                       Optional,
                        printables)
-
 import os
 
 import parmed
@@ -77,6 +81,13 @@ from datarecord import Meta
 
 import random
 
+from MDOrion.FEC.RFEC import stats
+
+from MDOrion.FEC.RFEC.freeenergyframework import wrangle
+
+import scipy as sc
+
+
 def edge_map_grammar(word):
 
     map_string = Word(printables) + ">>" + Word(printables)
@@ -85,6 +96,23 @@ def edge_map_grammar(word):
 
     # expr = word.rstrip().split()
     # print(expr)
+
+    return expr
+
+
+def rbfe_file_grammar(word):
+
+    units = Combine(Literal("kcal/mol") | Literal("kJ/mol"))
+
+    lig_name = Word(printables)
+
+    DG = pyparsing_common.number
+
+    dg_err = Optional(pyparsing_common.number)
+
+    map_string = lig_name + DG + dg_err + units
+
+    expr = map_string.parseString(word)
 
     return expr
 
@@ -204,7 +232,7 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
     trj_fn = mdrecord.get_stage_trajectory(stg_name='last')
     trj = md.load(trj_fn)
 
-    # trj.save("trj.pdb")
+    trj.save("trj.pdb")
 
     if len(trj) > tot_frames:
         stride = int(len(trj)/tot_frames)
@@ -368,6 +396,10 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
                 flask_gmx_gro_str = f.read()
 
             gmx_gro_str_list.append(flask_gmx_gro_str)
+
+        if count == 2:
+            import sys
+            sys.exit(-1)
 
         # TODO DEBUG ONLY MULTI CHIMERA
         # pos = new_pmd_structure.coordinates
@@ -935,6 +967,391 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
                     .js-plotly-plot { min-height: 900px; }
                     .js-plotly-plot { min-width: 900px; }
                 </style></head>\n"""
+
+            report_str += line
+
+    return report_str
+
+
+def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG_symmetrize=False):
+
+    def calculate_statistics(exp, pred, plot_type='ddG'):
+
+        try:
+            mae = stats.bootstrap_statistic(exp, pred, statistic="MAE", plot_type=plot_type)
+            rae = stats.bootstrap_statistic(exp, pred, statistic="RAE", plot_type=plot_type)
+            rmse = stats.bootstrap_statistic(exp, pred, statistic="RMSE", plot_type=plot_type)
+            rrmse = stats.bootstrap_statistic(exp, pred, statistic="RRMSE", plot_type=plot_type)
+            r2 = stats.bootstrap_statistic(exp, pred, statistic="R2", plot_type=plot_type)
+            rho = stats.bootstrap_statistic(exp, pred, statistic="RHO", plot_type=plot_type)
+            ktau = stats.bootstrap_statistic(exp, pred, statistic="KTAU", plot_type=plot_type)
+
+            # Generate statistic without bootstraping
+            mae['data'] = stats.compute_statistic(exp, pred, "MAE")
+            rae['data'] = stats.compute_statistic(exp, pred, "RAE")
+            rmse['data'] = stats.compute_statistic(exp, pred, "RMSE")
+            rrmse['data'] = stats.compute_statistic(exp, pred, "RRMSE")
+            r2['data'] = stats.compute_statistic(exp, pred, "R2")
+            rho['data'] = stats.compute_statistic(exp, pred, "RHO")
+            ktau['data'] = stats.compute_statistic(exp, pred, "KTAU")
+
+            statistics = dict()
+
+            statistics['MAE'] = mae
+            statistics['RAE'] = rae
+            statistics['RMSE'] = rmse
+            statistics['RRMSE'] = rrmse
+            statistics['R2'] = r2
+            statistics['RHO'] = rho
+            statistics['KTAU'] = ktau
+
+            return statistics
+
+        except Exception as e:
+            return None
+
+    def sub_plot(x, err_x, y, err_y, figure, hover_text, col, range):
+
+        if col == 1:
+            hov_label = "<b>%{text}</b><br><br>" + "\u0394\u0394G_Exp: %{x:.2f}<br>" + "\u0394\u0394G_Pred: %{y:.2f}<br>"
+        else:
+            hov_label = "<b>%{text}</b><br><br>" + "\u0394G_Exp: %{x:.2f}<br>" + "\u0394G_Pred: %{y:.2f}<br>"
+
+        figure.add_trace(go.Scatter(x=x, y=y,
+                                    text=hover_text,
+                                    hovertemplate=hov_label,
+                                    name='\u0394\u0394G',
+                                    mode='markers',
+                                    xaxis='x1',
+                                    yaxis='y1',
+                                    showlegend=False,
+                                    error_x=dict(
+                                        type='data',
+                                        array=err_x,
+                                        color='purple',
+                                        visible=True),
+                                    error_y=dict(
+                                        type='data',
+                                        array=err_y,
+                                        color='purple',
+                                        visible=True),
+
+                                    marker=dict(color='purple', size=8)
+                                    ),
+                         row=1, col=col)
+
+        slope, intercept, r_value, p_value, std_err = sc.stats.linregress(np.array(x),
+                                                                          np.array(y))
+
+        x_plt = np.linspace(range[0], range[1], 100, endpoint=True)
+
+        line = slope * np.array(x_plt) + intercept
+
+        # Best fit line
+        figure.add_trace(go.Scatter(
+            x=x_plt,
+            y=line,
+            hovertext="y = {:.2f} * x + {:.2f}".format(slope, intercept),
+            hoverinfo="text",
+            mode="lines",
+            showlegend=False,
+            line=dict(color='red', width=2)),
+            row=1, col=col
+        )
+
+        # Theoretical line
+        figure.add_trace(go.Scatter(
+            x=x_plt,
+            y=x_plt,
+            hovertext="1:1",
+            hoverinfo="text",
+            mode="lines",
+            showlegend=False,
+            line=dict(color='black', width=2, dash='dash')),
+            row=1, col=col
+        )
+
+        return
+
+    raw_results = []
+
+    if len(exp_data_dic) != len(predicted_data_dic):
+        raise ValueError("Experimental vs Predicted data mismatch number: {} vs {}".
+                         format(len(exp_data_dic), len(predicted_data_dic)))
+
+    for edge_name, exp_val in exp_data_dic.items():
+        ligA_name = edge_name.split()[0]
+        ligB_name = edge_name.split()[2]
+
+        res = wrangle.Result(ligA_name, ligB_name,
+                             exp_val[0], exp_val[1],
+                             predicted_data_dic[edge_name][0], predicted_data_dic[edge_name][1], 0.0)
+
+        raw_results.append(res)
+
+    network = wrangle.FEMap(raw_results)
+
+    network.check_weakly_connected()
+
+    # Relative Binding Affinity
+    exp_DDG = np.asanyarray([x.exp_DDG for x in network.results])
+    dexp_DDG = np.asanyarray([x.dexp_DDG for x in network.results])
+    ligA_names = [x.ligandA for x in network.results]
+
+    pred_DDG = np.asanyarray([y.calc_DDG for y in network.results])
+    dpred_DDG = np.asanyarray([y.mbar_dDDG for y in network.results])
+    ligB_names = [y.ligandB for y in network.results]
+
+    hov_edge = []
+    for lna, lnb in zip(ligA_names, ligB_names):
+        hov_edge.append("{} to {}".format(lna, lnb))
+
+    if DDG_symmetrize:
+        exp_DDG = np.asarray([x.exp_DDG for x in network.results] + [-x.exp_DDG for x in network.results])
+        dexp_DDG = np.asarray([x.dexp_DDG for x in network.results] + [x.dexp_DDG for x in network.results])
+
+        pred_DDG = np.asarray([y.calc_DDG for y in network.results] + [-y.calc_DDG for y in network.results])
+        dpred_DDG = np.asarray([y.mbar_dDDG for y in network.results] + [y.mbar_dDDG for y in network.results])
+        for lna, lnb in zip(ligB_names, ligA_names):
+            hov_edge.append("{} to {}".format(lna, lnb))
+
+    # Relative statistics
+    relative_statistics = calculate_statistics(exp_DDG, pred_DDG, plot_type="ddG")
+
+    if network.weakly_connected:
+        figure = make_subplots(rows=2, cols=2,
+                               subplot_titles=("Relative Binding Affinity",
+                                               "Centered Binding Affinity"),
+                               vertical_spacing=0.0,
+                               row_heights=[0.5, 0.5],
+                               )
+    else:
+        figure = make_subplots(rows=2, cols=2, subplot_titles=("Relative Binding Affinity",
+                                                               "Centered Binding Affinity Not Available"))
+
+    # Axis range:
+    conc_DDG = np.concatenate((exp_DDG, pred_DDG))
+
+    min_range_DDG = np.min(conc_DDG)
+    max_range_DDG = np.max(conc_DDG)
+
+    conc_dDDG = np.concatenate((dexp_DDG, dpred_DDG))
+
+    max_dDDG = np.max(conc_dDDG)
+
+    # Correct for the error bars
+    min_range_DDG -= max_dDDG
+    max_range_DDG += max_dDDG
+
+    padding = int(round((np.abs(min_range_DDG) + np.abs(max_range_DDG)) * 0.05))
+
+    min_range_DDG -= padding
+    max_range_DDG += padding
+
+    range_axis_DDG = [min_range_DDG, max_range_DDG]
+
+    sub_plot(exp_DDG, dexp_DDG, pred_DDG, dpred_DDG, figure, hov_edge, 1, range_axis_DDG)
+
+    xaxis1 = dict(
+        zeroline=True,
+        showgrid=True,
+        tickfont=dict(
+            size=18,
+        ),
+        range=range_axis_DDG,
+        constrain='domain',
+        title="Experimental \u0394\u0394G kJ/mol",
+        titlefont=dict(
+            size=20
+        )
+    )
+
+    yaxis1 = dict(
+        zeroline=True,
+        showgrid=True,
+        tickfont=dict(
+            size=18,
+        ),
+        scaleanchor="x1",
+        scaleratio=1,
+        range=range_axis_DDG,
+        title="Predicted \u0394\u0394G kJ/mol",
+        titlefont=dict(
+            size=20
+        )
+    )
+
+    figure.update_layout(
+        title='Method used to estimate \u0394\u0394G: {}'.format(method),
+        xaxis1=xaxis1,
+        yaxis1=yaxis1,
+        autosize=False,
+        width=1100,
+        height=1000,
+    )
+
+    if network.weakly_connected:
+
+        # Absolute Binding Affinity from Hanna's code
+        graph = network.graph
+
+        exp_DG = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
+        pred_DG = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
+        dexp_DG = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
+        dpred_DG = np.asarray([node[1]['df_i_calc'] for node in graph.nodes(data=True)])
+
+        # centralising
+        # this should be replaced by providing one experimental result
+        exp_DG = exp_DG - np.mean(exp_DG)
+        pred_DG = pred_DG - np.mean(pred_DG)
+
+        if relative_statistics is not None:
+            # Absolute statistics
+            absolute_statistics = calculate_statistics(exp_DG, pred_DG, plot_type="dG")
+
+        # Assuming that dic is in Order
+        hov_ligs = []
+        for name, id in network._name_to_id.items():
+            hov_ligs.append(name)
+
+        # Axis range:
+        conc_DG = np.concatenate((exp_DG, pred_DG))
+
+        min_range_DG = np.min(conc_DG)
+        max_range_DG = np.max(conc_DG)
+
+        conc_dDG = np.concatenate((dexp_DG, dpred_DG))
+        max_dDG = np.max(conc_dDG)
+
+        # Correct for the error bars
+        min_range_DG -= max_dDG
+        max_range_DG += max_dDG
+
+        padding = int(round((np.abs(min_range_DG) + np.abs(max_range_DG)) * 0.05))
+
+        min_range_DG -= padding
+        max_range_DG += padding
+
+        range_axis_DG = [min_range_DG, max_range_DG]
+
+        sub_plot(exp_DG, dexp_DG, pred_DG, dpred_DG, figure, hov_ligs, 2, range_axis_DG)
+
+        xaxis2 = dict(
+            zeroline=True,
+            showgrid=True,
+            tickfont=dict(
+                size=18,
+            ),
+
+            range=range_axis_DG,
+            constrain='domain',
+            title="Experimental \u0394G kJ/mol",
+            titlefont=dict(
+                size=20
+            )
+        )
+
+        yaxis2 = dict(
+            zeroline=True,
+            showgrid=True,
+            tickfont=dict(
+                size=18,
+            ),
+            scaleanchor="x2",
+            scaleratio=1,
+            range=range_axis_DG,
+            title="Predicted \u0394G kJ/mol",
+            titlefont=dict(
+                size=20
+            )
+        )
+
+        figure.update_layout(
+            xaxis2=xaxis2,
+            yaxis2=yaxis2
+        )
+    else:
+        print('Graph is not connected enough to compute absolute values')
+
+    data = []
+    methods = []
+    values = []
+
+    if relative_statistics is not None:
+
+        for meth, val in relative_statistics.items():
+            if meth == 'RAE':
+                meth = "Relative MAE"
+            if meth == 'RRMSE':
+                meth = "Relative RMSE"
+            if meth == 'R2':
+                meth = "Pearson's R\N{SUPERSCRIPT TWO}"
+            if meth == 'RHO':
+                meth = "Spearman's \u03C1"
+            if meth == "KTAU":
+                meth = "Kendall's \u03C4"
+
+            methods.append(meth)
+
+            vl_line = "{:.2f} [ {:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
+            values.append(vl_line)
+
+        data.append(methods)
+        data.append(values)
+
+        data.append([])
+
+        values = []
+
+        if network.weakly_connected:
+            for meth, val in absolute_statistics.items():
+                vl_line = "{:.2f} [ {:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
+                values.append(vl_line)
+
+        data.append(methods)
+        data.append(values)
+
+        # Add Table with statistics. Data in kJ/mol
+        figure.add_trace(
+            go.Table(
+                header=dict(
+                    values=["Method", "\u0394\u0394G kJ/mol", "", "Method", "\u0394G kJ/mol"],
+                    font=dict(size=14),
+                    align="center",
+                    fill_color='paleturquoise',
+                ),
+                cells=dict(
+                    values=data,
+                    align="center"),
+
+                domain=dict(x=[0, 1],
+                            y=[0, 0.25])
+            )
+        )
+
+    # figure.show()
+
+    with TemporaryDirectory() as outdir:
+
+        fn = os.path.join(outdir, "report.html")
+
+        plotly.offline.plot(figure, filename=fn)
+
+        with open(fn, 'r') as f:
+            report_string_list = f.readlines()
+
+        # Add the following lines for Orion CSS Plotly integration
+        report_str = ""
+
+        for idx in range(0, len(report_string_list)):
+            line = report_string_list[idx]
+            if "<head>" in line:
+                report_str += """<head><meta charset="utf-8" />   
+                   <style>
+                       .modebar { display:unset; }
+                       .js-plotly-plot { min-height: 900px; }
+                       .js-plotly-plot { min-width: 900px; }
+                   </style></head>\n"""
 
             report_str += line
 
