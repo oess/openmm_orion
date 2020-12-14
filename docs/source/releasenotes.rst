@@ -2,7 +2,7 @@
 Release Notes
 #############
 
-v3.0.0 November 2020
+v3.0.1 November 2020
 ======================
 
 General Notice
