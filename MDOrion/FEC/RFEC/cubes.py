@@ -161,7 +161,7 @@ class RBFECMapping(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 2000},
+        "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -443,8 +443,8 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 32000},
-        "spot_policy": {"default": "Allowed"},
+        "memory_mb": {"default": 14000},
+        "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
     }
@@ -521,16 +521,12 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                                                                   pmd_chimera_B_to_A_initial,
                                                                   pmd_chimera_B_to_A_final)
 
-            # gmx_gro_A_to_B_Unbound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
-            #                                                           md_record_state_A_Unbound,
-            #                                                           self.opt['trajectory_frames'],
-            #                                                           lig_B,
-            #                                                           chimera,
-            #                                                           graph_A_to_B_dic)
-
-
-
-
+            gmx_gro_A_to_B_Unbound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
+                                                                      md_record_state_A_Unbound,
+                                                                      self.opt['trajectory_frames'],
+                                                                      lig_B,
+                                                                      chimera,
+                                                                      graph_A_to_B_dic)
 
             gmx_gro_B_to_A_Unbound = gmx_chimera_coordinate_injection(pmd_chimera_B_to_A_initial,
                                                                       md_record_state_B_Unbound,
@@ -539,35 +535,21 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                                                                       chimera,
                                                                       graph_B_to_A_dic)
 
+            gmx_gro_A_to_B_Bound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
+                                                                    md_record_state_A_Bound,
+                                                                    self.opt['trajectory_frames'],
+                                                                    lig_B,
+                                                                    chimera,
+                                                                    graph_A_to_B_dic)
 
+            gmx_gro_B_to_A_Bound = gmx_chimera_coordinate_injection(pmd_chimera_B_to_A_initial,
+                                                                    md_record_state_B_Bound,
+                                                                    self.opt['trajectory_frames'],
+                                                                    lig_A,
+                                                                    chimera,
+                                                                    graph_B_to_A_dic)
 
-            with open("gmx_top.top", "w") as f:
-                f.write(gmx_top_B_to_A_Unbound)
-
-            # for idx, gro in enumerate(gmx_gro_B_to_A_Unbound):
-            #     with open("gmx_b_to_a_gro_" + str(idx) + '.gro', "w") as f:
-            #         f.write(gro)
-
-            import sys
-            sys.exit(-1)
-
-
-
-            # gmx_gro_A_to_B_Bound = gmx_chimera_coordinate_injection(pmd_chimera_A_to_B_initial,
-            #                                                         md_record_state_A_Bound,
-            #                                                         self.opt['trajectory_frames'],
-            #                                                         lig_B,
-            #                                                         chimera,
-            #                                                         graph_A_to_B_dic)
-            #
-            # gmx_gro_B_to_A_Bound = gmx_chimera_coordinate_injection(pmd_chimera_B_to_A_initial,
-            #                                                         md_record_state_B_Bound,
-            #                                                         self.opt['trajectory_frames'],
-            #                                                         lig_A,
-            #                                                         chimera,
-            #                                                         graph_B_to_A_dic)
-            #
-            # self.opt['Logger'].info("GMX Chimera Topology Created")
+            self.opt['Logger'].info("GMX Chimera Topology Created")
 
             frame_count_field = OEField("frame_count", Types.Int)
 

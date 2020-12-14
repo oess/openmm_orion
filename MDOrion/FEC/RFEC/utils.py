@@ -397,10 +397,6 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
 
             gmx_gro_str_list.append(flask_gmx_gro_str)
 
-        if count == 2:
-            import sys
-            sys.exit(-1)
-
         # TODO DEBUG ONLY MULTI CHIMERA
         # pos = new_pmd_structure.coordinates
         # chimera_oe_pos = oechem.OEFloatArray(pos.ravel())
