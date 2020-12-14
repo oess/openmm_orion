@@ -60,7 +60,7 @@ class InputGromacs(SourceCube):
     title = "InputTprGromacs"
     classification = [["Gromacs", "Reader"]]
     tags = ["OpenEye", "Gromacs", "MD"]
-    description = "This cube read in a Gromacs .tpr file or a recovery dataset"
+    description = "This Cube read in a Gromacs .tpr file or a recovery dataset"
 
     success = RecordOutputPort('success')
     failure = RecordOutputPort('failure')
@@ -112,7 +112,7 @@ class GromacsProxyCube(RecordPortsMixin, ComputeCube):
     # version = "0.1.4"
     title = "Gromacs Proxy Cube"
     description = """
-    This cube is used to implement a cycle with the Gromacs running cube
+    This Cube is used to implement a cycle with the Gromacs running cube
     Checking the current state of the simulation
     """
     classification = [["Proxy"]]
@@ -184,7 +184,7 @@ class GromacsRunCube(RecordPortsMixin, ComputeCube):
     # version = "0.1.4"
     title = "Gromacs Run Cube"
     description = """
-    This cube runs Gromacs 
+    This Cube runs Gromacs 
     """
     classification = [["Gromacs"]]
     tags = ["Gromacs", "MD"]

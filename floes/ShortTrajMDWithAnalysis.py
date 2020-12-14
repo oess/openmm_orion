@@ -70,6 +70,9 @@ iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
 iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset", description="Ligand Dataset")
 
 ligset = LigandSetting("LigandSetting", title="Ligand Setting")
+ligset.promote_parameter('max_md_runs', promoted_name='max_md_runs',
+                         default=500,
+                         description='The maximum allowed number of md runs')
 ligset.set_parameters(lig_res_name='LIG')
 
 chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")
@@ -91,14 +94,14 @@ complx = ComplexPrepCube("Complex", title="Complex Preparation")
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
 solvate = ParallelSolvationCube("Solvation", title="Solvation")
 
-# This cube is necessary for the correct work of collection and shard
+# This Cube is necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.2.0')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.0')
 
 # Protein Setting
 mdcomp = MDComponentCube("MD Components", title="MD Components")
@@ -216,8 +219,9 @@ analysis_group = ParallelCubeGroup(cubes=[catLigTraj, catLigMMPBSA, clusCube, cl
 job.add_group(analysis_group)
 
 report = MDFloeReportCube("report", title="Floe Report")
+report.set_parameters(floe_report_title="STMDA Report")
 
-# This cube is necessary for the correct working of collection and shard
+# This Cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 

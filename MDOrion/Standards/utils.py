@@ -16,7 +16,7 @@
 # or its use.
 
 
-from datarecord.types import CustomHandler
+from datarecord import CustomHandler
 
 import pickle
 

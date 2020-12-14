@@ -35,17 +35,19 @@ from MDOrion.TrjAnalysis.water_utils import nmax_waters
 
 from openeye import oechem
 
-import os
+import os,math
 
 import traceback
 
 from datarecord import (Types,
-                        Meta,
-                        OEFieldMeta,
+                        OEPrimaryMolField,
                         OEField,
                         OERecord)
 
 from MDOrion.Standards.mdrecord import MDDataRecord
+
+# use a really large float as a magic number to replace NaNs to avoid Orion WriterCube errors
+magic_big_float_to_replace_NaN = 4.0e+256
 
 
 class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
@@ -56,7 +58,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
 
     description = """
     Converting MD Traj into multiconf OEMols for Ligand and Protein.
-    This cube will take in the MD traj file containing
+    This Cube will take in the MD traj file containing
     the solvated protein:ligand complex and extract
     multiconf OEMols for Ligand and Protein.
     """
@@ -381,8 +383,15 @@ class TrajPBSACube(RecordPortsMixin, ComputeCube):
                 PBSAdata['OEZap_MMPBSA6_Bind'] = [eMMPB+eSA6 for eMMPB,eSA6 in
                                                   zip(PBSAdata['OEZap_MMPB_Bind'], PBSAdata['OEZap_SA6_Bind'])]
 
+            # list field and change any NaNs to a really big float
             for key in PBSAdata.keys():
-                opt['Logger'].info('TrajPBSACube PBSAdata[{}] length {}'.format(key, len(PBSAdata[key])))
+                opt['Logger'].info('{} TrajPBSACube PBSAdata[{}] of length {}'
+                                   .format(system_title,key,len(PBSAdata[key])) )
+                # change any NaNs to a really big float or else Orion WriterCube fails on JSON dict
+                for i, x in enumerate(PBSAdata[key]):
+                    if math.isnan(x):
+                        opt['Logger'].info('{} found a NaN at PBSAdata[{}][{}]'.format(system_title,key,i))
+                        PBSAdata[key][i] = magic_big_float_to_replace_NaN
 
             # Add the PBSAdata dict to the record
             record.set_value(Fields.Analysis.oepbsa_dict, PBSAdata)
@@ -487,6 +496,11 @@ class TrajInteractionEnergyCube(RecordPortsMixin, ComputeCube):
             for key in intEdata.keys():
                 opt['Logger'].info('{} traj intEdata[{}] of length {}'
                                    .format(system_title,key,len(intEdata[key])) )
+                # change any NaNs to a really big float or else Orion WriterCube fails on JSON dict
+                for i, x in enumerate(intEdata[key]):
+                    if math.isnan(x):
+                        opt['Logger'].info('{} found a NaN at intEdata[{}][{}]'.format(system_title,key,i))
+                        intEdata[key][i] = magic_big_float_to_replace_NaN
 
             # Add the intEdata dict to the record
             record.set_value(Fields.Analysis.oeintE_dict, intEdata)
@@ -522,7 +536,7 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
     description = """
     Combine individual conformer trajectory OEMols into single ligand OEMol
 
-    This cube will read in and combine the individual MD traj OEMols for each conformer
+    This Cube will read in and combine the individual MD traj OEMols for each conformer
     into a single MD traj OEMol for the whole ligand, in preparation for clistering.
     It will do this for both the protein and ligand components of the complex.
     """
@@ -660,7 +674,7 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
     tags = ['Ligand', 'Protein']
 
     description = """
-    This cube gathers together conformers related to the same ligand and their information
+    This Cube gathers together conformers related to the same ligand and their information
     in a new record containing the multi conformer ligand and each conformer record info.
     """
 
@@ -739,7 +753,7 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
                 lig_multi_conf = oechem.OEMol(rec0.get_value(Fields.ligand))
                 protein_name = rec0.get_value(Fields.protein_name)
 
-                # MD Components copied at the ligi top level
+                # MD Components copied at the ligand top level
                 new_rec.set_value(Fields.md_components, rec0.get_value(Fields.md_components))
 
                 # if >1 confs, add their confs to the parent ligand at the top level
@@ -747,7 +761,11 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
                     lig_multi_conf.NewConf(rec.get_value(Fields.ligand))
 
                 # get name of initial molecule
-                init_mol = new_rec.get_value(OEField('Molecule', Types.Chem.Mol))
+                if new_rec.has_value(OEPrimaryMolField()):
+                    init_mol = new_rec.get_value(OEPrimaryMolField())
+                else:
+                    print('{} ConformerGatheringData: new_rec cannot find the OEPrimaryMolField'.format(sys_id) )
+                    continue
                 lig_title = init_mol.GetTitle()
                 lig_multi_conf.SetTitle(lig_title)
                 # regenerate protein-ligand title since all titles on conformers include conformer id
@@ -775,7 +793,7 @@ class NMaxWatersLigProt(RecordPortsMixin, ComputeCube):
     tags = ['Ligand', 'Protein', 'Waters']
 
     description = """
-    This cube determines the max number of waters for all the ligands that
+    This Cube determines the max number of waters for all the ligands that
     fits between the protein and ligand molecular surfaces. The cutoff distance
     parameters determines the max distance used between the volume grid points
     and the ligand-protein.

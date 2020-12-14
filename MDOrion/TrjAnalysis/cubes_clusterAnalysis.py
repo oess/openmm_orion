@@ -90,6 +90,8 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
+    floe_report_title = parameters.StringParameter("floe_report_title", default="MD Report")
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -97,9 +99,9 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
 
         if in_orion():
             job_id = environ.get('ORION_JOB_ID')
-            self.floe_report = FloeReport.start_report("floe_report", job_id=job_id)
+            self.floe_report = FloeReport.start_report(self.opt['floe_report_title'], job_id=job_id)
         else:
-            self.floe_report = LocalFloeReport.start_report("floe_report")
+            self.floe_report = LocalFloeReport.start_report(self.opt['floe_report_title'])
 
     def process(self, record, port):
 
@@ -230,7 +232,7 @@ class ClusterOETrajCube(RecordPortsMixin, ComputeCube):
     description = """
     Cluster Ligand multiconf MD trajectory OEMol
 
-    This cube will take in the MD traj OEMols containing
+    This Cube will take in the MD traj OEMols containing
     the protein and ligand components of the complex and cluster
     them based on ligand RMSD.
     """
@@ -341,7 +343,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
     description = """
     Make multiconf MD trajectory OEMols for Ligand and Protein by Cluster
 
-    This cube will use the clustering results in conjunction with the
+    This Cube will use the clustering results in conjunction with the
     MD trajectory OEMols for protein and ligand to generate per-cluster
     protein and ligand average and median structures.
     """
@@ -538,7 +540,7 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
     description = """
     Population Analysis of Traj Clusters
 
-    This cube analyzes the ligand trajectory cluster in terms of
+    This Cube analyzes the ligand trajectory cluster in terms of
     their occurrence, size, and proximity to the starting pose(s).
     """
 
@@ -812,7 +814,7 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
     Extract relevant outputs of Ligand and Protein
     Short Traj MD Traj Analysis and write them to files.
 
-    This cube takes as input the OERecord containing the work
+    This Cube takes as input the OERecord containing the work
     product of trajectory analysis on Short Traj MD results.
     """
 
