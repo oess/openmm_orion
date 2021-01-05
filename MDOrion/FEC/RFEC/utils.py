@@ -132,10 +132,81 @@ def parmed_find_ligand(pmd, lig_res_name="LIG"):
     return None, None
 
 
+def unique_atom_types(pmd_structure, ligand_res_name='LIG'):
+
+    omm_system = pmd_structure.createSystem(nonbondedMethod=app.NoCutoff,
+                                            constraints=None,
+                                            removeCMMotion=False,
+                                            rigidWater=False)
+
+    # # Copy the topology and positions
+    topology = pmd_structure.topology
+    positions = pmd_structure.positions
+
+    def check_water(res):
+        two_bonds = list(res.bonds())
+
+        if len(two_bonds) == 2:
+
+            waters = []
+
+            for bond in two_bonds:
+
+                elem0 = bond[0].element
+                elem1 = bond[1].element
+
+                if (elem0.atomic_number == 1 and elem1.atomic_number == 8) \
+                        or (elem0.atomic_number == 8 and elem1.atomic_number == 1):
+                    waters.append(True)
+
+            if all(waters):
+                return True
+
+        else:
+            return False
+
+    atom_types_dic = {}
+    count_id = 0
+
+    for c in topology.chains():
+        for r in c.residues():
+            for a in r.atoms():
+                if r.name + a.name in atom_types_dic:
+                    a.id = atom_types_dic[r.name + a.name]
+                else:
+                    if check_water(r):
+                        if a.element.atomic_number == 1:
+                            a.id = 'HW'
+                        else:
+                            a.id = 'OW'
+                        atom_types_dic[r.name + a.name] = a.id
+                    elif r.name == ligand_res_name:
+                        a.id = 'L' + str(count_id)
+                    else:
+                        a.id = 'O' + str(count_id)
+                        atom_types_dic[r.name + a.name] = a.id
+
+                    count_id += 1
+
+    # Define a new parmed structure with the new unique atom types
+    new_system_structure = parmed.openmm.load_topology(topology,
+                                                       system=omm_system,
+                                                       xyz=positions)
+    # Re-set positions, velocities and box
+    new_system_structure.positions = pmd_structure.positions
+    new_system_structure.velocities = pmd_structure.velocities
+    new_system_structure.box = pmd_structure.box
+
+    return new_system_structure
+
+
 def gmx_chimera_topology_injection(pmd_flask, pmd_chimera_start, pmd_chimera_final):
+
+    pmd_flask = unique_atom_types(pmd_flask)
 
     with TemporaryDirectory() as outputdir:
 
+        # TODO DEBUG
         # outputdir = "./"
 
         flask_top_fn = os.path.join(outputdir, "flask.top")
@@ -153,12 +224,29 @@ def gmx_chimera_topology_injection(pmd_flask, pmd_chimera_start, pmd_chimera_fin
                                                                        mixed_mode=True,
                                                                        itp=True,
                                                                        perturb_mass=True)
+    # Clean Ligand Atom Type section
+    capture = False
+    idx_to_del = list()
+    for idx, ln in enumerate(flask_gmx_topology_lines):
+        if '[ atomtypes ]' in ln:
+            capture = True
+            continue
+        if ln.startswith('[') or ln.startswith("#"):
+            capture = False
+        if capture:
+            if ln.startswith('L'):
+                idx_to_del.append(idx)
+
+    flask_gmx_topology_lines_clean = list()
+    for idx, ln in enumerate(flask_gmx_topology_lines):
+        if idx not in idx_to_del:
+            flask_gmx_topology_lines_clean.append(ln)
 
     # Merge the Atom Type Section between the Flask and the Chimera
     capture = False
     end_idx = 0
 
-    for idx, ln in enumerate(flask_gmx_topology_lines):
+    for idx, ln in enumerate(flask_gmx_topology_lines_clean):
         if '[ atomtypes ]' in ln:
             capture = True
             continue
@@ -168,15 +256,15 @@ def gmx_chimera_topology_injection(pmd_flask, pmd_chimera_start, pmd_chimera_fin
             end_idx = idx
             continue
 
-    flask_gmx_topology_lines.insert(end_idx-1, "\n".join(gmx_chimera_atomtype.split("\n")[2:]))
+    flask_gmx_topology_lines_clean.insert(end_idx-1, "\n".join(gmx_chimera_atomtype.split("\n")[2:]))
 
     # Change molecule section to add the chimera gmx molecule type
     capture = False
     start_idx = 0
     end_idx = 0
 
-    for idx, ln in enumerate(flask_gmx_topology_lines):
-        if '[ moleculetype ]' in ln and 'LIG' in flask_gmx_topology_lines[idx + 2]:
+    for idx, ln in enumerate(flask_gmx_topology_lines_clean):
+        if '[ moleculetype ]' in ln and 'LIG' in flask_gmx_topology_lines_clean[idx + 2]:
             start_idx = idx
             capture = True
             continue
@@ -186,21 +274,21 @@ def gmx_chimera_topology_injection(pmd_flask, pmd_chimera_start, pmd_chimera_fin
             end_idx = idx
             continue
 
-    del flask_gmx_topology_lines[start_idx:end_idx]
+    del flask_gmx_topology_lines_clean[start_idx:end_idx]
 
-    flask_gmx_topology_lines.insert(start_idx, gmx_chimera_moltype)
+    flask_gmx_topology_lines_clean.insert(start_idx, gmx_chimera_moltype)
 
     # Update the molecule section
     capture = False
-    for idx, ln in enumerate(flask_gmx_topology_lines):
+    for idx, ln in enumerate(flask_gmx_topology_lines_clean):
         if '[ molecules ]' in ln:
             capture = True
             continue
         if capture and ln.startswith("LIG"):
-            flask_gmx_topology_lines[idx] = "CMR                  1\n"
+            flask_gmx_topology_lines_clean[idx] = "CMR                  1\n"
             capture = False
 
-    gmx_out = "".join(flask_gmx_topology_lines)
+    gmx_out = "".join(flask_gmx_topology_lines_clean)
 
     return gmx_out
 
@@ -232,7 +320,7 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
     trj_fn = mdrecord.get_stage_trajectory(stg_name='last')
     trj = md.load(trj_fn)
 
-    trj.save("trj.pdb")
+    # trj.save("trj.pdb")
 
     if len(trj) > tot_frames:
         stride = int(len(trj)/tot_frames)

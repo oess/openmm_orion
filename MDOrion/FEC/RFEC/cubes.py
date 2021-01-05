@@ -109,16 +109,18 @@ class BoundUnboundSwitchCube(RecordPortsMixin, ComputeCube):
 
             md_components = record.get_value(Fields.md_components)
 
-            record.set_value(Fields.flaskid, self.count)
+            if not record.has_value(Fields.flaskid):
+                record.set_value(Fields.flaskid, self.count)
+                self.count += 1
 
             if md_components.has_protein:
-                record.set_value(Fields.FEC.RBFEC.thd_leg_type, "Bound_OPLMD")
+                if not record.has_value(Fields.FEC.RBFEC.thd_leg_type):
+                    record.set_value(Fields.FEC.RBFEC.thd_leg_type, "Bound_OPLMD")
                 self.bound_port.emit(record)
             else:
-                record.set_value(Fields.FEC.RBFEC.thd_leg_type, "UnBound_OPLMD")
+                if not record.has_value(Fields.FEC.RBFEC.thd_leg_type):
+                    record.set_value(Fields.FEC.RBFEC.thd_leg_type, "UnBound_OPLMD")
                 self.success.emit(record)
-
-            self.count += 1
 
         except Exception as e:
 
@@ -661,6 +663,11 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         default=False,
         help_text='Increase log file verbosity')
 
+    suffix = parameters.StringParameter(
+        'suffix',
+        default='nes',
+        help_text='Filename suffix for output simulation files')
+
     def begin(self):
             self.opt = vars(self.args)
             self.opt['Logger'] = self.log
@@ -696,7 +703,7 @@ class NESGMX(RecordPortsMixin, ComputeCube):
             opt['frame_count'] = frame_count
             opt['out_directory'] = mdrecord.cwd
             opt['out_prefix'] = os.path.basename(mdrecord.cwd)+'_'+flask_title+'_'+str(frame_count)
-            opt['trj_fn'] = opt['out_prefix'] + '_' + 'traj.tar.gz'
+            opt['trj_fn'] = opt['out_prefix'] + '_' + opt['suffix'] + '_' + 'traj.tar.gz'
             # TODO This is not used for now. NES Trajectories are not uploaded
             trj_fn = opt['trj_fn']
 

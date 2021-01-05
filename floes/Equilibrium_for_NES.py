@@ -8,8 +8,7 @@ from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
 
 from MDOrion.System.cubes import (IDSettingCube,
                                   CollectionSetting,
-                                  ParallelSolvationCube,
-                                  ParallelRecordSizeCheck)
+                                  ParallelSolvationCube)
 
 from MDOrion.MDEngines.cubes import (ParallelMDMinimizeCube,
                                      ParallelMDNvtCube,
@@ -22,35 +21,16 @@ from MDOrion.System.cubes import MDComponentCube
 from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
 from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
-                                    RBFECMapping,
-                                    RBFECEdgeGathering,
-                                    ParallelGMXChimera,
-                                    ParallelNESGMX,
-                                    NESAnalysis)
+                                    RBFECMapping)
 
-from MDOrion.TrjAnalysis.cubes_clusterAnalysis import MDFloeReportCube
-
-job = WorkFloe("Relative Binding Affinity with NES", title="Non Equilibrium Switching")
+job = WorkFloe("Equilibrium Runs for NES", title="Equilibrium Runs for NES")
 
 job.description = """
-The Non Equilibrium Switching (NES) floe performs Relative Binding Affinity Calculations
-between a set of provided ligands and the relate provided target protein. The floe
-requires also a text file with the map of the edges between the different relative
-free energy calculations to run. The file format of the text file is a set of lines
-with the syntax:
-
-ligA_name >> ligB_name
-
-where ligA_name and ligB_name are respectively strings of the ligand names for the 
-ligand in the starting state A and  the ligand name in the final state B. Because the 
-edges to run are defined by ligand names it is important that all the submitted ligands 
-have unique names. At the end of the calculations the NES floe will produce a floe 
-report where the insight of each edge calculation is reported with different metrics 
-used to compute the relative binding affinity.
+TBD
 """
 
 job.classification = [['FEC']]
-job.uuid = "45776760-785d-4128-972e-1be13baddfc0"
+job.uuid = "537f64c5-0d84-4537-ad74-c55037304e07"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
@@ -237,62 +217,28 @@ equil4_bns.set_parameters(suffix='equil4_bn')
 md_group_bs = ParallelCubeGroup(cubes=[minimize_bns, warmup_bns, equil1_bns, equil2_bns, equil3_bns, equil4_bns, prod_bns])
 job.add_group(md_group_bs)
 
-gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
-gathering.promote_parameter('map_file', promoted_name='map')
-
-chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
-
-unbound_eq_nes = ParallelNESGMX("GMXUnboundEQ", title="GMX Unbound NPT Equilibration")
-unbound_eq_nes.set_parameters(time=0.01)
-unbound_eq_nes.set_parameters(enable_switching=False)
-
-unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
-unbound_nes.promote_parameter("time", promoted_name="nes_time", default=0.05)
-unbound_nes.set_parameters(enable_switching=True)
-
-md_group_unbound_nes = ParallelCubeGroup(cubes=[unbound_eq_nes, unbound_nes])
-job.add_group(md_group_unbound_nes)
-
-bound_eq_nes = ParallelNESGMX("GMXBoundEQ", title="GMX Bound NPT Equilibration")
-bound_eq_nes.set_parameters(time=0.02)
-bound_eq_nes.set_parameters(enable_switching=False)
-
-bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
-bound_nes.promote_parameter("time", promoted_name="nes_time")
-bound_nes.set_parameters(enable_switching=True)
-
-md_group_bound_nes = ParallelCubeGroup(cubes=[bound_eq_nes, bound_nes])
-job.add_group(md_group_bound_nes)
 
 # This cube is necessary for the correct working of collections and shards
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 
-nes_analysis = NESAnalysis("NES_Analysis")
 
-report = MDFloeReportCube("report", title="Floe Report")
-report.set_parameters(floe_report_title="NES Report")
-
-check_rec = ParallelRecordSizeCheck("Record Check Success")
-
-ofs = DatasetWriterCube('ofs', title='NES Out')
-ofs.promote_parameter("data_out", promoted_name="out",
-                      title="NES Dataset Out",
-                      description="NES Dataset Out")
+ofs_unbound_bound = DatasetWriterCube('ofs_unbound_bound', title='Unbound and Bound Out')
+ofs_unbound_bound.promote_parameter("data_out", promoted_name="out_unbound",
+                                    title="Unbound  and Bound Dataset Out",
+                                    description="Unbound and Bound Dataset Out")
 
 fail = DatasetWriterCube('fail', title='NES Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="NES Failures",
                        description="NES Dataset Failures out")
 
+
 job.add_cubes(iligs, ligset, rbfec_map, chargelig, ligid, md_lig_components, coll_open,
               iprot, md_prot_components, complx, solvate, ff, switch,
               minimize_uns, warmup_uns, equil_uns, prod_uns,
               minimize_bns, warmup_bns, equil1_bns,
-              equil2_bns, equil3_bns, equil4_bns, prod_bns, gathering,
-              chimera, unbound_eq_nes, unbound_nes,
-              bound_eq_nes, bound_nes,
-              coll_close, nes_analysis, report,
-              check_rec, ofs, fail)
+              equil2_bns, equil3_bns, equil4_bns, prod_bns,
+              coll_close, fail, ofs_unbound_bound)
 
 # Ligand Setting
 iligs.success.connect(ligset.intake)
@@ -318,7 +264,7 @@ switch.success.connect(minimize_uns.intake)
 minimize_uns.success.connect(warmup_uns.intake)
 warmup_uns.success.connect(equil_uns.intake)
 equil_uns.success.connect(prod_uns.intake)
-prod_uns.success.connect(gathering.intake)
+prod_uns.success.connect(coll_close.intake)
 
 # Bound MD run
 switch.bound_port.connect(minimize_bns.intake)
@@ -328,61 +274,37 @@ equil1_bns.success.connect(equil2_bns.intake)
 equil2_bns.success.connect(equil3_bns.intake)
 equil3_bns.success.connect(equil4_bns.intake)
 equil4_bns.success.connect(prod_bns.intake)
-prod_bns.success.connect(gathering.bound_port)
+prod_bns.success.connect(coll_close.intake)
 
-# Chimera NES Setting
-gathering.success.connect(chimera.intake)
-
-chimera.success.connect(unbound_eq_nes.intake)
-unbound_eq_nes.success.connect(unbound_nes.intake)
-unbound_nes.success.connect(coll_close.intake)
-
-chimera.bound_port.connect(bound_eq_nes.intake)
-bound_eq_nes.success.connect(bound_nes.intake)
-bound_nes.success.connect(coll_close.intake)
-
-coll_close.success.connect(nes_analysis.intake)
-nes_analysis.success.connect(report.intake)
-report.success.connect(check_rec.intake)
-check_rec.success.connect(ofs.intake)
+coll_close.success.connect(ofs_unbound_bound.intake)
 
 # Fail port connections
-ligset.failure.connect(check_rec.fail_in)
-rbfec_map.failure.connect(check_rec.fail_in)
-chargelig.failure.connect(check_rec.fail_in)
-ligid.failure.connect(check_rec.fail_in)
-md_lig_components.failure.connect(check_rec.fail_in)
-md_prot_components.failure.connect(check_rec.fail_in)
-complx.failure.connect(check_rec.fail_in)
-coll_open.failure.connect(check_rec.fail_in)
-solvate.failure.connect(check_rec.fail_in)
-ff.failure.connect(check_rec.fail_in)
-switch.failure.connect(check_rec.fail_in)
+ligset.failure.connect(fail.intake)
+rbfec_map.failure.connect(fail.intake)
+chargelig.failure.connect(fail.intake)
+ligid.failure.connect(fail.intake)
+md_lig_components.failure.connect(fail.intake)
+md_prot_components.failure.connect(fail.intake)
+complx.failure.connect(fail.intake)
+coll_open.failure.connect(fail.intake)
+solvate.failure.connect(fail.intake)
+ff.failure.connect(fail.intake)
+switch.failure.connect(fail.intake)
 
-minimize_uns.failure.connect(check_rec.fail_in)
-warmup_uns.failure.connect(check_rec.fail_in)
-equil_uns.failure.connect(check_rec.fail_in)
-prod_uns.failure.connect(check_rec.fail_in)
+minimize_uns.failure.connect(fail.intake)
+warmup_uns.failure.connect(fail.intake)
+equil_uns.failure.connect(fail.intake)
+prod_uns.failure.connect(fail.intake)
 
-minimize_bns.failure.connect(check_rec.fail_in)
-warmup_bns.failure.connect(check_rec.fail_in)
-equil1_bns.failure.connect(check_rec.fail_in)
-equil2_bns.failure.connect(check_rec.fail_in)
-equil3_bns.failure.connect(check_rec.fail_in)
-equil4_bns.failure.connect(check_rec.fail_in)
-prod_bns.failure.connect(check_rec.fail_in)
+minimize_bns.failure.connect(fail.intake)
+warmup_bns.failure.connect(fail.intake)
+equil1_bns.failure.connect(fail.intake)
+equil2_bns.failure.connect(fail.intake)
+equil3_bns.failure.connect(fail.intake)
+equil4_bns.failure.connect(fail.intake)
+prod_bns.failure.connect(fail.intake)
 
-gathering.failure.connect(check_rec.fail_in)
-chimera.failure.connect(check_rec.fail_in)
-unbound_eq_nes.failure.connect(check_rec.fail_in)
-unbound_nes.failure.connect(check_rec.fail_in)
-bound_eq_nes.failure.connect(check_rec.fail_in)
-bound_nes.failure.connect(check_rec.fail_in)
-
-coll_close.failure.connect(check_rec.fail_in)
-nes_analysis.failure.connect(check_rec.fail_in)
-report.failure.connect(check_rec.fail_in)
-check_rec.failure.connect(fail.intake)
+coll_close.failure.connect(fail.intake)
 
 
 if __name__ == "__main__":
