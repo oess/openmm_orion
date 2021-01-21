@@ -47,10 +47,12 @@ chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
 unbound_eq_nes = ParallelNESGMX("GMXUnboundEQ", title="GMX Unbound NPT Equilibration")
 unbound_eq_nes.set_parameters(time=0.01)
 unbound_eq_nes.set_parameters(enable_switching=False)
+unbound_eq_nes.set_parameters(verbose=True)
 
 unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
 unbound_nes.promote_parameter("time", promoted_name="nes_time", default=0.05)
 unbound_nes.set_parameters(enable_switching=True)
+
 
 md_group_unbound_nes = ParallelCubeGroup(cubes=[unbound_eq_nes, unbound_nes])
 job.add_group(md_group_unbound_nes)
@@ -58,6 +60,7 @@ job.add_group(md_group_unbound_nes)
 bound_eq_nes = ParallelNESGMX("GMXBoundEQ", title="GMX Bound NPT Equilibration")
 bound_eq_nes.set_parameters(time=0.02)
 bound_eq_nes.set_parameters(enable_switching=False)
+bound_eq_nes.set_parameters(verbose=True)
 
 bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
 bound_nes.promote_parameter("time", promoted_name="nes_time")

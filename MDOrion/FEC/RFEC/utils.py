@@ -385,6 +385,7 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
 
     gmx_gro_str_list = list()
 
+    # TODO DEBUGGING
     for count, tr in enumerate(trj):
         # print(">>>", count)
         frame_xyz = tr.xyz[0] * 10
@@ -478,7 +479,18 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
             # outputdir = "./"
 
             flask_gro_fn = os.path.join(outputdir, "flask.gro")
+
+            # TODO PARMED ERROR
             new_pmd_structure.save(flask_gro_fn, overwrite=True)
+
+            ####### DEBUGGING MISSING VELOCITIES WITH THE PDB FILE
+            # flask_pdb_fn = os.path.join(outputdir, "flask.pdb")
+            # new_pmd_structure.save(flask_pdb_fn, overwrite=True)
+            # subprocess.check_call(['gmx',
+            #                        'editconf',
+            #                        '-f', flask_pdb_fn,
+            #                        '-o', flask_gro_fn])
+            ##END DEBUGGING#####
 
             with open(flask_gro_fn, 'r') as f:
                 flask_gmx_gro_str = f.read()
