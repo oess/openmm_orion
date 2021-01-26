@@ -481,7 +481,29 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
             flask_gro_fn = os.path.join(outputdir, "flask.gro")
 
             # TODO PARMED ERROR
-            new_pmd_structure.save(flask_gro_fn, overwrite=True)
+            try:
+                new_pmd_structure.save(flask_gro_fn, overwrite=True)
+            except:
+                lig, lig_idx = parmed_find_ligand(new_pmd_structure, lig_res_name="CMR")
+
+                split = new_pmd_structure.split()
+
+                prot_max_idx = 0
+                pmd_prot = parmed.Structure()
+                for idx, p in enumerate(split):
+                    if idx < lig_idx:
+                        if len(p[1]) == 1:
+                            prot_max_idx += len(p[0].atoms)
+                            pmd_prot += p[0]
+                        else:
+                            raise ValueError("Parmed protein idexes Error")
+
+                pmd_flask = pmd_prot + new_pmd_structure[prot_max_idx:]
+                pmd_flask.box_vectors = new_pmd_structure.box_vectors
+                pmd_flask.save(flask_gro_fn, overwrite=True)
+
+            if not os.path.isfile(flask_gro_fn):
+                raise ValueError("Gromacs Coordinate file Error")
 
             ####### DEBUGGING MISSING VELOCITIES WITH THE PDB FILE
             # flask_pdb_fn = os.path.join(outputdir, "flask.pdb")
@@ -533,6 +555,7 @@ def gmx_nes_run(gmx_gro, gmx_top, opt):
     else:
         dlambda = 0
 
+
     min_box = opt['min_box']
 
     # Cutoff in A
@@ -558,6 +581,7 @@ def gmx_nes_run(gmx_gro, gmx_top, opt):
                                          pressure=pressure.value_in_unit(unit.bar),
                                          gen_vel='no',
                                          continue_sim='no',
+                                         lincs_type=opt['lincs_type'],
                                          cutoff=cutoff_distance.value_in_unit(unit.nanometer),
                                          rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
                                          dlambda=dlambda)

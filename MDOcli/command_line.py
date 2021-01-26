@@ -304,9 +304,9 @@ def info_extraction(ctx):
 
                 rec_size += len(record.get_bytes(field))
 
-                if (field.get_type() is Types.String or
-                        field.get_type() is Types.Int or
-                        field.get_type() is Types.Float):
+                if (field.get_type() == Types.String or
+                        field.get_type() == Types.Int or
+                        field.get_type() == Types.Float):
                     print("{} {} name = {}\n        "
                           "{}type = {}\n        "
                           "{}value = {}\n        "

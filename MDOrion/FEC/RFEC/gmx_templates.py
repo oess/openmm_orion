@@ -17,7 +17,7 @@
 
 gromacs_nes = """
 ; RUN CONTROL PARAMETERS
-integrator               = md
+integrator               = sd
 dt                       = 0.002		; md timestep
 nsteps                   = {nsteps:d}		; number of md steps
 comm-mode                = Linear
@@ -68,7 +68,7 @@ tcoupl                   = v-rescale
 ; Groups to couple separately
 tc-grps                  = System
 ; Time constant (ps) and reference temperature (K)
-tau-t                    = 0.1
+tau-t                    = 2.0
 ref-t                    = {temperature:f} ; reference temperature in K
 
 ; Pressure coupling     
@@ -84,7 +84,7 @@ gen-vel                  = {gen_vel}
 continuation	         = {continue_sim}
 
 ; OPTIONS FOR BONDS    
-constraints              = all-bonds
+constraints              = {lincs_type}
 constraint-algorithm     = lincs
 lincs-order              = 4
 lincs-iter               = 2

@@ -658,6 +658,14 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         help_text="If True lambda switching between starting and final state will be enabled"
     )
 
+    lincs_type = parameters.StringParameter(
+        'lincs_type',
+        default='all-bonds',
+        choices=['h-bonds', 'all-bonds'],
+        help_text="""h-Bonds, all-bonds
+                Which type of constraints to add to the system.
+                h-bonds means bonds with hydrogen are constrained, etc.""")
+
     verbose = parameters.BooleanParameter(
         'verbose',
         default=False,
