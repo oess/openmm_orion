@@ -551,10 +551,9 @@ def gmx_nes_run(gmx_gro, gmx_top, opt):
     stepLen = 2.0 * unit.femtoseconds
     nsteps = int(round(opt['time'] / (stepLen.in_units_of(unit.nanoseconds) / unit.nanoseconds)))
     if opt['enable_switching']:
-        dlambda = 1.0/nsteps
+        dlambda = 1.0/(nsteps)
     else:
         dlambda = 0
-
 
     min_box = opt['min_box']
 
