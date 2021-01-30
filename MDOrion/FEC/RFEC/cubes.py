@@ -73,6 +73,12 @@ import io
 
 import math
 
+from MDOrion.FEC.RFEC.gmx_run import check_gmx_grompp
+
+import tempfile
+
+import tarfile
+
 
 class BoundUnboundSwitchCube(RecordPortsMixin, ComputeCube):
     title = "Bound and UnBound Switching Cube"
@@ -556,19 +562,65 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
             frame_count_field = OEField("frame_count", Types.Int)
 
             for count, gmx_gro in enumerate(gmx_gro_A_to_B_Unbound):
-                md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Unbound)
-                md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+
+                if count == 0:
+                    check_gmx_grompp(gmx_gro, gmx_top_A_to_B_Unbound)
+
+                gmx_tar = tempfile.NamedTemporaryFile(mode='w', dir='./', delete=False, prefix="gmx_A_to_B_un_", suffix='_'+str(count)+".tar")
+                with tarfile.open(gmx_tar.name, mode='w:gz') as archive:
+
+                    with tempfile.TemporaryDirectory() as outdir:
+                        gmx_top_fn = os.path.join(outdir, "gmx_top.top")
+                        gmx_gro_fn = os.path.join(outdir, "gmx_gro.gro")
+
+                        with open(gmx_top_fn, 'w') as f:
+                            f.write(gmx_top_A_to_B_Unbound)
+                        with open(gmx_gro_fn, 'w') as f:
+                            f.write(gmx_gro)
+
+                        archive.add(gmx_top_fn, arcname=os.path.basename(gmx_top_fn))
+                        archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
+
+                md_record_state_A_Unbound.set_extra_data_tar(os.path.basename(gmx_tar.name))
+                gmx_tar.close()
+
+                # md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Unbound)
+                # md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+
                 md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.edge_name, edge_name)
                 md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.direction, "Forward_OPLMD")
                 md_record_state_A_Unbound.set_value(frame_count_field, count)
+
                 self.success.emit(md_record_state_A_Unbound.get_record)
 
             self.opt['Logger'].info("GMX Chimera Unbound {} Forward Coordinate Created".format(edge_name))
 
             for count, gmx_gro in enumerate(gmx_gro_A_to_B_Bound):
-                md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Bound)
-                md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+                if count == 0:
+                    check_gmx_grompp(gmx_gro, gmx_top_A_to_B_Bound)
+
+                gmx_tar = tempfile.NamedTemporaryFile(mode='w', dir='./', delete=False, prefix="gmx_A_to_B_bn_", suffix='_' + str(count) + ".tar")
+                with tarfile.open(gmx_tar.name, mode='w:gz') as archive:
+
+                    with tempfile.TemporaryDirectory() as outdir:
+                        gmx_top_fn = os.path.join(outdir, "gmx_top.top")
+                        gmx_gro_fn = os.path.join(outdir, "gmx_gro.gro")
+
+                        with open(gmx_top_fn, 'w') as f:
+                            f.write(gmx_top_A_to_B_Bound)
+                        with open(gmx_gro_fn, 'w') as f:
+                            f.write(gmx_gro)
+
+                        archive.add(gmx_top_fn, arcname=os.path.basename(gmx_top_fn))
+                        archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
+
+                md_record_state_A_Bound.set_extra_data_tar(os.path.basename(gmx_tar.name))
+                gmx_tar.close()
+
+                # md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Bound)
+                # md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.edge_name, edge_name)
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.direction, "Forward_OPLMD")
@@ -580,8 +632,30 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
             b_to_a_name = edge_name.split("_to_")[1] + "_to_" + edge_name.split("_to_")[0]
 
             for count, gmx_gro in enumerate(gmx_gro_B_to_A_Unbound):
-                md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Unbound)
-                md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+                if count == 0:
+                    check_gmx_grompp(gmx_gro, gmx_top_B_to_A_Unbound)
+
+                gmx_tar = tempfile.NamedTemporaryFile(mode='w', dir='./', delete=False, prefix="gmx_B_to_A_un_", suffix='_' + str(count) + ".tar")
+                with tarfile.open(gmx_tar.name, mode='w:gz') as archive:
+
+                    with tempfile.TemporaryDirectory() as outdir:
+                        gmx_top_fn = os.path.join(outdir, "gmx_top.top")
+                        gmx_gro_fn = os.path.join(outdir, "gmx_gro.gro")
+
+                        with open(gmx_top_fn, 'w') as f:
+                            f.write(gmx_top_B_to_A_Unbound)
+                        with open(gmx_gro_fn, 'w') as f:
+                            f.write(gmx_gro)
+
+                        archive.add(gmx_top_fn, arcname=os.path.basename(gmx_top_fn))
+                        archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
+
+                md_record_state_B_Unbound.set_extra_data_tar(os.path.basename(gmx_tar.name))
+                gmx_tar.close()
+
+                # md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Unbound)
+                # md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+
                 md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a_name)
                 md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.direction, "Reverse_OPLMD")
@@ -591,8 +665,30 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
             self.opt['Logger'].info("GMX Chimera Unbound {} Reverse Coordinate Created".format(edge_name))
 
             for count, gmx_gro in enumerate(gmx_gro_B_to_A_Bound):
-                md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Bound)
-                md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+                if count == 0:
+                    check_gmx_grompp(gmx_gro, gmx_top_B_to_A_Bound)
+
+                gmx_tar = tempfile.NamedTemporaryFile(mode='w', dir='./', delete=False, prefix="gmx_B_to_A_bn_",suffix='_' + str(count) + ".tar")
+                with tarfile.open(gmx_tar.name, mode='w:gz') as archive:
+
+                    with tempfile.TemporaryDirectory() as outdir:
+                        gmx_top_fn = os.path.join(outdir, "gmx_top.top")
+                        gmx_gro_fn = os.path.join(outdir, "gmx_gro.gro")
+
+                        with open(gmx_top_fn, 'w') as f:
+                            f.write(gmx_top_B_to_A_Bound)
+                        with open(gmx_gro_fn, 'w') as f:
+                            f.write(gmx_gro)
+
+                        archive.add(gmx_top_fn, arcname=os.path.basename(gmx_top_fn))
+                        archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
+
+                md_record_state_B_Bound.set_extra_data_tar(os.path.basename(gmx_tar.name))
+                gmx_tar.close()
+
+                # md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Bound)
+                # md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
+
                 md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a_name)
                 md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.direction, "Reverse_OPLMD")
@@ -602,273 +698,16 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
             self.opt['Logger'].info("GMX Chimera Bound {} Reverse Coordinate Created".format(edge_name))
             self.opt['Logger'].info("GMX Chimera {} Processed".format(edge_name))
 
-            del md_record_state_A_Bound
-            del md_record_state_B_Bound
-            del md_record_state_A_Unbound
-            del md_record_state_B_Unbound
+            # del md_record_state_A_Bound
+            # del md_record_state_B_Bound
+            # del md_record_state_A_Unbound
+            # del md_record_state_B_Unbound
 
         except Exception as e:
             print("Failed to complete", str(e), flush=True)
             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
             self.log.error(traceback.format_exc())
             self.failure.emit(record)
-
-
-
-
-#
-# class NESGMX(RecordPortsMixin, ComputeCube):
-#     title = "NES GMX"
-#     # version = "0.1.4"
-#     classification = [["Free Energy"]]
-#     tags = ["Ligand", "Protein", "Free Energy", "Non Equilibrium"]
-#     description = """
-#     TO BE DECIDED
-#     """
-#
-#     uuid = "3641fe19-780f-4998-90c5-2ec4102121ba"
-#
-#     # Override defaults for some parameters
-#
-#     parameter_overrides = {
-#         "gpu_count": {"default": 1},
-#         "instance_type": {"default": "g3.4xlarge"},  # Gpu Family selection
-#         "memory_mb": {"default": 14000},
-#         "spot_policy": {"default": "Allowed"},
-#         "prefetch_count": {"default": 1},  # 1 molecule at a time
-#         "item_count": {"default": 1}  # 1 molecule at a time
-#
-#     }
-#
-#     steps = parameters.IntegerParameter(
-#         'steps',
-#         default=2000,
-#         help_text="""Number of minimization steps.
-#                   If 0 the minimization will continue
-#                   until convergence""")
-#
-#     restraints = parameters.StringParameter(
-#         'restraints',
-#         default='',
-#         help_text=""""Mask selection to apply harmonic restraints.
-#         Possible keywords are: ligand, protein, water, ions,
-#         ca_protein, cofactors. The selection can be refined
-#         by using logical tokens: not, noh, and, or, diff, around""")
-#
-#     restraintWt = parameters.DecimalParameter(
-#         'restraintWt',
-#         default=5.0,
-#         help_text="Restraint weight for xyz atom restraints in kcal/(mol A^2)")
-#
-#     # TODO BE CARFUL HERE
-#     restraint_to_reference = parameters.BooleanParameter(
-#         'restraint_to_reference',
-#         default=True,
-#         help_text='If True the starting reference system coordinates will be used '
-#                   'to restraint the system')
-#
-#
-#     constraints = parameters.StringParameter(
-#         'constraints',
-#         default='H-Bonds',
-#         choices=['None', 'H-Bonds', 'H-Angles', 'All-Bonds'],
-#         help_text="""None, H-Bonds, H-Angles, or All-Bonds
-#         Which type of constraints to add to the system.
-#         None means no bonds are constrained.
-#         H-Bonds means bonds with hydrogen are constrained, etc.""")
-#
-#     # TODO BE CARFULL HERE
-#     center = parameters.BooleanParameter(
-#         'center',
-#         default=True,
-#         description='Center the system to the OpenMM and Gromacs unit cell')
-#
-#     verbose = parameters.BooleanParameter(
-#         'verbose',
-#         default=True,
-#         description='Increase log file verbosity')
-#
-#     save_md_stage = parameters.BooleanParameter(
-#         'save_md_stage',
-#         default=True,
-#         help_text="""Save the MD simulation stage. If True the MD,
-#               simulation data will be appended to the md simulation stages
-#               otherwise the last MD stage will be overwritten""")
-#
-#     md_engine = parameters.StringParameter(
-#         'md_engine',
-#         default='OpenMM',
-#         choices=['OpenMM', 'Gromacs'],
-#         help_text='Select the MD available engine')
-#
-#
-#
-#
-#     trajectory_interval = parameters.DecimalParameter(
-#         'trajectory_interval',
-#         default=0.0,
-#         help_text="""Time interval for trajectory snapshots in ns.
-#         If 0 the trajectory file will not be generated""")
-#
-#     reporter_interval = parameters.DecimalParameter(
-#         'reporter_interval',
-#         default=0.0,
-#         help_text="""Time interval for reporting data in ns.
-#         If 0 the reporter file will not be generated""")
-#
-#     trajectory_frames = parameters.IntegerParameter(
-#         'trajectory_frames',
-#         default=0,
-#         help_text="""The total number of trajectory frames. If it is
-#         set to zero and the trajectory interval parameter is set
-#         to zero no trajectory is generated. If it is different from zero
-#         and the trajectory interval parameter is set to zero the produced
-#         trajectory will have the selected number of frames. If different
-#         from zero and the trajectory interval parameter is different from
-#         zero the total number of generated frames will be calculated by just
-#         using the trajectory interval and the md time step (2fs and 4fs hmr on)""")
-#
-#
-#
-#
-#     temperature = parameters.DecimalParameter(
-#         'temperature',
-#         default=300.0,
-#         help_text="Temperature (Kelvin)")
-#
-#     pressure = parameters.DecimalParameter(
-#         'pressure',
-#         default=1.0,
-#         help_text="Pressure (atm)")
-#
-#     time = parameters.DecimalParameter(
-#         'time',
-#         default=0.05,
-#         help_text="NPT simulation time in nanoseconds")
-#
-#     enable_switching = parameters.BooleanParameter(
-#         'enable_switching',
-#         default=False,
-#         help_text="If True lambda switching between starting and final state will be enabled"
-#     )
-#
-#     lincs_type = parameters.StringParameter(
-#         'lincs_type',
-#         default='all-bonds',
-#         choices=['h-bonds', 'all-bonds'],
-#         help_text="""h-Bonds, all-bonds
-#                 Which type of constraints to add to the system.
-#                 h-bonds means bonds with hydrogen are constrained, etc.""")
-#
-#     suffix = parameters.StringParameter(
-#         'suffix',
-#         default='nes',
-#         help_text='Filename suffix for output simulation files')
-#
-#     def begin(self):
-#             self.opt = vars(self.args)
-#             self.opt['Logger'] = self.log
-#             self.edge_dic = dict()
-#
-#     def process(self, record, port):
-#
-#         try:
-#
-#             opt = dict(self.opt)
-#             opt['CubeTitle'] = self.title
-#
-#             if not record.has_field(Fields.title):
-#                 raise ValueError("Missing title field")
-#
-#             flask_title = record.get_value(Fields.title)
-#
-#             if not record.has_field(Fields.FEC.RBFEC.NESC.gmx_gro):
-#                 raise ValueError("Missing Gromacs coordinate file for the flask: {}".format(flask_title))
-#
-#             gmx_gro_str = record.get_value(Fields.FEC.RBFEC.NESC.gmx_gro)
-#
-#             if not record.has_field(Fields.FEC.RBFEC.NESC.gmx_top):
-#                 raise ValueError("Missing Gromacs topology file for the flask: {}".format(flask_title))
-#
-#             gmx_top_str = record.get_value(Fields.FEC.RBFEC.NESC.gmx_top)
-#
-#             frame_count = record.get_value(OEField("frame_count", Types.Int))
-#
-#             mdrecord = MDDataRecord(record)
-#             md_components = mdrecord.get_md_components
-#
-#             opt['frame_count'] = frame_count
-#             opt['out_directory'] = mdrecord.cwd
-#             opt['out_prefix'] = os.path.basename(mdrecord.cwd)+'_'+flask_title+'_'+str(frame_count)
-#             opt['trj_fn'] = opt['out_prefix'] + '_' + opt['suffix'] + '_' + 'traj.tar.gz'
-#             # TODO This is not used for now. NES Trajectories are not uploaded
-#             trj_fn = opt['trj_fn']
-#
-#             mdstate = mdrecord.get_stage_state(stg_name='last')
-#
-#             box = mdstate.get_box_vectors()
-#
-#             if md_components.get_box_vectors is not None:
-#
-#                 box_v = box.value_in_unit(unit.angstrom)
-#                 box_v = np.array([box_v[0][0], box_v[1][1], box_v[2][2]])
-#
-#                 min_box = np.min(box_v)
-#                 opt['min_box'] = min_box
-#
-#             # Run Gromacs
-#             utils.gmx_nes_run(gmx_gro_str, gmx_top_str, opt)
-#
-#             str_logger = '\n' + '-' * 32 + ' SIMULATION FEC NE' + '-' * 32
-#
-#             with(io.open(os.path.join(opt['out_directory'], opt['log_fn']), 'r', encoding='utf8', errors='ignore')) as flog:
-#                 str_logger += '\n' + flog.read()
-#
-#             data_fn = opt['out_prefix'] + '.tar.gz'
-#
-#             # The Parmed structure, the flask, the gromacs positions and the work
-#             # are updated inside the Gromacs NES MD run
-#             mdstate = MDState(opt['pmd'])
-#
-#             # TODO Do not upload the trajectory with the stage for now
-#             if not mdrecord.add_new_stage(self.title,
-#                                           MDStageTypes.FEC,
-#                                           opt['flask'],
-#                                           mdstate,
-#                                           data_fn,
-#                                           append=True,
-#                                           log=str_logger,
-#                                           # trajectory_fn=trj_fn,
-#                                           # trajectory_engine=MDEngines.Gromacs,
-#                                           # trajectory_orion_ui=flask_title + '_' + str(frame_count)
-#                                           ):
-#
-#                 raise ValueError("Problems adding in the new FEC Stage")
-#
-#             # Update Gromacs coordinates on the record
-#             record.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, opt['gro_str'])
-#
-#             # Set the calculated work
-#             if opt['enable_switching']:
-#                 record.set_value(Fields.FEC.RBFEC.NESC.work, opt['gmx_work'])
-#
-#             self.success.emit(mdrecord.get_record)
-#
-#             del mdrecord
-#
-#         except Exception as e:
-#
-#             print("Failed to complete", str(e), flush=True)
-#             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
-#             self.log.error(traceback.format_exc())
-#             self.failure.emit(record)
-#
-#         return
-#
-#
-
-
-
 
 
 class NESGMX(RecordPortsMixin, ComputeCube):
@@ -909,12 +748,6 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         default=0.05,
         help_text="NPT simulation time in nanoseconds")
 
-    enable_switching = parameters.BooleanParameter(
-        'enable_switching',
-        default=False,
-        help_text="If True lambda switching between starting and final state will be enabled"
-    )
-
     lincs_type = parameters.StringParameter(
         'lincs_type',
         default='all-bonds',
@@ -950,19 +783,35 @@ class NESGMX(RecordPortsMixin, ComputeCube):
 
             flask_title = record.get_value(Fields.title)
 
-            if not record.has_field(Fields.FEC.RBFEC.NESC.gmx_gro):
-                raise ValueError("Missing Gromacs coordinate file for the flask: {}".format(flask_title))
+            # if not record.has_field(Fields.FEC.RBFEC.NESC.gmx_gro):
+            #     raise ValueError("Missing Gromacs coordinate file for the flask: {}".format(flask_title))
+            #
+            # gmx_gro_str = record.get_value(Fields.FEC.RBFEC.NESC.gmx_gro)
+            #
+            # if not record.has_field(Fields.FEC.RBFEC.NESC.gmx_top):
+            #     raise ValueError("Missing Gromacs topology file for the flask: {}".format(flask_title))
+            #
+            # gmx_top_str = record.get_value(Fields.FEC.RBFEC.NESC.gmx_top)
 
-            gmx_gro_str = record.get_value(Fields.FEC.RBFEC.NESC.gmx_gro)
-
-            if not record.has_field(Fields.FEC.RBFEC.NESC.gmx_top):
-                raise ValueError("Missing Gromacs topology file for the flask: {}".format(flask_title))
-
-            gmx_top_str = record.get_value(Fields.FEC.RBFEC.NESC.gmx_top)
+            if not record.has_field(Fields.extra_data_tar):
+                raise ValueError("Missing record extra file data containing gromacs files: {}".format(flask_title))
 
             frame_count = record.get_value(OEField("frame_count", Types.Int))
 
             mdrecord = MDDataRecord(record)
+
+            extra_data_fn = mdrecord.get_extra_data_tar
+            with tarfile.open(extra_data_fn) as tar:
+                tar.extractall(path=mdrecord.cwd)
+
+            gmx_gro_fn = os.path.join(mdrecord.cwd, "gmx_gro.gro")
+            with open(gmx_gro_fn, 'r') as f:
+                gmx_gro_str = f.read()
+
+            gmx_top_fn = os.path.join(mdrecord.cwd, "gmx_top.top")
+            with open(gmx_top_fn, 'r') as f:
+                gmx_top_str = f.read()
+
             md_components = mdrecord.get_md_components
 
             opt['frame_count'] = frame_count
@@ -1017,12 +866,11 @@ class NESGMX(RecordPortsMixin, ComputeCube):
             record.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, opt['gro_str'])
 
             # Set the calculated work
-            if opt['enable_switching']:
-                record.set_value(Fields.FEC.RBFEC.NESC.work, opt['gmx_work'])
+            record.set_value(Fields.FEC.RBFEC.NESC.work, opt['gmx_work'])
 
             self.success.emit(mdrecord.get_record)
 
-            del mdrecord
+            # del mdrecord
 
         except Exception as e:
 
@@ -1032,10 +880,6 @@ class NESGMX(RecordPortsMixin, ComputeCube):
             self.failure.emit(record)
 
         return
-
-
-
-
 
 
 class NESAnalysis(RecordPortsMixin, ComputeCube):
