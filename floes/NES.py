@@ -26,7 +26,7 @@ job.uuid = "74cd690f-f98a-47e0-bfa4-1858e4080dc3"
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Unbound and Bound Reader
-iunbound_bound = DatasetReaderCube("UnboundBoundReader", title="Unbound amd Bound Reader")
+iunbound_bound = DatasetReaderCube("UnboundBoundReader", title="Unbound and Bound Reader")
 iunbound_bound.promote_parameter("data_in", promoted_name="unbound_bound",
                                  title="Unbound and Bound Input Dataset",
                                  description="Unbound and Bound Dataset")

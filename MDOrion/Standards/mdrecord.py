@@ -1655,11 +1655,13 @@ class MDDataRecord(object):
 
             shard = session.get_resource(Shard(collection=collection), extra_data)
 
-            extra_data = os.path.join(self.cwd, 'extra_data.tar')
+            fn = os.path.join(self.cwd, 'extra_data.tar')
 
-            try_hard_to_download_shard(shard, extra_data)
+            try_hard_to_download_shard(shard, fn)
 
             shard.close()
+
+            extra_data = fn
 
         return extra_data
 
@@ -1688,10 +1690,6 @@ class MDDataRecord(object):
             if self.collection_id is None:
                 raise ValueError("The Collection ID is None")
 
-            if self.rec.has_field(Fields.extra_data_tar):
-                fid = self.rec.get_value(Fields.extra_data_tar)
-                utils.delete_data(fid, collection_id=self.collection_id)
-
             # session = APISession
             session = OrionSession(
                 requests_session=get_session(
@@ -1712,9 +1710,10 @@ class MDDataRecord(object):
 
             shard = try_hard_to_create_shard(collection, tar_fn, name=shard_name)
 
+            self.rec.set_value(Fields.extra_data_tar, shard.id)
+
             shard.close()
 
-            self.rec.set_value(Fields.extra_data_tar, shard.id)
         else:
             self.rec.set_value(Fields.extra_data_tar, tar_fn)
 
