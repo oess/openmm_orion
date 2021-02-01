@@ -570,12 +570,11 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                     check_gmx_grompp(gmx_gro, gmx_top_A_to_B_Unbound)
 
                 if in_orion():
-                    gmx_tar = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix="gmx_A_to_B_un_", suffix='_'+str(count)+".tar")
+                    gmx_tar_A_to_B_Unbound = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix="gmx_A_to_B_un_", suffix='_'+str(count)+".tar")
                 else:
-                    gmx_tar = tempfile.NamedTemporaryFile(mode='w', dir="./", delete=False, prefix="gmx_A_to_B_un_",
-                                                          suffix='_' + str(count) + ".tar")
+                    gmx_tar_A_to_B_Unbound = tempfile.NamedTemporaryFile(mode='w', dir="./", delete=False, prefix="gmx_A_to_B_un_", suffix='_' + str(count) + ".tar")
 
-                with tarfile.open(gmx_tar.name, mode='w:gz') as archive:
+                with tarfile.open(gmx_tar_A_to_B_Unbound.name, mode='w:gz') as archive:
 
                     with tempfile.TemporaryDirectory() as outdir:
                         gmx_top_fn = os.path.join(outdir, "gmx_top.top")
@@ -590,11 +589,11 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                         archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
 
                 if in_orion():
-                    md_record_state_A_Unbound.set_extra_data_tar(gmx_tar.name,  shard_name=os.path.basename(gmx_tar.name))
+                    md_record_state_A_Unbound.set_extra_data_tar(gmx_tar_A_to_B_Unbound.name,  shard_name=os.path.basename(gmx_tar_A_to_B_Unbound.name))
                 else:
-                    md_record_state_A_Unbound.set_extra_data_tar(os.path.basename(gmx_tar.name), shard_name=os.path.basename(gmx_tar.name))
+                    md_record_state_A_Unbound.set_extra_data_tar(os.path.basename(gmx_tar_A_to_B_Unbound.name), shard_name=os.path.basename(gmx_tar_A_to_B_Unbound.name))
 
-                gmx_tar.close()
+                gmx_tar_A_to_B_Unbound.close()
 
                 # md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Unbound)
                 # md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
@@ -613,11 +612,11 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                     check_gmx_grompp(gmx_gro, gmx_top_A_to_B_Bound)
 
                 if in_orion():
-                    gmx_tar = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix="gmx_A_to_B_bn_", suffix='_' + str(count) + ".tar")
+                    gmx_tar_A_to_B_Bound = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix="gmx_A_to_B_bn_", suffix='_' + str(count) + ".tar")
                 else:
-                    gmx_tar = tempfile.NamedTemporaryFile(mode='w', dir="./", delete=False, prefix="gmx_A_to_B_bn_", suffix='_' + str(count) + ".tar")
+                    gmx_tar_A_to_B_Bound = tempfile.NamedTemporaryFile(mode='w', dir="./", delete=False, prefix="gmx_A_to_B_bn_", suffix='_' + str(count) + ".tar")
 
-                with tarfile.open(gmx_tar.name, mode='w:gz') as archive:
+                with tarfile.open(gmx_tar_A_to_B_Bound.name, mode='w:gz') as archive:
 
                     with tempfile.TemporaryDirectory() as outdir:
                         gmx_top_fn = os.path.join(outdir, "gmx_top.top")
@@ -632,11 +631,11 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                         archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
 
                 if in_orion():
-                    md_record_state_A_Bound.set_extra_data_tar(gmx_tar.name,  shard_name=os.path.basename(gmx_tar.name))
+                    md_record_state_A_Bound.set_extra_data_tar(gmx_tar_A_to_B_Bound.name,  shard_name=os.path.basename(gmx_tar_A_to_B_Bound.name))
                 else:
-                    md_record_state_A_Bound.set_extra_data_tar(os.path.basename(gmx_tar.name), shard_name=os.path.basename(gmx_tar.name))
+                    md_record_state_A_Bound.set_extra_data_tar(os.path.basename(gmx_tar_A_to_B_Bound.name), shard_name=os.path.basename(gmx_tar_A_to_B_Bound.name))
 
-                gmx_tar.close()
+                gmx_tar_A_to_B_Bound.close()
 
                 # md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Bound)
                 # md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
@@ -656,12 +655,11 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                     check_gmx_grompp(gmx_gro, gmx_top_B_to_A_Unbound)
 
                 if in_orion():
-                    gmx_tar = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix="gmx_B_to_A_un_", suffix='_' + str(count) + ".tar")
+                    gmx_tar_B_to_A_Unbound = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix="gmx_B_to_A_un_", suffix='_' + str(count) + ".tar")
                 else:
-                    gmx_tar = tempfile.NamedTemporaryFile(mode='w', dir="./", delete=False, prefix="gmx_B_to_A_un_",
-                                                          suffix='_' + str(count) + ".tar")
+                    gmx_tar_B_to_A_Unbound = tempfile.NamedTemporaryFile(mode='w', dir="./", delete=False, prefix="gmx_B_to_A_un_", suffix='_' + str(count) + ".tar")
 
-                with tarfile.open(gmx_tar.name, mode='w:gz') as archive:
+                with tarfile.open(gmx_tar_B_to_A_Unbound.name, mode='w:gz') as archive:
 
                     with tempfile.TemporaryDirectory() as outdir:
                         gmx_top_fn = os.path.join(outdir, "gmx_top.top")
@@ -676,10 +674,10 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                         archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
 
                 if in_orion():
-                    md_record_state_B_Unbound.set_extra_data_tar(gmx_tar.name,  shard_name=os.path.basename(gmx_tar.name))
+                    md_record_state_B_Unbound.set_extra_data_tar(gmx_tar_B_to_A_Unbound.name,  shard_name=os.path.basename(gmx_tar_B_to_A_Unbound.name))
                 else:
-                    md_record_state_B_Unbound.set_extra_data_tar(os.path.basename(gmx_tar.name), shard_name=os.path.basename(gmx_tar.name))
-                gmx_tar.close()
+                    md_record_state_B_Unbound.set_extra_data_tar(os.path.basename(gmx_tar_B_to_A_Unbound.name), shard_name=os.path.basename(gmx_tar_B_to_A_Unbound.name))
+                gmx_tar_B_to_A_Unbound.close()
 
                 # md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Unbound)
                 # md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
@@ -697,11 +695,10 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                     check_gmx_grompp(gmx_gro, gmx_top_B_to_A_Bound)
 
                 if in_orion():
-                    gmx_tar = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix="gmx_B_to_A_bn_", suffix='_' + str(count) + ".tar")
+                    gmx_tar_B_to_A_Bound = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix="gmx_B_to_A_bn_", suffix='_' + str(count) + ".tar")
                 else:
-                    gmx_tar = tempfile.NamedTemporaryFile(mode='w', dir="./", delete=False, prefix="gmx_B_to_A_bn_",
-                                                          suffix='_' + str(count) + ".tar")
-                with tarfile.open(gmx_tar.name, mode='w:gz') as archive:
+                    gmx_tar_B_to_A_Bound = tempfile.NamedTemporaryFile(mode='w', dir="./", delete=False, prefix="gmx_B_to_A_bn_", suffix='_' + str(count) + ".tar")
+                with tarfile.open(gmx_tar_B_to_A_Bound.name, mode='w:gz') as archive:
 
                     with tempfile.TemporaryDirectory() as outdir:
                         gmx_top_fn = os.path.join(outdir, "gmx_top.top")
@@ -716,11 +713,11 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                         archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
 
                 if in_orion():
-                    md_record_state_B_Bound.set_extra_data_tar(gmx_tar.name, shard_name=os.path.basename(gmx_tar.name))
+                    md_record_state_B_Bound.set_extra_data_tar(gmx_tar_B_to_A_Bound.name, shard_name=os.path.basename(gmx_tar_B_to_A_Bound.name))
                 else:
-                    md_record_state_B_Bound.set_extra_data_tar(os.path.basename(gmx_tar.name), shard_name=os.path.basename(gmx_tar.name))
+                    md_record_state_B_Bound.set_extra_data_tar(os.path.basename(gmx_tar_B_to_A_Bound.name), shard_name=os.path.basename(gmx_tar_B_to_A_Bound.name))
 
-                gmx_tar.close()
+                gmx_tar_B_to_A_Bound.close()
 
                 # md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Bound)
                 # md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
@@ -883,23 +880,23 @@ class NESGMX(RecordPortsMixin, ComputeCube):
             # are updated inside the Gromacs NES MD run
             mdstate = MDState(opt['pmd'])
 
-            # TODO Do not upload the trajectory with the stage for now
-            if not mdrecord.add_new_stage(self.title,
-                                          MDStageTypes.FEC,
-                                          opt['flask'],
-                                          mdstate,
-                                          data_fn,
-                                          append=True,
-                                          log=str_logger,
-                                          # trajectory_fn=trj_fn,
-                                          # trajectory_engine=MDEngines.Gromacs,
-                                          # trajectory_orion_ui=flask_title + '_' + str(frame_count)
-                                          ):
-
-                raise ValueError("Problems adding in the new FEC Stage")
-
-            # Update Gromacs coordinates on the record
-            record.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, opt['gro_str'])
+            # TODO DISABLED FOR NOW
+            # if not mdrecord.add_new_stage(self.title,
+            #                               MDStageTypes.FEC,
+            #                               opt['flask'],
+            #                               mdstate,
+            #                               data_fn,
+            #                               append=True,
+            #                               log=str_logger,
+            #                               # trajectory_fn=trj_fn,
+            #                               # trajectory_engine=MDEngines.Gromacs,
+            #                               # trajectory_orion_ui=flask_title + '_' + str(frame_count)
+            #                               ):
+            #
+            #     raise ValueError("Problems adding in the new FEC Stage")
+            #
+            # # Update Gromacs coordinates on the record
+            # record.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, opt['gro_str'])
 
             # Set the calculated work
             record.set_value(Fields.FEC.RBFEC.NESC.work, opt['gmx_work'])

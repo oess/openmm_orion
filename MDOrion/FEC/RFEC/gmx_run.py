@@ -127,7 +127,7 @@ sc-alpha                 = 0.3
 sc-sigma                 = 0.25
 sc-power                 = 1
 sc-coul = yes
-nstdhdl                  = 1
+nstdhdl                  = {nstdhdl:d}
 nstcalcenergy            = 1
 
 
@@ -168,7 +168,8 @@ def check_gmx_grompp(gro, top, verbose=False):
                                                              lincs_type='all-bonds',
                                                              cutoff=1.0,
                                                              rvdwswitch=0.9,
-                                                             dlambda=0)
+                                                             dlambda=0,
+                                                             nstdhdl=0)
 
             with open(gmx_mdp_fn, 'w') as f:
                 f.write(gmx_fe_template)
@@ -338,7 +339,8 @@ def gmx_run(gmx_gro, gmx_top, opt):
                                                      lincs_type=opt['lincs_type'],
                                                      cutoff=cutoff_distance.value_in_unit(unit.nanometer),
                                                      rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
-                                                     dlambda=0)
+                                                     dlambda=0,
+                                                     nstdhdl=0)
     with open(gmx_min_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
 
@@ -369,7 +371,8 @@ def gmx_run(gmx_gro, gmx_top, opt):
                                                      lincs_type=opt['lincs_type'],
                                                      cutoff=cutoff_distance.value_in_unit(unit.nanometer),
                                                      rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
-                                                     dlambda=0)
+                                                     dlambda=0,
+                                                     nstdhdl=0)
 
     with open(gmx_eq_nvt_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
@@ -397,7 +400,8 @@ def gmx_run(gmx_gro, gmx_top, opt):
                                                      lincs_type=opt['lincs_type'],
                                                      cutoff=cutoff_distance.value_in_unit(unit.nanometer),
                                                      rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
-                                                     dlambda=0)
+                                                     dlambda=0,
+                                                     nstdhdl=0)
 
     with open(gmx_eq_npt0_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
@@ -411,8 +415,8 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_eq_npt1_mdp_fn = os.path.join(out_dir, "gmx_eq_npt1.mdp")
     gmx_eq_npt1_tpr_fn = os.path.join(out_dir, "gmx_eq_npt1.tpr")
     gmx_npt1_deffnm_fn = os.path.join(out_dir, "gmx_run_npt1" + '_' + str(opt['frame_count']))
-    gmx_npt1_cpt_fn = gmx_npt0_deffnm_fn + '.cpt'
-    gmx_npt1_confout_gro = gmx_npt0_deffnm_fn + '.gro'
+    gmx_npt1_cpt_fn = gmx_npt1_deffnm_fn + '.cpt'
+    gmx_npt1_confout_gro = gmx_npt1_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
                                                      integrator='sd',
@@ -425,12 +429,29 @@ def gmx_run(gmx_gro, gmx_top, opt):
                                                      lincs_type=opt['lincs_type'],
                                                      cutoff=cutoff_distance.value_in_unit(unit.nanometer),
                                                      rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
-                                                     dlambda=0)
+                                                     dlambda=0,
+                                                     nstdhdl=0)
 
     with open(gmx_eq_npt1_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
 
     _run_gmx(gmx_eq_npt1_mdp_fn, gmx_npt0_confout_gro, gmx_top_fn, gmx_eq_npt1_tpr_fn, gmx_npt1_deffnm_fn, opt, cpt_fn=gmx_npt0_cpt_fn)
+
+    # TODO DEBUGGING
+    #####################
+    # gmx_gro_fn = os.path.join(out_dir, "gmx_gro.gro")
+    # gmx_top_fn = os.path.join(out_dir, "gmx_top.top")
+    # with open(gmx_gro_fn, 'w') as f:
+    #     f.write(gmx_gro)
+    #
+    # with open(gmx_top_fn, 'w') as f:
+    #     f.write(gmx_top)
+    #
+    #
+    # _run_gmx(gmx_eq_npt1_mdp_fn, gmx_gro_fn, gmx_top_fn, gmx_eq_npt1_tpr_fn, gmx_npt1_deffnm_fn, opt,
+    #          cpt_fn=None)
+
+    ####################
 
     # NES
     opt['restraints'] = False
@@ -457,7 +478,8 @@ def gmx_run(gmx_gro, gmx_top, opt):
                                                      lincs_type=opt['lincs_type'],
                                                      cutoff=cutoff_distance.value_in_unit(unit.nanometer),
                                                      rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
-                                                     dlambda=dlambda)
+                                                     dlambda=dlambda,
+                                                     nstdhdl=1)
 
     with open(gmx_ne_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
