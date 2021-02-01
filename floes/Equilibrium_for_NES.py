@@ -23,7 +23,7 @@ from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
                                     RBFECMapping)
 
-job = WorkFloe("Equilibrium Runs for NES", title="Equilibrium Runs for NES")
+job = WorkFloe("Equilibrium Runs for Bound and Unbound ", title="Equilibrium Runs for Bound and Unbound")
 
 job.description = """
 TBD
@@ -39,9 +39,6 @@ iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input 
 
 ligset = LigandSetting("Ligand Setting", title="Ligand Setting")
 ligset.set_parameters(lig_res_name='LIG')
-
-rbfec_map = RBFECMapping("Edge Mapping", title="Edge Mapping")
-rbfec_map.promote_parameter("map_file", promoted_name="map")
 
 chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")
 chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
@@ -82,14 +79,15 @@ ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='
 ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.0')
 
 # Switching Bound and Unbound runs
-switch = BoundUnboundSwitchCube("Bound/Unbound Switch", title='Bound/Unbound Switch')
+switch = BoundUnboundSwitchCube("Bound/Unbound In Switch", title='Bound/Unbound In Switch')
 
 # Run the equilibrium Simulations ot the Unbound-States
 prod_uns = ParallelMDNptCube("Production Unbound States", title="Production Unbound States")
 prod_uns.promote_parameter('time', promoted_name='prod_us_ns', default=6.0,
                            description='Length of Unbound MD run in nanoseconds')
-prod_uns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=80,
-                           description='Total number of trajectory frames used in the NES calculation')
+# prod_uns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=1500,
+#                            description='Total number of trajectory frames used in the NES calculation')
+prod_uns.modify_parameter(prod_uns.trajectory_frames, promoted=False, default=1500)
 prod_uns.promote_parameter('hmr', promoted_name="hmr_us", title='Use Hydrogen Mass Repartitioning '
                                                                 'in the Unbound simulation', default=True,
                            description='Give hydrogens more mass to speed up the MD')
@@ -134,10 +132,12 @@ job.add_group(md_group_uns)
 # Run the equilibrium Simulations ot the Bound-States
 prod_bns = ParallelMDNptCube("Production Bound States", title="Production Bound States")
 prod_bns.promote_parameter('time', promoted_name='prod_us_ns', default=6.0)
-prod_bns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=80)
+# prod_bns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=1500)
+prod_bns.modify_parameter(prod_bns.trajectory_frames, promoted=False, default=1500)
 prod_bns.promote_parameter('hmr', promoted_name="hmr_bs", title='Use Hydrogen Mass Repartitioning '
                                                                 'in the Bound simulation', default=True,
                            description='Give hydrogens more mass to speed up the MD')
+prod_bns.modify_parameter(prod_bns.trajectory_frames, promoted=False, default=1500)
 prod_bns.set_parameters(md_engine='OpenMM')
 prod_bns.set_parameters(reporter_interval=0.002)
 prod_bns.set_parameters(suffix='prod_bn')
@@ -222,28 +222,29 @@ job.add_group(md_group_bs)
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 
+# Switching Bound and Unbound runs
+switch_out = BoundUnboundSwitchCube("Bound/Unbound Out Switch", title='Bound/Unbound Out Switch')
 
-ofs_unbound_bound = DatasetWriterCube('ofs_unbound_bound', title='Unbound and Bound Out')
-ofs_unbound_bound.promote_parameter("data_out", promoted_name="out_unbound",
-                                    title="Unbound  and Bound Dataset Out",
-                                    description="Unbound and Bound Dataset Out")
+ofs_unbound = DatasetWriterCube('ofs_unbound', title='Unbound Out')
+ofs_unbound.promote_parameter("data_out", promoted_name="out_unbound", title="Unbound Dataset Out", description="Unbound Dataset Out")
 
-fail = DatasetWriterCube('fail', title='NES Failures')
-fail.promote_parameter("data_out", promoted_name="fail", title="NES Failures",
-                       description="NES Dataset Failures out")
+ofs_bound = DatasetWriterCube('ofs_bound', title='Bound Out')
+ofs_bound.promote_parameter("data_out", promoted_name="out_bound", title="Bound Dataset Out", description="Bound Dataset Out")
 
+fail = DatasetWriterCube('fail', title='Failures')
+fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
+                       description="Dataset Failures out")
 
-job.add_cubes(iligs, ligset, rbfec_map, chargelig, ligid, md_lig_components, coll_open,
+job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
               iprot, md_prot_components, complx, solvate, ff, switch,
               minimize_uns, warmup_uns, equil_uns, prod_uns,
               minimize_bns, warmup_bns, equil1_bns,
               equil2_bns, equil3_bns, equil4_bns, prod_bns,
-              coll_close, fail, ofs_unbound_bound)
+              coll_close, switch_out, fail, ofs_unbound, ofs_bound)
 
 # Ligand Setting
 iligs.success.connect(ligset.intake)
-ligset.success.connect(rbfec_map.intake)
-rbfec_map.success.connect(chargelig.intake)
+ligset.success.connect(chargelig.intake)
 chargelig.success.connect(ligid.intake)
 ligid.success.connect(md_lig_components.intake)
 md_lig_components.success.connect(coll_open.intake)
@@ -276,11 +277,12 @@ equil3_bns.success.connect(equil4_bns.intake)
 equil4_bns.success.connect(prod_bns.intake)
 prod_bns.success.connect(coll_close.intake)
 
-coll_close.success.connect(ofs_unbound_bound.intake)
+coll_close.success.connect(switch_out.intake)
+switch_out.success.connect(ofs_unbound.intake)
+switch_out.bound_port.connect(ofs_bound.intake)
 
 # Fail port connections
 ligset.failure.connect(fail.intake)
-rbfec_map.failure.connect(fail.intake)
 chargelig.failure.connect(fail.intake)
 ligid.failure.connect(fail.intake)
 md_lig_components.failure.connect(fail.intake)
@@ -305,7 +307,7 @@ equil4_bns.failure.connect(fail.intake)
 prod_bns.failure.connect(fail.intake)
 
 coll_close.failure.connect(fail.intake)
-
+switch_out.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()

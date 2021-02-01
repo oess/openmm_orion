@@ -1,5 +1,4 @@
-from floe.api import (WorkFloe,
-                      ParallelCubeGroup)
+from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
@@ -25,12 +24,13 @@ job.classification = [['FEC']]
 job.uuid = "74cd690f-f98a-47e0-bfa4-1858e4080dc3"
 job.tags = [tag for lists in job.classification for tag in lists]
 
-# Unbound and Bound Reader
-iunbound_bound = DatasetReaderCube("UnboundBoundReader", title="Unbound and Bound Reader")
-iunbound_bound.promote_parameter("data_in", promoted_name="unbound_bound",
-                                 title="Unbound and Bound Input Dataset",
-                                 description="Unbound and Bound Dataset")
 
+# Unbound Reader
+iun = DatasetReaderCube("UnboundReader", title="Unbound Reader")
+iun.promote_parameter("data_in", promoted_name="unbound", title="Unbound Input Dataset", description="Unbound Input Dataset")
+
+ibn = DatasetReaderCube("BoundReader", title="Bound Reader")
+ibn.promote_parameter("data_in", promoted_name="bound", title="Bound Input Dataset", description="Bound Input Dataset")
 
 # This cube is necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
@@ -43,6 +43,8 @@ gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
 gathering.promote_parameter('map_file', promoted_name='map')
 
 chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
+chimera.promote_parameter("trajectory_frames", promoted_name="trajectory_frames", default=80,
+                          description="The total number of trajectory frames to be used along the NE switching")
 
 unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
 unbound_nes.promote_parameter("time", promoted_name="nes_time", default=0.05)
@@ -70,13 +72,15 @@ fail = DatasetWriterCube('fail', title='NES Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="NES Failures",
                        description="NES Dataset Failures out")
 
-job.add_cubes(iunbound_bound, coll_open, switch, gathering,
+job.add_cubes(iun, ibn, coll_open, switch, gathering,
               chimera,  unbound_nes, bound_nes,
               coll_close, nes_analysis, report,
               check_rec, ofs, fail)
 
-# Ligand Setting
-iunbound_bound.success.connect(coll_open.intake)
+# Readers Setting
+iun.success.connect(coll_open.intake)
+ibn.success.connect(coll_open.intake)
+
 coll_open.success.connect(switch.intake)
 switch.success.connect(gathering.intake)
 switch.bound_port.connect(gathering.bound_port)

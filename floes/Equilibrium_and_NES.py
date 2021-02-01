@@ -60,9 +60,6 @@ iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input 
 ligset = LigandSetting("Ligand Setting", title="Ligand Setting")
 ligset.set_parameters(lig_res_name='LIG')
 
-rbfec_map = RBFECMapping("Edge Mapping", title="Edge Mapping")
-rbfec_map.promote_parameter("map_file", promoted_name="map")
-
 chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")
 chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
                             description="Charge the ligand or not", default=True)
@@ -108,8 +105,9 @@ switch = BoundUnboundSwitchCube("Bound/Unbound Switch", title='Bound/Unbound Swi
 prod_uns = ParallelMDNptCube("Production Unbound States", title="Production Unbound States")
 prod_uns.promote_parameter('time', promoted_name='prod_us_ns', default=6.0,
                            description='Length of Unbound MD run in nanoseconds')
-prod_uns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=80,
-                           description='Total number of trajectory frames used in the NES calculation')
+# prod_uns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=80,
+#                            description='Total number of trajectory frames used in the NES calculation')
+prod_uns.modify_parameter(prod_uns.trajectory_frames, promoted=False, default=1500)
 prod_uns.promote_parameter('hmr', promoted_name="hmr_us", title='Use Hydrogen Mass Repartitioning '
                                                                 'in the Unbound simulation', default=True,
                            description='Give hydrogens more mass to speed up the MD')
@@ -154,7 +152,8 @@ job.add_group(md_group_uns)
 # Run the equilibrium Simulations ot the Bound-States
 prod_bns = ParallelMDNptCube("Production Bound States", title="Production Bound States")
 prod_bns.promote_parameter('time', promoted_name='prod_us_ns', default=6.0)
-prod_bns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=80)
+# prod_bns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=80)
+prod_bns.modify_parameter(prod_bns.trajectory_frames, promoted=False, default=1500)
 prod_bns.promote_parameter('hmr', promoted_name="hmr_bs", title='Use Hydrogen Mass Repartitioning '
                                                                 'in the Bound simulation', default=True,
                            description='Give hydrogens more mass to speed up the MD')
@@ -238,10 +237,12 @@ md_group_bs = ParallelCubeGroup(cubes=[minimize_bns, warmup_bns, equil1_bns, equ
 job.add_group(md_group_bs)
 
 gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
-gathering.promote_parameter('map_file', promoted_name='map')
+gathering.promote_parameter('map_file', promoted_name='map',
+                            description='The edge mapping file used to run the RBFE calculations')
 
 chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
-
+chimera.promote_parameter("trajectory_frames", promoted_name="trajectory_frames", default=80,
+                          description="The total number of trajectory frames to be used along the NE switching")
 unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
 unbound_nes.promote_parameter("time", promoted_name="nes_time", default=0.05)
 
@@ -280,8 +281,7 @@ ofs_prot.promote_parameter("data_out", promoted_name="out_bound",
                            title="Equilibrium Bound Out",
                            description="Equilibrium Bound Out")
 
-# TODO DEBUGGING ONLY REMOVE EXTRA OFS AT THE END
-job.add_cubes(iligs, ligset, rbfec_map, chargelig, ligid, md_lig_components, coll_open,
+job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
               iprot, md_prot_components, complx, solvate, ff, switch,
               minimize_uns, warmup_uns, equil_uns, prod_uns,
               minimize_bns, warmup_bns, equil1_bns,
@@ -292,8 +292,7 @@ job.add_cubes(iligs, ligset, rbfec_map, chargelig, ligid, md_lig_components, col
 
 # Ligand Setting
 iligs.success.connect(ligset.intake)
-ligset.success.connect(rbfec_map.intake)
-rbfec_map.success.connect(chargelig.intake)
+ligset.success.connect(chargelig.intake)
 chargelig.success.connect(ligid.intake)
 ligid.success.connect(md_lig_components.intake)
 md_lig_components.success.connect(coll_open.intake)
@@ -346,7 +345,6 @@ check_rec.success.connect(ofs.intake)
 
 # Fail port connections
 ligset.failure.connect(check_rec.fail_in)
-rbfec_map.failure.connect(check_rec.fail_in)
 chargelig.failure.connect(check_rec.fail_in)
 ligid.failure.connect(check_rec.fail_in)
 md_lig_components.failure.connect(check_rec.fail_in)
