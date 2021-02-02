@@ -82,7 +82,6 @@ import tarfile
 from orionclient.session import in_orion
 
 
-
 class BoundUnboundSwitchCube(RecordPortsMixin, ComputeCube):
     title = "Bound and UnBound Switching Cube"
     # version = "0.1.4"

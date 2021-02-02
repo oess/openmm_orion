@@ -52,11 +52,11 @@ unbound_nes.promote_parameter("time", promoted_name="nes_time", default=0.05)
 bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
 bound_nes.promote_parameter("time", promoted_name="nes_time")
 
+nes_analysis = NESAnalysis("NES_Analysis")
+
 # This cube is necessary for the correct working of collections and shards
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
-
-nes_analysis = NESAnalysis("NES_Analysis")
 
 report = MDFloeReportCube("report", title="Floe Report")
 report.set_parameters(floe_report_title="NES Report")
@@ -74,7 +74,7 @@ fail.promote_parameter("data_out", promoted_name="fail", title="NES Failures",
 
 job.add_cubes(iun, ibn, coll_open, switch, gathering,
               chimera,  unbound_nes, bound_nes,
-              coll_close, nes_analysis, report,
+              nes_analysis, coll_close, report,
               check_rec, ofs, fail)
 
 # Readers Setting
@@ -89,14 +89,14 @@ switch.bound_port.connect(gathering.bound_port)
 gathering.success.connect(chimera.intake)
 
 chimera.success.connect(unbound_nes.intake)
-unbound_nes.success.connect(coll_close.intake)
+unbound_nes.success.connect(nes_analysis.intake)
 
 chimera.bound_port.connect(bound_nes.intake)
-bound_nes.success.connect(coll_close.intake)
+bound_nes.success.connect(nes_analysis.intake)
 
-coll_close.success.connect(nes_analysis.intake)
 nes_analysis.success.connect(report.intake)
-report.success.connect(check_rec.intake)
+report.success.connect(coll_close.intake)
+coll_close.success.connect(check_rec.intake)
 check_rec.success.connect(ofs.intake)
 
 # Fail port connections
