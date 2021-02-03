@@ -115,11 +115,14 @@ class Fields:
         trajectory = OEField("Trajectory_OPLMD", Types.Int, meta=_metaHidden)
         mddata = OEField("MDData_OPLMD", Types.Int, meta=_metaHidden)
         protein_traj_confs = OEField("ProtTraj_OPLMD", Types.Int, meta=_metaHidden)
+        extra_data_tar = OEField("ExtraData_OPLMD", Types.Int, meta=_metaHidden)
     else:
         pmd_structure = OEField('Structure_Parmed_OPLMD', ParmedData, meta=_metaHidden)
         trajectory = OEField("Trajectory_OPLMD", Types.String, meta=_metaHidden)
         mddata = OEField("MDData_OPLMD", Types.String, meta=_metaHidden)
         protein_traj_confs = OEField("ProtTraj_OPLMD", Types.Chem.Mol, meta=_metaHidden)
+        extra_data_tar = OEField("ExtraData_OPLMD", Types.String, meta=_metaHidden)
+
 
     # The Stage Name
     stage_name = OEField('Stage_name_OPLMD', Types.String)
@@ -256,11 +259,17 @@ class Fields:
 
             class NESC:
 
-                state_A = OEField("StateA_OPLMD", Types.Record)
-                state_B = OEField("StateB_OPLMD", Types.Record)
+                state_A = OEField("StateA_OPLMD", Types.RecordVec, meta=_metaHidden)
+                state_B = OEField("StateB_OPLMD", Types.RecordVec, meta=_metaHidden)
+
+                forward = OEField("Forward_OPLMD", Types.String)
+                reverse = OEField("Reverse_OPLMD", Types.String)
+
+                direction = OEField("Direction_OPLMD", Types.String)
 
                 gmx_top = OEField("GMX_Top_OPLMD", Types.String, meta=_metaHidden)
                 gmx_gro = OEField("GMX_Gro_OPLMD", Types.String, meta=_metaHidden)
+
                 work = OEField("GMX_Work_OPLMD", Types.Float,
                                meta=OEFieldMeta().set_option(Meta.Units.Energy.kJ_per_mol))
                 frame_count = OEField("frame_count", Types.Int, meta=_metaHidden)
@@ -273,9 +282,3 @@ class Fields:
                 # different analysis methods used to compute it
                 DDG_rec = OEField("DDG_Record_OPLMD", Types.Record)
 
-
-# def get_meta_attributes(record, field_name):
-#     field_with_meta = record.get_field(field_name, include_meta=True)
-#     meta_from_field = field_with_meta.get_meta()
-#     meta_dict = meta_from_field.to_dict()
-#     return meta_dict

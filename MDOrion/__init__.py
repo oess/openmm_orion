@@ -15,7 +15,7 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '3.1.0a1'
+__version__ = '4.0.0a43'
 
 from .ComplexPrep.cubes import ComplexPrepCube
 
@@ -54,3 +54,13 @@ from .TrjAnalysis.cubes_clusterAnalysis import (ParallelMDTrajAnalysisClusterRep
                                                 ExtractMDDataCube)
 
 from .TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
+=======
+from .FEC.RFEC.cubes import (BoundUnboundSwitchCube,
+                             RBFECMapping,
+                             RBFECEdgeGathering,
+                             GMXChimera,
+                             ParallelGMXChimera,
+                             NESGMX,
+                             ParallelNESGMX,
+                             NESAnalysis,
+                             PlotRBFEResults)

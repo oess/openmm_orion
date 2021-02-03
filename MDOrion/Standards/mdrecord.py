@@ -1594,3 +1594,127 @@ class MDDataRecord(object):
             return True
         else:
             return False
+
+    @property
+    def has_extra_data_tar(self):
+        """
+        This method returns True if extra data file in tar format is attached to the record
+
+        Return:
+        -------
+        boolean: Bool
+            True if extra data file is present on the record otherwise False
+        """
+
+        if self.rec.has_field(Fields.extra_data_tar):
+            return True
+        else:
+            return False
+
+    @property
+    def get_extra_data_tar(self):
+        """
+        This method returns the directory file name where extra data file tar has been unpacked
+
+        Parameters
+        ----------
+        Returns
+        -------
+        directory file name: String
+            The directory file name
+        """
+
+        if not self.rec.has_field(Fields.extra_data_tar):
+            raise ValueError("Extra data file tar has not been found on the record")
+
+        extra_data = self.rec.get_value(Fields.extra_data_tar)
+
+        if in_orion():
+
+            # session = APISession
+
+            session = OrionSession(
+                requests_session=get_session(
+                    retry_dict={
+                        403: 5,
+                        404: 20,
+                        409: 45,
+                        460: 15,
+                        500: 2,
+                        502: 45,
+                        503: 45,
+                        504: 45,
+                    }
+                )
+            )
+
+            if self.collection_id is None:
+                raise ValueError("The Collection ID is None")
+
+            collection = session.get_resource(ShardCollection, self.collection_id)
+
+            shard = session.get_resource(Shard(collection=collection), extra_data)
+
+            fn = os.path.join(self.cwd, 'extra_data.tar')
+
+            try_hard_to_download_shard(shard, fn)
+
+            shard.close()
+
+            extra_data = fn
+
+        return extra_data
+
+    def set_extra_data_tar(self, tar_fn, shard_name=""):
+        """
+        This method sets the extra data file on the record
+
+        Parameters
+        -----------
+        tar_fn: String
+            The compressed data file name
+        shard_name: String
+            In Orion tha shard will be named by using the shard_name
+
+        Returns
+        -------
+        boolean: Bool
+            True if the setting was successful
+        """
+
+        if not os.path.isfile(tar_fn):
+            raise ValueError("The filename does not exist: {}".format(tar_fn))
+
+        if in_orion():
+
+            if self.collection_id is None:
+                raise ValueError("The Collection ID is None")
+
+            # session = APISession
+            session = OrionSession(
+                requests_session=get_session(
+                    retry_dict={
+                        403: 5,
+                        404: 20,
+                        409: 45,
+                        460: 15,
+                        500: 2,
+                        502: 45,
+                        503: 45,
+                        504: 45,
+                    }
+                )
+            )
+
+            collection = session.get_resource(ShardCollection, self.collection_id)
+
+            shard = try_hard_to_create_shard(collection, tar_fn, name=shard_name)
+
+            self.rec.set_value(Fields.extra_data_tar, shard.id)
+
+            shard.close()
+
+        else:
+            self.rec.set_value(Fields.extra_data_tar, tar_fn)
+
+        return True
