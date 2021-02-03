@@ -1,0 +1,5 @@
+OpenEye-ensemble2img==0.1.1
+OpenEye-floereport==0.1.7
+OpenEye_oetrajanalysis==0.7.1
+openeye-oemdtoolbox==1.0.7
+Openeye-toolkits==2020.1.1
