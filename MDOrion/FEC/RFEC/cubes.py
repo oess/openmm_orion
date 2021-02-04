@@ -44,7 +44,9 @@ from datarecord import OERecord
 from oemdtoolbox.FEC.RBFEC.chimera import Chimera
 
 from MDOrion.FEC.RFEC.utils import (gmx_chimera_topology_injection,
-                                    gmx_chimera_coordinate_injection)
+                                    gmx_chimera_coordinate_injection,
+                                    upload_gmx_files,
+                                    download_gmx_file)
 
 from MDOrion.FEC.RFEC.utils import parmed_find_ligand
 
@@ -53,9 +55,7 @@ from datarecord import (Types,
                         Meta,
                         OEFieldMeta)
 
-from MDOrion.Standards import (MDStageNames,
-                               MDStageTypes,
-                               MDEngines)
+from MDOrion.Standards.standards import CollectionsNames
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
@@ -588,14 +588,15 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                         archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
 
                 if in_orion():
-                    md_record_state_A_Unbound.set_extra_data_tar(gmx_tar_A_to_B_Unbound.name,  shard_name=os.path.basename(gmx_tar_A_to_B_Unbound.name))
+                    # md_record_state_A_Unbound.set_extra_data_tar(gmx_tar_A_to_B_Unbound.name,  shard_name=os.path.basename(gmx_tar_A_to_B_Unbound.name))
+                    if not upload_gmx_files(gmx_tar_A_to_B_Unbound.name, md_record_state_A_Unbound, shard_name=os.path.basename(gmx_tar_A_to_B_Unbound.name)):
+                        raise ValueError("It was not possible to upload the gromacs file to Orion")
                 else:
-                    md_record_state_A_Unbound.set_extra_data_tar(os.path.basename(gmx_tar_A_to_B_Unbound.name), shard_name=os.path.basename(gmx_tar_A_to_B_Unbound.name))
+                    # md_record_state_A_Unbound.set_extra_data_tar(os.path.basename(gmx_tar_A_to_B_Unbound.name), shard_name=os.path.basename(gmx_tar_A_to_B_Unbound.name))
+                    if not upload_gmx_files(os.path.basename(gmx_tar_A_to_B_Unbound.name), md_record_state_A_Unbound, shard_name=os.path.basename(gmx_tar_A_to_B_Unbound.name)):
+                        raise ValueError("It was not possible to set the gromacs file")
 
                 gmx_tar_A_to_B_Unbound.close()
-
-                # md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Unbound)
-                # md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
 
                 md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_A_Unbound.set_value(Fields.FEC.RBFEC.edge_name, edge_name)
@@ -630,9 +631,14 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                         archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
 
                 if in_orion():
-                    md_record_state_A_Bound.set_extra_data_tar(gmx_tar_A_to_B_Bound.name,  shard_name=os.path.basename(gmx_tar_A_to_B_Bound.name))
+                    # md_record_state_A_Bound.set_extra_data_tar(gmx_tar_A_to_B_Bound.name,  shard_name=os.path.basename(gmx_tar_A_to_B_Bound.name))
+                    if not upload_gmx_files(gmx_tar_A_to_B_Bound.name, md_record_state_A_Bound, shard_name=os.path.basename(gmx_tar_A_to_B_Bound.name)):
+                        raise ValueError("It was not possible to upload the gromacs file to Orion")
+
                 else:
-                    md_record_state_A_Bound.set_extra_data_tar(os.path.basename(gmx_tar_A_to_B_Bound.name), shard_name=os.path.basename(gmx_tar_A_to_B_Bound.name))
+                    # md_record_state_A_Bound.set_extra_data_tar(os.path.basename(gmx_tar_A_to_B_Bound.name), shard_name=os.path.basename(gmx_tar_A_to_B_Bound.name))
+                    if not upload_gmx_files(os.path.basename(gmx_tar_A_to_B_Bound.name), md_record_state_A_Bound, shard_name=os.path.basename(gmx_tar_A_to_B_Bound.name)):
+                        raise ValueError("It was not possible to set the gromacs file to Orion")
 
                 gmx_tar_A_to_B_Bound.close()
 
@@ -655,6 +661,7 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
 
                 if in_orion():
                     gmx_tar_B_to_A_Unbound = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix="gmx_B_to_A_un_", suffix='_' + str(count) + ".tar")
+
                 else:
                     gmx_tar_B_to_A_Unbound = tempfile.NamedTemporaryFile(mode='w', dir="./", delete=False, prefix="gmx_B_to_A_un_", suffix='_' + str(count) + ".tar")
 
@@ -673,9 +680,15 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                         archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
 
                 if in_orion():
-                    md_record_state_B_Unbound.set_extra_data_tar(gmx_tar_B_to_A_Unbound.name,  shard_name=os.path.basename(gmx_tar_B_to_A_Unbound.name))
+                    # md_record_state_B_Unbound.set_extra_data_tar(gmx_tar_B_to_A_Unbound.name,  shard_name=os.path.basename(gmx_tar_B_to_A_Unbound.name))
+                    if not upload_gmx_files(gmx_tar_B_to_A_Unbound.name, md_record_state_B_Unbound, shard_name=os.path.basename(gmx_tar_B_to_A_Unbound.name)):
+                        raise ValueError("It was not possible to upload the gromacs file to Orion")
+
                 else:
-                    md_record_state_B_Unbound.set_extra_data_tar(os.path.basename(gmx_tar_B_to_A_Unbound.name), shard_name=os.path.basename(gmx_tar_B_to_A_Unbound.name))
+                    # md_record_state_B_Unbound.set_extra_data_tar(os.path.basename(gmx_tar_B_to_A_Unbound.name), shard_name=os.path.basename(gmx_tar_B_to_A_Unbound.name))
+                    if not upload_gmx_files(os.path.basename(gmx_tar_B_to_A_Unbound.name), md_record_state_B_Unbound, shard_name=os.path.basename(gmx_tar_B_to_A_Unbound.name)):
+                        raise ValueError("It was not possible to set the gromacs file to Orion")
+
                 gmx_tar_B_to_A_Unbound.close()
 
                 # md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Unbound)
@@ -712,9 +725,13 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
                         archive.add(gmx_gro_fn, arcname=os.path.basename(gmx_gro_fn))
 
                 if in_orion():
-                    md_record_state_B_Bound.set_extra_data_tar(gmx_tar_B_to_A_Bound.name, shard_name=os.path.basename(gmx_tar_B_to_A_Bound.name))
+                    # md_record_state_B_Bound.set_extra_data_tar(gmx_tar_B_to_A_Bound.name, shard_name=os.path.basename(gmx_tar_B_to_A_Bound.name))
+                    if not upload_gmx_files(gmx_tar_B_to_A_Bound.name, md_record_state_B_Bound, shard_name=os.path.basename(gmx_tar_B_to_A_Bound.name)):
+                        raise ValueError("It was not possible to upload the gromacs file to Orion")
                 else:
-                    md_record_state_B_Bound.set_extra_data_tar(os.path.basename(gmx_tar_B_to_A_Bound.name), shard_name=os.path.basename(gmx_tar_B_to_A_Bound.name))
+                    # md_record_state_B_Bound.set_extra_data_tar(os.path.basename(gmx_tar_B_to_A_Bound.name), shard_name=os.path.basename(gmx_tar_B_to_A_Bound.name))
+                    if not upload_gmx_files(os.path.basename(gmx_tar_B_to_A_Bound.name), md_record_state_B_Bound, shard_name=os.path.basename(gmx_tar_B_to_A_Bound.name)):
+                        raise ValueError("It was not possible to set the gromacs file to Orion")
 
                 gmx_tar_B_to_A_Bound.close()
 
@@ -815,24 +832,12 @@ class NESGMX(RecordPortsMixin, ComputeCube):
 
             flask_title = record.get_value(Fields.title)
 
-            # if not record.has_field(Fields.FEC.RBFEC.NESC.gmx_gro):
-            #     raise ValueError("Missing Gromacs coordinate file for the flask: {}".format(flask_title))
-            #
-            # gmx_gro_str = record.get_value(Fields.FEC.RBFEC.NESC.gmx_gro)
-            #
-            # if not record.has_field(Fields.FEC.RBFEC.NESC.gmx_top):
-            #     raise ValueError("Missing Gromacs topology file for the flask: {}".format(flask_title))
-            #
-            # gmx_top_str = record.get_value(Fields.FEC.RBFEC.NESC.gmx_top)
-
-            if not record.has_field(Fields.extra_data_tar):
-                raise ValueError("Missing record extra file data containing gromacs files: {}".format(flask_title))
-
             frame_count = record.get_value(OEField("frame_count", Types.Int))
 
             mdrecord = MDDataRecord(record)
 
-            extra_data_fn = mdrecord.get_extra_data_tar
+            extra_data_fn = download_gmx_file(mdrecord)
+
             with tarfile.open(extra_data_fn) as tar:
                 tar.extractall(path=mdrecord.cwd)
 
@@ -943,6 +948,7 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
         self.edgeid_works = dict()
         self.edgeid_ligands = dict()
         self.edgeid_lig_names = dict()
+        self.collections = dict()
 
     def process(self, record, port):
 
@@ -953,6 +959,9 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
             ligand.SetTitle(lig_name)
             leg_type = record.get_value(Fields.FEC.RBFEC.thd_leg_type)
             edgeid = record.get_value(Fields.FEC.RBFEC.edgeid)
+
+            if not len(self.collections):
+                self.collections = record.get_value(Fields.collections)
 
             if edgeid not in self.edgeid_works:
                 work_forward_bound = dict()
@@ -1128,6 +1137,10 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
                     new_record.set_value(Fields.title, title + '_' + str(count))
                     new_record.set_value(Fields.ligid, count)
                     new_record.set_value(Fields.confid, 0)
+
+                    # Set the collections
+                    new_record.set_value(Fields.collections, self.collections)
+
                     self.success.emit(new_record)
                     self.opt['Logger'].info("Edge {} Done".format(edgeid), flush=True)
                     count += 1

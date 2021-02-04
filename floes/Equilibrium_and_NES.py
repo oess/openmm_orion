@@ -84,6 +84,7 @@ md_prot_components.set_parameters(multiple_flasks=False)
 # This cube is necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
+coll_open.set_parameters(write_new_collection='MD_OPLMD')
 
 # Complex cube used to assemble the ligands and the solvated protein
 complx = ComplexPrepCube("Complex", title="Complex Preparation")
@@ -236,6 +237,14 @@ equil4_bns.set_parameters(suffix='equil4_bn')
 md_group_bs = ParallelCubeGroup(cubes=[minimize_bns, warmup_bns, equil1_bns, equil2_bns, equil3_bns, equil4_bns, prod_bns])
 job.add_group(md_group_bs)
 
+switch_out = BoundUnboundSwitchCube("Switch Out", title="Switch Out")
+
+# This cube is necessary for the correct work of collection and shard
+coll_write = CollectionSetting("OpenWriteCollection", title="OpenWrite Collection")
+coll_write.set_parameters(open=True)
+coll_write.set_parameters(write_new_collection='NES_OPLMD')
+
+
 gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
 gathering.promote_parameter('map_file', promoted_name='map',
                             description='The edge mapping file used to run the RBFE calculations')
@@ -286,7 +295,8 @@ job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
               iprot, md_prot_components, complx, solvate, ff, switch,
               minimize_uns, warmup_uns, equil_uns, prod_uns,
               minimize_bns, warmup_bns, equil1_bns,
-              equil2_bns, equil3_bns, equil4_bns, prod_bns, gathering,
+              equil2_bns, equil3_bns, equil4_bns, prod_bns,
+              switch_out, coll_write, gathering,
               chimera, unbound_nes, bound_nes,
               nes_analysis,  coll_close, report,
               check_rec, ofs, fail, ofs_lig, ofs_prot)
@@ -314,8 +324,8 @@ switch.success.connect(minimize_uns.intake)
 minimize_uns.success.connect(warmup_uns.intake)
 warmup_uns.success.connect(equil_uns.intake)
 equil_uns.success.connect(prod_uns.intake)
-prod_uns.success.connect(gathering.intake)
-# TODO DEBUG ONLY
+prod_uns.success.connect(coll_write.intake)
+
 prod_uns.success.connect(ofs_lig.intake)
 
 # Bound MD run
@@ -326,13 +336,17 @@ equil1_bns.success.connect(equil2_bns.intake)
 equil2_bns.success.connect(equil3_bns.intake)
 equil3_bns.success.connect(equil4_bns.intake)
 equil4_bns.success.connect(prod_bns.intake)
-prod_bns.success.connect(gathering.bound_port)
-# TODO DEBUG ONLY
+prod_bns.success.connect(coll_write.intake)
+
 prod_bns.success.connect(ofs_prot.intake)
 
-# Chimera NES Setting
+coll_write.success.connect(switch_out.intake)
+
+switch.success.connect(gathering.intake)
+switch_out.bound_port.connect(gathering.bound_port)
 gathering.success.connect(chimera.intake)
 
+# Chimera NES Setting
 chimera.success.connect(unbound_nes.intake)
 unbound_nes.success.connect(nes_analysis.intake)
 

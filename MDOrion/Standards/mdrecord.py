@@ -43,6 +43,8 @@ from orionclient.helpers.collections import (try_hard_to_create_shard,
 
 from oemdtoolbox.ForceField.md_components import MDComponents
 
+from MDOrion.Standards.standards import CollectionsNames
+
 
 def mdstages(f):
 
@@ -124,9 +126,9 @@ class MDDataRecord(object):
             self.processed = {stg.get_value(Fields.stage_name): False for stg in stages}
 
         if in_orion():
-            if self.rec.has_field(Fields.collection):
-                self.collection_id = self.rec.get_value(Fields.collection)
-
+            if self.rec.has_field(Fields.collections):
+                collections_dic = self.rec.get_value(Fields.collections)
+                self.collection_id = collections_dic[CollectionsNames.md]
         else:
             self.collection_id = None
 
@@ -616,7 +618,7 @@ class MDDataRecord(object):
 
         if in_orion():
 
-            if self.rec.has_field(Fields.collection):
+            if self.rec.has_field(Fields.collections):
                 raise ValueError("Collection field already present on the record")
 
             # session = APISession
@@ -638,7 +640,7 @@ class MDDataRecord(object):
 
             collection = ShardCollection.create(session, name)
 
-            self.rec.set_value(Fields.collection, collection.id)
+            self.rec.set_value(Fields.collections, {CollectionsNames.md: collection.id})
 
             self.collection_id = collection.id
 

@@ -59,6 +59,7 @@ iMDInput.promote_parameter("data_in", promoted_name="in",
 # This Cube is necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
+# coll_open.set_parameters(write_new_collection='')
 
 trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube", title="Trajectory To OEMols")
 IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")

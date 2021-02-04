@@ -65,6 +65,14 @@ class MDFileNames:
     trajectory_conformers = "trajectory_confs.oeb"
     mddata = "data.tar.gz"
 
+# ---------------- Collection  Name Standards -------------- #
+
+
+class CollectionsNames:
+    none = ''
+    md = 'MD_OPLMD'
+    nes = 'NES_OPLMD'
+
 
 # Orion Hidden meta data options
 _metaHidden = OEFieldMeta(options=[Meta.Display.Hidden])
@@ -91,8 +99,7 @@ class Fields:
     confid = OEField("ConfID_OPLMD", Types.Int, meta=_metaIDHidden)
 
     # The Ligand field should be used to save in a record a ligand as an OEMolecule
-    ligand = OEField("Ligand_OPLMD", Types.Chem.Mol, meta=OEFieldMeta(options=[Meta.Hints.Chem.Ligand,
-                                                                               Meta.Display.Hidden]))
+    ligand = OEField("Ligand_OPLMD", Types.Chem.Mol, meta=OEFieldMeta(options=[Meta.Hints.Chem.Ligand, Meta.Display.Hidden]))
 
     # The ligand name
     ligand_name = OEField("Ligand_name_OPLMD", Types.String, meta=_metaHidden)
@@ -123,7 +130,6 @@ class Fields:
         protein_traj_confs = OEField("ProtTraj_OPLMD", Types.Chem.Mol, meta=_metaHidden)
         extra_data_tar = OEField("ExtraData_OPLMD", Types.String, meta=_metaHidden)
 
-
     # The Stage Name
     stage_name = OEField('Stage_name_OPLMD', Types.String)
 
@@ -150,7 +156,9 @@ class Fields:
     md_components = OEField('MDComponents_OPLMD', MDComponentData)
 
     # Collection is used to offload data from the record which must be < 100Mb
-    collection = OEField("Collection_ID_OPLMD", Types.Int, meta=_metaHidden)
+    # collection = OEField("Collection_ID_OPLMD", Types.Int, meta=_metaHidden)
+
+    collections = OEField("Collections_ID_OPLMD", Types.JSONObject, meta=_metaHidden)
 
     # Stage list Field
     md_stages = OEField("MDStages_OPLMD", Types.RecordVec, meta=_metaHidden)
