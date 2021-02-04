@@ -17,39 +17,38 @@
 
 # !/usr/bin/env python
 import re
-
 import ast
-
-from setuptools import setup, find_packages
-
-from pip._internal.req import parse_requirements
-
-from pip._internal.download import PipSession
+from sys import argv, exit
+from json import dumps
+from setuptools import setup, find_packages, convert_path
 
 
-def get_reqs(reqs):
-    return [str(ir.req) for ir in reqs]
+requirements = ["OpenEye-orionplatform==3.1.0",
+                "OpenEye-ensemble2img==0.1.1",
+                "OpenEye-floereport==0.1.7",
+                "OpenEye_oetrajanalysis==0.7.1",
+                "openeye-oemdtoolbox==1.0.7",
+                "Openeye-toolkits==2020.1.1"]
 
+_version_re = re.compile(r'__version__\s+=\s+(.*)')
+version_file = convert_path("MDOrion/__init__.py")
+with open(version_file, 'rb') as f:
+    version = str(ast.literal_eval(_version_re.search(f.read().decode(
+        'utf-8')).group(1)))
 
-install_reqs = get_reqs(parse_requirements("requirements_dev.txt", session=PipSession()))
-
-
-def get_version():
-    _version_re = re.compile(r'__version__\s+=\s+(.*)')
-    with open('MDOrion/__init__.py', 'rb') as f:
-        version = str(ast.literal_eval(_version_re.search(f.read().decode('utf-8')).group(1)))
-        return version
-
+if argv[-1] == "--requires":
+    print(dumps(requirements))
+    exit()
 
 setup(
     name="OpenEye-MD-Floes",
-    version=get_version(),
+    version=version,
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     include_package_data=True,
     author="Gaetano Calabro, Christopher Bayly",
     author_email="gcalabro@eyesopen.com",
     description='Orion cubes to perform MD and MD analysis',
-    install_requires=install_reqs,
+    install_requires=requirements,
     license='Other/Proprietary License',
     url='https://github.com/oess/openmm_orion',
     classifiers=[
