@@ -262,7 +262,7 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
             if not self.opt['open']:
                 if len(self.collections):
                     for collection in self.collections.values():
-                        if collection.state == "close":
+                        if collection.state == "ready":
                             pass
                         else:
                             collection.close()
