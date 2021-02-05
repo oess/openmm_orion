@@ -14,6 +14,7 @@ from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
 
 from MDOrion.TrjAnalysis.cubes_clusterAnalysis import MDFloeReportCube
 
+
 job = WorkFloe("Non Equilibrium Switching", title="Non Equilibrium Switching")
 
 job.description = """
@@ -32,12 +33,13 @@ iun.promote_parameter("data_in", promoted_name="unbound", title="Unbound Input D
 ibn = DatasetReaderCube("BoundReader", title="Bound Reader")
 ibn.promote_parameter("data_in", promoted_name="bound", title="Bound Input Dataset", description="Bound Input Dataset")
 
-# This cube is necessary for the correct work of collection and shard
-coll_open = CollectionSetting("OpenCollection", title="Open Collection")
-coll_open.set_parameters(open=True)
-
 # Switching Bound and Unbound runs
 switch = BoundUnboundSwitchCube("Bound/Unbound Switch", title='Bound/Unbound Switch')
+
+# This cube is necessary for the correct work of collection and shard
+coll_open_write = CollectionSetting("OpenCollection", title="Open Collection")
+coll_open_write.set_parameters(open=True)
+coll_open_write.set_parameters(write_new_collection='NES_OPLMD')
 
 gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
 gathering.promote_parameter('map_file', promoted_name='map')
@@ -72,16 +74,17 @@ fail = DatasetWriterCube('fail', title='NES Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="NES Failures",
                        description="NES Dataset Failures out")
 
-job.add_cubes(iun, ibn, coll_open, switch, gathering,
+job.add_cubes(iun, ibn, coll_open_write, switch, gathering,
               chimera,  unbound_nes, bound_nes,
               nes_analysis, coll_close, report,
               check_rec, ofs, fail)
 
 # Readers Setting
-iun.success.connect(coll_open.intake)
-ibn.success.connect(coll_open.intake)
+iun.success.connect(coll_open_write.intake)
+ibn.success.connect(coll_open_write.intake)
 
-coll_open.success.connect(switch.intake)
+coll_open_write.success.connect(switch.intake)
+
 switch.success.connect(gathering.intake)
 switch.bound_port.connect(gathering.bound_port)
 
@@ -100,7 +103,7 @@ coll_close.success.connect(check_rec.intake)
 check_rec.success.connect(ofs.intake)
 
 # Fail port connections
-coll_open.failure.connect(check_rec.fail_in)
+coll_open_write.failure.connect(check_rec.fail_in)
 switch.failure.connect(check_rec.fail_in)
 
 gathering.failure.connect(check_rec.fail_in)

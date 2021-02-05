@@ -50,7 +50,6 @@ from simtk.openmm import app
 
 from simtk import openmm
 
-import glob
 
 from MDOrion.FEC.RFEC.pmx import BAR
 
@@ -84,6 +83,17 @@ import scipy as sc
 
 from MDOrion.FEC.RFEC.gmx_run import gmx_run
 
+from orionclient.session import (in_orion,
+                                 OrionSession,
+                                 get_session)
+
+from orionclient.types import (ShardCollection,
+                               Shard)
+
+from orionclient.helpers.collections import (try_hard_to_create_shard,
+                                             try_hard_to_download_shard)
+
+from MDOrion.Standards.standards import CollectionsNames
 
 def edge_map_grammar(word):
 
@@ -1354,3 +1364,93 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
             report_str += line
 
     return report_str
+
+
+def upload_gmx_files(tar_fn, record, shard_name=""):
+
+    if not os.path.isfile(tar_fn):
+        raise ValueError("The filename does not exist: {}".format(tar_fn))
+
+    if not record.has_field(Fields.collections):
+        raise ValueError("Missing Collection Field")
+
+    if in_orion():
+        # session = APISession
+        session = OrionSession(
+            requests_session=get_session(
+                retry_dict={
+                    403: 5,
+                    404: 20,
+                    409: 45,
+                    460: 15,
+                    500: 2,
+                    502: 45,
+                    503: 45,
+                    504: 45,
+                }
+            )
+        )
+
+        collections_dic = record.get_value(Fields.collections)
+
+        nes_collection_id = collections_dic[CollectionsNames.nes]
+
+        collection = session.get_resource(ShardCollection, nes_collection_id)
+
+        shard = try_hard_to_create_shard(collection, tar_fn, name=shard_name)
+
+        record.set_value(Fields.extra_data_tar, shard.id)
+
+        shard.close()
+
+    else:
+        record.set_value(Fields.extra_data_tar, tar_fn)
+
+    return True
+
+
+def download_gmx_file(mdrecord):
+
+    if not mdrecord.has_field(Fields.extra_data_tar):
+        raise ValueError("Extra data tar file has not been found on the record")
+
+    extra_data = mdrecord.get_value(Fields.extra_data_tar)
+
+    if not mdrecord.has_field(Fields.collections):
+        raise ValueError("Collection field has not been found on the record")
+
+    collection_dic = mdrecord.get_value(Fields.collections)
+    nes_collection_id = collection_dic[CollectionsNames.nes]
+
+    if in_orion():
+
+        # session = APISession
+
+        session = OrionSession(
+            requests_session=get_session(
+                retry_dict={
+                    403: 5,
+                    404: 20,
+                    409: 45,
+                    460: 15,
+                    500: 2,
+                    502: 45,
+                    503: 45,
+                    504: 45,
+                }
+            )
+        )
+
+        collection = session.get_resource(ShardCollection, nes_collection_id)
+
+        shard = session.get_resource(Shard(collection=collection), extra_data)
+
+        fn = os.path.join(mdrecord.cwd, 'extra_data.tar')
+
+        try_hard_to_download_shard(shard, fn)
+
+        shard.close()
+
+        extra_data = fn
+
+    return extra_data

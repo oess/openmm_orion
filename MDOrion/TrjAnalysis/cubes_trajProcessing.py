@@ -46,6 +46,8 @@ from datarecord import (Types,
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
+from MDOrion.Standards.standards import CollectionsNames
+
 # use a really large float as a magic number to replace NaNs to avoid Orion WriterCube errors
 magic_big_float_to_replace_NaN = 4.0e+256
 
@@ -151,7 +153,7 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
                 oetrajRecord.set_value(OEField('WatTraj', Types.Chem.Mol), wtraj)
 
             if in_orion():
-                oetrajRecord.set_value(Fields.collection, mdrecord.collection_id)
+                oetrajRecord.set_value(Fields.collections, {CollectionsNames.md: mdrecord.collection_id})
 
             mdrecord_traj = MDDataRecord(oetrajRecord)
 
@@ -648,8 +650,8 @@ class ConfTrajsToLigTraj(RecordPortsMixin, ComputeCube):
                 oetrajRecord.set_value(OEField('WatTraj', Types.Chem.Mol), watTraj)
 
             if in_orion():
-                collection_id = utl.RequestOEFieldType(record, Fields.collection)
-                oetrajRecord.set_value(Fields.collection, collection_id)
+                collection_dic = utl.RequestOEFieldType(record, Fields.collections)
+                oetrajRecord.set_value(Fields.collections, collection_dic)
             mdrecord_traj = MDDataRecord(oetrajRecord)
             mdrecord_traj.set_protein_traj(protTraj, shard_name="ProteinTrajConfs_")
 
@@ -747,8 +749,8 @@ class ConformerGatheringData(RecordPortsMixin, ComputeCube):
                 ligid = rec0.get_value(Fields.ligid)
                 new_rec.set_value(Fields.ligid, ligid)
                 if in_orion():
-                    collection_id = rec0.get_value(Fields.collection)
-                    new_rec.set_value(Fields.collection, collection_id)
+                    collection_dic = rec0.get_value(Fields.collections)
+                    new_rec.set_value(Fields.collections, collection_dic)
                 #   finally, fields that will be copied and also further used here
                 lig_multi_conf = oechem.OEMol(rec0.get_value(Fields.ligand))
                 protein_name = rec0.get_value(Fields.protein_name)
