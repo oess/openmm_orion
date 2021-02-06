@@ -54,7 +54,7 @@ from .TrjAnalysis.cubes_clusterAnalysis import (ParallelMDTrajAnalysisClusterRep
                                                 ExtractMDDataCube)
 
 from .TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
-=======
+
 from .FEC.RFEC.cubes import (BoundUnboundSwitchCube,
                              RBFECMapping,
                              RBFECEdgeGathering,
