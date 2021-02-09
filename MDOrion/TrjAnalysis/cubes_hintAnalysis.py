@@ -26,7 +26,8 @@ from MDOrion.Standards import Fields
 import numpy as np
 
 import MDOrion.TrjAnalysis.utils as utl
-import MDOrion.TrjAnalysis.trajOEHint_utils as hint
+#import MDOrion.TrjAnalysis.trajOEHint_utils as hint
+import oetrajanalysis.trajOEHint_utils as hint
 
 from openeye import oechem
 
@@ -80,6 +81,8 @@ class ComparePoseBintsToTrajBints(RecordPortsMixin, ComputeCube):
             opt['Logger'].info(' Beginning ComparePoseBintsToTrajBintsCube')
             system_title = utl.RequestOEFieldType(record, Fields.title)
             opt['Logger'].info('{} Attempting to compare initial and traj Bints.'
+                .format(system_title) )
+            opt['Logger'].info('{} ***** UNDER DEVELOPMENT **********'
                 .format(system_title) )
 
             # Get the ligand which will be a multiconformer molecule with the starting
