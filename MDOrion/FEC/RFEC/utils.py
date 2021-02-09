@@ -95,6 +95,7 @@ from orionclient.helpers.collections import (try_hard_to_create_shard,
 
 from MDOrion.Standards.standards import CollectionsNames
 
+
 def edge_map_grammar(word):
 
     map_string = Word(printables) + ">>" + Word(printables)
@@ -1371,10 +1372,11 @@ def upload_gmx_files(tar_fn, record, shard_name=""):
     if not os.path.isfile(tar_fn):
         raise ValueError("The filename does not exist: {}".format(tar_fn))
 
-    if not record.has_field(Fields.collections):
-        raise ValueError("Missing Collection Field")
-
     if in_orion():
+
+        if not record.has_field(Fields.collections):
+            raise ValueError("Missing Collection Field")
+
         # session = APISession
         session = OrionSession(
             requests_session=get_session(
@@ -1416,13 +1418,13 @@ def download_gmx_file(mdrecord):
 
     extra_data = mdrecord.get_value(Fields.extra_data_tar)
 
-    if not mdrecord.has_field(Fields.collections):
-        raise ValueError("Collection field has not been found on the record")
-
-    collection_dic = mdrecord.get_value(Fields.collections)
-    nes_collection_id = collection_dic[CollectionsNames.nes]
-
     if in_orion():
+
+        if not mdrecord.has_field(Fields.collections):
+            raise ValueError("Collection field has not been found on the record")
+
+        collection_dic = mdrecord.get_value(Fields.collections)
+        nes_collection_id = collection_dic[CollectionsNames.nes]
 
         # session = APISession
 

@@ -200,7 +200,7 @@ def check_gmx_grompp(gro, top, verbose=False):
         raise ValueError("Cannot Assemble the Gromacs .tpr file")
 
 
-def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpt_fn=None):
+def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_fn=None):
 
     if opt['verbose']:
 
@@ -226,7 +226,7 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpt_fn=None):
                                    ])
 
         # Run Gromacs
-        if cpt_fn is None:
+        if cpti_fn is None and cpto_fn is None:
             subprocess.check_call(['gmx',
                                    'mdrun',
                                    '-v',
@@ -235,13 +235,25 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpt_fn=None):
                                    ])
         else:
 
-            subprocess.check_call(['gmx',
-                                   'mdrun',
-                                   '-v',
-                                   '-s', tpr_fn,
-                                   '-cpo', cpt_fn,
-                                   '-deffnm', deffnm_fn
-                                   ])
+            if cpti_fn is None and cpto_fn is not None:
+
+                subprocess.check_call(['gmx',
+                                       'mdrun',
+                                       '-v',
+                                       '-s', tpr_fn,
+                                       '-cpo', cpto_fn,
+                                       '-deffnm', deffnm_fn
+                                       ])
+            else:
+                subprocess.check_call(['gmx',
+                                       'mdrun',
+                                       '-v',
+                                       '-s', tpr_fn,
+                                       '-noappend',
+                                       '-cpi', cpti_fn,
+                                       '-cpo', cpto_fn,
+                                       '-deffnm', deffnm_fn
+                                       ])
 
     else:
         # Assemble the Gromacs system to run
@@ -253,7 +265,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpt_fn=None):
                                    '-p', top_fn,
                                    '-o', tpr_fn,
                                    '-maxwarn', '4'
-                                   ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+                                   ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
+                                  timeout=opt['gmx_process_timeout'])
         else:
             subprocess.check_call(['gmx',
                                    'grompp',
@@ -263,24 +276,40 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpt_fn=None):
                                    '-p', top_fn,
                                    '-o', tpr_fn,
                                    '-maxwarn', '4'
-                                   ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+                                   ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
+                                  timeout=opt['gmx_process_timeout'])
 
         # Run Gromacs
-        if cpt_fn is None:
+        if cpti_fn is None and cpto_fn is None:
             subprocess.check_call(['gmx',
                                    'mdrun',
                                    '-v',
                                    '-s', tpr_fn,
                                    '-deffnm', deffnm_fn
-                                   ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+                                   ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
+                                  timeout=opt['gmx_process_timeout'])
         else:
-            subprocess.check_call(['gmx',
-                                   'mdrun',
-                                   '-v',
-                                   '-s', tpr_fn,
-                                   '-cpo', cpt_fn,
-                                   '-deffnm', deffnm_fn
-                                   ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
+
+            if cpti_fn is None and cpto_fn is not None:
+                subprocess.check_call(['gmx',
+                                       'mdrun',
+                                       '-v',
+                                       '-s', tpr_fn,
+                                       '-cpo', cpto_fn,
+                                       '-deffnm', deffnm_fn
+                                       ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
+                                      timeout=opt['gmx_process_timeout'])
+            else:
+                subprocess.check_call(['gmx',
+                                       'mdrun',
+                                       '-v',
+                                       '-s', tpr_fn,
+                                       '-noappend',
+                                       '-cpi', cpti_fn,
+                                       '-cpo', cpto_fn,
+                                       '-deffnm', deffnm_fn
+                                       ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
+                                      timeout=opt['gmx_process_timeout'])
 
 
 def gmx_run(gmx_gro, gmx_top, opt):
@@ -318,8 +347,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_top_fn = os.path.join(out_dir, "gmx_top.top")
     gmx_min_mdp_fn = os.path.join(out_dir, "gmx_min.mdp")
     gmx_min_tpr_fn = os.path.join(out_dir, "gmx_min.tpr")
-    gmx_min_deffnm_fn = os.path.join(out_dir, "gmx_run_min" + '_' + str(opt['frame_count']))
-    gmx_min_cpt_fn = gmx_min_deffnm_fn + '.cpt'
+    gmx_min_deffnm_fn = os.path.join(out_dir, "gmx_run_min_" + str(opt['frame_count']))
     gmx_min_confout_gro = gmx_min_deffnm_fn + '.gro'
 
     with open(gmx_gro_fn, 'w') as f:
@@ -344,18 +372,17 @@ def gmx_run(gmx_gro, gmx_top, opt):
     with open(gmx_min_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
 
-    _run_gmx(gmx_min_mdp_fn, gmx_gro_fn, gmx_top_fn, gmx_min_tpr_fn, gmx_min_deffnm_fn, opt)
+    _run_gmx(gmx_min_mdp_fn, gmx_gro_fn, gmx_top_fn, gmx_min_tpr_fn, gmx_min_deffnm_fn, opt,
+             cpti_fn=None, cpto_fn=None)
 
     # Restrained NVT
     nsteps = 5000
     opt['restraints'] = True
 
-    gmx_gro_fn = os.path.join(out_dir, "gmx_gro.gro")
-    gmx_top_fn = os.path.join(out_dir, "gmx_top.top")
     gmx_eq_nvt_mdp_fn = os.path.join(out_dir, "gmx_eq_nvt.mdp")
     gmx_eq_nvt_tpr_fn = os.path.join(out_dir, "gmx_eq_nvt.tpr")
-    gmx_nvt_deffnm_fn = os.path.join(out_dir, "gmx_run_nvt" + '_' + str(opt['frame_count']))
-    gmx_nvt_cpt_fn = gmx_nvt_deffnm_fn + '.cpt'
+    gmx_nvt_deffnm_fn = os.path.join(out_dir, "gmx_run_nvt_" + str(opt['frame_count']))
+    gmx_nvt_cpto_fn = gmx_nvt_deffnm_fn + '.cpt'
     gmx_nvt_confout_gro = gmx_nvt_deffnm_fn + '.gro'
 
     # gmx_trj_fn = gmx_nvt_deffnm_fn + '.trr'
@@ -377,7 +404,8 @@ def gmx_run(gmx_gro, gmx_top, opt):
     with open(gmx_eq_nvt_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
 
-    _run_gmx(gmx_eq_nvt_mdp_fn, gmx_min_confout_gro, gmx_top_fn, gmx_eq_nvt_tpr_fn, gmx_nvt_deffnm_fn, opt, cpt_fn=gmx_min_cpt_fn)
+    _run_gmx(gmx_eq_nvt_mdp_fn, gmx_min_confout_gro, gmx_top_fn, gmx_eq_nvt_tpr_fn, gmx_nvt_deffnm_fn, opt,
+             cpti_fn=None, cpto_fn=None)
 
     # Restrained NPT
     nsteps = 5000
@@ -386,7 +414,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_eq_npt0_mdp_fn = os.path.join(out_dir, "gmx_eq_npt0.mdp")
     gmx_eq_npt0_tpr_fn = os.path.join(out_dir, "gmx_eq_npt0.tpr")
     gmx_npt0_deffnm_fn = os.path.join(out_dir, "gmx_run_npt0" + '_' + str(opt['frame_count']))
-    gmx_npt0_cpt_fn = gmx_npt0_deffnm_fn + '.cpt'
+    gmx_npt0_cpto_fn = gmx_npt0_deffnm_fn + '.cpt'
     gmx_npt0_confout_gro = gmx_npt0_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='-DRESTRAINTS',
@@ -406,7 +434,8 @@ def gmx_run(gmx_gro, gmx_top, opt):
     with open(gmx_eq_npt0_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
 
-    _run_gmx(gmx_eq_npt0_mdp_fn, gmx_nvt_confout_gro, gmx_top_fn, gmx_eq_npt0_tpr_fn, gmx_npt0_deffnm_fn, opt, cpt_fn=gmx_nvt_cpt_fn)
+    _run_gmx(gmx_eq_npt0_mdp_fn, gmx_nvt_confout_gro, gmx_top_fn, gmx_eq_npt0_tpr_fn, gmx_npt0_deffnm_fn, opt,
+             cpti_fn=None, cpto_fn=gmx_npt0_cpto_fn)
 
     # NPT
     opt['restraints'] = False
@@ -415,7 +444,8 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_eq_npt1_mdp_fn = os.path.join(out_dir, "gmx_eq_npt1.mdp")
     gmx_eq_npt1_tpr_fn = os.path.join(out_dir, "gmx_eq_npt1.tpr")
     gmx_npt1_deffnm_fn = os.path.join(out_dir, "gmx_run_npt1" + '_' + str(opt['frame_count']))
-    gmx_npt1_cpt_fn = gmx_npt1_deffnm_fn + '.cpt'
+    gmx_npt1_cpti_fn = gmx_npt0_cpto_fn
+    gmx_npt1_cpto_fn = gmx_npt1_deffnm_fn + '.cpt'
     gmx_npt1_confout_gro = gmx_npt1_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
@@ -435,7 +465,9 @@ def gmx_run(gmx_gro, gmx_top, opt):
     with open(gmx_eq_npt1_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
 
-    _run_gmx(gmx_eq_npt1_mdp_fn, gmx_npt0_confout_gro, gmx_top_fn, gmx_eq_npt1_tpr_fn, gmx_npt1_deffnm_fn, opt, cpt_fn=gmx_npt0_cpt_fn)
+    _run_gmx(gmx_eq_npt1_mdp_fn, gmx_npt0_confout_gro, gmx_top_fn, gmx_eq_npt1_tpr_fn, gmx_npt1_deffnm_fn, opt,
+             cpti_fn=None,
+             cpto_fn=gmx_npt1_cpto_fn)
 
     # TODO DEBUGGING
     #####################
@@ -464,7 +496,8 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_ne_mdp_fn = os.path.join(out_dir, "gmx_ne.mdp")
     gmx_ne_tpr_fn = os.path.join(out_dir, "gmx_ne.tpr")
     gmx_ne_deffnm_fn = os.path.join(out_dir, "gmx_run_ne" + '_' + str(opt['frame_count']))
-    gmx_ne_cpt_fn = gmx_ne_deffnm_fn + '.cpt'
+    gmx_ne_cpti_fn = gmx_npt1_cpto_fn
+    gmx_ne_cpto_fn = gmx_ne_deffnm_fn + '.cpt'
     gmx_ne_confout_gro = gmx_ne_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
@@ -484,6 +517,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     with open(gmx_ne_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
 
-    _run_gmx(gmx_ne_mdp_fn, gmx_npt1_confout_gro, gmx_top_fn, gmx_ne_tpr_fn, gmx_ne_deffnm_fn, opt, cpt_fn=gmx_npt1_cpt_fn)
+    _run_gmx(gmx_ne_mdp_fn, gmx_npt1_confout_gro, gmx_top_fn, gmx_ne_tpr_fn, gmx_ne_deffnm_fn, opt,
+             cpti_fn=None, cpto_fn=gmx_ne_cpto_fn)
 
     return gmx_ne_deffnm_fn
