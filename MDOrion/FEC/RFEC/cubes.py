@@ -642,9 +642,6 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
 
                 gmx_tar_A_to_B_Bound.close()
 
-                # md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_A_to_B_Bound)
-                # md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
-
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.edge_name, edge_name)
                 md_record_state_A_Bound.set_value(Fields.FEC.RBFEC.NESC.direction, "Forward_OPLMD")
@@ -691,9 +688,6 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
 
                 gmx_tar_B_to_A_Unbound.close()
 
-                # md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Unbound)
-                # md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
-
                 md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a_name)
                 md_record_state_B_Unbound.set_value(Fields.FEC.RBFEC.NESC.direction, "Reverse_OPLMD")
@@ -735,9 +729,6 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
 
                 gmx_tar_B_to_A_Bound.close()
 
-                # md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_top, gmx_top_B_to_A_Bound)
-                # md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.gmx_gro, gmx_gro)
-
                 md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.edgeid, edge_id)
                 md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.edge_name, b_to_a_name)
                 md_record_state_B_Bound.set_value(Fields.FEC.RBFEC.NESC.direction, "Reverse_OPLMD")
@@ -746,11 +737,6 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
 
             self.opt['Logger'].info("GMX Chimera Bound {} Reverse Coordinate Created".format(edge_name))
             self.opt['Logger'].info("GMX Chimera {} Processed".format(edge_name))
-
-            # del md_record_state_A_Bound
-            # del md_record_state_B_Bound
-            # del md_record_state_A_Unbound
-            # del md_record_state_B_Unbound
 
         except Exception as e:
             print("Failed to complete", str(e), flush=True)
@@ -776,7 +762,7 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         "gpu_count": {"default": 1},
         "instance_type": {"default": "g3.4xlarge"},  # Gpu Family selection
         "memory_mb": {"default": 14000},
-        "spot_policy": {"default": "Allowed"},
+        "spot_policy": {"default": "Required"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
 
@@ -814,6 +800,11 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         'suffix',
         default='nes',
         help_text='Filename suffix for output simulation files')
+
+    gmx_process_timeout = parameters.DecimalParameter(
+        'gmx_process_timeout',
+        default=3600.0,
+        help_text="Gromacs process timeout in seconds")
 
     def begin(self):
             self.opt = vars(self.args)
