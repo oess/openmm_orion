@@ -166,6 +166,12 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
             oechem.OEClearStyle(ligand)
             oechem.OEClearPDBData(ligand)
 
+            # # Remove groups
+            # for g in ligand.GetGroups():
+            #     g.Sweep()
+            #     ligand.DeleteGroup(g)
+            # ligand.Sweep()
+
             # Ligand sanitation
             ligand = oeommutils.sanitizeOEMolecule(ligand)
 

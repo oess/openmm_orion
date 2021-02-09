@@ -37,7 +37,7 @@ ibn.promote_parameter("data_in", promoted_name="bound", title="Bound Input Datas
 switch = BoundUnboundSwitchCube("Bound/Unbound Switch", title='Bound/Unbound Switch')
 
 # This cube is necessary for the correct work of collection and shard
-coll_open_write = CollectionSetting("OpenCollection", title="Open Collection")
+coll_open_write = CollectionSetting("OpenWriteNESCollection", title="OpenWriteNESCollection")
 coll_open_write.set_parameters(open=True)
 coll_open_write.set_parameters(write_new_collection='NES_OPLMD')
 
