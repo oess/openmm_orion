@@ -239,7 +239,9 @@ def extract_aligned_prot_lig_wat_traj(md_components, flask, trj_fn, opt, nmax=30
         #  keep the water order
 
         # Mark the close water atoms and extract them
-        bv = oechem.OEBitVector(nmax * 3)
+        bv = oechem.OEBitVector(flask.GetMaxAtomIdx())
+        bv.ClearBits()
+
         water_idx = []
 
         for pair in water_list_sorted_max:

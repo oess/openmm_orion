@@ -237,10 +237,10 @@ equil4_bns.set_parameters(suffix='equil4_bn')
 md_group_bs = ParallelCubeGroup(cubes=[minimize_bns, warmup_bns, equil1_bns, equil2_bns, equil3_bns, equil4_bns, prod_bns])
 job.add_group(md_group_bs)
 
-switch_out = BoundUnboundSwitchCube("Switch Out", title="Switch Out")
+switch_out = BoundUnboundSwitchCube("Bound/Unbound Switch Out", title="Bound/Unbound Switch Out")
 
 # This cube is necessary for the correct work of collection and shard
-coll_write = CollectionSetting("OpenWriteCollection", title="OpenWrite Collection")
+coll_write = CollectionSetting("WriteNESCollection", title="WriteNESCollection")
 coll_write.set_parameters(open=True)
 coll_write.set_parameters(write_new_collection='NES_OPLMD')
 
@@ -342,7 +342,7 @@ prod_bns.success.connect(ofs_prot.intake)
 
 coll_write.success.connect(switch_out.intake)
 
-switch.success.connect(gathering.intake)
+switch_out.success.connect(gathering.intake)
 switch_out.bound_port.connect(gathering.bound_port)
 gathering.success.connect(chimera.intake)
 
@@ -383,6 +383,8 @@ equil3_bns.failure.connect(check_rec.fail_in)
 equil4_bns.failure.connect(check_rec.fail_in)
 prod_bns.failure.connect(check_rec.fail_in)
 
+coll_write.failure.connect(check_rec.fail_in)
+switch_out.failure.connect(check_rec.fail_in)
 gathering.failure.connect(check_rec.fail_in)
 chimera.failure.connect(check_rec.fail_in)
 unbound_nes.failure.connect(check_rec.fail_in)

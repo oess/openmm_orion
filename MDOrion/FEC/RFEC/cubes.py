@@ -307,11 +307,16 @@ class RBFECEdgeGathering(RecordPortsMixin, ComputeCube):
 
         for edge in edge_list:
 
+            # Empty line
             if not edge:
                 continue
 
             # Comment
-            if edge.startswith(";"):
+            if edge.startswith(";") or edge.startswith("#"):
+                continue
+
+            # New line
+            if edge == '\n':
                 continue
 
             edge_str = utils.edge_map_grammar(edge)
@@ -331,6 +336,9 @@ class RBFECEdgeGathering(RecordPortsMixin, ComputeCube):
             self.Bound_edges[(edge_A_State, edge_B_State)] = [False, False]
             self.Unbound_edges[(edge_A_State, edge_B_State)] = [False, False]
             self.Bound_Unbound_edges[(edge_A_State, edge_B_State)] = [self.Bound_edges, self.Unbound_edges]
+
+        if not self.Bound_edges:
+            raise ValueError("Not available edges have been found. Please check your edge file")
 
     def process(self, record, port):
         try:
