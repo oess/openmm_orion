@@ -20,12 +20,13 @@
 from floe.api import (WorkFloe,
                       ParallelCubeGroup)
 
+from floes.SubfloeFunctions import setup_bint
+
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
 from MDOrion.System.cubes import (ParallelRecordSizeCheck,
                                   CollectionSetting)
 
-from MDOrion.TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
 
 job = WorkFloe("Assess Pose Stability from Binding Interactions")
 
@@ -36,45 +37,49 @@ ligand trajectory in terms of the OEHint binding interactions.
 
 #job.uuid = "d00de553-5f78-4496-ae96-9c8adc527f53"
 
+# Create cubes that go before and after the subfloe function calls
+
 # Input MD Dataset
 AnlysInput = DatasetReaderCube("AnalysisInputReader", title="Analysis Input Reader")
 AnlysInput.promote_parameter("data_in", promoted_name="in",
                            title="Analysis Input Dataset", description="Analysis Input Dataset")
 
-# This Cube is necessary for the correct work of collection and shard
+# Open Collection: necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
-trajBints = ParallelComparePoseBintsToTrajBints("TrajBintsCube", title="Trajectory Binding Interactions")
-
-# This Cube is necessary for the correct working of collection and shard
+# Close collection
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 
+# Check Record Size: for graceful failure if exceeding the 100Mb limit
 check_rec = ParallelRecordSizeCheck("Record Check Success", title="Record Check Success")
 
+# Output cube
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",
                       title="MD Out", description="MD Dataset out")
 
+# Failure cube
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
+# Add cubes coming before and after the subfloe calls
 job.add_cubes(AnlysInput, coll_open,
-              trajBints,
-              coll_close, check_rec,  ofs, fail)
+                coll_close, check_rec,  ofs, fail)
+
+# Add other cubes through calling a subfloe function
+setup_bint(job, coll_open, coll_close, check_rec)
+
 
 # Success Connections
 AnlysInput.success.connect(coll_open.intake)
-coll_open.success.connect(trajBints.intake)
-trajBints.success.connect(coll_close.intake)
 coll_close.success.connect(check_rec.intake)
 check_rec.success.connect(ofs.intake)
 
 # Fail Connections
 coll_open.failure.connect(check_rec.fail_in)
-trajBints.failure.connect(check_rec.fail_in)
 coll_close.failure.connect(check_rec.fail_in)
 check_rec.failure.connect(fail.intake)
 
