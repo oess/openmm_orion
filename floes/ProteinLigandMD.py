@@ -64,21 +64,25 @@ job.add_cubes(coll_open, coll_close, check_rec, ofs, fail)
 # Call subfloe function to set up the solvated protein-ligand complex
 PLComplex_for_MD_options = {}
 PLComplex_for_MD_options['charge_ligands'] = True
-setup_PLComplex_for_MD(job, coll_open, check_rec, PLComplex_for_MD_options)
+PLComplex_outcube = setup_PLComplex_for_MD(job, check_rec, PLComplex_for_MD_options)
 
-# Call subfloe function to start up the MD and do the production run
+# Connections
+PLComplex_outcube.success.connect(coll_open.intake)
+PLComplex_outcube.failure.connect(check_rec.fail_in)
+coll_open.failure.connect(check_rec.fail_in)
+
+# Call subfloe function to start up the MD, equilibrate, and do the production run
 MD_startup_options = {}
 MD_startup_options['Prod_Default_Time_ns'] = 2.0
 MD_startup_options['Prod_Default_Traj_Intvl_ns'] = 0.004
-setup_MD_startup(job, coll_open, coll_close, check_rec, MD_startup_options)
+MD_outcube = setup_MD_startup(job, coll_open, check_rec, MD_startup_options)
 
-# Success Connections
+# Connections
+MD_outcube.success.connect(coll_close.intake)
+MD_outcube.failure.connect(check_rec.fail_in)
 coll_close.success.connect(check_rec.intake)
-check_rec.success.connect(ofs.intake)
-
-# Fail Connections
-coll_open.failure.connect(check_rec.fail_in)
 coll_close.failure.connect(check_rec.fail_in)
+check_rec.success.connect(ofs.intake)
 check_rec.failure.connect(fail.intake)
 
 

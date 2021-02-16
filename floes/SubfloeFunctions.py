@@ -23,8 +23,10 @@ from floe.api import (WorkFloe,
                       ParallelCubeGroup)
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
-from MDOrion.System.cubes import (ParallelRecordSizeCheck)
-from MDOrion.System.cubes import CollectionSetting
+
+from MDOrion.System.cubes import (IDSettingCube,
+                                  CollectionSetting,
+                                  ParallelRecordSizeCheck)
 
 from MDOrion.MDEngines.cubes import (ParallelMDMinimizeCube,
                                      ParallelMDNvtCube,
@@ -40,9 +42,6 @@ from MDOrion.ForceField.cubes import ParallelForceFieldCube
 from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
 
-from MDOrion.System.cubes import (IDSettingCube,
-                                  CollectionSetting,
-                                  ParallelRecordSizeCheck)
 
 from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajToOEMolCube,
                                                       ParallelTrajInteractionEnergyCube,
@@ -61,7 +60,7 @@ from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube
 from MDOrion.TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
 
 
-def setup_PLComplex_for_MD(input_floe, output_cube, fail_cube, options):
+def setup_PLComplex_for_MD(input_floe, fail_cube, options):
     # Ligand setting
     iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
     iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset",
@@ -105,7 +104,6 @@ def setup_PLComplex_for_MD(input_floe, output_cube, fail_cube, options):
     iprot.success.connect(mdcomp.intake)
     mdcomp.success.connect(complx.protein_port)
     complx.success.connect(solvate.intake)
-    solvate.success.connect(output_cube.intake)
 
     # Fail Connections
     ligset.failure.connect(fail_cube.fail_in)
@@ -113,12 +111,11 @@ def setup_PLComplex_for_MD(input_floe, output_cube, fail_cube, options):
     ligid.failure.connect(fail_cube.fail_in)
     mdcomp.failure.connect(fail_cube.fail_in)
     complx.failure.connect(fail_cube.fail_in)
-    solvate.failure.connect(fail_cube.fail_in)
 
-    return True
+    return solvate
 
 
-def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
+def setup_MD_startup(input_floe, input_cube, fail_cube, options):
     # Force Field Application
     ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
     ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
@@ -224,7 +221,6 @@ def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
     equil2.success.connect(equil3.intake)
     equil3.success.connect(equil4.intake)
     equil4.success.connect(prod.intake)
-    prod.success.connect(output_cube.intake)
     
     # Fail Connections
     ff.failure.connect(fail_cube.fail_in)
@@ -234,12 +230,11 @@ def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
     equil2.failure.connect(fail_cube.fail_in)
     equil3.failure.connect(fail_cube.fail_in)
     equil4.failure.connect(fail_cube.fail_in)
-    prod.failure.connect(fail_cube.fail_in)
 
-    return True
+    return prod
 
 
-def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
+def setup_traj_analysis(input_floe, input_cube, fail_cube):
     trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube", title="Trajectory To OEMols")
     IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")
     PBSACube = ParallelTrajPBSACube("TrajPBSACube", title="PBSA Energies")
@@ -279,7 +274,6 @@ def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
     clusOEMols.success.connect(prepDataset.intake)
     prepDataset.success.connect(report_gen.intake)
     report_gen.success.connect(report.intake)
-    report.success.connect(output_cube.intake)
     
     # Fail Connections
     trajCube.failure.connect(fail_cube.fail_in)
@@ -293,23 +287,19 @@ def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
     clusOEMols.failure.connect(fail_cube.fail_in)
     prepDataset.failure.connect(fail_cube.fail_in)
     report_gen.failure.connect(fail_cube.fail_in)
-    report.failure.connect(fail_cube.fail_in)
 
-    return True
+    return report
 
 
-def setup_bint(input_floe, input_cube, output_cube, fail_cube):
+def setup_bint(input_floe, input_cube, fail_cube):
 
     trajBints = ParallelComparePoseBintsToTrajBints("TrajBintsCube", title="Trajectory Binding Interactions")
 
     input_floe.add_cubes(trajBints)
 
     input_cube.success.connect(trajBints.intake)
-    trajBints.success.connect(output_cube.intake)
 
-    trajBints.failure.connect(fail_cube.fail_in)
-
-    return True
+    return trajBints
 
 
 if __name__ == "__main__":
