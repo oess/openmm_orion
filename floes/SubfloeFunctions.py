@@ -61,7 +61,69 @@ from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube
 from MDOrion.TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
 
 
+def setup_PLComplex_for_MD(input_floe, output_cube, fail_cube, options):
+    # Ligand setting
+    iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
+    iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset",
+                            description="Ligand Dataset")
+
+    ligset = LigandSetting("LigandSetting", title="Ligand Setting")
+    ligset.promote_parameter('max_md_runs', promoted_name='max_md_runs',
+                             default=500,
+                             description='The maximum allowed number of md runs')
+    ligset.set_parameters(lig_res_name='LIG')
+
+    chargelig = ParallelLigandChargeCube("LigCharge", title="Ligand Charge")
+    chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
+                                description="Charge the ligand or not", default=options['charge_ligands'])
+
+    ligid = IDSettingCube("Ligand Ids")
+
+    # Protein Reading cube. The protein prefix parameter is used to select a name for the
+    # output system files
+    iprot = DatasetReaderCube("ProteinReader", title="Protein Reader")
+    iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input Dataset',
+                            description="Protein Dataset")
+
+    # Protein Setting
+    mdcomp = MDComponentCube("MD Components", title="MD Components")
+    mdcomp.promote_parameter("flask_title", promoted_name="flask_title", default="")
+
+    # Complex cube used to assemble the ligands and the solvated protein
+    complx = ComplexPrepCube("Complex", title="Complex Preparation")
+
+    # The solvation cube is used to solvate the system and define the ionic strength of the solution
+    solvate = ParallelSolvationCube("Solvation", title="Solvation")
+
+    input_floe.add_cubes(iligs, ligset, chargelig, ligid, iprot, mdcomp, complx, solvate)
+
+    # Success Connections
+    iligs.success.connect(ligset.intake)
+    ligset.success.connect(chargelig.intake)
+    chargelig.success.connect(ligid.intake)
+    ligid.success.connect(complx.intake)
+    iprot.success.connect(mdcomp.intake)
+    mdcomp.success.connect(complx.protein_port)
+    complx.success.connect(solvate.intake)
+    solvate.success.connect(output_cube.intake)
+
+    # Fail Connections
+    ligset.failure.connect(fail_cube.fail_in)
+    chargelig.failure.connect(fail_cube.fail_in)
+    ligid.failure.connect(fail_cube.fail_in)
+    mdcomp.failure.connect(fail_cube.fail_in)
+    complx.failure.connect(fail_cube.fail_in)
+    solvate.failure.connect(fail_cube.fail_in)
+
+    return True
+
+
 def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
+    # Force Field Application
+    ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
+    ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
+    ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.0')
+
     # Production run
     prod = ParallelMDNptCube("Production", title="Production")
     prod.promote_parameter('time', promoted_name='prod_ns',
@@ -151,10 +213,11 @@ def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
     md_group = ParallelCubeGroup(cubes=[minComplex, warmup, equil1, equil2, equil3, equil4, prod])
     input_floe.add_group(md_group)
 
-    input_floe.add_cubes(minComplex, warmup, equil1, equil2, equil3, equil4, prod)
+    input_floe.add_cubes(ff, minComplex, warmup, equil1, equil2, equil3, equil4, prod)
 
     # Success Connections
-    input_cube.success.connect(minComplex.intake)
+    input_cube.success.connect(ff.intake)
+    ff.success.connect(minComplex.intake)
     minComplex.success.connect(warmup.intake)
     warmup.success.connect(equil1.intake)
     equil1.success.connect(equil2.intake)
@@ -164,6 +227,7 @@ def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
     prod.success.connect(output_cube.intake)
     
     # Fail Connections
+    ff.failure.connect(fail_cube.fail_in)
     minComplex.failure.connect(fail_cube.fail_in)
     warmup.failure.connect(fail_cube.fail_in)
     equil1.failure.connect(fail_cube.fail_in)
