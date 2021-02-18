@@ -140,6 +140,20 @@ def parmed_find_ligand(pmd, lig_res_name="LIG"):
     return None, None
 
 
+def fix_gromacs_water_names(pmd_flask):
+
+    for r in pmd_flask.residues:
+        if len(r.atoms) == 3:
+            oxy, = (a for a in r.atoms if a.atomic_number == 8)
+            hyd1, hyd2 = (a for a in r.atoms if a.atomic_number == 1)
+            if oxy and hyd1 and hyd2:
+                oxy.name = 'O'
+                hyd1.name = 'H1'
+                hyd2.name = 'H2'
+
+    return pmd_flask
+
+
 def unique_atom_types(pmd_structure, ligand_res_name='LIG'):
 
     omm_system = pmd_structure.createSystem(nonbondedMethod=app.NoCutoff,
@@ -209,6 +223,8 @@ def unique_atom_types(pmd_structure, ligand_res_name='LIG'):
 
 
 def gmx_chimera_topology_injection(pmd_flask, pmd_chimera_start, pmd_chimera_final):
+
+    pmd_flask = fix_gromacs_water_names(pmd_flask)
 
     pmd_flask = unique_atom_types(pmd_flask)
 
@@ -344,6 +360,9 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
         pmd_initial = chimera.pmdB
 
     pmd_flask = mdrecord.get_parmed(sync_stage_name="last")
+
+    # Fix water names
+    pmd_flask = fix_gromacs_water_names(pmd_flask)
 
     stage = mdrecord.get_stage_by_name('last')
     trj_field = stage.get_field(Fields.trajectory.get_name())

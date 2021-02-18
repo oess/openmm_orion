@@ -116,7 +116,7 @@ constraints              = {lincs_type}
 constraint-algorithm     = lincs
 lincs-order              = 4
 lincs-iter               = 2
-lincs-warnangle          = 30
+lincs-warnangle          = 50
 morse                    = no
 
 ; FREE ENERGY CONTROL
@@ -140,7 +140,7 @@ cos-acceleration         = 0
 """
 
 
-def check_gmx_grompp(gro, top, verbose=False):
+def check_gmx_grompp(gro, top, sim_type=None, verbose=False):
     try:
         with TemporaryDirectory() as outdir:
 
@@ -158,8 +158,8 @@ def check_gmx_grompp(gro, top, verbose=False):
             gmx_mdp_fn = os.path.join(outdir, "gmx_mdp.mdp")
 
             gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
-                                                             integrator='sd',
-                                                             nsteps=25000,
+                                                             integrator='steep',
+                                                             nsteps=300,
                                                              temperature=300,
                                                              barostat='Parrinello-Rahman',
                                                              pressure=1.1,
@@ -185,6 +185,11 @@ def check_gmx_grompp(gro, top, verbose=False):
                                        '-maxwarn', '4'
                                        ])
 
+                subprocess.check_call(['gmx',
+                                       'mdrun',
+                                       '-v',
+                                       '-s', gmx_tpr_fn])
+
             else:
 
                 subprocess.check_call(['gmx',
@@ -196,8 +201,14 @@ def check_gmx_grompp(gro, top, verbose=False):
                                        '-maxwarn', '4'
                                        ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
 
+                subprocess.check_call(['gmx',
+                                       'mdrun',
+                                       '-v',
+                                       '-s', gmx_tpr_fn,
+                                       ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT, timeout=300)
+
     except:
-        raise ValueError("Cannot Assemble the Gromacs .tpr file")
+        raise ValueError("Cannot Assemble the Gromacs .tpr file for the sim type: {}".format(sim_type))
 
 
 def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_fn=None):
