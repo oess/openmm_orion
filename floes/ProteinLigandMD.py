@@ -23,17 +23,13 @@ from floe.api import (WorkFloe)
 
 from floes.SubfloeFunctions import setup_MD_startup, setup_PLComplex_for_MD
 
-from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
-
-from MDOrion.ForceField.cubes import ParallelForceFieldCube
+from orionplatform.cubes import DatasetWriterCube
 
 from MDOrion.System.cubes import (CollectionSetting,
                                   ParallelRecordSizeCheck)
 
 job = WorkFloe('Solvate and Run Protein-Ligand MD', title='Solvate and Run Protein-Ligand MD')
-
 job.description = open(path.join(path.dirname(__file__), 'ProteinLigandMD_desc.rst'), 'r').read()
-
 job.classification = [['Specialized MD']]
 job.uuid = "ae561d76-a2b6-4d89-b621-b979f1930b40"
 job.tags = [tag for lists in job.classification for tag in lists]
@@ -43,7 +39,6 @@ job.tags = [tag for lists in job.classification for tag in lists]
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 coll_open.set_parameters(write_new_collection='MD_OPLMD')
-
 
 # This Cube is necessary for the correct working of collection and shard
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
