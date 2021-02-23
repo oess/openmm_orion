@@ -298,7 +298,7 @@ job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
               minimize_bns, warmup_bns, equil1_bns,
               equil2_bns, equil3_bns, equil4_bns, prod_bns,
               switch_out, coll_write, gathering,
-              chimera, unbound_nes, bound_nes,
+              chimera, bound_nes, unbound_nes,
               nes_analysis,  coll_close, report,
               check_rec, ofs, fail, ofs_lig, ofs_prot)
 

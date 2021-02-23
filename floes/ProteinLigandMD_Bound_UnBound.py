@@ -23,13 +23,14 @@ from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
                                     RBFECMapping)
 
-job = WorkFloe("Equilibrium Runs for Bound and Unbound ", title="Equilibrium Runs for Bound and Unbound")
+job = WorkFloe("MD of Ligand Bound and Unbound to Protein",
+               title="MD of Ligand Bound and Unbound to Protein")
 
 job.description = """
 TBD
 """
 
-job.classification = [['FEC']]
+job.classification = [['MD', 'Protein-Ligand', 'FEC']]
 job.uuid = "537f64c5-0d84-4537-ad74-c55037304e07"
 job.tags = [tag for lists in job.classification for tag in lists]
 
@@ -61,11 +62,6 @@ md_prot_components.promote_parameter("flask_title", promoted_name="flask_title",
                                      description='Prefix name used to identity the Protein', default='')
 md_prot_components.set_parameters(multiple_flasks=False)
 
-# This cube is necessary for the correct work of collection and shard
-coll_open = CollectionSetting("OpenCollection", title="Open Collection")
-coll_open.set_parameters(open=True)
-coll_open.set_parameters(write_new_collection='MD_OPLMD')
-
 # Complex cube used to assemble the ligands and the solvated protein
 complx = ComplexPrepCube("Complex", title="Complex Preparation")
 
@@ -73,6 +69,11 @@ solvate = ParallelSolvationCube("Solvation", title="Solvation")
 solvate.set_parameters(density=1.03)
 solvate.set_parameters(salt_concentration=50.0)
 solvate.modify_parameter(solvate.close_solvent, promoted=False, default=False)
+
+# This cube is necessary for the correct work of collection and shard
+coll_open = CollectionSetting("OpenCollection", title="Open Collection")
+coll_open.set_parameters(open=True)
+coll_open.set_parameters(write_new_collection='MD_OPLMD')
 
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")

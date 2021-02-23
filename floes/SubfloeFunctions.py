@@ -110,7 +110,7 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
                            description="NES Dataset Failures out")
 
     input_floe.add_cubes(coll_open_write, switch, gathering,
-                        chimera, unbound_nes, bound_nes,
+                        chimera, bound_nes, unbound_nes,
                         nes_analysis, coll_close, report,
                         ofs, fail)
 
@@ -408,8 +408,9 @@ def setup_traj_analysis(input_floe, input_cube, fail_cube):
     IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")
     PBSACube = ParallelTrajPBSACube("TrajPBSACube", title="PBSA Energies")
 
-    trajproc_group = ParallelCubeGroup(cubes=[trajCube, trajBints, IntECube, PBSACube])
-    input_floe.add_group(trajproc_group)
+    # DEBUG CIB 22 Feb 2021 : TEMPORARY COVER THIS CUBE GROUP for dev purposes
+    # trajproc_group = ParallelCubeGroup(cubes=[trajCube, trajBints, IntECube, PBSACube])
+    # input_floe.add_group(trajproc_group)
 
     confGather = ConformerGatheringData("Gathering Conformer Records", title="Gathering Conformer Records")
     catLigTraj = ParallelConfTrajsToLigTraj("ConfTrajsToLigTraj", title="Combine Pose Trajectories")
