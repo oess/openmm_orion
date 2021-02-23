@@ -33,6 +33,8 @@ from oemdtoolbox.FEC.RBFEC.chimera import Chimera
 
 import mdtraj as md
 
+from mdtraj.formats import TRRTrajectoryFile
+
 from openeye import oechem
 
 import numpy as np
@@ -42,9 +44,6 @@ from simtk import unit
 from oeommtools.utils import openmmTop_to_oemol
 
 import MDOrion.FEC.RFEC.pmx as pmx
-
-
-import tarfile
 
 from simtk.openmm import app
 
@@ -95,6 +94,7 @@ from orionclient.helpers.collections import (try_hard_to_create_shard,
 
 from MDOrion.Standards.standards import CollectionsNames
 
+import glob
 
 def edge_map_grammar(word):
 
@@ -317,7 +317,7 @@ def gmx_chimera_topology_injection(pmd_flask, pmd_chimera_start, pmd_chimera_fin
     return gmx_out
 
 
-def extract_trj_velocities(trj_fn,  trj_type="OpenMM"):
+def extract_trj_velocities(trj_fn,  indexes=None, trj_type="OpenMM"):
 
     if trj_type == "OpenMM":
 
@@ -327,8 +327,15 @@ def extract_trj_velocities(trj_fn,  trj_type="OpenMM"):
         velocities = f['velocities'][()]
 
         f.close()
+    elif trj_type == "Gromacs":
+        trr = TRRTrajectoryFile(trj_fn, "r")
+        v, f = trr._check_has_velocities_forces()
+        if not v:
+            raise ValueError("Gromacs Velocities missing")
+        xyz, time, step, box, lam, velocities, force = trr._read(len(trr), indexes, get_velocities=True)
 
-    # TODO MISSING GMX PART
+    else:
+        raise ValueError("MD Engine not currently supported: {}".format(trj_type))
 
     return velocities
 
@@ -342,9 +349,36 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
     lig_idx = map_dic['ligand']
 
     trj_fn = mdrecord.get_stage_trajectory(stg_name='last')
-    trj = md.load(trj_fn)
 
-    # trj.save("trj.pdb")
+    stage = mdrecord.get_stage_by_name('last')
+    trj_field = stage.get_field(Fields.trajectory.get_name())
+    trj_meta = trj_field.get_meta()
+    md_engine = trj_meta.get_attribute(Meta.Annotation.Description)
+
+    if md_engine == "OpenMM":
+        trj = md.load(trj_fn)
+
+        # Velocities array shape = (frame, atoms, 3) units nm/ps
+        velocities = extract_trj_velocities(trj_fn, trj_type=md_engine)
+
+    elif md_engine == "Gromacs":
+
+        traj_dir = os.path.dirname(trj_fn)
+        pdb_fn = glob.glob(os.path.join(traj_dir, '*.pdb'))[0]
+        trj = md.load_trr(trj_fn, top=pdb_fn)
+
+        # Skip first frame which is the loaded pdb topology
+        trj = trj[1:]
+
+        indexes = []
+        for a in trj.topology.atoms:
+            indexes.append(a.index)
+
+        # Velocities array shape = (frame, atoms, 3) units nm/ps
+        velocities = extract_trj_velocities(trj_fn, indexes=indexes, trj_type=md_engine)
+
+    else:
+        raise ValueError("The selected md engine is not currently support".format(md_engine))
 
     if len(trj) > tot_frames:
         stride = int(len(trj)/tot_frames)
@@ -363,15 +397,6 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
 
     # Fix water names
     pmd_flask = fix_gromacs_water_names(pmd_flask)
-
-    stage = mdrecord.get_stage_by_name('last')
-    trj_field = stage.get_field(Fields.trajectory.get_name())
-    trj_meta = trj_field.get_meta()
-    md_engine = trj_meta.get_attribute(Meta.Annotation.Description)
-
-    # Velocities array shape = (frame, atoms, 3) units nm/ps
-    # TODO MISSING GMX PART FOR EQUILIBRIUM SIMULATION
-    velocities = extract_trj_velocities(trj_fn, trj_type=md_engine)
 
     # Generate Velocities from MB distributions to be assigned just to the
     # Dummy particles
@@ -532,14 +557,14 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
             if not os.path.isfile(flask_gro_fn):
                 raise ValueError("Gromacs Coordinate file Error")
 
-            ####### DEBUGGING MISSING VELOCITIES WITH THE PDB FILE
+            #  ###### DEBUGGING MISSING VELOCITIES WITH THE PDB FILE
             # flask_pdb_fn = os.path.join(outputdir, "flask.pdb")
             # new_pmd_structure.save(flask_pdb_fn, overwrite=True)
             # subprocess.check_call(['gmx',
             #                        'editconf',
             #                        '-f', flask_pdb_fn,
             #                        '-o', flask_gro_fn])
-            ##END DEBUGGING#####
+            #  ################### END DEBUGGING ###############
 
             with open(flask_gro_fn, 'r') as f:
                 flask_gmx_gro_str = f.read()
@@ -566,8 +591,10 @@ def gmx_nes_run(gmx_gro, gmx_top, opt):
 
     tar_fn = opt['trj_fn']
 
-    with tarfile.open(tar_fn, mode='w:gz') as archive:
-        archive.add(opt['out_directory'], arcname='.')
+    # TODO FOR DEBUGGING ONLY
+    # import tarfile
+    # with tarfile.open(tar_fn, mode='w:gz') as archive:
+    #     archive.add(opt['out_directory'], arcname='.')
 
     # Generate the final Parmed structure
     gro = app.GromacsGroFile(gmx_deffnm_out+'.gro')

@@ -54,10 +54,10 @@ nbfgscorr                = 10
 
 ; OUTPUT CONTROL OPTIONS
 ; Output frequency for coords (x), velocities (v) and forces (f)
-nstxout                  = 1000
+nstxout                  = 0
 nstvout                  = 0
 nstfout                  = 0
-nstlog                   = 10000
+nstlog                   = 0
 nstenergy                = 0
 
 ; NEIGHBORSEARCHING PARAMETERS
@@ -399,7 +399,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     # gmx_trj_fn = gmx_nvt_deffnm_fn + '.trr'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='-DRESTRAINTS',
-                                                     integrator='sd',
+                                                     integrator='md',
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='no',
@@ -429,7 +429,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_npt0_confout_gro = gmx_npt0_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='-DRESTRAINTS',
-                                                     integrator='sd',
+                                                     integrator='md',
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='Parrinello-Rahman',
@@ -460,7 +460,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_npt1_confout_gro = gmx_npt1_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
-                                                     integrator='sd',
+                                                     integrator='md',
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='Parrinello-Rahman',
@@ -480,22 +480,6 @@ def gmx_run(gmx_gro, gmx_top, opt):
              cpti_fn=None,
              cpto_fn=gmx_npt1_cpto_fn)
 
-    # TODO DEBUGGING
-    #####################
-    # gmx_gro_fn = os.path.join(out_dir, "gmx_gro.gro")
-    # gmx_top_fn = os.path.join(out_dir, "gmx_top.top")
-    # with open(gmx_gro_fn, 'w') as f:
-    #     f.write(gmx_gro)
-    #
-    # with open(gmx_top_fn, 'w') as f:
-    #     f.write(gmx_top)
-    #
-    #
-    # _run_gmx(gmx_eq_npt1_mdp_fn, gmx_gro_fn, gmx_top_fn, gmx_eq_npt1_tpr_fn, gmx_npt1_deffnm_fn, opt,
-    #          cpt_fn=None)
-
-    ####################
-
     # NES
     opt['restraints'] = False
     stepLen = 2.0 * unit.femtoseconds
@@ -512,7 +496,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_ne_confout_gro = gmx_ne_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
-                                                     integrator='sd',
+                                                     integrator='md',
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='Parrinello-Rahman',
