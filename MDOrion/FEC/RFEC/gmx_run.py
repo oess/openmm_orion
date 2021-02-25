@@ -130,6 +130,7 @@ sc-coul = yes
 nstdhdl                  = {nstdhdl:d}
 nstcalcenergy            = 1
 
+domain-decomposition     = no
 
 ; Non-equilibrium MD stuff
 acc-grps                 = 
