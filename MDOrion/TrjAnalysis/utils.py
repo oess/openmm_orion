@@ -540,3 +540,12 @@ def StyleTrajProteinLigandClusters( protein, ligand):
         SetProteinLigandVizStyle( pconf, lconf, colorRGB)
     return True
 
+
+class ClusterStyler:
+
+    def __init__(self, num_clusters=0):
+        self._confRGB = clusutl.ColorblindRGBMarkerColors(num_clusters)
+
+    def apply_style(self, du, cluster_id):
+        SetProteinLigandVizStyle(du.GetImpl().GetProtein(), du.GetImpl().GetLigand(), self._confRGB[cluster_id])
+        return True
