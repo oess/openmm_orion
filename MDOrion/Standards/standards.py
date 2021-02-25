@@ -234,6 +234,10 @@ class Fields:
         ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol)
         ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol)
 
+        ClusAvgDU_fld = OEField('ClusAvgDU', Types.Chem.DesignUnit)
+        ClusMedDU_fld = OEField('ClusMedDU', Types.Chem.DesignUnit)
+        ClusterDURecs_fld = OEField('ClusterDURecs', Types.RecordVec)
+        ClusID_fld = OEField('ClusID', Types.Int)
         max_waters = OEField("MaxWaters_OPLMD", Types.Int, meta=_metaHidden)
 
         # Free Energy Yank
