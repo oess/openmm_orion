@@ -156,7 +156,7 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
 
             self.success.emit(record)
 
-            for rec in record.get_value(Fields.Analysis.ClusterDURecs_fld)
+            for rec in record.get_value(Fields.Analysis.ClusterDURecs_fld):
                 rec.set_value(Fields.floe_report_URL, page_link)
                 self.du_success.emit(rec)
 
@@ -489,7 +489,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                     cluster_record.set_value(Fields.Analysis.ClusMedDU_fld, clusMedDU)
 
                     cluster_record.set_value(Fields.Analysis.ClusID_fld, clusID)
-                    cluster_record.set_value(Fields.Analysis.Clusters_fld, nMajorClusters+1)
+                    cluster_record.set_value(Fields.Analysis.ClustersNum_fld, nMajorClusters+1)
                     cluster_records.append(cluster_record)
 
                     #
@@ -546,7 +546,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 cluster_record.set_value(Fields.Analysis.ClusMedDU_fld, clusMedDU)
 
                 cluster_record.set_value(Fields.Analysis.ClusID_fld, clusID)
-                cluster_record.set_value(Fields.Analysis.Clusters_fld, 0)
+                cluster_record.set_value(Fields.Analysis.ClustersNum_fld, 1)
                 cluster_records.append(cluster_record)
 
             # Set prot and lig clus average mols on top-level record for 3D vis
