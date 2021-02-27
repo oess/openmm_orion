@@ -239,9 +239,9 @@ fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
 
 job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
               iprot, md_prot_components, complx, solvate, ff, switch,
-              minimize_uns, warmup_uns, equil_uns, prod_uns,
               minimize_bns, warmup_bns, equil1_bns,
               equil2_bns, equil3_bns, equil4_bns, prod_bns,
+              minimize_uns, warmup_uns, equil_uns, prod_uns,
               coll_close, switch_out, fail, ofs_unbound, ofs_bound)
 
 # Ligand Setting
