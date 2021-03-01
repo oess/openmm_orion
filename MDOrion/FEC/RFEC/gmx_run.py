@@ -54,10 +54,10 @@ nbfgscorr                = 10
 
 ; OUTPUT CONTROL OPTIONS
 ; Output frequency for coords (x), velocities (v) and forces (f)
-nstxout                  = 1000
+nstxout                  = 0
 nstvout                  = 0
 nstfout                  = 0
-nstlog                   = 10000
+nstlog                   = 0
 nstenergy                = 0
 
 ; NEIGHBORSEARCHING PARAMETERS
@@ -116,7 +116,7 @@ constraints              = {lincs_type}
 constraint-algorithm     = lincs
 lincs-order              = 4
 lincs-iter               = 2
-lincs-warnangle          = 30
+lincs-warnangle          = 50
 morse                    = no
 
 ; FREE ENERGY CONTROL
@@ -130,6 +130,7 @@ sc-coul = yes
 nstdhdl                  = {nstdhdl:d}
 nstcalcenergy            = 1
 
+domain-decomposition     = no
 
 ; Non-equilibrium MD stuff
 acc-grps                 = 
@@ -140,7 +141,7 @@ cos-acceleration         = 0
 """
 
 
-def check_gmx_grompp(gro, top, verbose=False):
+def check_gmx_grompp(gro, top, sim_type=None, verbose=False):
     try:
         with TemporaryDirectory() as outdir:
 
@@ -158,8 +159,8 @@ def check_gmx_grompp(gro, top, verbose=False):
             gmx_mdp_fn = os.path.join(outdir, "gmx_mdp.mdp")
 
             gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
-                                                             integrator='sd',
-                                                             nsteps=25000,
+                                                             integrator='steep',
+                                                             nsteps=300,
                                                              temperature=300,
                                                              barostat='Parrinello-Rahman',
                                                              pressure=1.1,
@@ -185,6 +186,11 @@ def check_gmx_grompp(gro, top, verbose=False):
                                        '-maxwarn', '4'
                                        ])
 
+                subprocess.check_call(['gmx',
+                                       'mdrun',
+                                       '-v',
+                                       '-s', gmx_tpr_fn])
+
             else:
 
                 subprocess.check_call(['gmx',
@@ -196,8 +202,14 @@ def check_gmx_grompp(gro, top, verbose=False):
                                        '-maxwarn', '4'
                                        ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT)
 
+                subprocess.check_call(['gmx',
+                                       'mdrun',
+                                       '-v',
+                                       '-s', gmx_tpr_fn,
+                                       ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT, timeout=300)
+
     except:
-        raise ValueError("Cannot Assemble the Gromacs .tpr file")
+        raise ValueError("Cannot Assemble the Gromacs .tpr file for the sim type: {}".format(sim_type))
 
 
 def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_fn=None):
@@ -388,7 +400,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     # gmx_trj_fn = gmx_nvt_deffnm_fn + '.trr'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='-DRESTRAINTS',
-                                                     integrator='sd',
+                                                     integrator='md',
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='no',
@@ -418,7 +430,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_npt0_confout_gro = gmx_npt0_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='-DRESTRAINTS',
-                                                     integrator='sd',
+                                                     integrator='md',
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='Parrinello-Rahman',
@@ -449,7 +461,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_npt1_confout_gro = gmx_npt1_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
-                                                     integrator='sd',
+                                                     integrator='md',
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='Parrinello-Rahman',
@@ -469,22 +481,6 @@ def gmx_run(gmx_gro, gmx_top, opt):
              cpti_fn=None,
              cpto_fn=gmx_npt1_cpto_fn)
 
-    # TODO DEBUGGING
-    #####################
-    # gmx_gro_fn = os.path.join(out_dir, "gmx_gro.gro")
-    # gmx_top_fn = os.path.join(out_dir, "gmx_top.top")
-    # with open(gmx_gro_fn, 'w') as f:
-    #     f.write(gmx_gro)
-    #
-    # with open(gmx_top_fn, 'w') as f:
-    #     f.write(gmx_top)
-    #
-    #
-    # _run_gmx(gmx_eq_npt1_mdp_fn, gmx_gro_fn, gmx_top_fn, gmx_eq_npt1_tpr_fn, gmx_npt1_deffnm_fn, opt,
-    #          cpt_fn=None)
-
-    ####################
-
     # NES
     opt['restraints'] = False
     stepLen = 2.0 * unit.femtoseconds
@@ -501,7 +497,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     gmx_ne_confout_gro = gmx_ne_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
-                                                     integrator='sd',
+                                                     integrator='md',
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='Parrinello-Rahman',

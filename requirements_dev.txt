@@ -9,12 +9,12 @@ lxml==4.5.0
 sphinxcontrib-bibtex==1.0.0
 
 # OE Stack
-# Leave this here to avoid pip install issues
-OpenEye-orionplatform==3.1.0
+# Leave this here to avoid pip install issue
+Openeye-orionplatform==3.2.0b2
 
 # OpenEye-Artemis
-Openeye-toolkits==2020.1.1
+Openeye-toolkits==2020.2.1b1
 OpenEye-ensemble2img==0.1.1
 OpenEye-floereport==0.1.7
 OpenEye_oetrajanalysis==0.8.0a1
-openeye-oemdtoolbox==2.0.0b26
+openeye-oemdtoolbox==2.0.0b34
