@@ -202,11 +202,16 @@ class RBFECMapping(RecordPortsMixin, ComputeCube):
 
         for m in map_list:
 
+            # Empty line
             if not m:
                 continue
 
             # Comment
-            if m.startswith(";"):
+            if m.startswith(";") or m.startswith("#"):
+                continue
+
+            # New line
+            if m == '\n':
                 continue
 
             expr = utils.edge_map_grammar(m)
@@ -768,8 +773,8 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         "memory_mb": {"default": 14000},
         "spot_policy": {"default": "Required"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
-        "item_count": {"default": 1}  # 1 molecule at a time
-
+        "item_count": {"default": 1},  # 1 molecule at a time
+        "max_failures": {"default": 0}  # just one retry
     }
 
     temperature = parameters.DecimalParameter(

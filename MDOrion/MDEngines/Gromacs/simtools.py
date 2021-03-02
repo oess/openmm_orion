@@ -768,6 +768,8 @@ class GromacsSimulations(MDSimulations):
                     archive.add(self.opt['grm_trj_fn'], arcname=os.path.basename(self.opt['grm_trj_fn']))
                     # archive.add(self.opt['grm_trj_comp_fn'], arcname=os.path.basename(self.opt['grm_trj_comp_fn']))
                     archive.add(self.opt['grm_log_fn'], arcname=os.path.basename(self.opt['grm_log_fn']))
+                    archive.add(self.opt['grm_tpr_fn'], arcname=os.path.basename(self.opt['grm_tpr_fn']))
+                    archive.add(self.opt['mdp_fn'], arcname=os.path.basename(self.opt['mdp_fn']))
 
                 # with tarfile.open(tar_fn, mode='w:gz') as archive:
                 #     archive.add(self.opt['out_directory'], arcname=os.path.basename(self.opt['out_directory']))

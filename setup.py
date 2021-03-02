@@ -66,5 +66,4 @@ setup(
         [console_scripts]
         mdocli=MDOcli.command_line:main
     ''',
-    zip_safe=False
-)
+    zip_safe=False)

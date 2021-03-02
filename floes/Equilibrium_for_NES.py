@@ -95,7 +95,6 @@ prod_uns.promote_parameter('hmr', promoted_name="hmr_us", title='Use Hydrogen Ma
 prod_uns.set_parameters(reporter_interval=0.002)
 prod_uns.set_parameters(suffix='prod_unb')
 prod_uns.promote_parameter('md_engine', promoted_name='md_engine', default='OpenMM', description='Select the MD Engine')
-prod_uns.promote_parameter('constraints', promoted_name='constraints', default='All-Bonds')
 
 # Minimization of the Unbound-States
 minimize_uns = ParallelMDMinimizeCube("Minimize Unbound States", title="Minimization Unbound States")
@@ -116,7 +115,6 @@ warmup_uns.set_parameters(trajectory_interval=0.0)
 warmup_uns.set_parameters(reporter_interval=0.002)
 warmup_uns.set_parameters(suffix='warmup_un')
 warmup_uns.set_parameters(hmr=False)
-warmup_uns.promote_parameter("constraints", promoted_name="constraints", default='All-Bonds')
 
 # NPT Equilibration stage of the Unbound-States
 equil_uns = ParallelMDNptCube('Equilibration Unbond States', title='Equilibration Unbond States')
@@ -128,7 +126,6 @@ equil_uns.set_parameters(restraintWt=0.1)
 equil_uns.set_parameters(trajectory_interval=0.0)
 equil_uns.set_parameters(reporter_interval=0.002)
 equil_uns.set_parameters(suffix='equil_un')
-equil_uns.promote_parameter("constraints", promoted_name="constraints", default='All-Bonds')
 
 md_group_uns = ParallelCubeGroup(cubes=[minimize_uns, warmup_uns, equil_uns, prod_uns])
 job.add_group(md_group_uns)
@@ -145,7 +142,6 @@ prod_bns.modify_parameter(prod_bns.trajectory_frames, promoted=False, default=15
 prod_bns.promote_parameter("md_engine", promoted_name="md_engine")
 prod_bns.set_parameters(reporter_interval=0.002)
 prod_bns.set_parameters(suffix='prod_bn')
-prod_bns.promote_parameter("constraints", promoted_name="constraints", default='All-Bonds')
 
 # Minimization of the Bound-States
 minimize_bns = ParallelMDMinimizeCube("Minimize Bound States", title="Minimization Bound States")
@@ -156,7 +152,6 @@ minimize_bns.set_parameters(steps=2000)
 minimize_bns.set_parameters(center=True)
 minimize_bns.set_parameters(save_md_stage=True)
 minimize_bns.set_parameters(hmr=False)
-minimize_bns.set_parameters()
 
 # NVT Warm-up of the Unbound-States
 warmup_bns = ParallelMDNvtCube('Warmup Bound States', title='Warmup Bound States')
@@ -169,7 +164,6 @@ warmup_bns.set_parameters(reporter_interval=0.001)
 warmup_bns.set_parameters(suffix='warmup_bn')
 warmup_bns.set_parameters(hmr=False)
 warmup_bns.set_parameters(save_md_stage=True)
-warmup_bns.promote_parameter("constraints", promoted_name="constraints", default='All-Bonds')
 
 # The system is equilibrated at the right pressure and temperature in 3 stages
 # The main difference between the stages is related to the restraint force used
@@ -186,7 +180,6 @@ equil1_bns.promote_parameter("md_engine", promoted_name="md_engine")
 equil1_bns.set_parameters(trajectory_interval=0.0)
 equil1_bns.set_parameters(reporter_interval=0.001)
 equil1_bns.set_parameters(suffix='equil1_bn')
-equil1_bns.promote_parameter("constraints", promoted_name="constraints", default='All-Bonds')
 
 # NPT Bound Equilibration stage 2
 equil2_bns = ParallelMDNptCube('equil2_bs', title='Equilibration II Bound States')
@@ -198,7 +191,6 @@ equil2_bns.promote_parameter("md_engine", promoted_name="md_engine")
 equil2_bns.set_parameters(trajectory_interval=0.0)
 equil2_bns.set_parameters(reporter_interval=0.001)
 equil2_bns.set_parameters(suffix='equil2_bs')
-equil2_bns.promote_parameter("constraints", promoted_name="constraints", default='All-Bonds')
 
 # NPT Bound Equilibration stage 3
 equil3_bns = ParallelMDNptCube('equil3_bs', title='Equilibration III Bound States')
@@ -210,7 +202,6 @@ equil3_bns.promote_parameter("md_engine", promoted_name="md_engine")
 equil3_bns.set_parameters(trajectory_interval=0.0)
 equil3_bns.set_parameters(reporter_interval=0.002)
 equil3_bns.set_parameters(suffix='equil3_bn')
-equil3_bns.promote_parameter("constraints", promoted_name="constraints", default='All-Bonds')
 
 # NPT Equilibration stage 4
 equil4_bns = ParallelMDNptCube('equil4_bs', title='Equilibration IV Bound States')
@@ -222,7 +213,6 @@ equil4_bns.promote_parameter("md_engine", promoted_name="md_engine")
 equil4_bns.set_parameters(trajectory_interval=0.0)
 equil4_bns.set_parameters(reporter_interval=0.002)
 equil4_bns.set_parameters(suffix='equil4_bn')
-equil4_bns.promote_parameter("constraints", promoted_name="constraints", default='All-Bonds')
 
 md_group_bs = ParallelCubeGroup(cubes=[minimize_bns, warmup_bns, equil1_bns, equil2_bns, equil3_bns, equil4_bns, prod_bns])
 job.add_group(md_group_bs)

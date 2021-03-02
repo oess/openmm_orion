@@ -96,6 +96,9 @@ from MDOrion.Standards.standards import CollectionsNames
 
 import glob
 
+import subprocess
+
+
 def edge_map_grammar(word):
 
     map_string = Word(printables) + ">>" + Word(printables)
@@ -365,7 +368,21 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
 
         traj_dir = os.path.dirname(trj_fn)
         pdb_fn = glob.glob(os.path.join(traj_dir, '*.pdb'))[0]
-        trj = md.load_trr(trj_fn, top=pdb_fn)
+        tpr_fn = glob.glob(os.path.join(traj_dir, '*.tpr'))[0]
+
+        # To avoid issues with pbc conditions make whole the molecules
+        trj_whole_fn = os.path.join(traj_dir, "trj_whole.trr")
+        p = subprocess.Popen(['gmx',
+                              'trjconv',
+                              '-f', trj_fn,
+                              '-s', tpr_fn,
+                              '-o', trj_whole_fn,
+                              '-pbc', b'whole'],
+                             stdin=subprocess.PIPE)
+        # Select the entire System
+        p.communicate(b'0')
+
+        trj = md.load_trr(trj_whole_fn, top=pdb_fn)
 
         # Skip first frame which is the loaded pdb topology
         trj = trj[1:]
@@ -375,7 +392,7 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
             indexes.append(a.index)
 
         # Velocities array shape = (frame, atoms, 3) units nm/ps
-        velocities = extract_trj_velocities(trj_fn, indexes=indexes, trj_type=md_engine)
+        velocities = extract_trj_velocities(trj_whole_fn, indexes=indexes, trj_type=md_engine)
 
     else:
         raise ValueError("The selected md engine is not currently support".format(md_engine))
