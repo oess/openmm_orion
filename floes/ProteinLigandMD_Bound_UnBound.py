@@ -120,7 +120,7 @@ warmup_uns.set_parameters(hmr=False)
 warmup_uns.promote_parameter("constraints", promoted_name="constraints", default='All-Bonds')
 
 # NPT Equilibration stage of the Unbound-States
-equil_uns = ParallelMDNptCube('Equilibration Unbond States', title='Equilibration Unbond States')
+equil_uns = ParallelMDNptCube('Equilibration Unbound States', title='Equilibration Unbound States')
 equil_uns.set_parameters(time=1)
 equil_uns.promote_parameter("hmr", promoted_name="hmr_us", default=True)
 equil_uns.set_parameters(restraints="noh ligand")
