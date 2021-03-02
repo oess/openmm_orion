@@ -236,6 +236,7 @@ class Fields:
 
         ClusAvgDU_fld = OEField('ClusAvgDU', Types.Chem.DesignUnit)
         ClusMedDU_fld = OEField('ClusMedDU', Types.Chem.DesignUnit)
+        ClustOccSurf_fld = OEField('ClusterOccSurf', Types.Chem.Surface)
         ClusterDURecs_fld = OEField('ClusterDURecs', Types.RecordVec)
         ClusID_fld = OEField('ClusID', Types.Int)
         ClustersNum_fld = OEField('ClustersNum', Types.Int)
