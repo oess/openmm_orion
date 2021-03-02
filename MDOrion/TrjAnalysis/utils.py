@@ -19,7 +19,9 @@ import numpy as np
 
 from openeye import (oechem,
                      oedepict,
-                     oegrapheme)
+                     oegrapheme,
+                     oegrid,
+                     oespicoli)
 import mdtraj as md
 
 from datarecord import OEField
@@ -541,11 +543,56 @@ def StyleTrajProteinLigandClusters( protein, ligand):
     return True
 
 
+def GenerateOccupancySurf(clusProt, clusLig, clusWat, custCofact, color, pl_include_dist=7.0, contour=0.8, resolution=0.5):
+
+    surf = oespicoli.OESurface()
+    tempSurf = oespicoli.OESurface()
+
+    # ligand
+    grid = oegrid.OEScalarGrid()
+    oegrid.OEMakeMolecularGaussianGrid(grid, clusLig, resolution)
+    oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, contour)
+    oespicoli.OEAddSurfaces(surf, tempSurf)
+
+    # protein
+    # TODO: Really need an OEMCMolBase version of this
+    pred = oechem.OEAtomMatchResidue(clusProt, clusLig, pl_include_dist)
+    clusProtSubset = oechem.OEMol()
+    oechem.OESubsetMol(clusProtSubset, clusProt, pred)
+    oegrid.OEMakeMolecularGaussianGrid(grid, clusProtSubset, resolution)
+    oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, contour)
+    oespicoli.OEAddSurfaces(surf, tempSurf)
+
+    # water
+    oegrid.OEMakeMolecularGaussianGrid(grid, clusWat, resolution)
+    oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, contour)
+    oespicoli.OEAddSurfaces(surf, tempSurf)
+
+    # cofactor
+    if custCofact is not None and custCofact.IsValid():
+        oegrid.OEMakeMolecularGaussianGrid(grid, custCofact, resolution)
+        oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, contour)
+        oespicoli.OEAddSurfaces(surf, tempSurf)
+
+    oespicoli.OESmoothSurfaceEdges(surf)
+
+    alpha=128
+    for i in range(surf.GetNumVertices()):
+        surf.SetColorElement(i, color[0], color[1], color[2], alpha)
+
+    return surf
+
+
 class ClusterStyler:
 
     def __init__(self, num_clusters=0):
         self._confRGB = clusutl.ColorblindRGBMarkerColors(num_clusters)
 
     def apply_style(self, du, cluster_id):
+        # TODO: Consider special style on waters and cofactors too
         SetProteinLigandVizStyle(du.GetImpl().GetProtein(), du.GetImpl().GetLigand(), self._confRGB[cluster_id])
         return True
+
+    def getColor(self, cluster_id):
+        return self._confRGB[cluster_id]
+

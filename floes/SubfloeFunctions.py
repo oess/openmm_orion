@@ -56,7 +56,8 @@ from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube
                                                        ParallelMDTrajAnalysisClusterReport,
                                                        ParallelClusterPopAnalysis,
                                                        ParallelTrajAnalysisReportDataset,
-                                                       MDFloeReportCube)
+                                                       MDFloeReportCube,
+                                                       ParallelMDSnapshotMinimzationCube)
 
 from MDOrion.TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
 
@@ -239,7 +240,7 @@ def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
     return True
 
 
-def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
+def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube, avg_du_output_cube=None, med_du_output_cube=None):
     trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube", title="Trajectory To OEMols")
     IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")
     PBSACube = ParallelTrajPBSACube("TrajPBSACube", title="PBSA Energies")
@@ -255,6 +256,18 @@ def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
     clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols', title="Per-Cluster Analysis")
     prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset', title="Analysis Report")
     report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport", title="Relevant Output Extraction")
+    avg_minimizer = None
+    if avg_du_output_cube is not None:
+        avg_minimizer = ParallelMDSnapshotMinimzationCube("MDSnapshotMinimzationCube",
+                                                          title='MD Cluster Average Snapshot Minimizer')
+        avg_minimizer.set_parameters(bfactor_based_restraints=True)
+        input_floe.add_cubes(avg_minimizer)
+    med_minimizer = None
+    if med_du_output_cube is not None:
+        med_minimizer = ParallelMDSnapshotMinimzationCube("MDSnapshotMinimzationCube",
+                                                          title='MD Cluster Medoid Snapshot Minimizer')
+        med_minimizer.set_parameters(bfactor_based_restraints=False)
+        input_floe.add_cubes(med_minimizer)
 
     analysis_group = ParallelCubeGroup(cubes=[catLigTraj, catLigMMPBSA, clusCube, clusPop,
                                               clusOEMols, prepDataset, report_gen])
@@ -263,9 +276,9 @@ def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
     report = MDFloeReportCube("report", title="Floe Report")
 
     input_floe.add_cubes(trajCube, IntECube, PBSACube, confGather,
-                  catLigTraj, catLigMMPBSA, clusCube, clusPop, clusOEMols,
-                  prepDataset, report_gen, report)
-    
+                         catLigTraj, catLigMMPBSA, clusCube, clusPop, clusOEMols,
+                         prepDataset, report_gen, report)
+
     # Success Connections
     input_cube.success.connect(trajCube.intake)
     trajCube.success.connect(IntECube.intake)
@@ -280,7 +293,15 @@ def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
     prepDataset.success.connect(report_gen.intake)
     report_gen.success.connect(report.intake)
     report.success.connect(output_cube.intake)
-    
+    if avg_du_output_cube is not None and avg_minimizer is not None:
+        report.du_avg_success.connect(avg_minimizer.intake)
+        avg_minimizer.success.connect(avg_du_output_cube.intake)
+        avg_minimizer.failure.connect(fail_cube.fail_in)
+    if med_du_output_cube is not None and med_minimizer is not None:
+        report.du_med_success.connect(med_minimizer.intake)
+        med_minimizer.success.connect(med_du_output_cube.intake)
+        med_minimizer.failure.connect(fail_cube.fail_in)
+
     # Fail Connections
     trajCube.failure.connect(fail_cube.fail_in)
     IntECube.failure.connect(fail_cube.fail_in)
