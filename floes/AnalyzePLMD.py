@@ -64,14 +64,16 @@ fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
 job.add_cubes(iMDInput, coll_open,
               coll_close, check_rec,  ofs, fail)
 
-setup_traj_analysis(job, coll_open, coll_close, check_rec)
+traj_anlys_outcube = setup_traj_analysis(job, coll_open, check_rec)
 
 # Success Connections
 iMDInput.success.connect(coll_open.intake)
+traj_anlys_outcube.success.connect(coll_close.intake)
 coll_close.success.connect(check_rec.intake)
 check_rec.success.connect(ofs.intake)
 
 # Fail Connections
+traj_anlys_outcube.failure.connect(check_rec.fail_in)
 coll_open.failure.connect(check_rec.fail_in)
 coll_close.failure.connect(check_rec.fail_in)
 check_rec.failure.connect(fail.intake)

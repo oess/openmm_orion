@@ -109,8 +109,9 @@ prod_uns.promote_parameter('time', promoted_name='prod_us_ns', default=6.0,
 # prod_uns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=80,
 #                            description='Total number of trajectory frames used in the NES calculation')
 prod_uns.modify_parameter(prod_uns.trajectory_frames, promoted=False, default=1500)
-prod_uns.promote_parameter('hmr', promoted_name="hmr_us", title='Use Hydrogen Mass Repartitioning '
-                                                                'in the Unbound simulation', default=True,
+prod_uns.promote_parameter('hmr', promoted_name="hmr_us",
+                           title='Use Hydrogen Mass Repartitioning in the Unbound simulation',
+                           default=True,
                            description='Give hydrogens more mass to speed up the MD')
 prod_uns.set_parameters(md_engine='OpenMM')
 prod_uns.set_parameters(reporter_interval=0.002)

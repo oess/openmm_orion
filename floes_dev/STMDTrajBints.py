@@ -70,16 +70,18 @@ job.add_cubes(AnlysInput, coll_open,
                 coll_close, check_rec,  ofs, fail)
 
 # Add other cubes through calling a subfloe function
-setup_bint(job, coll_open, coll_close, check_rec)
+bint_outcube = setup_bint(job, coll_open, check_rec)
 
 
 # Success Connections
 AnlysInput.success.connect(coll_open.intake)
+bint_outcube.success.connect(coll_close.intake)
 coll_close.success.connect(check_rec.intake)
 check_rec.success.connect(ofs.intake)
 
 # Fail Connections
 coll_open.failure.connect(check_rec.fail_in)
+bint_outcube.failure.connect(check_rec.fail_in)
 coll_close.failure.connect(check_rec.fail_in)
 check_rec.failure.connect(fail.intake)
 
