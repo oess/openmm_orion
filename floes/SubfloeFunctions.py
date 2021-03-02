@@ -402,8 +402,7 @@ def setup_MDsmallmol_startup(input_floe, input_cube, fail_cube, options):
 
     return prod_small
 
-
-def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube, avg_du_output_cube=None, med_du_output_cube=None):
+def setup_traj_analysis(input_floe, input_cube, fail_cube, avg_du_output_cube=None, med_du_output_cube=None):
     trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube", title="Trajectory To OEMols")
     trajBints = ParallelComparePoseBintsToTrajBints("TrajBintsCube", title="Trajectory Binding Interactions")
     IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")
@@ -457,7 +456,6 @@ def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube, avg_du_o
     clusOEMols.success.connect(prepDataset.intake)
     prepDataset.success.connect(report_gen.intake)
     report_gen.success.connect(report.intake)
-    report.success.connect(output_cube.intake)
     if avg_du_output_cube is not None and avg_minimizer is not None:
         report.du_avg_success.connect(avg_minimizer.intake)
         avg_minimizer.success.connect(avg_du_output_cube.intake)
