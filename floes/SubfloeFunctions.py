@@ -408,9 +408,8 @@ def setup_traj_analysis(input_floe, input_cube, fail_cube):
     IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")
     PBSACube = ParallelTrajPBSACube("TrajPBSACube", title="PBSA Energies")
 
-    # DEBUG CIB 22 Feb 2021 : TEMPORARY COVER THIS CUBE GROUP for dev purposes
-    # trajproc_group = ParallelCubeGroup(cubes=[trajCube, trajBints, IntECube, PBSACube])
-    # input_floe.add_group(trajproc_group)
+    trajproc_group = ParallelCubeGroup(cubes=[trajCube, trajBints, IntECube, PBSACube])
+    input_floe.add_group(trajproc_group)
 
     confGather = ConformerGatheringData("Gathering Conformer Records", title="Gathering Conformer Records")
     catLigTraj = ParallelConfTrajsToLigTraj("ConfTrajsToLigTraj", title="Combine Pose Trajectories")
