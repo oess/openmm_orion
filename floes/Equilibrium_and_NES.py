@@ -109,8 +109,9 @@ prod_uns.promote_parameter('time', promoted_name='prod_us_ns', default=6.0,
 # prod_uns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=80,
 #                            description='Total number of trajectory frames used in the NES calculation')
 prod_uns.modify_parameter(prod_uns.trajectory_frames, promoted=False, default=1500)
-prod_uns.promote_parameter('hmr', promoted_name="hmr_us", title='Use Hydrogen Mass Repartitioning '
-                                                                'in the Unbound simulation', default=True,
+prod_uns.promote_parameter('hmr', promoted_name="hmr_us",
+                           title='Use Hydrogen Mass Repartitioning in the Unbound simulation',
+                           default=True,
                            description='Give hydrogens more mass to speed up the MD')
 prod_uns.set_parameters(md_engine='OpenMM')
 prod_uns.set_parameters(reporter_interval=0.002)
@@ -297,7 +298,7 @@ job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
               minimize_bns, warmup_bns, equil1_bns,
               equil2_bns, equil3_bns, equil4_bns, prod_bns,
               switch_out, coll_write, gathering,
-              chimera, unbound_nes, bound_nes,
+              chimera, bound_nes, unbound_nes,
               nes_analysis,  coll_close, report,
               check_rec, ofs, fail, ofs_lig, ofs_prot)
 

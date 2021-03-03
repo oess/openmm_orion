@@ -23,13 +23,14 @@ from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
                                     RBFECMapping)
 
-job = WorkFloe("Equilibrium Runs for Bound and Unbound ", title="Equilibrium Runs for Bound and Unbound")
+job = WorkFloe("MD of Ligand Bound and Unbound to Protein",
+               title="MD of Ligand Bound and Unbound to Protein")
 
 job.description = """
 TBD
 """
 
-job.classification = [['FEC']]
+job.classification = [['MD', 'Protein-Ligand', 'FEC']]
 job.uuid = "537f64c5-0d84-4537-ad74-c55037304e07"
 job.tags = [tag for lists in job.classification for tag in lists]
 
@@ -61,11 +62,6 @@ md_prot_components.promote_parameter("flask_title", promoted_name="flask_title",
                                      description='Prefix name used to identity the Protein', default='')
 md_prot_components.set_parameters(multiple_flasks=False)
 
-# This cube is necessary for the correct work of collection and shard
-coll_open = CollectionSetting("OpenCollection", title="Open Collection")
-coll_open.set_parameters(open=True)
-coll_open.set_parameters(write_new_collection='MD_OPLMD')
-
 # Complex cube used to assemble the ligands and the solvated protein
 complx = ComplexPrepCube("Complex", title="Complex Preparation")
 
@@ -73,6 +69,11 @@ solvate = ParallelSolvationCube("Solvation", title="Solvation")
 solvate.set_parameters(density=1.03)
 solvate.set_parameters(salt_concentration=50.0)
 solvate.modify_parameter(solvate.close_solvent, promoted=False, default=False)
+
+# This cube is necessary for the correct work of collection and shard
+coll_open = CollectionSetting("OpenCollection", title="Open Collection")
+coll_open.set_parameters(open=True)
+coll_open.set_parameters(write_new_collection='MD_OPLMD')
 
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
@@ -117,7 +118,7 @@ warmup_uns.set_parameters(suffix='warmup_un')
 warmup_uns.set_parameters(hmr=False)
 
 # NPT Equilibration stage of the Unbound-States
-equil_uns = ParallelMDNptCube('Equilibration Unbond States', title='Equilibration Unbond States')
+equil_uns = ParallelMDNptCube('Equilibration Unbound States', title='Equilibration Unbound States')
 equil_uns.set_parameters(time=1)
 equil_uns.promote_parameter("hmr", promoted_name="hmr_us", default=True)
 equil_uns.set_parameters(restraints="noh ligand")
@@ -237,9 +238,9 @@ fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
 
 job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
               iprot, md_prot_components, complx, solvate, ff, switch,
-              minimize_uns, warmup_uns, equil_uns, prod_uns,
               minimize_bns, warmup_bns, equil1_bns,
               equil2_bns, equil3_bns, equil4_bns, prod_bns,
+              minimize_uns, warmup_uns, equil_uns, prod_uns,
               coll_close, switch_out, fail, ofs_unbound, ofs_bound)
 
 # Ligand Setting

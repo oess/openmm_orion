@@ -23,8 +23,10 @@ from floe.api import (WorkFloe,
                       ParallelCubeGroup)
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
-from MDOrion.System.cubes import (ParallelRecordSizeCheck)
-from MDOrion.System.cubes import CollectionSetting
+
+from MDOrion.System.cubes import (IDSettingCube,
+                                  CollectionSetting,
+                                  ParallelRecordSizeCheck)
 
 from MDOrion.MDEngines.cubes import (ParallelMDMinimizeCube,
                                      ParallelMDNvtCube,
@@ -40,9 +42,11 @@ from MDOrion.ForceField.cubes import ParallelForceFieldCube
 from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
                                    LigandSetting)
 
-from MDOrion.System.cubes import (IDSettingCube,
-                                  CollectionSetting,
-                                  ParallelRecordSizeCheck)
+from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
+                                    RBFECEdgeGathering,
+                                    ParallelGMXChimera,
+                                    ParallelNESGMX,
+                                    NESAnalysis)
 
 from MDOrion.TrjAnalysis.cubes_trajProcessing import (ParallelTrajToOEMolCube,
                                                       ParallelTrajInteractionEnergyCube,
@@ -61,7 +65,96 @@ from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube
 from MDOrion.TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
 
 
-def setup_PLComplex_for_MD(input_floe, output_cube, fail_cube, options):
+def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, options):
+    # check_rec is the exterior cube for all the fail port connections as well as success
+    #
+    # This cube is necessary for the correct work of collection and shard
+    coll_open_write = CollectionSetting("OpenNESCollection", title="OpenNESCollection")
+    coll_open_write.set_parameters(open=True)
+    coll_open_write.set_parameters(write_new_collection='NES_OPLMD')
+
+    # Switching Bound and Unbound runs
+    switch = BoundUnboundSwitchCube("Bound/Unbound Switch", title='Bound/Unbound Switch')
+
+    gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
+    gathering.promote_parameter('map_file', promoted_name=options['edge_map_file'])
+
+    chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
+    chimera.promote_parameter("trajectory_frames", promoted_name="trajectory_frames",
+                              default=options['n_traj_frames'],
+                              description="The total number of trajectory frames to be used along the NE switching")
+
+    unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
+    unbound_nes.promote_parameter("time", promoted_name="nes_time",
+                                  default=options['nes_switch_time_in_ns'])
+
+    bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
+    bound_nes.promote_parameter("time", promoted_name="nes_time")
+
+    nes_analysis = NESAnalysis("NES_Analysis")
+
+    # This cube is necessary for the correct working of collections and shards
+    coll_close = CollectionSetting("CloseCollection", title="Close Collection")
+    coll_close.set_parameters(open=False)
+
+    report = MDFloeReportCube("report", title="Floe Report")
+    report.set_parameters(floe_report_title="NES Report")
+
+    ofs = DatasetWriterCube('ofs', title='NES Out')
+    ofs.promote_parameter("data_out", promoted_name="out",
+                          title="NES Dataset Out",
+                          description="NES Dataset Out")
+
+    fail = DatasetWriterCube('fail', title='NES Failures')
+    fail.promote_parameter("data_out", promoted_name="fail", title="NES Failures",
+                           description="NES Dataset Failures out")
+
+    input_floe.add_cubes(coll_open_write, switch, gathering,
+                        chimera, bound_nes, unbound_nes,
+                        nes_analysis, coll_close, report,
+                        ofs, fail)
+
+    # Input bound and unbound cubes into Collection Setting
+    input_bound.success.connect(coll_open_write.intake)
+    if input_bound!=input_unbound:
+        input_unbound.success.connect(coll_open_write.intake)
+    coll_open_write.success.connect(switch.intake)
+
+    switch.success.connect(gathering.intake)
+    switch.bound_port.connect(gathering.bound_port)
+
+    # Chimera NES Setting
+    gathering.success.connect(chimera.intake)
+
+    chimera.success.connect(unbound_nes.intake)
+    unbound_nes.success.connect(nes_analysis.intake)
+
+    chimera.bound_port.connect(bound_nes.intake)
+    bound_nes.success.connect(nes_analysis.intake)
+
+    nes_analysis.success.connect(report.intake)
+    report.success.connect(coll_close.intake)
+    coll_close.success.connect(check_rec.intake)
+    check_rec.success.connect(ofs.intake)
+
+    # Fail port connections
+    coll_open_write.failure.connect(check_rec.fail_in)
+    switch.failure.connect(check_rec.fail_in)
+
+    gathering.failure.connect(check_rec.fail_in)
+    chimera.failure.connect(check_rec.fail_in)
+    unbound_nes.failure.connect(check_rec.fail_in)
+    bound_nes.failure.connect(check_rec.fail_in)
+
+    coll_close.failure.connect(check_rec.fail_in)
+    nes_analysis.failure.connect(check_rec.fail_in)
+    report.failure.connect(check_rec.fail_in)
+    check_rec.failure.connect(fail.intake)
+
+    return True
+
+
+def setup_PLComplex_for_MD(input_floe, fail_cube, options):
     # Ligand setting
     iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
     iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset",
@@ -105,7 +198,6 @@ def setup_PLComplex_for_MD(input_floe, output_cube, fail_cube, options):
     iprot.success.connect(mdcomp.intake)
     mdcomp.success.connect(complx.protein_port)
     complx.success.connect(solvate.intake)
-    solvate.success.connect(output_cube.intake)
 
     # Fail Connections
     ligset.failure.connect(fail_cube.fail_in)
@@ -113,12 +205,11 @@ def setup_PLComplex_for_MD(input_floe, output_cube, fail_cube, options):
     ligid.failure.connect(fail_cube.fail_in)
     mdcomp.failure.connect(fail_cube.fail_in)
     complx.failure.connect(fail_cube.fail_in)
-    solvate.failure.connect(fail_cube.fail_in)
 
-    return True
+    return solvate
 
 
-def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
+def setup_MD_startup(input_floe, input_cube, fail_cube, options):
     # Force Field Application
     ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
     ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
@@ -224,7 +315,6 @@ def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
     equil2.success.connect(equil3.intake)
     equil3.success.connect(equil4.intake)
     equil4.success.connect(prod.intake)
-    prod.success.connect(output_cube.intake)
     
     # Fail Connections
     ff.failure.connect(fail_cube.fail_in)
@@ -234,17 +324,91 @@ def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
     equil2.failure.connect(fail_cube.fail_in)
     equil3.failure.connect(fail_cube.fail_in)
     equil4.failure.connect(fail_cube.fail_in)
-    prod.failure.connect(fail_cube.fail_in)
 
-    return True
+    return prod
 
 
-def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
+def setup_MDsmallmol_startup(input_floe, input_cube, fail_cube, options):
+    # Force Field Application
+    ff_small = ParallelForceFieldCube("ForceField", title="Apply Force Field")
+    ff_small.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.0')
+
+    # Production run
+    prod_small = ParallelMDNptCube("Production Unbound State", title="Production Unbound State")
+    prod_small.promote_parameter('time', promoted_name='prod_unb_ns',
+                                 default=options['Prod_Default_Time_ns'],
+                                 description='Length of Unbound MD run in nanoseconds')
+    prod_small.promote_parameter('trajectory_interval', promoted_name='prod_trajectory_interval',
+                           default=options['Prod_Default_Traj_Intvl_ns'],
+                           description='Unbound trajectory saving interval in ns')
+    prod_small.promote_parameter('hmr', promoted_name="hmr_us",
+                                 title='Use Hydrogen Mass Repartitioning in the Unbound simulation',
+                                 default=True,
+                                 description='Give hydrogens more mass to speed up the MD')
+    prod_small.set_parameters(md_engine='OpenMM')
+    prod_small.set_parameters(reporter_interval=options['Prod_Default_Traj_Intvl_ns'])
+    prod_small.set_parameters(suffix='prod_unb')
+
+    # Minimization of the Unbound-States
+    minimize_small = ParallelMDMinimizeCube("Minimize Unbound States", title="Minimization Unbound States")
+    minimize_small.set_parameters(restraints='noh ligand')
+    minimize_small.set_parameters(md_engine='OpenMM')
+    minimize_small.set_parameters(steps=2000)
+    minimize_small.set_parameters(restraintWt=5.0)
+    minimize_small.set_parameters(center=True)
+    minimize_small.set_parameters(hmr=False)
+
+    # NVT Warm-up of the Unbound-States
+    warmup_small = ParallelMDNvtCube('Warmup Unbound States', title='Warmup Unbound States')
+    warmup_small.set_parameters(time=0.01)
+    warmup_small.set_parameters(restraints="noh ligand")
+    warmup_small.set_parameters(md_engine='OpenMM')
+    warmup_small.set_parameters(restraintWt=2.0)
+    warmup_small.set_parameters(trajectory_interval=0.0)
+    warmup_small.set_parameters(reporter_interval=0.002)
+    warmup_small.set_parameters(suffix='warmup_unb')
+    warmup_small.set_parameters(hmr=False)
+
+    # NPT Equilibration stage of the Unbound-States
+    equil_small = ParallelMDNptCube('Equilibration Unbound State', title='Equilibration Unbound States')
+    equil_small.set_parameters(time=0.1)
+    equil_small.promote_parameter("hmr", promoted_name="hmr_unbound", default=True)
+    equil_small.set_parameters(restraints="noh ligand")
+    equil_small.set_parameters(md_engine='OpenMM')
+    equil_small.set_parameters(restraintWt=0.1)
+    equil_small.set_parameters(trajectory_interval=0.0)
+    equil_small.set_parameters(reporter_interval=0.004)
+    equil_small.set_parameters(suffix='equil_unb')
+
+    md_group_small = ParallelCubeGroup(cubes=[minimize_small, warmup_small, equil_small, prod_small])
+    input_floe.add_group(md_group_small)
+
+    input_floe.add_cubes(ff_small, minimize_small, warmup_small, equil_small, prod_small)
+
+    # Success port Connections
+    input_cube.success.connect(ff_small.intake)
+    ff_small.success.connect(minimize_small.intake)
+    minimize_small.success.connect(warmup_small.intake)
+    warmup_small.success.connect(equil_small.intake)
+    equil_small.success.connect(prod_small.intake)
+
+    # Fail port connections
+    input_cube.failure.connect(fail_cube.intake)
+    ff_small.failure.connect(fail_cube.intake)
+    minimize_small.failure.connect(fail_cube.intake)
+    warmup_small.failure.connect(fail_cube.intake)
+    equil_small.failure.connect(fail_cube.intake)
+
+    return prod_small
+
+
+def setup_traj_analysis(input_floe, input_cube, fail_cube):
     trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube", title="Trajectory To OEMols")
+    trajBints = ParallelComparePoseBintsToTrajBints("TrajBintsCube", title="Trajectory Binding Interactions")
     IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")
     PBSACube = ParallelTrajPBSACube("TrajPBSACube", title="PBSA Energies")
 
-    trajproc_group = ParallelCubeGroup(cubes=[trajCube, IntECube, PBSACube])
+    trajproc_group = ParallelCubeGroup(cubes=[trajCube, trajBints, IntECube, PBSACube])
     input_floe.add_group(trajproc_group)
 
     confGather = ConformerGatheringData("Gathering Conformer Records", title="Gathering Conformer Records")
@@ -262,13 +426,14 @@ def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
 
     report = MDFloeReportCube("report", title="Floe Report")
 
-    input_floe.add_cubes(trajCube, IntECube, PBSACube, confGather,
+    input_floe.add_cubes(trajCube, trajBints, IntECube, PBSACube, confGather,
                   catLigTraj, catLigMMPBSA, clusCube, clusPop, clusOEMols,
                   prepDataset, report_gen, report)
     
     # Success Connections
     input_cube.success.connect(trajCube.intake)
-    trajCube.success.connect(IntECube.intake)
+    trajCube.success.connect(trajBints.intake)
+    trajBints.success.connect(IntECube.intake)
     IntECube.success.connect(PBSACube.intake)
     PBSACube.success.connect(confGather.intake)
     confGather.success.connect(catLigTraj.intake)
@@ -279,10 +444,10 @@ def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
     clusOEMols.success.connect(prepDataset.intake)
     prepDataset.success.connect(report_gen.intake)
     report_gen.success.connect(report.intake)
-    report.success.connect(output_cube.intake)
     
     # Fail Connections
     trajCube.failure.connect(fail_cube.fail_in)
+    trajBints.failure.connect(fail_cube.fail_in)
     IntECube.failure.connect(fail_cube.fail_in)
     PBSACube.failure.connect(fail_cube.fail_in)
     confGather.failure.connect(fail_cube.fail_in)
@@ -293,24 +458,20 @@ def setup_traj_analysis(input_floe, input_cube, output_cube, fail_cube):
     clusOEMols.failure.connect(fail_cube.fail_in)
     prepDataset.failure.connect(fail_cube.fail_in)
     report_gen.failure.connect(fail_cube.fail_in)
-    report.failure.connect(fail_cube.fail_in)
 
-    return True
+    return report
 
 
-def setup_bint(input_floe, input_cube, output_cube, fail_cube):
+def setup_bint(input_floe, input_cube, fail_cube):
 
     trajBints = ParallelComparePoseBintsToTrajBints("TrajBintsCube", title="Trajectory Binding Interactions")
 
     input_floe.add_cubes(trajBints)
 
     input_cube.success.connect(trajBints.intake)
-    trajBints.success.connect(output_cube.intake)
 
-    trajBints.failure.connect(fail_cube.fail_in)
-
-    return True
+    return trajBints
 
 
-if __name__ == "__main__":
-    job.run()
+#if __name__ == "__main__":
+#    job.run()
