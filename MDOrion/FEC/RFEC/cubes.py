@@ -774,7 +774,7 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         "spot_policy": {"default": "Required"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1},  # 1 molecule at a time
-        "max_failures": {"default": 0}  # just one retry
+        "max_failures": {"default": 1}  # just one retry
     }
 
     temperature = parameters.DecimalParameter(
