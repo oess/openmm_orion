@@ -86,7 +86,7 @@ switch = BoundUnboundSwitchCube("Bound/Unbound In Switch", title='Bound/Unbound 
 # Run the equilibrium Simulations ot the Unbound-States
 prod_uns = ParallelMDNptCube("Production Unbound States", title="Production Unbound States")
 prod_uns.promote_parameter('time', promoted_name='prod_us_ns', default=6.0,
-                           description='Length of Unbound MD run in nanoseconds')
+                           description='Length of Production MD run in nanoseconds')
 # prod_uns.promote_parameter('trajectory_frames', promoted_name='prod_trajectory_us_frames', default=1500,
 #                            description='Total number of trajectory frames used in the NES calculation')
 prod_uns.modify_parameter(prod_uns.trajectory_frames, promoted=False, default=1500)
