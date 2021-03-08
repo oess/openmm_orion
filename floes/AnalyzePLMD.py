@@ -59,7 +59,7 @@ ofs.promote_parameter("data_out", promoted_name="out",
 
 ofs_du = DatasetWriterCube('ofs_du', title='MD Out DU Cluster Medoid')
 ofs_du.promote_parameter("data_out", promoted_name="du",
-                             title="MD Out DU Cluster Medoid", description="DU Cluster Med MD Dataset out")
+                         title="MD Out DU Cluster Medoid", description="DU Cluster Med MD Dataset out")
 
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",

@@ -402,7 +402,8 @@ def setup_MDsmallmol_startup(input_floe, input_cube, fail_cube, options):
 
     return prod_small
 
-def setup_traj_analysis(input_floe, input_cube, fail_cube, du_output_cube=None):
+
+def setup_traj_analysis(input_floe, input_cube, fail_cube, du_output_cube):
     trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube", title="Trajectory To OEMols")
     trajBints = ParallelComparePoseBintsToTrajBints("TrajBintsCube", title="Trajectory Binding Interactions")
     IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")
@@ -419,13 +420,6 @@ def setup_traj_analysis(input_floe, input_cube, fail_cube, du_output_cube=None):
     clusOEMols = ParallelMakeClusterTrajOEMols('MakeClusterTrajOEMols', title="Per-Cluster Analysis")
     prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset', title="Analysis Report")
     report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport", title="Relevant Output Extraction")
-    med_minimizer = None
-    if du_output_cube is not None:
-        med_minimizer = ParallelMDSnapshotMinimzationCube("MDSnapshotMinimzationCubeMed",
-                                                          title='MD Cluster Medoid Snapshot Minimizer')
-        med_minimizer.set_parameters(bfactor_based_restraints=False)
-        input_floe.add_cubes(med_minimizer)
-
     analysis_group = ParallelCubeGroup(cubes=[catLigTraj, catLigMMPBSA, clusCube, clusPop,
                                               clusOEMols, prepDataset, report_gen])
     input_floe.add_group(analysis_group)
@@ -450,10 +444,7 @@ def setup_traj_analysis(input_floe, input_cube, fail_cube, du_output_cube=None):
     clusOEMols.success.connect(prepDataset.intake)
     prepDataset.success.connect(report_gen.intake)
     report_gen.success.connect(report.intake)
-    if du_output_cube is not None and med_minimizer is not None:
-        report.du_success.connect(med_minimizer.intake)
-        med_minimizer.success.connect(du_output_cube.intake)
-        med_minimizer.failure.connect(fail_cube.fail_in)
+    report.du_success.connect(du_output_cube.intake)
 
     # Fail Connections
     trajCube.failure.connect(fail_cube.fail_in)

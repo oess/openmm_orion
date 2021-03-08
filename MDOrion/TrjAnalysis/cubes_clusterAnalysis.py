@@ -85,109 +85,6 @@ class OEHasBFactorRange(oechem.OEUnaryAtomPred):
         return OEHasBFactorRange(self.gt, self.le).__disown__()
 
 
-class MDSnapshotMinimzationCube(RecordPortsMixin, ComputeCube):
-
-    title = "MDSnapshotMinimzationCube"
-    classification = [["Analysis"]]
-    description = """
-    Minimize design units extracted from an MD simulation
-
-    This cube will minimize the output components from the flask
-    """
-
-    uuid = ""
-
-    # Override defaults for some parameters
-    parameter_overrides = {
-        "spot_policy": {"default": "Allowed"},
-    }
-
-    bfactor_based_restraints = BooleanParameter()
-    dc = None
-    iter_max = None
-    grad_tol = None
-
-    def begin(self):
-        self.opt = vars(self.args)
-        self.opt['Logger'] = self.log
-        self.dc = 1.0
-        self.iter_max = 20
-        self.grad_tol = 1.0
-
-        return
-
-    def process(self, record, port):
-
-        du_field = None
-        for field in record.get_fields():
-            if field.get_type() == Types.Chem.DesignUnit or "Chem.DesignUnit" in field.get_type_name():
-                du_field = field
-                break
-        if du_field is None or not record.has_value(du_field):
-            print("Failed, record did not have expected designunit field", flush=True)
-            self.failure.emit(record)
-            return
-        du = record.get_value(du_field)
-
-        mol = oechem.OEGraphMol()
-        du.GetImpl().GetComponents(mol, oechem.OEDesignUnitComponents_All, True)
-
-        ff = oeff.OEFF14SBParsley()
-
-        pot = None
-        if self.args.bfactor_based_restraints():
-            prev_lower = 0.0
-            for x in range(20, 100, 5):
-                pred = OEHasBFactorRange(prev_lower, x)
-                kc = min(1.0, max(float(x)/30-0.5, 0.0))
-                pot = oeff.OEHarmonicPotential(kc, self.dc)
-                pot.Set(oechem.OEAndAtom(oechem.OEIsHeavy(), pred))
-                # pot.Setup(mol)
-                ff.AddMolFunc(oeff.OENumericMolFunc2(pot))
-                prev_lower = float(x)
-        else:
-            pot = oeff.OEHarmonicPotential(10, 0.5)
-            pot.Set(oechem.OEIsHeavy())
-            pot.Setup(mol)
-            molfunc = oeff.OENumericMolFunc2(pot)
-            ff.AddMolFunc(molfunc)
-
-        if not ff.PrepMol(mol) or not ff.Setup(mol):
-            oechem.OEThrow.Warning("Unable to process molecule: title = '%s'" % mol.GetTitle())
-            self.failure.emit(record)
-            return
-
-        vecCoords = oechem.OEDoubleArray(3 * mol.GetMaxAtomIdx())
-        mol.GetCoords(vecCoords)
-
-        # Calculate energy
-        energy = ff(vecCoords)
-        oechem.OEThrow.Info("Initial energy: %0.2f kcal/mol" % energy)
-
-        # Optimize the system
-        optimizer = oeff.OEBFGSOpt()
-        optimizer.SetIterLimit(self.iter_max)
-        optimizer.SetTolerance(self.grad_tol)
-        if self.args.bfactor_based_restraints():
-            # TODO: How many steps, tolerance
-            energy = optimizer(ff, vecCoords, vecCoords)
-            oechem.OEThrow.Info("Optimized energy: %0.2f kcal/mol" % energy)
-        else:
-            # TODO: How many steps, tolerance, kc/dc pairs
-            kc = [10.0, 5.0, 1.0]
-            dc = [0.5, 1.0, 1.0]
-            for i in range(0, 3):
-                pot.Set_kc(kc[i])
-                pot.Set_dc(dc[i])
-                energy = optimizer(ff, vecCoords, vecCoords)
-            oechem.OEThrow.Info("Optimized energy: %0.2f kcal/mol" % energy)
-
-        mol.SetCoords(vecCoords)
-        du.GetImpl().SetComponentsFromData(mol)
-        record.set_value(du_field, du)
-        self.success.emit(record)
-
-
 class MDFloeReportCube(RecordPortsMixin, ComputeCube):
     title = "MDFloeReportCube"
     # version = "0.1.4"
@@ -210,8 +107,7 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    du_avg_success = RecordOutputPort("du_avg_success")
-    du_med_success = RecordOutputPort("du_med_success")
+    du_success = RecordOutputPort("du_success")
 
     floe_report_title = parameters.StringParameter("floe_report_title", default="MD Report")
 
@@ -281,12 +177,7 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
                 rec.set_value(Fields.floe_report_URL, page_link)
 
                 temp_rec = OERecord(rec)
-                temp_rec.delete_field(Fields.Analysis.ClusMedDU_fld)
-                self.du_avg_success.emit(temp_rec)
-
-                temp_rec = OERecord(rec)
-                temp_rec.delete_field(Fields.Analysis.ClusAvgDU_fld)
-                self.du_med_success.emit(temp_rec)
+                self.du_success.emit(temp_rec)
 
             del mdrecord
 
@@ -603,7 +494,6 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 # for each major cluster generate SVG and average and median for protein and ligand
                 for clusID in range(nMajorClusters):
                     cluster_record = OERecord()
-                    clusAvgDU = oechem.OEDesignUnit()
                     clusMedDU = oechem.OEDesignUnit()
 
                     opt['Logger'].info('Extracting cluster {} from {}'.format( clusID, system_title ))
@@ -618,9 +508,8 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                     opt['Logger'].info('generating representative protein average and median confs')
                     #
 
-                    # TODO: Are average structures, weighted by energy
                     color = cluster_styler.getColor(clusID)
-                    occSurface = utl.GenerateOccupancySurf(clusProt, clusLig, None, None, color, 7, 0.8, 0.5)
+                    occSurface = utl.GenerateOccupancySurf(clusProt, clusLig, None, None, clusID, color)
                     cluster_record.set_value(Fields.Analysis.ClustOccSurf_fld, occSurface)
 
                     # ligMed, protMed, cofactMed, watMed, ligAvg, protAvg, cofactAvg, watAvg = oetrjutl.AnalyseProteinLigandTrajectoryOEMols( clusLig, clusProt, clusCofact, clusWat)
@@ -644,14 +533,6 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                     # conf.SetTitle(confTitle)
                     # conf = clusWatMedMol.NewConf(watMed)
                     # conf.SetTitle(confTitle)
-
-                    clusAvgDU.GetImpl().SetProtein(protAvg)
-                    # TODO: Split cofactAvg into components and add seperately
-                    # clusAvgDU.GetImpl().SetComponent(oechem.OEDesignUnitComponents_Cofactors, part)
-                    # clusAvgDU.GetImpl().SetSolvent(watAvg)
-                    oechem.OEUpdateDesignUnit(clusAvgDU, ligAvg, oechem.OEDesignUnitComponents_Ligand)
-                    cluster_styler.apply_style(clusAvgDU, clusID)
-                    cluster_record.set_value(Fields.Analysis.ClusAvgDU_fld, clusAvgDU)
 
                     clusMedDU.GetImpl().SetProtein(protMed)
                     # TODO: Split cofactMed into components and add seperately
@@ -689,7 +570,6 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
             else:  # number of clusters is zero
                 clusID = 0
                 cluster_record = OERecord()
-                clusAvgDU = oechem.OEDesignUnit()
                 clusMedDU = oechem.OEDesignUnit()
 
                 opt['Logger'].info('No major clusters found for {}'.format(system_title))
@@ -703,10 +583,6 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 # TODO: Should style also update for water and cofactors?
                 utl.SetProteinLigandVizStyle(clusProtAvgMol, clusLigAvgMol)
 
-                clusAvgDU.GetImpl().SetProtein(protAverage)
-                oechem.OEUpdateDesignUnit(clusAvgDU, clusLigAvgMol, oechem.OEDesignUnitComponents_Ligand)
-                cluster_styler.apply_style(clusAvgDU, clusID)
-                cluster_record.set_value(Fields.Analysis.ClusAvgDU_fld, clusAvgDU)
                 #
                 #clusLigMedMol = utl.RequestOEField( oetrajRecord, 'LigMedian', Types.Chem.Mol)
                 #clusProtMedMol = utl.RequestOEField( oetrajRecord, 'ProtMedian', Types.Chem.Mol)
@@ -718,12 +594,12 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 utl.SetProteinLigandVizStyle(clusProtMedMol, clusLigMedMol)
 
                 color = cluster_styler.getColor(clusID)
-                occSurface = utl.GenerateOccupancySurf(protTraj, ligTraj, None, None, color, 7, 0.8, 0.5)
+                occSurface = utl.GenerateOccupancySurf(protTraj, ligTraj, None, None, clusID, color)
                 cluster_record.set_value(Fields.Analysis.ClustOccSurf_fld, occSurface)
 
                 clusMedDU.GetImpl().SetProtein(clusProtMedMol)
                 oechem.OEUpdateDesignUnit(clusMedDU, clusLigMedMol, oechem.OEDesignUnitComponents_Ligand)
-                cluster_styler.apply_style(clusAvgDU, clusID)
+                cluster_styler.apply_style(clusMedDU, clusID)
                 cluster_record.set_value(Fields.Analysis.ClusMedDU_fld, clusMedDU)
 
                 cluster_record.set_value(Fields.Analysis.ClusID_fld, clusID)
@@ -1489,7 +1365,7 @@ class ExtractMDDataCube(RecordPortsMixin, ComputeCube):
 class ParallelMDSnapshotMinimzationCube(ParallelMixin, MDSnapshotMinimzationCube):
     title = "Parallel " + MDSnapshotMinimzationCube.title
     description = "(Parallel) " + MDSnapshotMinimzationCube.description
-    uuid = ""
+    uuid = "de1a7f19-d795-48d7-bdaf-ddc78742981b"
 
 
 class ParallelClusterOETrajCube(ParallelMixin, ClusterOETrajCube):
