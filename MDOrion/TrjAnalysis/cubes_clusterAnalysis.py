@@ -69,22 +69,6 @@ import shutil
 from MDOrion.TrjAnalysis.dowload_fr_utils import download_report
 
 
-class OEHasBFactorRange(oechem.OEUnaryAtomPred):
-    def __init__(self, gt, le):
-        oechem.OEUnaryAtomPred.__init__(self)
-        self.gt = gt
-        self.le = le
-
-    def __call__(self, atom):
-        res = oechem.OEAtomGetResidue(atom)
-        return self.gt < res.GetFactor() <= self.le
-
-    def CreateCopy(self):
-        # __disown__ is required to allow C++ to take ownership of this
-        # object and its memory
-        return OEHasBFactorRange(self.gt, self.le).__disown__()
-
-
 class MDFloeReportCube(RecordPortsMixin, ComputeCube):
     title = "MDFloeReportCube"
     # version = "0.1.4"
@@ -435,10 +419,12 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} got protTraj with {} atoms, {} confs'.format(
                 system_title, protTraj.NumAtoms(), protTraj.NumConfs()) )
 
+            watTraj = None
             # watTraj = utl.RequestOEField(oetrajRecord, 'WatTraj', Types.Chem.Mol)
             # opt['Logger'].info('{} got watTraj with {} atoms, {} confs'.format(
             #     system_title, watTraj.NumAtoms(), watTraj.NumConfs()))
 
+            cofactTraj = None
             # cofactTraj = utl.RequestOEField(oetrajRecord, 'CofactTraj', Types.Chem.Mol)
             # opt['Logger'].info('{} got cofactTraj with {} atoms, {} confs'.format(
             #     system_title, cofactTraj.NumAtoms(), cofactTraj.NumConfs()))
@@ -501,19 +487,20 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                     opt['Logger'].info( 'ligand cluster {} with {} confs'.format(clusID,clusLig.NumConfs()) )
                     clusProt = clusutl.TrajOEMolFromCluster( protTraj, trajClus['ClusterVec'], clusID)
                     opt['Logger'].info('protein cluster {} with {} confs'.format(clusID,clusProt.NumConfs()) )
+                    clusCofact = None
                     # clusCofact = clusutl.TrajOEMolFromCluster( cofactTraj, trajClus['ClusterVec'], clusID)
                     # opt['Logger'].info( 'cofactor cluster {} with {} confs'.format(clusID,clusCofact.NumConfs()) )
+                    clusWat = None
                     # clusWat = clusutl.TrajOEMolFromCluster( watTraj, trajClus['ClusterVec'], clusID)
                     # opt['Logger'].info( 'water cluster {} with {} confs'.format(clusID,clusWat.NumConfs()) )
                     opt['Logger'].info('generating representative protein average and median confs')
                     #
 
                     color = cluster_styler.getColor(clusID)
-                    occSurface = utl.GenerateOccupancySurf(clusProt, clusLig, None, None, clusID, color)
+                    occSurface = utl.GenerateOccupancySurf(clusProt, clusLig, clusWat, clusCofact, clusID, color)
                     cluster_record.set_value(Fields.Analysis.ClustOccSurf_fld, occSurface)
 
                     # ligMed, protMed, cofactMed, watMed, ligAvg, protAvg, cofactAvg, watAvg = oetrjutl.AnalyseProteinLigandTrajectoryOEMols( clusLig, clusProt, clusCofact, clusWat)
-                    # ligMed, protMed, watMed, ligAvg, protAvg, watAvg = oetrjutl.AnalyseProteinLigandTrajectoryOEMols(clusLig, clusProt, clusWat)
                     ligMed, protMed, ligAvg, protAvg = oetrjutl.AnalyseProteinLigandTrajectoryOEMols(clusLig, clusProt)
 
                     confTitle = 'clus '+str(clusID)
@@ -594,7 +581,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 utl.SetProteinLigandVizStyle(clusProtMedMol, clusLigMedMol)
 
                 color = cluster_styler.getColor(clusID)
-                occSurface = utl.GenerateOccupancySurf(protTraj, ligTraj, None, None, clusID, color)
+                occSurface = utl.GenerateOccupancySurf(protTraj, ligTraj, watTraj, cofactTraj, clusID, color)
                 cluster_record.set_value(Fields.Analysis.ClustOccSurf_fld, occSurface)
 
                 clusMedDU.GetImpl().SetProtein(clusProtMedMol)
@@ -1360,12 +1347,6 @@ class ExtractMDDataCube(RecordPortsMixin, ComputeCube):
         except Exception as e:
             print("Failed to complete", str(e), flush=True)
             self.log.error(traceback.format_exc())
-
-
-class ParallelMDSnapshotMinimzationCube(ParallelMixin, MDSnapshotMinimzationCube):
-    title = "Parallel " + MDSnapshotMinimzationCube.title
-    description = "(Parallel) " + MDSnapshotMinimzationCube.description
-    uuid = "de1a7f19-d795-48d7-bdaf-ddc78742981b"
 
 
 class ParallelClusterOETrajCube(ParallelMixin, ClusterOETrajCube):
