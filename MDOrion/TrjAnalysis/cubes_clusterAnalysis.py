@@ -19,8 +19,7 @@ from orionplatform.mixins import RecordPortsMixin, RecordOutputPort
 
 from floe.api import (ParallelMixin,
                       parameters,
-                      ComputeCube,
-                      BooleanParameter)
+                      ComputeCube)
 
 from MDOrion.Standards import Fields, MDStageNames
 
@@ -46,7 +45,7 @@ import ensemble2img
 
 from tempfile import TemporaryDirectory
 
-from openeye import oechem, oeff
+from openeye import oechem
 
 from openeye import oedepict
 
@@ -159,9 +158,7 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
 
             for rec in record.get_value(Fields.Analysis.ClusterDURecs_fld):
                 rec.set_value(Fields.floe_report_URL, page_link)
-
-                temp_rec = OERecord(rec)
-                self.du_success.emit(temp_rec)
+                self.du_success.emit(rec)
 
             del mdrecord
 

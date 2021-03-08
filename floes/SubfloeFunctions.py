@@ -209,7 +209,7 @@ def setup_PLComplex_for_MD(input_floe, fail_cube, options):
     return solvate
 
 
-def setup_MD_startup(input_floe, input_cube, output_cube, fail_cube, options):
+def setup_MD_startup(input_floe, input_cube, fail_cube, options):
     # Force Field Application
     ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
     ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
