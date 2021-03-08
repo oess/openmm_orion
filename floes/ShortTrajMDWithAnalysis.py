@@ -60,7 +60,11 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
-job.add_cubes(coll_open, coll_close, check_rec, ofs, fail)
+ofs_du = DatasetWriterCube('ofs_du', title='MD Out DU Cluster Medoid')
+ofs_du.promote_parameter("data_out", promoted_name="du",
+                         title="MD Out DU Cluster Medoid", description="DU Cluster Med MD Dataset out")
+
+job.add_cubes(coll_open, coll_close, check_rec, ofs, fail,ofs_du)
 
 # Call subfloe function to set up the solvated protein-ligand complex
 PLComplex_for_MD_options = {}
@@ -79,7 +83,7 @@ MD_startup_options['Prod_Default_Traj_Intvl_ns'] = 0.004
 MD_outcube = setup_MD_startup(job, coll_open, check_rec, MD_startup_options)
 
 # Call subfloe function to do the full trajectory analysis directly from the MD production run
-traj_anlys_outcube = setup_traj_analysis(job, MD_outcube, check_rec)
+traj_anlys_outcube = setup_traj_analysis(job, MD_outcube, check_rec, ofs_du)
 
 # Connections
 traj_anlys_outcube.success.connect(coll_close.intake)
