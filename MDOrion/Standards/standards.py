@@ -234,7 +234,6 @@ class Fields:
         ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol)
         ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol)
 
-        ClusAvgDU_fld = OEField('ClusAvgDU', Types.Chem.DesignUnit)
         ClusMedDU_fld = OEField('ClusMedDU', Types.Chem.DesignUnit)
         ClustOccSurf_fld = OEField('ClusterOccSurf', Types.Chem.Surface)
         ClusterDURecs_fld = OEField('ClusterDURecs', Types.RecordVec)
