@@ -57,14 +57,18 @@ ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",
                       title="MD Out", description="MD Dataset out")
 
+ofs_du = DatasetWriterCube('ofs_du', title='MD Out DU Cluster Medoid')
+ofs_du.promote_parameter("data_out", promoted_name="du",
+                             title="MD Out DU Cluster Medoid", description="DU Cluster Med MD Dataset out")
+
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
 job.add_cubes(iMDInput, coll_open,
-              coll_close, check_rec,  ofs, fail)
+              coll_close, check_rec,  ofs, fail, ofs_du)
 
-traj_anlys_outcube = setup_traj_analysis(job, coll_open, check_rec)
+traj_anlys_outcube = setup_traj_analysis(job, coll_open, check_rec, ofs_du)
 
 # Success Connections
 iMDInput.success.connect(coll_open.intake)

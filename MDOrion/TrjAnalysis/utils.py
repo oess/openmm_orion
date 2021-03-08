@@ -21,7 +21,8 @@ from openeye import (oechem,
                      oedepict,
                      oegrapheme,
                      oegrid,
-                     oespicoli)
+                     oespicoli,
+                     oedocking)
 import mdtraj as md
 
 from datarecord import OEField
@@ -543,42 +544,82 @@ def StyleTrajProteinLigandClusters( protein, ligand):
     return True
 
 
-def GenerateOccupancySurf(clusProt, clusLig, clusWat, custCofact, color, pl_include_dist=7.0, contour=0.8, resolution=0.5):
+def scale_grid(grid, scale_by):
 
+    for iz in range(grid.GetZDim()):
+        for iy in range(grid.GetYDim()):
+            for ix in range(grid.GetXDim()):
+                value = grid.GetValue(ix, iy, iz)
+                value = value / scale_by
+                grid.SetValue(ix, iy, iz, value)
+    return grid
+
+
+def coords_from_box(box):
+    coords = oechem.OEFloatArray(6)
+    coords[0] = box.GetXMin()
+    coords[1] = box.GetYMin()
+    coords[2] = box.GetZMin()
+    coords[3] = box.GetXMax()
+    coords[4] = box.GetYMax()
+    coords[5] = box.GetZMax()
+    return coords
+
+
+def make_occ_grid(mol, resolution):
+    box = oedocking.OEBox(mol, 5.0)
+    coords = coords_from_box(box)
+    grid = oegrid.OEScalarGrid(coords, resolution)
+    temp_grid = oegrid.OEScalarGrid(coords, resolution)
+    for conf in mol.GetConfs():
+        oegrid.OEMakeMolecularGaussianGrid(temp_grid, conf)
+        oegrid.OEAddScalarGrid(grid, temp_grid)
+    return scale_grid(grid, float(mol.NumConfs()))
+
+
+def color_surf(surf, color, color_offset, alpha):
+    for i in range(surf.GetNumVertices()):
+        surf.SetColorElement(i, color[0], color[1], min(max(0, color[2] + color_offset), 255), alpha)
+
+
+def GenerateOccupancySurf(clusProt, clusLig, clusWat, custCofact, color, pl_include_dist=7.0, contour=0.4, resolution=0.5):
+
+    alpha = 64
+    ligand_color_offset = 30
+    other_color_offset = -ligand_color_offset
     surf = oespicoli.OESurface()
     tempSurf = oespicoli.OESurface()
 
     # ligand
-    grid = oegrid.OEScalarGrid()
-    oegrid.OEMakeMolecularGaussianGrid(grid, clusLig, resolution)
+    grid = make_occ_grid(clusLig, resolution)
     oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, contour)
+    color_surf(tempSurf, color, ligand_color_offset, alpha)
     oespicoli.OEAddSurfaces(surf, tempSurf)
 
     # protein
-    # TODO: Really need an OEMCMolBase version of this
     pred = oechem.OEAtomMatchResidue(clusProt, clusLig, pl_include_dist)
     clusProtSubset = oechem.OEMol()
     oechem.OESubsetMol(clusProtSubset, clusProt, pred)
-    oegrid.OEMakeMolecularGaussianGrid(grid, clusProtSubset, resolution)
-    oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, contour)
+    grid = make_occ_grid(clusProtSubset, resolution)
+    oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, max(grid.GetValues()) * contour)
+    color_surf(tempSurf, color, other_color_offset, alpha)
     oespicoli.OEAddSurfaces(surf, tempSurf)
 
     # water
-    oegrid.OEMakeMolecularGaussianGrid(grid, clusWat, resolution)
-    oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, contour)
-    oespicoli.OEAddSurfaces(surf, tempSurf)
+    if clusWat is not None and clusWat.IsValid():
+        grid = make_occ_grid(clusWat, resolution)
+        oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, max(grid.GetValues()) * contour)
+        color_surf(tempSurf, color, other_color_offset, alpha)
+        oespicoli.OEAddSurfaces(surf, tempSurf)
 
     # cofactor
     if custCofact is not None and custCofact.IsValid():
-        oegrid.OEMakeMolecularGaussianGrid(grid, custCofact, resolution)
-        oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, contour)
+        grid = make_occ_grid(custCofact, resolution)
+        oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, max(grid.GetValues()) * contour)
+        color_surf(tempSurf, color, other_color_offset, alpha)
         oespicoli.OEAddSurfaces(surf, tempSurf)
 
-    oespicoli.OESmoothSurfaceEdges(surf)
-
-    alpha=128
-    for i in range(surf.GetNumVertices()):
-        surf.SetColorElement(i, color[0], color[1], color[2], alpha)
+    surf.SetTitle("Complete Occ Surface")
 
     return surf
 
