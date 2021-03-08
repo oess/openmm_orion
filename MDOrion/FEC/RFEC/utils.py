@@ -146,13 +146,20 @@ def parmed_find_ligand(pmd, lig_res_name="LIG"):
 def fix_gromacs_water_names(pmd_flask):
 
     for r in pmd_flask.residues:
+
         if len(r.atoms) == 3:
-            oxy, = (a for a in r.atoms if a.atomic_number == 8)
-            hyd1, hyd2 = (a for a in r.atoms if a.atomic_number == 1)
-            if oxy and hyd1 and hyd2:
-                oxy.name = 'O'
-                hyd1.name = 'H1'
-                hyd2.name = 'H2'
+
+            try:
+                oxy, = (a for a in r.atoms if a.atomic_number == 8)
+
+                hyd1, hyd2 = (a for a in r.atoms if a.atomic_number == 1)
+
+                if oxy and hyd1 and hyd2:
+                    oxy.name = 'O'
+                    hyd1.name = 'H1'
+                    hyd2.name = 'H2'
+            except:
+                continue
 
     return pmd_flask
 
