@@ -60,8 +60,7 @@ from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube
                                                        ParallelMDTrajAnalysisClusterReport,
                                                        ParallelClusterPopAnalysis,
                                                        ParallelTrajAnalysisReportDataset,
-                                                       MDFloeReportCube,
-                                                       ParallelMDSnapshotMinimzationCube)
+                                                       MDFloeReportCube,)
 
 from MDOrion.TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
 
