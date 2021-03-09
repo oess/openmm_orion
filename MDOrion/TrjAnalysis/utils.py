@@ -577,23 +577,22 @@ def make_occ_grid(mol, resolution):
     return scale_grid(grid, float(mol.NumConfs()))
 
 
-def color_surf(surf, color, color_offset, alpha):
+def color_occ_surf(surf, color, alpha):
     for i in range(surf.GetNumVertices()):
-        surf.SetColorElement(i, color[0], color[1], min(max(0, color[2] + color_offset), 255), alpha)
+        surf.SetColorElement(i, color.GetR(), color.GetG(), color.GetB(), alpha)
 
 
-def GenerateOccupancySurf(clusProt, clusLig, clusWat, custCofact, color, pl_include_dist=7.0, contour=0.4, resolution=0.5):
+def GenerateOccupancySurf(clusProt, clusLig, clusWat, custCofact, color,
+                          pl_include_dist=5.0, contour=0.4, resolution=0.5):
 
     alpha = 64
-    ligand_color_offset = 30
-    other_color_offset = -ligand_color_offset
     surf = oespicoli.OESurface()
     tempSurf = oespicoli.OESurface()
 
     # ligand
     grid = make_occ_grid(clusLig, resolution)
     oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, contour)
-    color_surf(tempSurf, color, ligand_color_offset, alpha)
+    color_occ_surf(tempSurf, color, alpha)
     oespicoli.OEAddSurfaces(surf, tempSurf)
 
     # protein
@@ -602,21 +601,21 @@ def GenerateOccupancySurf(clusProt, clusLig, clusWat, custCofact, color, pl_incl
     oechem.OESubsetMol(clusProtSubset, clusProt, pred)
     grid = make_occ_grid(clusProtSubset, resolution)
     oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, max(grid.GetValues()) * contour)
-    color_surf(tempSurf, color, other_color_offset, alpha)
+    color_occ_surf(tempSurf, color, alpha)
     oespicoli.OEAddSurfaces(surf, tempSurf)
 
     # water
     if clusWat is not None and clusWat.IsValid():
         grid = make_occ_grid(clusWat, resolution)
         oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, max(grid.GetValues()) * contour)
-        color_surf(tempSurf, color, other_color_offset, alpha)
+        color_occ_surf(tempSurf, color, alpha)
         oespicoli.OEAddSurfaces(surf, tempSurf)
 
     # cofactor
     if custCofact is not None and custCofact.IsValid():
         grid = make_occ_grid(custCofact, resolution)
         oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, max(grid.GetValues()) * contour)
-        color_surf(tempSurf, color, other_color_offset, alpha)
+        color_occ_surf(tempSurf, color, alpha)
         oespicoli.OEAddSurfaces(surf, tempSurf)
 
     surf.SetTitle("Complete Occ Surface")
@@ -633,7 +632,3 @@ class ClusterStyler:
         # TODO: Consider special style on waters and cofactors too
         SetProteinLigandVizStyle(du.GetImpl().GetProtein(), du.GetImpl().GetLigand(), self._confRGB[cluster_id])
         return True
-
-    def getColor(self, cluster_id):
-        return self._confRGB[cluster_id]
-

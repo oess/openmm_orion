@@ -448,6 +448,8 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
             oetrajRecord.set_value(TrajSVG_field, trajSVG)
             record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
 
+            occ_grid_color = oechem.OEColor(oechem.OEBlue)
+
             # Cluster DU records
             cluster_records = []
 
@@ -493,8 +495,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                     opt['Logger'].info('generating representative protein average and median confs')
                     #
 
-                    color = cluster_styler.getColor(clusID)
-                    occSurface = utl.GenerateOccupancySurf(clusProt, clusLig, clusWat, clusCofact, clusID, color)
+                    occSurface = utl.GenerateOccupancySurf(clusProt, clusLig, clusWat, clusCofact, occ_grid_color)
                     cluster_record.set_value(Fields.Analysis.ClustOccSurf_fld, occSurface)
 
                     # ligMed, protMed, cofactMed, watMed, ligAvg, protAvg, cofactAvg, watAvg = oetrjutl.AnalyseProteinLigandTrajectoryOEMols( clusLig, clusProt, clusCofact, clusWat)
@@ -523,6 +524,8 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                     # clusMedDU.GetImpl().SetComponent(oechem.OEDesignUnitComponents_Cofactors, part)
                     # clusAvgDU.GetImpl().SetSolvent(watMed)
                     oechem.OEUpdateDesignUnit(clusMedDU, ligMed, oechem.OEDesignUnitComponents_Ligand)
+                    if len(clusMedDU.GetTitle()) > 1 and clusMedDU.GetTitle()[0] == "(":
+                        clusMedDU.SetTitle(protMed.GetTitle() + clusMedDU.GetTitle())
                     cluster_styler.apply_style(clusMedDU, clusID)
                     cluster_record.set_value(Fields.Analysis.ClusMedDU_fld, clusMedDU)
 
@@ -577,12 +580,13 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 # TODO: Should style also update for water and cofactors?
                 utl.SetProteinLigandVizStyle(clusProtMedMol, clusLigMedMol)
 
-                color = cluster_styler.getColor(clusID)
-                occSurface = utl.GenerateOccupancySurf(protTraj, ligTraj, watTraj, cofactTraj, clusID, color)
+                occSurface = utl.GenerateOccupancySurf(protTraj, ligTraj, watTraj, cofactTraj, occ_grid_color)
                 cluster_record.set_value(Fields.Analysis.ClustOccSurf_fld, occSurface)
 
                 clusMedDU.GetImpl().SetProtein(clusProtMedMol)
                 oechem.OEUpdateDesignUnit(clusMedDU, clusLigMedMol, oechem.OEDesignUnitComponents_Ligand)
+                if len(clusMedDU.GetTitle()) > 1 and clusMedDU.GetTitle()[0] == "(":
+                    clusMedDU.SetTitle(clusProtMedMol.GetTitle() + clusMedDU.GetTitle())
                 cluster_styler.apply_style(clusMedDU, clusID)
                 cluster_record.set_value(Fields.Analysis.ClusMedDU_fld, clusMedDU)
 
