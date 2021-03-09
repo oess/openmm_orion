@@ -1029,19 +1029,21 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
                     if self.edgeid_ligands[edgeid][0] is None and self.edgeid_ligands[edgeid][1] is None:
                         self.opt['Logger'].warn(
                             "The edge id {} is missing ligand data in the A and B States. "
-                            "The edge will be skipped".format(edgeid),
+                            "The edge will be skipped: {}".format(edgeid, self.edgeid_lig_names[edgeid]),
                             flush=True)
                         continue
                     elif self.edgeid_ligands[edgeid][0] is None and self.edgeid_ligands[edgeid][1]:
                         self.opt['Logger'].warn(
                             "The edge id {} - (None, {}) is missing ligand data in the A State. "
-                            "The edge will be skipped".format(edgeid, self.edgeid_lig_names[edgeid][1]),
+                            "The edge will be skipped: {}".format(edgeid, self.edgeid_lig_names[edgeid][1],
+                                                                  self.edgeid_lig_names[edgeid]),
                             flush=True)
                         continue
                     elif self.edgeid_ligands[edgeid][0] and self.edgeid_ligands[edgeid][1] is None:
                         self.opt['Logger'].warn(
                             "The edge id {} - ({}, None) is missing ligand data in the B State. "
-                            "The edge will be skipped".format(edgeid, self.edgeid_lig_names[edgeid][0]),
+                            "The edge will be skipped: {}".format(edgeid, self.edgeid_lig_names[edgeid][0],
+                                                                  self.edgeid_lig_names[edgeid]),
                             flush=True)
                         continue
 
