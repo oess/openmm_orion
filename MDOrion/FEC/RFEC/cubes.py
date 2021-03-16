@@ -792,13 +792,20 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         default=0.05,
         help_text="NPT simulation time in nanoseconds")
 
-    lincs_type = parameters.StringParameter(
-        'lincs_type',
-        default='all-bonds',
-        choices=['h-bonds', 'all-bonds'],
-        help_text="""h-Bonds, all-bonds
-                Which type of constraints to add to the system.
-                h-bonds means bonds with hydrogen are constrained, etc.""")
+    constraints = parameters.StringParameter(
+        'constraints',
+        default='All-Bonds',
+        choices=['None', 'Bonds2H', 'Angles2H', 'All-Bonds'],
+        help_text="""None, Bonds2H, Angles2H, or All-Bonds
+            Which type of constraints to add to the system.
+            None means no bonds are constrained.
+            Bonds2H means bonds with hydrogen are constrained, etc.""")
+
+    restraints = parameters.BooleanParameter(
+        'restraints',
+        default=True,
+        help_text=""""If True restraints are applied to 
+        the chimeric molecule during the gromacs equilibration""")
 
     verbose = parameters.BooleanParameter(
         'verbose',
