@@ -138,7 +138,7 @@ class TestMDOrionFloes(FloeTestCase):
                 "cube": {
                     "nvt": {
                         "save_md_stage": True,
-                        "constraints": "H-Bonds",
+                        "constraints": "Bonds2H",
                         "restraints": "",
                         "nonbondedCutoff": 10.0
                     }
@@ -237,7 +237,7 @@ class TestMDOrionFloes(FloeTestCase):
                 "cube": {
                     "nvt": {
                         "save_md_stage": True,
-                        "constraints": "H-Bonds",
+                        "constraints": "Bonds2H",
                         "restraints": "",
                         "nonbondedCutoff": 10.0
                     }

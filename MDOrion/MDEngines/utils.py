@@ -37,12 +37,12 @@ import itertools
 md_keys_converter = {'OpenMM':
 
                          {'constraints':
-                              {'None': 'None', 'H-Bonds': 'HBonds', 'H-Angles': 'HAngles', 'All-Bonds': 'AllBonds'}
+                              {'None': 'None', 'Bonds2H': 'HBonds', 'Angles2H': 'HAngles', 'All-Bonds': 'AllBonds'}
                           },
 
                      'Gromacs':
                          {'constraints':
-                              {'None': 'none', 'H-Bonds': 'h-bonds', 'H-Angles': 'h-angles', 'All-Bonds': 'all-bonds'}
+                              {'None': 'none', 'Bonds2H': 'h-bonds', 'Angles2H': 'h-angles', 'All-Bonds': 'all-bonds'}
                           }
                      }
 

@@ -118,12 +118,12 @@ class MDMinimizeCube(RecordPortsMixin, ComputeCube):
 
     constraints = parameters.StringParameter(
         'constraints',
-        default='H-Bonds',
-        choices=['None', 'H-Bonds', 'H-Angles', 'All-Bonds'],
-        help_text="""None, H-Bonds, H-Angles, or All-Bonds
+        default='Bonds2H',
+        choices=['None', 'Bonds2H', 'Angles2H', 'All-Bonds'],
+        help_text="""None, Bonds2H, Angles2H, or All-Bonds
         Which type of constraints to add to the system.
         None means no bonds are constrained.
-        H-Bonds means bonds with hydrogen are constrained, etc.""")
+        Bonds2H means bonds with hydrogen are constrained, etc.""")
 
     implicit_solvent = parameters.StringParameter(
         'implicit_solvent',
@@ -336,9 +336,9 @@ class MDNvtCube(RecordPortsMixin, ComputeCube):
 
     constraints = parameters.StringParameter(
         'constraints',
-        default='H-Bonds',
-        choices=['None', 'H-Bonds', 'H-Angles', 'All-Bonds'],
-        help_text="""None, H-Bonds, H-Angles, or All-Bonds
+        default='Bonds2H',
+        choices=['None', 'Bonds2H', 'Angles2H', 'All-Bonds'],
+        help_text="""None, Bonds2H, Angles2H, or All-Bonds
         Which type of constraints to add to the system.
         None means no bonds are constrained.
         HBonds means bonds with hydrogen are constrained, etc.""")
@@ -617,9 +617,9 @@ class MDNptCube(RecordPortsMixin, ComputeCube):
 
     constraints = parameters.StringParameter(
         'constraints',
-        default='H-Bonds',
-        choices=['None', 'H-Bonds', 'H-Angles', 'All-Bonds'],
-        help_text="""None, H-Bonds, H-Angles, or All-Bonds
+        default='Bonds2H',
+        choices=['None', 'Bonds2H', 'Angles2H', 'All-Bonds'],
+        help_text="""None, Bonds2H, Angles2H, or All-Bonds
         Which type of constraints to add to the system.
         None means no bonds are constrained.
         HBonds means bonds with hydrogen are constrained, etc.""")
