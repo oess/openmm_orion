@@ -258,7 +258,7 @@ class OmmNVTCubeTester(unittest.TestCase):
         self.cube.args.temperature = 300.0  # in K
         self.cube.args.restraints = ""
         self.cube.args.save_md_stage = True
-        self.cube.args.constraints = "H-Bonds"
+        self.cube.args.constraints = "Bonds2H"
         self.cube.args.trajectory_interval = 0.0
         self.cube.args.reporter_interval = 0.0
         self.cube.args.hmr = False
@@ -337,7 +337,7 @@ class OmmNPTCubeTester(unittest.TestCase):
         self.cube.args.pressure = 1.0  # in atm
         self.cube.args.restraints = ""
         self.cube.args.save_md_stage = True
-        self.cube.args.constraints = "H-Bonds"
+        self.cube.args.constraints = "Bonds2H"
         self.cube.args.trajectory_interval = 0.0
         self.cube.args.reporter_interval = 0.0
         self.cube.args.hmr = False

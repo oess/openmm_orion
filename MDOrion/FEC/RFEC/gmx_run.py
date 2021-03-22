@@ -26,6 +26,9 @@ import os
 
 from tempfile import TemporaryDirectory
 
+from MDOrion.MDEngines.utils import md_keys_converter
+
+from MDOrion.Standards.standards import MDEngines
 
 gromacs_min_nes_nvt_npt = """
 ; RUN CONTROL PARAMETERS
@@ -33,7 +36,7 @@ gromacs_min_nes_nvt_npt = """
 define		= {restraints}	; position restrain
 
 integrator               = {integrator}
-dt                       = 0.002		; md timestep
+dt                       = {timestep:f}		; md timestep
 nsteps                   = {nsteps:d}		; number of md steps
 comm-mode                = Linear
 ; number of steps for center of mass motion removal
@@ -130,7 +133,7 @@ sc-coul = yes
 nstdhdl                  = {nstdhdl:d}
 nstcalcenergy            = 1
 
-domain-decomposition     = no
+;domain-decomposition     = no
 
 ; Non-equilibrium MD stuff
 acc-grps                 = 
@@ -160,6 +163,7 @@ def check_gmx_grompp(gro, top, sim_type=None, verbose=False):
 
             gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
                                                              integrator='steep',
+                                                             timestep=0.001,
                                                              nsteps=300,
                                                              temperature=300,
                                                              barostat='Parrinello-Rahman',
@@ -350,16 +354,13 @@ def gmx_run(gmx_gro, gmx_top, opt):
     # TODO DEBUGGING
     # out_dir = "./"
 
-    # FAST MINIMIZATION
-    nsteps = 5000
-    opt['restraints'] = True
+    constraints = md_keys_converter[MDEngines.Gromacs]['constraints'][opt['constraints']]
+
+    # timestep 1 fs avoids resonance issues
+    stepLen = 1.0 * unit.femtoseconds
 
     gmx_gro_fn = os.path.join(out_dir, "gmx_gro.gro")
     gmx_top_fn = os.path.join(out_dir, "gmx_top.top")
-    gmx_min_mdp_fn = os.path.join(out_dir, "gmx_min.mdp")
-    gmx_min_tpr_fn = os.path.join(out_dir, "gmx_min.tpr")
-    gmx_min_deffnm_fn = os.path.join(out_dir, "gmx_run_min_" + str(opt['frame_count']))
-    gmx_min_confout_gro = gmx_min_deffnm_fn + '.gro'
 
     with open(gmx_gro_fn, 'w') as f:
         f.write(gmx_gro)
@@ -367,107 +368,25 @@ def gmx_run(gmx_gro, gmx_top, opt):
     with open(gmx_top_fn, 'w') as f:
         f.write(gmx_top)
 
-    gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
-                                                     integrator='steep',
-                                                     nsteps=nsteps,
-                                                     temperature=opt['temperature'],
-                                                     barostat='no',
-                                                     pressure=pressure.value_in_unit(unit.bar),
-                                                     gen_vel='no',
-                                                     continue_sim='no',
-                                                     lincs_type='none',
-                                                     cutoff=cutoff_distance.value_in_unit(unit.nanometer),
-                                                     rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
-                                                     dlambda=0,
-                                                     nstdhdl=0)
-    with open(gmx_min_mdp_fn, 'w') as f:
-        f.write(gmx_fe_template)
-
-    _run_gmx(gmx_min_mdp_fn, gmx_gro_fn, gmx_top_fn, gmx_min_tpr_fn, gmx_min_deffnm_fn, opt,
-             cpti_fn=None, cpto_fn=None)
-
-    # Restrained NVT
-    nsteps = 5000
-    opt['restraints'] = True
-
-    gmx_eq_nvt_mdp_fn = os.path.join(out_dir, "gmx_eq_nvt.mdp")
-    gmx_eq_nvt_tpr_fn = os.path.join(out_dir, "gmx_eq_nvt.tpr")
-    gmx_nvt_deffnm_fn = os.path.join(out_dir, "gmx_run_nvt_" + str(opt['frame_count']))
-    gmx_nvt_cpto_fn = gmx_nvt_deffnm_fn + '.cpt'
-    gmx_nvt_confout_gro = gmx_nvt_deffnm_fn + '.gro'
-
-    # gmx_trj_fn = gmx_nvt_deffnm_fn + '.trr'
-
-    gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='-DRESTRAINTS',
-                                                     integrator='md',
-                                                     nsteps=nsteps,
-                                                     temperature=opt['temperature'],
-                                                     barostat='no',
-                                                     pressure=pressure.value_in_unit(unit.bar),
-                                                     gen_vel='no',
-                                                     continue_sim='no',
-                                                     lincs_type=opt['lincs_type'],
-                                                     cutoff=cutoff_distance.value_in_unit(unit.nanometer),
-                                                     rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
-                                                     dlambda=0,
-                                                     nstdhdl=0)
-
-    with open(gmx_eq_nvt_mdp_fn, 'w') as f:
-        f.write(gmx_fe_template)
-
-    _run_gmx(gmx_eq_nvt_mdp_fn, gmx_min_confout_gro, gmx_top_fn, gmx_eq_nvt_tpr_fn, gmx_nvt_deffnm_fn, opt,
-             cpti_fn=None, cpto_fn=None)
-
-    # Restrained NPT
-    nsteps = 5000
-    opt['restraints'] = True
-
-    gmx_eq_npt0_mdp_fn = os.path.join(out_dir, "gmx_eq_npt0.mdp")
-    gmx_eq_npt0_tpr_fn = os.path.join(out_dir, "gmx_eq_npt0.tpr")
-    gmx_npt0_deffnm_fn = os.path.join(out_dir, "gmx_run_npt0" + '_' + str(opt['frame_count']))
-    gmx_npt0_cpto_fn = gmx_npt0_deffnm_fn + '.cpt'
-    gmx_npt0_confout_gro = gmx_npt0_deffnm_fn + '.gro'
-
-    gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='-DRESTRAINTS',
-                                                     integrator='md',
-                                                     nsteps=nsteps,
-                                                     temperature=opt['temperature'],
-                                                     barostat='Parrinello-Rahman',
-                                                     pressure=pressure.value_in_unit(unit.bar),
-                                                     gen_vel='no',
-                                                     continue_sim='no',
-                                                     lincs_type=opt['lincs_type'],
-                                                     cutoff=cutoff_distance.value_in_unit(unit.nanometer),
-                                                     rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
-                                                     dlambda=0,
-                                                     nstdhdl=0)
-
-    with open(gmx_eq_npt0_mdp_fn, 'w') as f:
-        f.write(gmx_fe_template)
-
-    _run_gmx(gmx_eq_npt0_mdp_fn, gmx_nvt_confout_gro, gmx_top_fn, gmx_eq_npt0_tpr_fn, gmx_npt0_deffnm_fn, opt,
-             cpti_fn=None, cpto_fn=gmx_npt0_cpto_fn)
-
     # NPT
-    opt['restraints'] = False
     nsteps = 5000
 
     gmx_eq_npt1_mdp_fn = os.path.join(out_dir, "gmx_eq_npt1.mdp")
     gmx_eq_npt1_tpr_fn = os.path.join(out_dir, "gmx_eq_npt1.tpr")
     gmx_npt1_deffnm_fn = os.path.join(out_dir, "gmx_run_npt1" + '_' + str(opt['frame_count']))
-    gmx_npt1_cpti_fn = gmx_npt0_cpto_fn
     gmx_npt1_cpto_fn = gmx_npt1_deffnm_fn + '.cpt'
     gmx_npt1_confout_gro = gmx_npt1_deffnm_fn + '.gro'
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
                                                      integrator='md',
+                                                     timestep=stepLen.value_in_unit(unit.picoseconds),
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='Parrinello-Rahman',
                                                      pressure=pressure.value_in_unit(unit.bar),
                                                      gen_vel='no',
-                                                     continue_sim='yes',
-                                                     lincs_type=opt['lincs_type'],
+                                                     continue_sim='no',
+                                                     lincs_type=constraints,
                                                      cutoff=cutoff_distance.value_in_unit(unit.nanometer),
                                                      rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
                                                      dlambda=0,
@@ -476,13 +395,11 @@ def gmx_run(gmx_gro, gmx_top, opt):
     with open(gmx_eq_npt1_mdp_fn, 'w') as f:
         f.write(gmx_fe_template)
 
-    _run_gmx(gmx_eq_npt1_mdp_fn, gmx_npt0_confout_gro, gmx_top_fn, gmx_eq_npt1_tpr_fn, gmx_npt1_deffnm_fn, opt,
+    _run_gmx(gmx_eq_npt1_mdp_fn, gmx_gro_fn, gmx_top_fn, gmx_eq_npt1_tpr_fn, gmx_npt1_deffnm_fn, opt,
              cpti_fn=None,
              cpto_fn=gmx_npt1_cpto_fn)
 
     # NES
-    opt['restraints'] = False
-    stepLen = 2.0 * unit.femtoseconds
     nsteps = int(round(opt['time'] / (stepLen.in_units_of(unit.nanoseconds) / unit.nanoseconds)))
 
     # Full decoupling lambda in [0,1]
@@ -497,13 +414,14 @@ def gmx_run(gmx_gro, gmx_top, opt):
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
                                                      integrator='md',
+                                                     timestep=stepLen.value_in_unit(unit.picoseconds),
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='Parrinello-Rahman',
                                                      pressure=pressure.value_in_unit(unit.bar),
                                                      gen_vel='no',
                                                      continue_sim='yes',
-                                                     lincs_type=opt['lincs_type'],
+                                                     lincs_type=constraints,
                                                      cutoff=cutoff_distance.value_in_unit(unit.nanometer),
                                                      rvdwswitch=rvdw_switch.value_in_unit(unit.nanometer),
                                                      dlambda=dlambda,
