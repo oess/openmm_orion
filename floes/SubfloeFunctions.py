@@ -62,7 +62,7 @@ from MDOrion.TrjAnalysis.cubes_clusterAnalysis import (ParallelClusterOETrajCube
                                                        ParallelTrajAnalysisReportDataset,
                                                        MDFloeReportCube)
 
-from MDOrion.TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
+from MDOrion.TrjAnalysis.cubes_hintAnalysis import (ParallelBintScoreInitialPoseAndTrajectory)
 
 
 def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, options):
@@ -126,11 +126,11 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
     # Chimera NES Setting
     gathering.success.connect(chimera.intake)
 
-    chimera.success.connect(unbound_nes.intake)
-    unbound_nes.success.connect(nes_analysis.intake)
-
     chimera.bound_port.connect(bound_nes.intake)
     bound_nes.success.connect(nes_analysis.intake)
+
+    chimera.success.connect(unbound_nes.intake)
+    unbound_nes.success.connect(nes_analysis.intake)
 
     nes_analysis.success.connect(report.intake)
     report.success.connect(coll_close.intake)
@@ -404,7 +404,7 @@ def setup_MDsmallmol_startup(input_floe, input_cube, fail_cube, options):
 
 def setup_traj_analysis(input_floe, input_cube, fail_cube):
     trajCube = ParallelTrajToOEMolCube("TrajToOEMolCube", title="Trajectory To OEMols")
-    trajBints = ParallelComparePoseBintsToTrajBints("TrajBintsCube", title="Trajectory Binding Interactions")
+    trajBints = ParallelBintScoreInitialPoseAndTrajectory("TrajBintsCube", title="Trajectory Binding Interactions")
     IntECube = ParallelTrajInteractionEnergyCube("TrajInteractionEnergyCube", title="MM Energies")
     PBSACube = ParallelTrajPBSACube("TrajPBSACube", title="PBSA Energies")
 
@@ -464,7 +464,7 @@ def setup_traj_analysis(input_floe, input_cube, fail_cube):
 
 def setup_bint(input_floe, input_cube, fail_cube):
 
-    trajBints = ParallelComparePoseBintsToTrajBints("TrajBintsCube", title="Trajectory Binding Interactions")
+    trajBints = ParallelBintScoreInitialPoseAndTrajectory("TrajBintsCube", title="Trajectory Binding Interactions")
 
     input_floe.add_cubes(trajBints)
 

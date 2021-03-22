@@ -245,6 +245,14 @@ class Fields:
         metaFreeEnergy_err.add_relation(Meta.Relations.ErrorsFor, free_energy)
         free_energy_err = OEField('FE_Error_OPLMD', Types.Float, meta=metaFreeEnergy_err)
 
+    class Bint:
+
+        # The list of per-frame BintScores for a trajectory
+        trajBintScoreList = OEField('TrajBintScoreList', Types.FloatVec, meta=_metaHidden)
+        # The BintScore for the Initial Pose and the traj are floats
+        initBintScore = OEField('InitBintScore', Types.Float)
+        trajBintScore = OEField('TrajBintScore', Types.Float)
+
     class FEC:
         # Free Energy
         free_energy = OEField('FE_OPLMD', Types.Float,

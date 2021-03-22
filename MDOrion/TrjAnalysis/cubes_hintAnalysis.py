@@ -24,6 +24,7 @@ from floe.api import (ParallelMixin,
 from MDOrion.Standards import Fields
 
 import numpy as np
+import json
 
 import MDOrion.TrjAnalysis.utils as utl
 #import MDOrion.TrjAnalysis.trajOEHint_utils as hint
@@ -42,17 +43,19 @@ from datarecord import (Types,
 from MDOrion.Standards.mdrecord import MDDataRecord
 
 
-class ComparePoseBintsToTrajBints(RecordPortsMixin, ComputeCube):
-    title = 'Compare Binding Interations of Pose To Traj'
+class BintScoreInitialPoseAndTrajectory(RecordPortsMixin, ComputeCube):
+    title = 'Compute BintScore for Initial Pose and Trajectory'
     # version = "0.1.4"
     classification = [["Analysis"]]
     tags = ['Binding Interactions', 'Ligand', 'Protein']
 
     description = """
-    Compare Binding Interations of Pose To Traj
+    Compute BintScore for Initial Pose and Trajectory
 
-    This Cube compares the initial pose of the ligand to the
-    ligand trajectory in terms of the OEHint binding interactions.
+    This Cube computes the BintScore for the Initial Pose and then 
+    weights each of the BintScore interactions of the initial pose
+    by their fractional occupancy over the selected frames of the
+    ligand trajectory.
     """
 
     #uuid = "b503c2f4-12e6-49c7-beb6-ee17da177ec2"
@@ -78,11 +81,9 @@ class ComparePoseBintsToTrajBints(RecordPortsMixin, ComputeCube):
             opt = dict(self.opt)
 
             # Logger string
-            opt['Logger'].info(' Beginning ComparePoseBintsToTrajBintsCube')
+            opt['Logger'].info(' Beginning BintScoreInitialPoseAndTrajectory')
             system_title = utl.RequestOEFieldType(record, Fields.title)
-            opt['Logger'].info('{} Attempting to compare initial and traj Bints.'
-                .format(system_title) )
-            opt['Logger'].info('{} ***** UNDER DEVELOPMENT **********'
+            opt['Logger'].info('{} Compute BintScore for Initial Pose and Trajectory.'
                 .format(system_title) )
 
             # Get the ligand which will be a multiconformer molecule with the starting
@@ -109,75 +110,33 @@ class ComparePoseBintsToTrajBints(RecordPortsMixin, ComputeCube):
                 system_title, protTraj.NumAtoms(), protTraj.NumConfs()) )
 
 
-            # Binding interactions (OEHints) for the initial pose
+            # Generate HintDict of good hints and associated BintScore for initial pose
+            good_hints_init_pose = hint.GoodHintDict(ligand, protein)
 
-            # Perceive OEHints
-            asite = oechem.OEInteractionHintContainer(protein, ligand)
-            if not oechem.OEIsValidActiveSite(asite):
-                raise ValueError("{} Cannot initialize OEInteractionHintContainer".format(system_title))
-            oechem.OEPerceiveInteractionHints(asite)
+            # Calc BintScore for the initial pose
+            initBintScore = hint.BintScoreFromHintDict(good_hints_init_pose,hint.intnStrengths)
+            opt['Logger'].info('{} Initial pose for ligand {:s} has BintScore {:.1f}'.format(
+                system_title, ligand.GetTitle(), initBintScore))
 
-            # Make a dict of good interactions and calculate initBintScore
-            good_hints_init_pose = hint.DictAllowedInteractionStrings(asite, hint.goodIntnTypes)
-            initBintScore = 0
-            for interType in good_hints_init_pose.keys():
-                numInters = len(good_hints_init_pose[interType])
-                #print(interType, numInters)
-                initBintScore -= float(numInters)
-            opt['Logger'].info('{} Initial pose for ligand {:s} gets a Bint score of {:.2f}'.
-                               format(system_title,ligand.GetTitle(), initBintScore))
+            # Calc list of per-frame BintScores for a trajectory
+            trajBintScoreList = hint.TrajBintScoreListFromRefHints(ligTraj,protTraj,good_hints_init_pose)
+            opt['Logger'].info('{} Aggregated {} OEHint bitvectors'.format(system_title,len(trajBintScoreList)))
 
-            # Make dict-of-dicts for holding count of traj occurrence for each interaction
-            hint_traj = dict()
-            for key in good_hints_init_pose.keys():
-                #print(key)
-                inter_dict = dict()
-                for inter in good_hints_init_pose[key]:
-                    inter_dict[inter] = 0
-                hint_traj[key] = inter_dict
+            # Calc Trajectory BintScore: Initial BintScore weighted by fractional occupancy of each interaction
+            trajBintScore = float(sum(trajBintScoreList)/len(trajBintScoreList))
+            opt['Logger'].info('{} Trajectory of ligand {:s} has BintScore {:.2f}'.format(
+                system_title, ligTraj.GetTitle(), trajBintScore))
 
+            # Create new record with Bint-related results
+            bintRecord = OERecord()
 
-            # Binding interactions (OEHints) for each fram of the trajectory
+            # Output results on the Bint record
+            bintRecord.set_value(Fields.Bint.initBintScore, initBintScore)
+            bintRecord.set_value(Fields.Bint.trajBintScoreList, trajBintScoreList)
+            bintRecord.set_value(Fields.Bint.trajBintScore, trajBintScore)
 
-            # Loop over lig, prot confs (traj frames)), calculating HintInteractions and
-            # counting overlap of favorable hints with the initial pose
-            for cLig, cProt in zip(ligTraj.GetConfs(), protTraj.GetConfs()):
-                frameid = cLig.GetIdx()
-
-                # Perceive interactions on paired conformers of protein and ligand
-                frameSite = oechem.OEInteractionHintContainer(oechem.OEMol(cProt), oechem.OEMol(cLig))
-                if not oechem.OEIsValidActiveSite(frameSite):
-                    raise ValueError("{} Cannot initialize active site of paired conformers of protein and ligand!".
-                                     format(system_title))
-                oechem.OEPerceiveInteractionHints(frameSite)
-
-                # Make a dict of good interactions
-                good_hints_frame = hint.DictAllowedInteractionStrings(frameSite, hint.goodIntnTypes)
-
-                # find conformer good hints that match init_pose good hints
-                if not hint.AddFrameHintOverlapToRefHints(hint_traj, good_hints_frame, frameid):
-                    raise ValueError("{} Unsuccessful with frame {}".format(system_title,frameid))
-
-            # Calculate trajBintScore
-            nConfs = ligTraj.NumConfs()
-            trajBintScore = 0.0
-            for interType in hint_traj.keys():
-                #print(interType)
-                for inter in hint_traj[interType].keys():
-                    fracOcc = float(hint_traj[interType][inter] / nConfs)
-                    trajBintScore -= fracOcc
-                    #print('  <{:s}> : {:.3f}'.format(inter, fracOcc))
-            trajBintOcc = trajBintScore/initBintScore
-            opt['Logger'].info('{} ligand {:s} traj maintains {:.4f} of initial good binding interactions'.
-                  format(system_title,ligTraj.GetTitle(),trajBintOcc))
-            opt['Logger'].info('{} ligand {:s} trajectory gets a Bint score of {:.2f}'.
-                  format(system_title,ligTraj.GetTitle(), trajBintScore))
-
-
-            # Output results on the top-level record
-            record.set_value(OEField('InitBintScore', Types.Float), initBintScore)
-            record.set_value(OEField('TrajBintOcc', Types.Float), trajBintOcc)
-            record.set_value(OEField('TrajBintScore', Types.Float), trajBintScore)
+            # The Bint record goes on the top-level record
+            record.set_value(OEField('BintRecord', Types.Record), bintRecord)
 
             self.success.emit(record)
 
@@ -192,8 +151,8 @@ class ComparePoseBintsToTrajBints(RecordPortsMixin, ComputeCube):
         return
 
 
-class ParallelComparePoseBintsToTrajBints(ParallelMixin,  ComparePoseBintsToTrajBints):
-    title = "Parallel " + ComparePoseBintsToTrajBints.title
-    description = "(Parallel) " + ComparePoseBintsToTrajBints.description
+class ParallelBintScoreInitialPoseAndTrajectory(ParallelMixin,  BintScoreInitialPoseAndTrajectory):
+    title = "Parallel " + BintScoreInitialPoseAndTrajectory.title
+    description = "(Parallel) " + BintScoreInitialPoseAndTrajectory.description
     #uuid = "10f572c8-a874-47de-8f48-19ac76f72bdd"
 
