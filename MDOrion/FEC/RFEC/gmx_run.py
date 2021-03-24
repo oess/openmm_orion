@@ -356,8 +356,10 @@ def gmx_run(gmx_gro, gmx_top, opt):
 
     constraints = md_keys_converter[MDEngines.Gromacs]['constraints'][opt['constraints']]
 
-    # timestep 1 fs avoids resonance issues
-    stepLen = 1.0 * unit.femtoseconds
+    # Timestep
+    timestep = 1.0 * unit.femtoseconds
+
+    opt['Logger'].info("Time step set to: {} fs".format(timestep.value_in_unit(unit.femtoseconds)))
 
     gmx_gro_fn = os.path.join(out_dir, "gmx_gro.gro")
     gmx_top_fn = os.path.join(out_dir, "gmx_top.top")
@@ -379,7 +381,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
                                                      integrator='md',
-                                                     timestep=stepLen.value_in_unit(unit.picoseconds),
+                                                     timestep=timestep.value_in_unit(unit.picoseconds),
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='Parrinello-Rahman',
@@ -400,7 +402,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
              cpto_fn=gmx_npt1_cpto_fn)
 
     # NES
-    nsteps = int(round(opt['time'] / (stepLen.in_units_of(unit.nanoseconds) / unit.nanoseconds)))
+    nsteps = int(round(opt['time'] / (timestep.in_units_of(unit.nanoseconds) / unit.nanoseconds)))
 
     # Full decoupling lambda in [0,1]
     dlambda = 1.0 / nsteps
@@ -414,7 +416,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
 
     gmx_fe_template = gromacs_min_nes_nvt_npt.format(restraints='',
                                                      integrator='md',
-                                                     timestep=stepLen.value_in_unit(unit.picoseconds),
+                                                     timestep=timestep.value_in_unit(unit.picoseconds),
                                                      nsteps=nsteps,
                                                      temperature=opt['temperature'],
                                                      barostat='Parrinello-Rahman',
