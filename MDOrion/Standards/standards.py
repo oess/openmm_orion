@@ -236,7 +236,7 @@ class Fields:
 
         max_waters = OEField("MaxWaters_OPLMD", Types.Int, meta=_metaHidden)
 
-        # Free Energy Yank
+        # Free Energy
         # Analysis Fields
         free_energy = OEField('FE_OPLMD', Types.Float,
                               meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))

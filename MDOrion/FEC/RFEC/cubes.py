@@ -1096,7 +1096,7 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
                                                         forward_unbound,
                                                         reverse_unbound,
                                                         results,
-                                                        title, edge_depiction_image)
+                                                        title, edge_depiction_string)
                     new_record = OERecord()
 
                     new_record.set_value(Fields.floe_report, report_string)
