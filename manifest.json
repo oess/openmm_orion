@@ -25,7 +25,7 @@
         "openmm==7.5",
         "openmoltools==0.8.7",
         "packmol==20.010",
-        "parmed==3.4.0",
+        "parmed==3.2.0",
         "pdbfixer==1.6",
         "pip==18.0",
         "plotly==4.14.3",
@@ -42,5 +42,5 @@
     "python_version": "3.7.7",
     "requirements": "requirements_dev.txt",
     "uuid": "8ad7e185-9b86-4112-a2e7-a367e5123e29",
-    "version": "4.0.0a121"
+    "version": "4.0.0a123"
 }
