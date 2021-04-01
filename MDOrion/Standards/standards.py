@@ -247,11 +247,14 @@ class Fields:
 
     class Bint:
 
+        # The BintScore subrecord containing Bint info
+        oebint_rec = OEField('BintRecord', Types.Record, meta=_metaHidden)
         # The list of per-frame BintScores for a trajectory
         trajBintScoreList = OEField('TrajBintScoreList', Types.FloatVec, meta=_metaHidden)
         # The BintScore for the Initial Pose and the traj are floats
         initBintScore = OEField('InitBintScore', Types.Float)
         trajBintScore = OEField('TrajBintScore', Types.Float)
+        trajBintStderr = OEField('TrajBintStderr', Types.Float)
 
     class FEC:
         # Free Energy

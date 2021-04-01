@@ -695,6 +695,18 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
                 raise ValueError('{} could not find the poseId vector'.format(system_title))
             poseIdVec = utl.RequestOEFieldType(record, Fields.Analysis.poseIdVec)
 
+            # Copy InitBintScore and TrajBintScore from the oebint_rec record to the top level
+            if not record.has_field(Fields.Bint.oebint_rec):
+                raise ValueError('{} could not find the BintScore record'.format(system_title))
+            opt['Logger'].info('{} found the BintScore record'.format(system_title))
+            bintRecord = record.get_value(Fields.Bint.oebint_rec)
+            initBintScore = utl.RequestOEFieldType(bintRecord, Fields.Bint.initBintScore)
+            trajBintScore = utl.RequestOEFieldType(bintRecord, Fields.Bint.trajBintScore)
+            trajBintStderr = utl.RequestOEFieldType(bintRecord, Fields.Bint.trajBintStderr)
+            record.set_value(Fields.Bint.initBintScore, initBintScore)
+            record.set_value(Fields.Bint.trajBintScore, trajBintScore)
+            record.set_value(Fields.Bint.trajBintStderr, trajBintStderr)
+
             # Get the clustering results dict from the traj clustering record
             if not record.has_field(Fields.Analysis.oeclus_rec):
                 raise ValueError('{} could not find the cluster record'.format(system_title))
@@ -888,18 +900,19 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
             clusData = clusRecord.get_value(Fields.Analysis.oeclus_dict)
             opt['Logger'].info('{} found the cluster info'.format(system_title))
 
-            # Extract the label for the MMPBSA score for the whole trajectory
-            if not record.has_value(Fields.Analysis.mmpbsa_traj_mean):
-                mmpbsaLabelStr = lig_name
-            else:
+            # Extract the MMPBSA score for the whole trajectory
+            mmpbsa_traj_mean = 999.
+            mmpbsa_traj_std = 999.
+            if record.has_value(Fields.Analysis.mmpbsa_traj_mean):
                 mmpbsa_traj_mean = record.get_value(Fields.Analysis.mmpbsa_traj_mean)
                 mmpbsa_traj_std = record.get_value(Fields.Analysis.mmpbsa_traj_serr)
-                if clusData['nClusters']>0:
-                    mmpbsaLabelStr = "Boltzman-weighted<br>"
-                else:
-                    mmpbsaLabelStr = "Ensemble average<br>"
-                mmpbsaLabelStr += "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".format(mmpbsa_traj_mean,
-                                                                                               mmpbsa_traj_std)
+
+            # Extract the traj BintScore for the whole trajectory
+            trajbintscore = 999.
+            trajbintstderr = 999.
+            if record.has_value(Fields.Bint.trajBintScore):
+                trajbintscore = record.get_value(Fields.Bint.trajBintScore)
+                trajbintstderr = record.get_value(Fields.Bint.trajBintStderr)
 
             # Get the results dict for the Cluster Population analysis
             if not clusRecord.has_field(Fields.Analysis.cluspop_dict):
@@ -943,9 +956,24 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 report_file.write(flrpt._clus_floe_report_midHtml0.format(
                     query_depiction=oedepict.OEWriteImageToString("svg", img).decode("utf-8")))
 
-                report_file.write("""      <h3 style="text-align: center; width: 100%">
-                        {mmpbsaLabel}
-                      </h3>""".format(mmpbsaLabel=mmpbsaLabelStr))
+                report_file.write("""      <h3 style="text-align: center; width: 100%">""")
+                #
+                # If there was no mmpbsa_traj_mean, magic number 999. so write lig_name instead
+                if mmpbsa_traj_mean==999.:
+                    report_file.write("""   {}</h3>""".format(lig_name))
+                # Usual case: write mmpbsa_traj_mean and stderr
+                else:
+                    report_file.write("&lt;MMPBSA&gt; score<sup>*</sup>: {:.1f}  &plusmn; {:.1f} kcal/mol".format(
+                        mmpbsa_traj_mean, mmpbsa_traj_std))
+                    report_file.write("<br>&lt;BintScore&gt;: {:.1f}  &plusmn; {:.1f} kcal/mol".format(
+                        trajbintscore, trajbintstderr))
+                    #report_file.write("""      </h3>""")
+                    #report_file.write("""      <h4 style="text-align: center; width: 100%">
+                    #        <sup>*</sup>Boltzmann-weighted ensemble average &plusmn; StdErr</h4>""")
+                    if clusData['nClusters']>0:
+                        report_file.write("<br><sup>*</sup>Boltzmann-weighted""")
+                    report_file.write("""      </h3>""")
+
 
                 analysis_txt = flrpt.MakeClusterInfoText(clusData, popResults, clusRGB)
                 report_file.write("".join(analysis_txt))

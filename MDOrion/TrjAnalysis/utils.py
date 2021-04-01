@@ -540,3 +540,22 @@ def StyleTrajProteinLigandClusters( protein, ligand):
         SetProteinLigandVizStyle( pconf, lconf, colorRGB)
     return True
 
+
+def BootstrapStdErrOfMean(vec, nreps=2000, nsample=None):
+    '''Estimate Standard Error from bootstapping with replacement.
+    Defaults: nreps=2000 (number of bootstrapped samples used for Std Error estimate)
+            nsampl=None (size of resampled vector; if None use the same size as inital vector'''
+    if len(vec)<2:
+        return None
+    if nsample is None:
+        nsample=len(vec)
+
+    vecMeans = []
+    for rep in range(nreps):
+        # bootstrap from vec
+        boot = np.random.choice(vec,size=nsample)
+        vecMeans.append( boot.mean())
+
+    arrMeans = np.array(vecMeans)
+    #print('BootstrapStdErrOfMean len vecMeans: ', len(arrMeans), arrMeans.std())
+    return arrMeans.std()

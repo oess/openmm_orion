@@ -27,7 +27,6 @@ import numpy as np
 import json
 
 import MDOrion.TrjAnalysis.utils as utl
-#import MDOrion.TrjAnalysis.trajOEHint_utils as hint
 import oetrajanalysis.trajOEHint_utils as hint
 
 from openeye import oechem
@@ -127,6 +126,12 @@ class BintScoreInitialPoseAndTrajectory(RecordPortsMixin, ComputeCube):
             opt['Logger'].info('{} Trajectory of ligand {:s} has BintScore {:.2f}'.format(
                 system_title, ligTraj.GetTitle(), trajBintScore))
 
+            # Calc Standard Error of Trajectory BintScore
+            trajBintStderr = utl.BootstrapStdErrOfMean(trajBintScoreList)
+            opt['Logger'].info('{} Trajectory of ligand {:s} has BintScore stderr{:.2f}'.format(
+                system_title, ligTraj.GetTitle(), trajBintStderr))
+
+
             # Create new record with Bint-related results
             bintRecord = OERecord()
 
@@ -134,9 +139,10 @@ class BintScoreInitialPoseAndTrajectory(RecordPortsMixin, ComputeCube):
             bintRecord.set_value(Fields.Bint.initBintScore, initBintScore)
             bintRecord.set_value(Fields.Bint.trajBintScoreList, trajBintScoreList)
             bintRecord.set_value(Fields.Bint.trajBintScore, trajBintScore)
+            bintRecord.set_value(Fields.Bint.trajBintStderr, trajBintStderr)
 
             # The Bint record goes on the top-level record
-            record.set_value(OEField('BintRecord', Types.Record), bintRecord)
+            record.set_value(Fields.Bint.oebint_rec, bintRecord)
 
             self.success.emit(record)
 

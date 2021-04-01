@@ -31,8 +31,8 @@ ifs.promote_parameter("data_in", promoted_name="in", title="System Input OERecor
 ofs = DatasetWriterCube('ofs', title='OFS-Success')
 ofs.promote_parameter("data_out", promoted_name="out", title="System Output OERecord", description="OERecord file name")
 
-prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset')
-report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
+prepDataset = ParallelTrajAnalysisReportDataset('TrajAnalysisReportDataset', title="Analysis Report")
+report_gen = ParallelMDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport", title="Relevant Output Extraction")
 report = MDFloeReportCube("report", title="Floe Report")
 
 job.add_cubes(ifs, prepDataset, report_gen, report, ofs)
