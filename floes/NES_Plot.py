@@ -20,7 +20,7 @@ ifs.promote_parameter("data_in", promoted_name="RBFE_results", title='RBFE Resul
                       description="RBFE Results File")
 
 plot_res = PlotRBFEResults("RBFEPlot")
-plot_res.promote_parameter('lig_expt_file', promoted_name='expt_deltaG', default=None)
+plot_res.promote_parameter('lig_exp_file', promoted_name='expt_deltaG', default=None)
 plot_res.promote_parameter('symmetrize', promoted_name='symmetrize', default=True)
 
 fail = DatasetWriterCube('fail', title='Failures')
