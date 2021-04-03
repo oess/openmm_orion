@@ -256,19 +256,21 @@ def MakeClusterInfoText(dataDict, popResults, rgbVec):
           <div class="cb-floe-report__analysis-table-row">
             <span>Cluster</span>
             <span>Size</span>
-            <span>&lt;MMPBSA&gt;<sup>a</sup> </span>
-            <span>&lt;BintScore&gt;<sup>b</sup> </span>
+            <span>&lt;MMPBSA&gt;<sup>a,b</sup> </span>
+            <span>&lt;BintScore&gt;<sup>a</sup> </span>
           </div>\n""")
            #<span><span>&lt;MMPBSA&gt;<sup>a</sup> </span>
            #<span>&lt;MMPBSA&gt;* &plusmn; StdErr</span>
 
     clusSize = popResults['ClusTot']
-    ByClusMean = popResults['OEZap_MMPBSA6_ByClusMean']
-    ByClusSerr = popResults['OEZap_MMPBSA6_ByClusSerr']
+    MMPBSAByClusMean = popResults['OEZap_MMPBSA6_ByClusMean']
+    MMPBSAByClusSerr = popResults['OEZap_MMPBSA6_ByClusSerr']
+    tBintByClusMean = popResults['TrajBintScore_ByClusMean']
+    tBintByClusSerr = popResults['TrajBintScore_ByClusSerr']
     for i, (count, color) in enumerate(zip(clusSize, rowColors)):
         percent = count/nFrames
-        mmpbsa = '{:5.1f} &plusmn; {:3.1f}'.format(ByClusMean[i], 1.96 * ByClusSerr[i])
-        bintscore = '00.0 &plusmn; 00.0'
+        mmpbsa = '{:5.1f} &plusmn; {:3.1f}'.format(MMPBSAByClusMean[i], 2.0 * MMPBSAByClusSerr[i])
+        bintscore = '{:5.1f} &plusmn; {:3.1f}'.format(tBintByClusMean[i], 2.0 * tBintByClusSerr[i])
         if i<nMajor:
             clusName = str(i)
         else:
@@ -284,8 +286,8 @@ def MakeClusterInfoText(dataDict, popResults, rgbVec):
           </div>\n""".format(clusID=clusName, percent=percent, mmpbsadata=mmpbsa,
                              bintscoredata=bintscore, hexColor=color))
     # Footnotes to Table.
-    text.append('<sup>a</sup>MMPBSA ensemble average &plusmn; StdErr in kcal/mol.\n')
-    text.append('<sup>b</sup>BintScore ensemble average &plusmn; StdErr.\n')
+    text.append('<sup>a</sup>Ensemble average &plusmn; 2*StdErr.\n')
+    text.append('<sup>b</sup>kcal/mol.\n')
     text.append('<sup>c</sup>Other includes Minor clusters as well as Outliers from the clustering.\n')
 
     text.append("""

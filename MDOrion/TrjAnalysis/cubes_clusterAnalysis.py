@@ -602,6 +602,9 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
             #for key in clusResults.keys():
             #    opt['Logger'].info('{} : clusResults key {}'.format(system_title, key) )
 
+            # Generate the fractional cluster populations by conformer, and conformer populations by cluster
+            popResults = clusutl.AnalyzeClustersByConfs(ligand, poseIdVec, clusResults)
+
             # Get the PBSA data dict from the record
             if not record.has_field(Fields.Analysis.oepbsa_dict):
                 raise ValueError('{} could not find the PBSA JSON object'.format(system_title))
@@ -610,15 +613,26 @@ class ClusterPopAnalysis(RecordPortsMixin, ComputeCube):
             #for key in PBSAdata.keys():
             #    opt['Logger'].info('{} : PBSAdata key {} {}'.format(system_title, key, len(PBSAdata[key])) )
 
-            # Generate the fractional cluster populations by conformer, and conformer populations by cluster
-            popResults = clusutl.AnalyzeClustersByConfs(ligand, poseIdVec, clusResults)
-
             # Generate the cluster MMPBSA mean and standard error
             MMPBSAbyClus = clusutl.MeanSerrByClusterEnsemble(popResults, PBSAdata['OEZap_MMPBSA6_Bind'])
             popResults['OEZap_MMPBSA6_ByClusMean'] = MMPBSAbyClus['ByClusMean']
             popResults['OEZap_MMPBSA6_ByClusSerr'] = MMPBSAbyClus['ByClusSerr']
             popResults['OEZap_MMPBSA6_ByConfMean'] = MMPBSAbyClus['ByConfMean']
             popResults['OEZap_MMPBSA6_ByConfSerr'] = MMPBSAbyClus['ByConfSerr']
+
+            # Get the TrajBintScore data vector from the BintScore record
+            if not record.has_field(Fields.Bint.oebint_rec):
+                raise ValueError('{} could not find the BintScore record'.format(system_title))
+            opt['Logger'].info('{} found the BintScore record'.format(system_title))
+            oebint_rec = record.get_value(Fields.Bint.oebint_rec)
+            trajBintScoreList = utl.RequestOEFieldType(oebint_rec, Fields.Bint.trajBintScoreList)
+
+            # Generate the cluster TrajBintScore mean and standard error
+            trajBintScorebyClus = clusutl.MeanSerrByClusterEnsemble(popResults, trajBintScoreList)
+            popResults['TrajBintScore_ByClusMean'] = trajBintScorebyClus['ByClusMean']
+            popResults['TrajBintScore_ByClusSerr'] = trajBintScorebyClus['ByClusSerr']
+            popResults['TrajBintScore_ByConfMean'] = trajBintScorebyClus['ByConfMean']
+            popResults['TrajBintScore_ByConfSerr'] = trajBintScorebyClus['ByConfSerr']
 
             # Generate by-cluster mean and serr RMSDs to the starting confs
             ClusRMSDByConf = clusutl.ClusterRMSDByConf(ligand, ligTraj, clusResults)
@@ -956,23 +970,23 @@ class MDTrajAnalysisClusterReport(RecordPortsMixin, ComputeCube):
                 report_file.write(flrpt._clus_floe_report_midHtml0.format(
                     query_depiction=oedepict.OEWriteImageToString("svg", img).decode("utf-8")))
 
-                report_file.write("""      <h3 style="text-align: center; width: 100%">""")
+                report_file.write("""      <h4 style="text-align: center; width: 100%">""")
                 #
                 # If there was no mmpbsa_traj_mean, magic number 999. so write lig_name instead
                 if mmpbsa_traj_mean==999.:
-                    report_file.write("""   {}</h3>""".format(lig_name))
+                    report_file.write("""   {}</h4>""".format(lig_name))
                 # Usual case: write mmpbsa_traj_mean and stderr
                 else:
-                    report_file.write("&lt;MMPBSA&gt; score<sup>*</sup>: {:.1f}  &plusmn; {:.1f} kcal/mol".format(
-                        mmpbsa_traj_mean, mmpbsa_traj_std))
-                    report_file.write("<br>&lt;BintScore&gt;: {:.1f}  &plusmn; {:.1f} kcal/mol".format(
+                    report_file.write("&lt;BintScore&gt;: {:.1f}  &plusmn; {:.1f}<br>".format(
                         trajbintscore, trajbintstderr))
-                    #report_file.write("""      </h3>""")
-                    #report_file.write("""      <h4 style="text-align: center; width: 100%">
-                    #        <sup>*</sup>Boltzmann-weighted ensemble average &plusmn; StdErr</h4>""")
-                    if clusData['nClusters']>0:
-                        report_file.write("<br><sup>*</sup>Boltzmann-weighted""")
-                    report_file.write("""      </h3>""")
+                    if clusData['nClusters']>1:
+                        report_file.write("&lt;MMPBSA&gt;<sup>*</sup>: {:.1f}  &plusmn; {:.1f} kcal/mol".format(
+                            mmpbsa_traj_mean, mmpbsa_traj_std))
+                        report_file.write("<br><sup>*</sup>Boltzmann-weighted by cluster""")
+                    else:
+                        report_file.write("&lt;MMPBSA&gt;: {:.1f}  &plusmn; {:.1f} kcal/mol".format(
+                            mmpbsa_traj_mean, mmpbsa_traj_std))
+                    report_file.write("""      </h4>""")
 
 
                 analysis_txt = flrpt.MakeClusterInfoText(clusData, popResults, clusRGB)

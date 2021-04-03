@@ -119,18 +119,12 @@ class BintScoreInitialPoseAndTrajectory(RecordPortsMixin, ComputeCube):
 
             # Calc list of per-frame BintScores for a trajectory
             trajBintScoreList = hint.TrajBintScoreListFromRefHints(ligTraj,protTraj,good_hints_init_pose)
-            opt['Logger'].info('{} Aggregated {} OEHint bitvectors'.format(system_title,len(trajBintScoreList)))
+            opt['Logger'].info('{} Traj has {} BintScores'.format(system_title,len(trajBintScoreList)))
 
             # Calc Trajectory BintScore: Initial BintScore weighted by fractional occupancy of each interaction
-            trajBintScore = float(sum(trajBintScoreList)/len(trajBintScoreList))
-            opt['Logger'].info('{} Trajectory of ligand {:s} has BintScore {:.2f}'.format(
-                system_title, ligTraj.GetTitle(), trajBintScore))
-
-            # Calc Standard Error of Trajectory BintScore
-            trajBintStderr = utl.BootstrapStdErrOfMean(trajBintScoreList)
-            opt['Logger'].info('{} Trajectory of ligand {:s} has BintScore stderr{:.2f}'.format(
-                system_title, ligTraj.GetTitle(), trajBintStderr))
-
+            trajBintScore, trajBintStderr, CI05, CI95 = utl.MeanAndBootstrapStdErrCI(trajBintScoreList)
+            opt['Logger'].info('{} Trajectory of ligand {:s} has BintScore {:.2f} +/- {:.2f}'.format(
+                system_title, ligTraj.GetTitle(), trajBintScore, trajBintStderr))
 
             # Create new record with Bint-related results
             bintRecord = OERecord()

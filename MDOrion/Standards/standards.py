@@ -254,7 +254,8 @@ class Fields:
         # The BintScore for the Initial Pose and the traj are floats
         initBintScore = OEField('InitBintScore', Types.Float)
         trajBintScore = OEField('TrajBintScore', Types.Float)
-        trajBintStderr = OEField('TrajBintStderr', Types.Float)
+        metaTrajBintStderr = OEFieldMeta().add_relation(Meta.Relations.ErrorsFor, trajBintScore)
+        trajBintStderr = OEField('TrajBintStderr', Types.Float, meta=metaTrajBintStderr)
 
     class FEC:
         # Free Energy
