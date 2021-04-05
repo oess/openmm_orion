@@ -1,4 +1,5 @@
 {
+    "base_os": "ubuntu-18.04",
     "build_requirements": {
         "memory": 8192
     },
@@ -42,5 +43,5 @@
     "python_version": "3.7.7",
     "requirements": "requirements_dev.txt",
     "uuid": "8ad7e185-9b86-4112-a2e7-a367e5123e29",
-    "version": "4.0.0a125"
+    "version": "4.0.0a127"
 }
