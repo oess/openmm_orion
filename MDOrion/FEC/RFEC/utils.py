@@ -558,7 +558,8 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
 
             # TODO PARMED ERROR
             try:
-                new_pmd_structure.save(flask_gro_fn, overwrite=True)
+                new_pmd_structure.save(flask_gro_fn, overwrite=True, combine='all')
+                # new_pmd_structure.save(flask_gro_fn, overwrite=True)
             except:
                 lig, lig_idx = parmed_find_ligand(new_pmd_structure, lig_res_name="CMR")
 
