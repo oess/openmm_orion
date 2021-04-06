@@ -414,8 +414,10 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
 
     if morph == "A_to_B":
         pmd_initial = chimera.pmdA
+        pmd_final = chimera.pmdB
     else:
         pmd_initial = chimera.pmdB
+        pmd_final = chimera.pmdA
 
     pmd_flask = mdrecord.get_parmed(sync_stage_name="last")
 
@@ -490,6 +492,10 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
 
         sorted_coords = np.array([p[1] for p in sorted(pmd_chimera_initial_coords.items())])
         pmd_chimera.coordinates = sorted_coords.reshape(len(pmd_chimera.atoms), 3)
+
+        # Optimize in place the pmd_chimera coordinates
+        optmize_initial_atom_idxs = list(map_excess_final_new_idxs.values())
+        chimera._optimize_chimera_coords(pmd_chimera, pmd_final, map_chimera_to_final_idxs, optmize_initial_atom_idxs)
 
         pmd_flask.coordinates = frame_xyz
         pmd_flask.box_vectors = bv
