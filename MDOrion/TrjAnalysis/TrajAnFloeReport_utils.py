@@ -19,10 +19,10 @@ _clus_floe_report_header = """
     display:flex;
   }
   .cb-floe-report__sidebar {
-    width: 25%;
+    width: 30%;
   }
   .cb-floe-report__content {
-    width: 75%;
+    width: 70%;
   }
   .cb-floe-report__column > * {
     width: 100%;
@@ -61,7 +61,7 @@ _clus_floe_report_header = """
   }
 
   div.cb-floe-report__analysis-table-row > span:nth-child(1) {
-    flex-basis: 20%;
+    flex-basis: 15%;
     text-align: center;
   }
 
@@ -71,10 +71,20 @@ _clus_floe_report_header = """
   }
 
   div.cb-floe-report__analysis-table-row > span:nth-child(3) {
+    flex-basis: 35%;
+    text-align: center;
+  }
+
+  div.cb-floe-report__analysis-table-row > span:nth-child(4) {
+    flex-basis: 35%;
+    text-align: center;
+  }
+  /*
+  div.cb-floe-report__analysis-table-row > span:nth-child(3) {
     flex-basis: 50%;
     text-align: left;
     margin-left: auto;
-  }
+  }*/
 
   h2.cb-floe-report-element--header {
     margin-bottom: 0;
@@ -202,9 +212,6 @@ _clus_floe_report_midHtml2a = """      </div>
 
   <div class="cb-floe-report__row">
 """
-#  <div class="cb-floe-report__row">
-#    <div class="cb-floe-report__column cb-floe-report__sidebar">
-#"""
 
 _clus_floe_report_stripPlots = """    </div>
 
@@ -212,11 +219,6 @@ _clus_floe_report_stripPlots = """    </div>
       <h2 class="cb-floe-report-element--header"> Cluster membership of ligand by Trajectory frame </h2>
       {clusters}
     </div>"""
-#    </div>
-#  </div>"""
-# removed from _clus_floe_report_stripPlots but commented out here in case needed again
-#      <h3 class="cb-floe-report-element--header"> RMSD of ligand compared to initial pose, colored by cluster </h3>
-#      {rmsdInit}
 
 
 _clus_floe_report_Trailer = '\n</body>\n</html>\n'
@@ -254,20 +256,25 @@ def MakeClusterInfoText(dataDict, popResults, rgbVec):
           <div class="cb-floe-report__analysis-table-row">
             <span>Cluster</span>
             <span>Size</span>
-            <span>MMPBSA* &plusmn; StdErr</span>
+            <span>&lt;MMPBSA&gt;<sup>a,b</sup> </span>
+            <span>&lt;BintScore&gt;<sup>a</sup> </span>
           </div>\n""")
+           #<span><span>&lt;MMPBSA&gt;<sup>a</sup> </span>
            #<span>&lt;MMPBSA&gt;* &plusmn; StdErr</span>
 
     clusSize = popResults['ClusTot']
-    ByClusMean = popResults['OEZap_MMPBSA6_ByClusMean']
-    ByClusSerr = popResults['OEZap_MMPBSA6_ByClusSerr']
+    MMPBSAByClusMean = popResults['OEZap_MMPBSA6_ByClusMean']
+    MMPBSAByClusSerr = popResults['OEZap_MMPBSA6_ByClusSerr']
+    tBintByClusMean = popResults['TrajBintScore_ByClusMean']
+    tBintByClusSerr = popResults['TrajBintScore_ByClusSerr']
     for i, (count, color) in enumerate(zip(clusSize, rowColors)):
         percent = count/nFrames
-        mmpbsa = '{:6.2f} &plusmn; {:4.2f}'.format(ByClusMean[i], 1.96 * ByClusSerr[i])
+        mmpbsa = '{:5.1f} &plusmn; {:3.1f}'.format(MMPBSAByClusMean[i], 2.0 * MMPBSAByClusSerr[i])
+        bintscore = '{:5.1f} &plusmn; {:3.1f}'.format(tBintByClusMean[i], 2.0 * tBintByClusSerr[i])
         if i<nMajor:
             clusName = str(i)
         else:
-            clusName = 'Other**'
+            clusName = 'Other<sup>c</sup>'
         text.append("""
           <div class="cb-floe-report__analysis-table-row" style="
                 background-color: {hexColor};
@@ -275,11 +282,13 @@ def MakeClusterInfoText(dataDict, popResults, rgbVec):
             <span>{clusID}</span>
             <span>{percent:.1%}</span>
             <span>{mmpbsadata}</span>
+            <span>{bintscoredata}</span>
           </div>\n""".format(clusID=clusName, percent=percent, mmpbsadata=mmpbsa,
-                             hexColor=color))
+                             bintscoredata=bintscore, hexColor=color))
     # Footnotes to Table.
-    text.append('*Values in kcal/mol.\n')
-    text.append('**Other includes Minor clusters as well as Outliers from the clustering.\n')
+    text.append('<sup>a</sup>Ensemble average &plusmn; 2*StdErr.\n')
+    text.append('<sup>b</sup>kcal/mol.\n')
+    text.append('<sup>c</sup>Other includes Minor clusters as well as Outliers from the clustering.\n')
 
     text.append("""
         </div>

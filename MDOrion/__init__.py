@@ -17,6 +17,7 @@
 
 __version__ = '4.0.0b2'
 
+
 from .ComplexPrep.cubes import ComplexPrepCube
 
 from .ForceField.cubes import ForceFieldCube
@@ -53,7 +54,7 @@ from .TrjAnalysis.cubes_clusterAnalysis import (ParallelMDTrajAnalysisClusterRep
                                                 MDFloeReportCube,
                                                 ExtractMDDataCube)
 
-from .TrjAnalysis.cubes_hintAnalysis import (ParallelComparePoseBintsToTrajBints)
+from .TrjAnalysis.cubes_hintAnalysis import (ParallelBintScoreInitialPoseAndTrajectory)
 
 from .FEC.RFEC.cubes import (BoundUnboundSwitchCube,
                              RBFECMapping,
