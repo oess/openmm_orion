@@ -87,9 +87,11 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
     unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
     unbound_nes.promote_parameter("time", promoted_name="nes_time",
                                   default=options['nes_switch_time_in_ns'])
+    # unbound_nes.modify_parameter(unbound_nes.instance_type, promoted=False, default='g4dn.2xlarge')
 
     bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
     bound_nes.promote_parameter("time", promoted_name="nes_time")
+    # bound_nes.modify_parameter(bound_nes.instance_type, promoted=False, default='g3.4xlarge')
 
     nes_analysis = NESAnalysis("NES_Analysis")
 
@@ -116,7 +118,7 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
 
     # Input bound and unbound cubes into Collection Setting
     input_bound.success.connect(coll_open_write.intake)
-    if input_bound!=input_unbound:
+    if input_bound != input_unbound:
         input_unbound.success.connect(coll_open_write.intake)
     coll_open_write.success.connect(switch.intake)
 

@@ -1003,6 +1003,26 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
         # Add the following lines for Orion CSS Plotly integration
         report_str = ""
 
+        edge_string = """
+        <style>
+            .mutation {
+                display: block;
+                width: 400px;
+                height: 250px;
+        }
+
+        .mutation svg {
+            display: block;
+            max-width: 100%;
+            }
+        </style>"""
+
+        edge_string += """
+        <main class="mutation">
+            {svg}
+        </main>\n
+        """.format(svg=edge_depiction_string)
+
         for idx in range(0, len(report_string_list)):
             line = report_string_list[idx]
             if "<head>" in line:
@@ -1015,9 +1035,7 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
 
             report_str += line
 
-        edge_depiction_string = """<img src='data:image/svg+xml;utf8,{}' width="400" height="250" />\n""".format(edge_depiction_string)
-
-        report_str = edge_depiction_string + "\n" + report_str
+        report_str = edge_string + "\n" + report_str
 
     return report_str
 
@@ -1277,6 +1295,8 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
     if network.weakly_connected:
 
+        affinity_dic = dict()
+
         # Absolute Binding Affinity from Hanna's code
         graph = network.graph
 
@@ -1298,6 +1318,15 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         hov_ligs = []
         for name, id in network._name_to_id.items():
             hov_ligs.append(name)
+
+        if not (len(hov_ligs) == len(exp_DG) == len(dexp_DG) == len(pred_DG) == len(dpred_DG)):
+            raise ValueError("List size mismatch")
+
+        for name, exp, exp_err, pred, pred_err in zip(hov_ligs, exp_DG, dexp_DG, pred_DG, dpred_DG):
+            affinity_dic[name] = [exp, exp_err, pred, pred_err]
+
+        # for name, l in affinity_dic.items():
+        #     print("name {} exp {} +- {} pred {} +- {}".format(name, l[0], l[1], l[2], l[3]))
 
         # Axis range:
         conc_DG = np.concatenate((exp_DG, pred_DG))
@@ -1448,7 +1477,10 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
             report_str += line
 
-    return report_str
+    if network.weakly_connected:
+        return report_str, affinity_dic
+    else:
+        return report_str, None
 
 
 def upload_gmx_files(tar_fn, record, shard_name=""):
