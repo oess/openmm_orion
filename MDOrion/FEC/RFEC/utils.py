@@ -744,7 +744,7 @@ def make_edge_depiction(ligandA, ligandB):
     return edge_depiction_string, image
 
 
-def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_depiction_string):
+def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_depiction_string, units='kJ/mol'):
 
     def init(f_dic, r_dic):
 
@@ -756,6 +756,9 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
         return frames_f, frames_r, work_f, work_r
 
     def make_plots(frames_f, frames_r, work_f, work_r, figure, row):
+
+        work_f = work_f/conv_factor_kJ_mol_to_kcal_mol
+        work_r = work_r/conv_factor_kJ_mol_to_kcal_mol
 
         # Forward color
         color_f = 'rgb(255,0,0)'
@@ -847,6 +850,15 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
 
         return figure
 
+    ##############
+
+    display_units = units
+
+    if units == 'kcal/mol':
+        conv_factor_kJ_mol_to_kcal_mol = 4.184
+    else:
+        conv_factor_kJ_mol_to_kcal_mol = 1.0
+
     # Extract data from the frame:work dictionary
     bound_frames_f, bound_frames_r, bound_work_f, bound_work_r = init(f_bound, r_bound)
 
@@ -872,9 +884,9 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
 
     for met, fecs in results.items():
         methods.append(met)
-        ddg.append("{:.2f} \u00B1 {:.2f}".format(fecs[0], fecs[1]))
-        dgbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[2], fecs[3]))
-        dgunbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[4], fecs[5]))
+        ddg.append("{:.2f} \u00B1 {:.2f}".format(fecs[0]/conv_factor_kJ_mol_to_kcal_mol, fecs[1]/conv_factor_kJ_mol_to_kcal_mol))
+        dgbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[2]/conv_factor_kJ_mol_to_kcal_mol, fecs[3]/conv_factor_kJ_mol_to_kcal_mol))
+        dgunbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[4]/conv_factor_kJ_mol_to_kcal_mol, fecs[5]/conv_factor_kJ_mol_to_kcal_mol))
 
     data.append(methods)
     data.append(ddg)
@@ -884,7 +896,9 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
     fig.add_trace(
         go.Table(
             header=dict(
-                values=["Method", "\u0394\u0394G kJ/mol", "\u0394G Bound kJ/mol", "\u0394G Unbound kJ/mol"],
+                values=["Method", "\u0394\u0394G {}".format(display_units),
+                        "\u0394G Bound {}".format(display_units),
+                        "\u0394G Unbound {}".format(display_units)],
                 font=dict(size=14),
                 align="center",
                 fill_color='paleturquoise',
@@ -909,7 +923,7 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
     yaxis1 = dict(
         zeroline=True,
         showgrid=True,
-        title="Work Bound kJ/mol"
+        title="Work Bound {}".format(display_units)
     )
 
     # Bound data PDF
@@ -936,7 +950,7 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
     yaxis3 = dict(
         zeroline=True,
         showgrid=True,
-        title="Work Unbound kJ/mol"
+        title="Work Unbound {}".format(display_units)
     )
 
     # Bound data PDF
@@ -1079,14 +1093,22 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
     def sub_plot(x, err_x, y, err_y, figure, hover_text, col, range):
 
+        x = x/conv_factor_kJ_mol_to_kcal_mol
+        y = y/conv_factor_kJ_mol_to_kcal_mol
+        err_x = err_x/conv_factor_kJ_mol_to_kcal_mol
+        err_y = err_y/conv_factor_kJ_mol_to_kcal_mol
+
+        range[0] = range[0]/conv_factor_kJ_mol_to_kcal_mol
+        range[1] = range[1]/conv_factor_kJ_mol_to_kcal_mol
+
         slope, intercept, r_value, p_value, std_err = sc.stats.linregress(np.array(x),
                                                                           np.array(y))
 
         x_plt = np.linspace(range[0], range[1], 100, endpoint=True)
         line = slope * np.array(x_plt) + intercept
 
-        x_plus_1kcal = x_plt + 4.184
-        x_minus_1kcal = x_plt - 4.184
+        x_plus_1kcal = x_plt + 4.184/conv_factor_kJ_mol_to_kcal_mol
+        x_minus_1kcal = x_plt - 4.184/conv_factor_kJ_mol_to_kcal_mol
 
         alpha_color = 'rgba(127, 166, 238, 0.4)'
 
@@ -1178,6 +1200,11 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
     display_units = units
 
+    if units == 'kcal/mol':
+        conv_factor_kJ_mol_to_kcal_mol = 4.184
+    else:
+        conv_factor_kJ_mol_to_kcal_mol = 1.0
+
     raw_results = []
 
     if len(exp_data_dic) != len(predicted_data_dic):
@@ -1221,7 +1248,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
             hov_edge.append("{} to {}".format(lna, lnb))
 
     # Relative statistics
-    relative_statistics = calculate_statistics(exp_DDG, pred_DDG, plot_type="ddG")
+    relative_statistics = calculate_statistics(exp_DDG/conv_factor_kJ_mol_to_kcal_mol, pred_DDG/conv_factor_kJ_mol_to_kcal_mol, plot_type="ddG")
 
     if network.weakly_connected:
         figure = make_subplots(rows=2, cols=2,
@@ -1265,7 +1292,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         ),
         range=range_axis_DDG,
         constrain='domain',
-        title="Experimental \u0394\u0394G kJ/mol",
+        title="Experimental \u0394\u0394G {}".format(display_units),
         titlefont=dict(
             size=20
         )
@@ -1280,7 +1307,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         scaleanchor="x1",
         scaleratio=1,
         range=range_axis_DDG,
-        title="Predicted \u0394\u0394G kJ/mol",
+        title="Predicted \u0394\u0394G {}".format(display_units),
         titlefont=dict(
             size=20
         )
@@ -1314,7 +1341,10 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
         if relative_statistics is not None:
             # Absolute statistics
-            absolute_statistics = calculate_statistics(exp_DG, pred_DG, plot_type="dG")
+
+            absolute_statistics = calculate_statistics(exp_DG/conv_factor_kJ_mol_to_kcal_mol,
+                                                       pred_DG/conv_factor_kJ_mol_to_kcal_mol,
+                                                       plot_type="dG")
 
         # Assuming that dic is in Order
         hov_ligs = []
@@ -1361,7 +1391,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
             range=range_axis_DG,
             constrain='domain',
-            title="Experimental \u0394G kJ/mol",
+            title="Experimental \u0394G {}".format(display_units),
             titlefont=dict(
                 size=20
             )
@@ -1376,7 +1406,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
             scaleanchor="x2",
             scaleratio=1,
             range=range_axis_DG,
-            title="Predicted \u0394G kJ/mol",
+            title="Predicted \u0394G {}".format(display_units),
             titlefont=dict(
                 size=20
             )
@@ -1412,7 +1442,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
             methods.append(meth)
 
-            vl_line = "{:.2f} [ {:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
+            vl_line = "{:.2f} [{:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
             values.append(vl_line)
 
         data.append(methods)
@@ -1428,7 +1458,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
                 if meth in skip_plot_methods:
                     continue
 
-                vl_line = "{:.2f} [ {:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
+                vl_line = "{:.2f} [{:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
                 values.append(vl_line)
 
         data.append(methods)
@@ -1439,7 +1469,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         figure.add_trace(
             go.Table(
                 header=dict(
-                    values=["Method", "\u0394\u0394G kJ/mol", "", "Method", "\u0394G kJ/mol"],
+                    values=["Method", "\u0394\u0394G", "", "Method", "\u0394G"],
                     font=dict(size=14),
                     align="center",
                     fill_color=alpha_color,

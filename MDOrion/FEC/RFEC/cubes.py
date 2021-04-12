@@ -957,6 +957,13 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
         default=300.0,
         help_text="Temperature (Kelvin)")
 
+    units = parameters.StringParameter(
+        'units',
+        choices=['kcal/mol', 'kJ/mol'],
+        default='kcal/mol',
+        help_text='Units to use to display the plots'
+    )
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -1105,7 +1112,9 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
                                                         forward_unbound,
                                                         reverse_unbound,
                                                         results,
-                                                        title, edge_depiction_string)
+                                                        title,
+                                                        edge_depiction_string,
+                                                        self.opt['units'])
                     new_record = OERecord()
 
                     new_record.set_value(Fields.floe_report, report_string)
@@ -1118,7 +1127,12 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
                             "and it will be skipped".format(edgeid))
                         continue
 
-                    label = "BAR score:<br>{:.2f}  &plusmn; {:.2f} kJ/mol".format(results['BAR'][0], results['BAR'][1])
+                    if self.opt['units'] == 'kcal/mol':
+                        conv_factor_kJ_mol_to_kcal_mol = 4.184
+                    else:
+                        conv_factor_kJ_mol_to_kcal_mol = 1.0
+
+                    label = "BAR score:<br>{:.2f}  &plusmn; {:.2f} {}".format(results['BAR'][0]/conv_factor_kJ_mol_to_kcal_mol, results['BAR'][1]/conv_factor_kJ_mol_to_kcal_mol, self.opt['units'])
                     new_record.set_value(Fields.floe_report_label, label)
 
                     new_record.set_value(Fields.FEC.RBFEC.edgeid, edgeid)
@@ -1213,9 +1227,9 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
 
     units = parameters.StringParameter(
         'units',
-        choices=['kcal/mol, kJ/mol'],
+        choices=['kcal/mol', 'kJ/mol'],
         default='kcal/mol',
-        help_text='Units to use to display the plot'
+        help_text='Units to use to display the plots'
     )
 
     def begin(self):
@@ -1336,7 +1350,7 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
             report_html_str, affinity_dic = utils.generate_plots_and_stats(self.edge_exp_dic,
                                                                            self.edge_pred_dic,
                                                                            DDG_symmetrize=self.opt['symmetrize'],
-                                                                           units = self.opt['units'])
+                                                                           units=self.opt['units'])
 
             index = self.floe_report.create_page("index", is_index=True)
 
