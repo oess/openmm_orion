@@ -1040,7 +1040,7 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
     return report_str
 
 
-def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG_symmetrize=False):
+def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG_symmetrize=False, units='kcal/mol'):
 
     def calculate_statistics(exp, pred, plot_type='ddG'):
 
@@ -1175,6 +1175,8 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
     #######################
 
     skip_plot_methods = ['RMSE', 'RRMSE', 'RHO']
+
+    display_units = units
 
     raw_results = []
 

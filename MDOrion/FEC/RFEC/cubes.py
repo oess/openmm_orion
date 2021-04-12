@@ -1211,6 +1211,13 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
         help_text="""Select if symmetrize the Relative Binding affinity plot"""
     )
 
+    units = parameters.StringParameter(
+        'units',
+        choices=['kcal/mol, kJ/mol'],
+        default='kcal/mol',
+        help_text='Units to use to display the plot'
+    )
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -1328,7 +1335,8 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
 
             report_html_str, affinity_dic = utils.generate_plots_and_stats(self.edge_exp_dic,
                                                                            self.edge_pred_dic,
-                                                                           DDG_symmetrize=self.opt['symmetrize'])
+                                                                           DDG_symmetrize=self.opt['symmetrize'],
+                                                                           units = self.opt['units'])
 
             index = self.floe_report.create_page("index", is_index=True)
 

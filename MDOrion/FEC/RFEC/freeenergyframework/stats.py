@@ -102,7 +102,8 @@ def bootstrap_statistic(y_true, y_pred, ci=0.95, statistic='RMSE', nbootstrap = 
 
     return rmse_stats
 
-def mle(g,factor='f_ij'):
+
+def mle(g, factor='f_ij'):
     """
     Compute maximum likelihood estimate of free energies and covariance in their estimates.
     The number 'factor' is the node attribute on which the MLE will be calculated,
