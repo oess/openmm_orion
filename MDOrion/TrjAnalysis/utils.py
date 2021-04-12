@@ -19,7 +19,10 @@ import numpy as np
 
 from openeye import (oechem,
                      oedepict,
-                     oegrapheme)
+                     oegrapheme,
+                     oegrid,
+                     oespicoli,
+                     oedocking)
 import mdtraj as md
 
 from datarecord import OEField
@@ -239,7 +242,9 @@ def extract_aligned_prot_lig_wat_traj(md_components, flask, trj_fn, opt, nmax=30
         #  keep the water order
 
         # Mark the close water atoms and extract them
-        bv = oechem.OEBitVector(nmax * 3)
+        bv = oechem.OEBitVector(flask.GetMaxAtomIdx())
+        bv.ClearBits()
+
         water_idx = []
 
         for pair in water_list_sorted_max:
@@ -397,6 +402,16 @@ def PoseInteractionsSVG(md_components, width=400, height=300):
     return svgString
 
 
+def GetBFactorColorGradient():
+    colorg = oechem.OELinearColorGradient()
+    colorg.AddStop(oechem.OEColorStop(0.0, oechem.OEDarkBlue))
+    colorg.AddStop(oechem.OEColorStop(10.0, oechem.OELightBlue))
+    colorg.AddStop(oechem.OEColorStop(25.0, oechem.OEYellowTint))
+    colorg.AddStop(oechem.OEColorStop(50.0, oechem.OERed))
+    colorg.AddStop(oechem.OEColorStop(100.0, oechem.OEDarkRose))
+    return colorg
+
+
 def ligand_to_svg_stmd(ligand, ligand_name):
 
     class ColorLigandAtomByBFactor(oegrapheme.OEAtomGlyphBase):
@@ -440,14 +455,8 @@ def ligand_to_svg_stmd(ligand, ligand_name):
 
         oegrapheme.OEPrepareDepictionFrom3D(lig_copy)
 
-        colorg = oechem.OELinearColorGradient()
-        colorg.AddStop(oechem.OEColorStop(0.0, oechem.OEDarkBlue))
-        colorg.AddStop(oechem.OEColorStop(10.0, oechem.OELightBlue))
-        colorg.AddStop(oechem.OEColorStop(25.0, oechem.OEYellowTint))
-        colorg.AddStop(oechem.OEColorStop(50.0, oechem.OERed))
-        colorg.AddStop(oechem.OEColorStop(100.0, oechem.OEDarkRose))
-
-        color_bfactor = ColorLigandAtomByBFactor(colorg)
+        b_factor_color_grad = GetBFactorColorGradient()
+        color_bfactor = ColorLigandAtomByBFactor(b_factor_color_grad)
 
         width, height = 150, 150
         opts = oedepict.OE2DMolDisplayOptions(width, height, oedepict.OEScale_AutoScale)
@@ -538,3 +547,13 @@ def StyleTrajProteinLigandClusters( protein, ligand):
         SetProteinLigandVizStyle( pconf, lconf, colorRGB)
     return True
 
+
+class ClusterStyler:
+
+    def __init__(self, num_clusters=0):
+        self._confRGB = clusutl.ColorblindRGBMarkerColors(num_clusters)
+
+    def apply_style(self, du, cluster_id):
+        # TODO: Consider special style on waters and cofactors too
+        SetProteinLigandVizStyle(du.GetImpl().GetProtein(), du.GetImpl().GetLigand(), self._confRGB[cluster_id])
+        return True

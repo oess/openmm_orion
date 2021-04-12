@@ -17,19 +17,13 @@
 
 import traceback
 
-# from MDOrion.LigPrep import ff_utils
-
 from oemdtoolbox.ForceField import utils as ff_utils
 
 from floe.api import (parameters,
                       ComputeCube,
                       ParallelMixin)
 
-from datarecord import (Types,
-                        Meta,
-                        OEFieldMeta,
-                        OEField,
-                        OERecord)
+from datarecord import OERecord
 
 from oeommtools import utils as oeommutils
 
@@ -171,6 +165,12 @@ class LigandSetting(RecordPortsMixin, ComputeCube):
             oechem.OEDeleteInteractionsHintSerializationIds(ligand)
             oechem.OEClearStyle(ligand)
             oechem.OEClearPDBData(ligand)
+
+            # # Remove groups
+            # for g in ligand.GetGroups():
+            #     g.Sweep()
+            #     ligand.DeleteGroup(g)
+            # ligand.Sweep()
 
             # Ligand sanitation
             ligand = oeommutils.sanitizeOEMolecule(ligand)

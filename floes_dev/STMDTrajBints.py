@@ -17,68 +17,71 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-from os import path
+from floe.api import (WorkFloe,
+                      ParallelCubeGroup)
 
-from floe.api import (WorkFloe)
-
-from floes.SubfloeFunctions import setup_traj_analysis
+from floes.SubfloeFunctions import setup_bint
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.System.cubes import (ParallelRecordSizeCheck)
+from MDOrion.System.cubes import (ParallelRecordSizeCheck,
+                                  CollectionSetting)
 
-from MDOrion.System.cubes import CollectionSetting
 
-job = WorkFloe('Analyze Protein-Ligand MD',
-               title='Analyze Protein-Ligand MD')
+job = WorkFloe("Assess Pose Stability from Binding Interactions")
 
-job.description = open(path.join(path.dirname(__file__), 'AnalyzePLMD_desc.rst'), 'r').read()
+job.description = """
+Compare the initial pose of the ligand to the
+ligand trajectory in terms of the OEHint binding interactions.
+"""
 
-job.classification = [['Specialized MD']]
-job.uuid = "7438db4d-30b1-478c-afc0-e921f0336c78"
-job.tags = [tag for lists in job.classification for tag in lists]
+#job.uuid = "d00de553-5f78-4496-ae96-9c8adc527f53"
 
-# Ligand setting
-iMDInput = DatasetReaderCube("MDInputReader", title="MD Input Reader")
-iMDInput.promote_parameter("data_in", promoted_name="in",
-                           title="MD Input Dataset", description="MD Input Dataset")
+# Create cubes that go before and after the subfloe function calls
 
-# This Cube is necessary for the correct work of collection and shard
+# Input MD Dataset
+AnlysInput = DatasetReaderCube("AnalysisInputReader", title="Analysis Input Reader")
+AnlysInput.promote_parameter("data_in", promoted_name="in",
+                           title="Analysis Input Dataset", description="Analysis Input Dataset")
+
+# Open Collection: necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
-# This Cube is necessary for the correct working of collection and shard
+# Close collection
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 
+# Check Record Size: for graceful failure if exceeding the 100Mb limit
 check_rec = ParallelRecordSizeCheck("Record Check Success", title="Record Check Success")
 
+# Output cube
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",
                       title="MD Out", description="MD Dataset out")
 
-ofs_du = DatasetWriterCube('ofs_du', title='MD Out DU Cluster Medoid')
-ofs_du.promote_parameter("data_out", promoted_name="du",
-                         title="MD Out DU Cluster Medoid", description="DU Cluster Med MD Dataset out")
-
+# Failure cube
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
-job.add_cubes(iMDInput, coll_open,
-              coll_close, check_rec,  ofs, fail, ofs_du)
+# Add cubes coming before and after the subfloe calls
+job.add_cubes(AnlysInput, coll_open,
+                coll_close, check_rec,  ofs, fail)
 
-traj_anlys_outcube = setup_traj_analysis(job, coll_open, check_rec, ofs_du)
+# Add other cubes through calling a subfloe function
+bint_outcube = setup_bint(job, coll_open, check_rec)
+
 
 # Success Connections
-iMDInput.success.connect(coll_open.intake)
-traj_anlys_outcube.success.connect(coll_close.intake)
+AnlysInput.success.connect(coll_open.intake)
+bint_outcube.success.connect(coll_close.intake)
 coll_close.success.connect(check_rec.intake)
 check_rec.success.connect(ofs.intake)
 
 # Fail Connections
-traj_anlys_outcube.failure.connect(check_rec.fail_in)
 coll_open.failure.connect(check_rec.fail_in)
+bint_outcube.failure.connect(check_rec.fail_in)
 coll_close.failure.connect(check_rec.fail_in)
 check_rec.failure.connect(fail.intake)
 

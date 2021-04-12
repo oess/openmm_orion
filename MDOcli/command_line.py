@@ -29,6 +29,8 @@ import parmed
 
 from tqdm import tqdm
 
+from MDOrion.Standards.standards import CollectionsNames
+
 @click.group(
     context_settings={
         "help_option_names": ("-h", "--help")
@@ -105,10 +107,12 @@ def data_trajectory_extraction(ctx, name, only):
 
         new_record = OERecord(record)
 
-        if not record.has_field(Fields.collection):
+        if not record.has_field(Fields.collections):
             raise ValueError("No Collection field has been found in the record")
 
-        collection_id = record.get_value(Fields.collection)
+        collections = record.get_value(Fields.collections)
+
+        collection_id = collections[CollectionsNames.md]
 
         collection = session.get_resource(ShardCollection, collection_id)
 
@@ -205,7 +209,7 @@ def data_trajectory_extraction(ctx, name, only):
 
                 new_record.set_value(OEField('OETraj', Types.Record), oetrajrec)
 
-        new_record.delete_field(Fields.collection)
+        new_record.delete_field(Fields.collections)
 
         OEWriteRecord(ofs, new_record, fmt='binary')
 
@@ -304,9 +308,9 @@ def info_extraction(ctx):
 
                 rec_size += len(record.get_bytes(field))
 
-                if (field.get_type() is Types.String or
-                        field.get_type() is Types.Int or
-                        field.get_type() is Types.Float):
+                if (field.get_type() == Types.String or
+                        field.get_type() == Types.Int or
+                        field.get_type() == Types.Float):
                     print("{} {} name = {}\n        "
                           "{}type = {}\n        "
                           "{}value = {}\n        "

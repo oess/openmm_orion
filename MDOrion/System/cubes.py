@@ -48,6 +48,8 @@ from openeye import oechem
 
 from oemdtoolbox.ForceField.md_components import MDComponents
 
+from MDOrion.Standards.standards import CollectionsNames
+
 
 class IDSettingCube(RecordPortsMixin, ComputeCube):
     title = "Simulation Flask ID Setting"
@@ -158,10 +160,17 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
         default=True,
         help_text='Open or Close a Collection')
 
+    write_new_collection = parameters.StringParameter(
+        'write_new_collection',
+        default=CollectionsNames.none,
+        choices=[CollectionsNames.none, CollectionsNames.md, CollectionsNames.nes],
+        help_text='Write a new collection')
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
-        self.collection = None
+        self.collections = dict()
+        self.initialize = True
 
     def process(self, record, port):
         try:
@@ -170,35 +179,72 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
 
                 session = APISession
 
-                if record.has_value(Fields.collection):
+                if record.has_value(Fields.collections):
 
-                    if self.collection is None:
+                    if not len(self.collections):
 
-                        collection_id = record.get_value(Fields.collection)
+                        collections_dic = record.get_value(Fields.collections)
 
-                        collection = session.get_resource(ShardCollection, collection_id)
+                        for coll_name, coll_id in collections_dic.items():
 
-                        self.collection = collection
+                            collection = session.get_resource(ShardCollection, coll_id)
+
+                            self.collections[coll_name] = collection
 
                         if self.opt['open']:
 
-                            if self.collection.state == "open":
-                                pass
-                            else:
-                                self.collection.open()
+                            for collection in self.collections.values():
+
+                                if collection.state == "open":
+                                    pass
+                                else:
+                                    collection.open()
+
+                                    self.opt['Logger'].info("Collection Opened: {}".format(collection.id))
+
+                    if self.opt['write_new_collection']:
+
+                        if self.initialize:
+
+                            if self.opt['write_new_collection'] in self.collections:
+                                raise ValueError("Collection name already present in the collections: {}".format(
+                                    list(self.collections.keys)))
+
+                            job_id = environ.get('ORION_JOB_ID')
+
+                            collection = ShardCollection.create(session, job_id)
+
+                            if job_id:
+                                session.tag_resource(collection, "Job {}".format(job_id))
+
+                            self.collections[self.opt['write_new_collection']] = collection
+
+                            self.initialize = False
+
+                            self.opt['Logger'].info("New Collection Created: {}".format(collection.id))
+
+                        record.set_value(Fields.collections, {k: v.id for k, v in self.collections.items()})
+
                 else:
-                    if self.collection is None:
+                    if not self.opt['write_new_collection']:
+                        raise ValueError("There are no collections to open or write")
+
+                    if self.initialize:
 
                         job_id = environ.get('ORION_JOB_ID')
 
-                        self.collection = ShardCollection.create(session, job_id)
-
-                        job_id = environ.get('ORION_JOB_ID')
+                        collection = ShardCollection.create(session, job_id)
 
                         if job_id:
-                            session.tag_resource(self.collection, "Job {}".format(job_id))
+                            session.tag_resource(collection, "Job {}".format(job_id))
 
-                    record.set_value(Fields.collection, self.collection.id)
+                        self.collections[self.opt['write_new_collection']] = collection
+
+                        self.initialize = False
+
+                        self.opt['Logger'].info("New Collection Created: ".format(collection.id))
+
+                    record.set_value(Fields.collections, {k: v.id for k, v in self.collections.items()})
 
             self.success.emit(record)
 
@@ -214,11 +260,13 @@ class CollectionSetting(RecordPortsMixin, ComputeCube):
     def end(self):
         if in_orion():
             if not self.opt['open']:
-                if self.collection is not None:
-                    if self.collection.state == "close":
-                        pass
-                    else:
-                        self.collection.close()
+                if len(self.collections):
+                    for collection in self.collections.values():
+                        if collection.state == "ready":
+                            pass
+                        else:
+                            collection.close()
+                            self.opt['Logger'].info("Collection Closed: {}".format(collection.id))
 
 
 class SolvationCube(RecordPortsMixin, ComputeCube):
