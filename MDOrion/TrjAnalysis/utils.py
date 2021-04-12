@@ -402,6 +402,16 @@ def PoseInteractionsSVG(md_components, width=400, height=300):
     return svgString
 
 
+def GetBFactorColorGradient():
+    colorg = oechem.OELinearColorGradient()
+    colorg.AddStop(oechem.OEColorStop(0.0, oechem.OEDarkBlue))
+    colorg.AddStop(oechem.OEColorStop(10.0, oechem.OELightBlue))
+    colorg.AddStop(oechem.OEColorStop(25.0, oechem.OEYellowTint))
+    colorg.AddStop(oechem.OEColorStop(50.0, oechem.OERed))
+    colorg.AddStop(oechem.OEColorStop(100.0, oechem.OEDarkRose))
+    return colorg
+
+
 def ligand_to_svg_stmd(ligand, ligand_name):
 
     class ColorLigandAtomByBFactor(oegrapheme.OEAtomGlyphBase):
@@ -445,14 +455,8 @@ def ligand_to_svg_stmd(ligand, ligand_name):
 
         oegrapheme.OEPrepareDepictionFrom3D(lig_copy)
 
-        colorg = oechem.OELinearColorGradient()
-        colorg.AddStop(oechem.OEColorStop(0.0, oechem.OEDarkBlue))
-        colorg.AddStop(oechem.OEColorStop(10.0, oechem.OELightBlue))
-        colorg.AddStop(oechem.OEColorStop(25.0, oechem.OEYellowTint))
-        colorg.AddStop(oechem.OEColorStop(50.0, oechem.OERed))
-        colorg.AddStop(oechem.OEColorStop(100.0, oechem.OEDarkRose))
-
-        color_bfactor = ColorLigandAtomByBFactor(colorg)
+        b_factor_color_grad = GetBFactorColorGradient()
+        color_bfactor = ColorLigandAtomByBFactor(b_factor_color_grad)
 
         width, height = 150, 150
         opts = oedepict.OE2DMolDisplayOptions(width, height, oedepict.OEScale_AutoScale)
@@ -542,85 +546,6 @@ def StyleTrajProteinLigandClusters( protein, ligand):
         # print( pconf.GetTitle(), lconf.GetTitle(), colorRGB)
         SetProteinLigandVizStyle( pconf, lconf, colorRGB)
     return True
-
-
-def scale_grid(grid, scale_by):
-
-    for iz in range(grid.GetZDim()):
-        for iy in range(grid.GetYDim()):
-            for ix in range(grid.GetXDim()):
-                value = grid.GetValue(ix, iy, iz)
-                value = value / scale_by
-                grid.SetValue(ix, iy, iz, value)
-    return grid
-
-
-def coords_from_box(box):
-    coords = oechem.OEFloatArray(6)
-    coords[0] = box.GetXMin()
-    coords[1] = box.GetYMin()
-    coords[2] = box.GetZMin()
-    coords[3] = box.GetXMax()
-    coords[4] = box.GetYMax()
-    coords[5] = box.GetZMax()
-    return coords
-
-
-def make_occ_grid(mol, resolution):
-    box = oedocking.OEBox(mol, 5.0)
-    coords = coords_from_box(box)
-    grid = oegrid.OEScalarGrid(coords, resolution)
-    temp_grid = oegrid.OEScalarGrid(coords, resolution)
-    for conf in mol.GetConfs():
-        oegrid.OEMakeMolecularGaussianGrid(temp_grid, conf)
-        oegrid.OEAddScalarGrid(grid, temp_grid)
-    return scale_grid(grid, float(mol.NumConfs()))
-
-
-def color_occ_surf(surf, color, alpha):
-    for i in range(surf.GetNumVertices()):
-        surf.SetColorElement(i, color.GetR(), color.GetG(), color.GetB(), alpha)
-
-
-def GenerateOccupancySurf(clusProt, clusLig, clusWat, custCofact, color,
-                          pl_include_dist=5.0, contour=0.4, resolution=0.5):
-
-    alpha = 64
-    surf = oespicoli.OESurface()
-    tempSurf = oespicoli.OESurface()
-
-    # ligand
-    grid = make_occ_grid(clusLig, resolution)
-    oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, contour)
-    color_occ_surf(tempSurf, color, alpha)
-    oespicoli.OEAddSurfaces(surf, tempSurf)
-
-    # protein
-    pred = oechem.OEAtomMatchResidue(clusProt, clusLig, pl_include_dist)
-    clusProtSubset = oechem.OEMol()
-    oechem.OESubsetMol(clusProtSubset, clusProt, pred)
-    grid = make_occ_grid(clusProtSubset, resolution)
-    oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, max(grid.GetValues()) * contour)
-    color_occ_surf(tempSurf, color, alpha)
-    oespicoli.OEAddSurfaces(surf, tempSurf)
-
-    # water
-    if clusWat is not None and clusWat.IsValid():
-        grid = make_occ_grid(clusWat, resolution)
-        oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, max(grid.GetValues()) * contour)
-        color_occ_surf(tempSurf, color, alpha)
-        oespicoli.OEAddSurfaces(surf, tempSurf)
-
-    # cofactor
-    if custCofact is not None and custCofact.IsValid():
-        grid = make_occ_grid(custCofact, resolution)
-        oespicoli.OEMakeSurfaceFromGrid(tempSurf, grid, max(grid.GetValues()) * contour)
-        color_occ_surf(tempSurf, color, alpha)
-        oespicoli.OEAddSurfaces(surf, tempSurf)
-
-    surf.SetTitle("Complete Occ Surface")
-
-    return surf
 
 
 class ClusterStyler:

@@ -217,6 +217,14 @@ class Fields:
         zapMMPBSA_fld = OEField("OEZap_MMPBSA6_Bind", Types.FloatVec,
                                   meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal))
 
+        # mmpbsa ensemble cluster average
+        mmpbsa_cluster_mean = OEField('MMPBSAClusterMean', Types.Float,
+                                   meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
+
+        metaMMPBSA_cluster_serr = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
+        metaMMPBSA_cluster_serr.add_relation(Meta.Relations.ErrorsFor, mmpbsa_cluster_mean)
+        mmpbsa_cluster_serr = OEField('MMPBSAClusterSerr', Types.Float, meta=metaMMPBSA_cluster_serr)
+
         # mmpbsa ensemble average over the whole trajectory
         mmpbsa_traj_mean = OEField('MMPBSATrajMean', Types.Float,
                                    meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
@@ -234,11 +242,14 @@ class Fields:
         ClusLigMed_fld = OEField('ClusLigMedMol', Types.Chem.Mol)
         ClusProtMed_fld = OEField('ClusProtMedMol', Types.Chem.Mol)
 
+        LigClusTraj_fld = OEField('LigClusTraj', Types.Chem.Mol)
+        ProtClusTraj_fld = OEField('ProtClusTraj', Types.Chem.Mol)
         ClusMedDU_fld = OEField('ClusMedDU', Types.Chem.DesignUnit)
-        ClustOccSurf_fld = OEField('ClusterOccSurf', Types.Chem.Surface)
+        ClusAvgDU_fld = OEField('ClusAvgDU', Types.Chem.DesignUnit)
+        ClusterAvgDURec_fld = OEField('ClusterAvgDURec', Types.Record)
         ClusterDURecs_fld = OEField('ClusterDURecs', Types.RecordVec)
         ClusID_fld = OEField('ClusID', Types.Int)
-        ClustersNum_fld = OEField('ClustersNum', Types.Int)
+        LigID_fld = OEField('LigID', Types.String)
         max_waters = OEField("MaxWaters_OPLMD", Types.Int, meta=_metaHidden)
 
         # Free Energy Yank

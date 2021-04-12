@@ -448,8 +448,6 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
             oetrajRecord.set_value(TrajSVG_field, trajSVG)
             record.set_value(Fields.Analysis.oetraj_rec, oetrajRecord)
 
-            occ_grid_color = oechem.OEColor(oechem.OEBlue)
-
             # Cluster DU records
             cluster_records = []
 
@@ -480,6 +478,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 for clusID in range(nMajorClusters):
                     cluster_record = OERecord()
                     clusMedDU = oechem.OEDesignUnit()
+                    clusAvgDU = oechem.OEDesignUnit()
 
                     opt['Logger'].info('Extracting cluster {} from {}'.format( clusID, system_title ))
                     clusLig = clusutl.TrajOEMolFromCluster( ligTraj, trajClus['ClusterVec'], clusID)
@@ -494,9 +493,6 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                     # opt['Logger'].info( 'water cluster {} with {} confs'.format(clusID,clusWat.NumConfs()) )
                     opt['Logger'].info('generating representative protein average and median confs')
                     #
-
-                    occSurface = utl.GenerateOccupancySurf(clusProt, clusLig, clusWat, clusCofact, occ_grid_color)
-                    cluster_record.set_value(Fields.Analysis.ClustOccSurf_fld, occSurface)
 
                     # ligMed, protMed, cofactMed, watMed, ligAvg, protAvg, cofactAvg, watAvg = oetrjutl.AnalyseProteinLigandTrajectoryOEMols( clusLig, clusProt, clusCofact, clusWat)
                     ligMed, protMed, ligAvg, protAvg = oetrjutl.AnalyseProteinLigandTrajectoryOEMols(clusLig, clusProt)
@@ -520,7 +516,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                     # conf.SetTitle(confTitle)
 
                     clusMedDU.GetImpl().SetProtein(protMed)
-                    # TODO: Split cofactMed into components and add seperately
+                    # TODO: Split cofactMed into components and add separately using OEDetermineParts
                     # clusMedDU.GetImpl().SetComponent(oechem.OEDesignUnitComponents_Cofactors, part)
                     # clusAvgDU.GetImpl().SetSolvent(watMed)
                     oechem.OEUpdateDesignUnit(clusMedDU, ligMed, oechem.OEDesignUnitComponents_Ligand)
@@ -529,8 +525,29 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                     cluster_styler.apply_style(clusMedDU, clusID)
                     cluster_record.set_value(Fields.Analysis.ClusMedDU_fld, clusMedDU)
 
+                    clusAvgDU.GetImpl().SetProtein(protAvg)
+                    # TODO: Split cofactAvg into components and add separately using OEDetermineParts
+                    # clusAvgDU.GetImpl().SetComponent(oechem.OEDesignUnitComponents_Cofactors, part)
+                    # clusAvgDU.GetImpl().SetSolvent(watAvg)
+                    oechem.OEUpdateDesignUnit(clusAvgDU, ligAvg, oechem.OEDesignUnitComponents_Ligand)
+                    if len(clusAvgDU.GetTitle()) > 1 and clusAvgDU.GetTitle()[0] == "(":
+                        clusAvgDU.SetTitle(protAvg.GetTitle() + clusAvgDU.GetTitle())
+                    cluster_styler.apply_style(clusAvgDU, clusID)
+                    sub_rec = OERecord()
+                    sub_rec.set_value(Fields.Analysis.ClusAvgDU_fld, clusAvgDU)
+                    cluster_record.set_value(Fields.Analysis.ClusterAvgDURec_fld, sub_rec)
+
+                    # cluster_record.set_value(Fields.Analysis.ClusLigMed_fld, ligMed)
+                    # cluster_record.set_value(Fields.Analysis.ClusProtMed_fld, protMed)
+                    # cluster_record.set_value(Fields.Analysis.ClusLigAvg_fld, ligAvg)
+                    # cluster_record.set_value(Fields.Analysis.ClusProtAvg_fld, protAvg)
+
                     cluster_record.set_value(Fields.Analysis.ClusID_fld, clusID)
-                    cluster_record.set_value(Fields.Analysis.ClustersNum_fld, nMajorClusters+1)
+                    cluster_record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
+                    # cluster_record.set_value(Fields.Analysis.LigClusTraj_fld, clusLig)
+                    # cluster_record.set_value(Fields.Analysis.ProtClusTraj_fld, clusProt)
+                    cluster_record.set_value(Fields.Analysis.LigID_fld, clusLigAvgMol.GetTitle())
+
                     cluster_records.append(cluster_record)
 
                     opt['Logger'].info('generating cluster SVG for cluster {}'.format(clusID) )
@@ -558,6 +575,7 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 clusID = 0
                 cluster_record = OERecord()
                 clusMedDU = oechem.OEDesignUnit()
+                clusAvgDU = oechem.OEDesignUnit()
 
                 opt['Logger'].info('No major clusters found for {}'.format(system_title))
                 # In lieu of cluster mols, copy traj and median mols to top level
@@ -580,18 +598,38 @@ class MakeClusterTrajOEMols(RecordPortsMixin, ComputeCube):
                 # TODO: Should style also update for water and cofactors?
                 utl.SetProteinLigandVizStyle(clusProtMedMol, clusLigMedMol)
 
-                occSurface = utl.GenerateOccupancySurf(protTraj, ligTraj, watTraj, cofactTraj, occ_grid_color)
-                cluster_record.set_value(Fields.Analysis.ClustOccSurf_fld, occSurface)
-
                 clusMedDU.GetImpl().SetProtein(clusProtMedMol)
+                # TODO: Split cofactMed into components and add separately using OEDetermineComponents
+                # clusMedDU.GetImpl().SetComponent(oechem.OEDesignUnitComponents_Cofactors, part)
+                # clusMedDU.GetImpl().SetSolvent(watMed)
                 oechem.OEUpdateDesignUnit(clusMedDU, clusLigMedMol, oechem.OEDesignUnitComponents_Ligand)
                 if len(clusMedDU.GetTitle()) > 1 and clusMedDU.GetTitle()[0] == "(":
                     clusMedDU.SetTitle(clusProtMedMol.GetTitle() + clusMedDU.GetTitle())
                 cluster_styler.apply_style(clusMedDU, clusID)
                 cluster_record.set_value(Fields.Analysis.ClusMedDU_fld, clusMedDU)
 
+                clusAvgDU.GetImpl().SetProtein(clusProtAvgMol)
+                # TODO: Split cofactAvg into components and add separately using OEDetermineComponents
+                # clusAvgDU.GetImpl().SetComponent(oechem.OEDesignUnitComponents_Cofactors, part)
+                # clusAvgDU.GetImpl().SetSolvent(watAvg)
+                oechem.OEUpdateDesignUnit(clusAvgDU, clusLigAvgMol, oechem.OEDesignUnitComponents_Ligand)
+                if len(clusAvgDU.GetTitle()) > 1 and clusAvgDU.GetTitle()[0] == "(":
+                    clusAvgDU.SetTitle(clusProtAvgMol.GetTitle() + clusAvgDU.GetTitle())
+                cluster_styler.apply_style(clusAvgDU, clusID)
+                sub_rec = OERecord()
+                sub_rec.set_value(Fields.Analysis.ClusAvgDU_fld, clusAvgDU)
+                cluster_record.set_value(Fields.Analysis.ClusterAvgDURec_fld, sub_rec)
+
+                # cluster_record.set_value(Fields.Analysis.ClusLigMed_fld, ligMedian)
+                # cluster_record.set_value(Fields.Analysis.ClusProtMed_fld, protMedian)
+                # cluster_record.set_value(Fields.Analysis.ClusLigAvg_fld, ligAverage)
+                # cluster_record.set_value(Fields.Analysis.ClusProtAvg_fld, protAverage)
+
                 cluster_record.set_value(Fields.Analysis.ClusID_fld, clusID)
-                cluster_record.set_value(Fields.Analysis.ClustersNum_fld, 1)
+                cluster_record.set_value(Fields.Analysis.n_major_clusters, nMajorClusters)
+                cluster_record.set_value(Fields.Analysis.LigID_fld, clusLigAvgMol.GetTitle())
+                # cluster_record.set_value(Fields.Analysis.LigClusTraj_fld, ligTraj)
+                # cluster_record.set_value(Fields.Analysis.ProtClusTraj_fld, protTraj)
                 cluster_records.append(cluster_record)
 
             # Set prot and lig clus average mols on top-level record for 3D vis
@@ -852,9 +890,9 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
                     MMPBSA6_ByClusMean = np.array(popResults['OEZap_MMPBSA6_ByClusMean'])
                     MMPBSA6_ByClusSerr = np.array(popResults['OEZap_MMPBSA6_ByClusSerr'])
                 for clusID, x in enumerate(MMPBSA6_ByClusMean):
-                    record_vec[clusID].set_value(Fields.Analysis.mmpbsa_traj_mean, x)
+                    record_vec[clusID].set_value(Fields.Analysis.mmpbsa_cluster_mean, x)
                 for clusID, x in enumerate(MMPBSA6_ByClusSerr):
-                    record_vec[clusID].set_value(Fields.Analysis.mmpbsa_traj_serr, x)
+                    record_vec[clusID].set_value(Fields.Analysis.mmpbsa_cluster_serr, x)
 
                 # Calculate the Boltzmann-weighted probabilities for each cluster as a numpy array
                 BoltzWtProb = oetrjutl.BoltzmannWeightedProbabilities(MMPBSA6_ByClusMean)
@@ -863,6 +901,10 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
                 # Add to the record the MMPBSA mean and std
                 record.set_value(Fields.Analysis.mmpbsa_traj_mean, boltzMean)
                 record.set_value(Fields.Analysis.mmpbsa_traj_serr, boltzSerr)
+                for clusID, x in enumerate(MMPBSA6_ByClusSerr):
+                    record_vec[clusID].set_value(Fields.Analysis.mmpbsa_traj_mean, boltzMean)
+                    record_vec[clusID].set_value(Fields.Analysis.mmpbsa_traj_serr, boltzSerr)
+
                 # Add to the record the Average MMPBSA floe report label
                 floe_report_label = "MMPBSA score:<br>{:.1f}  &plusmn; {:.1f} kcal/mol".format(
                     boltzMean, boltzSerr)
@@ -882,6 +924,8 @@ class TrajAnalysisReportDataset(RecordPortsMixin, ComputeCube):
                 # Clean MMPBSA mean and serr to avoid nans and high zap energy values
                 avg_mmpbsa, serr_mmpbsa = clusutl.clean_mean_serr(PBSAdata['OEZap_MMPBSA6_Bind'])
 
+                record_vec[clusID].set_value(Fields.Analysis.mmpbsa_cluster_serr, avg_mmpbsa)
+                record_vec[clusID].set_value(Fields.Analysis.mmpbsa_cluster_serr, serr_mmpbsa)
                 record_vec[clusID].set_value(Fields.Analysis.mmpbsa_traj_mean, avg_mmpbsa)
                 record_vec[clusID].set_value(Fields.Analysis.mmpbsa_traj_serr, serr_mmpbsa)
 
