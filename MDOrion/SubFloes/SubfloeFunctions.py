@@ -77,20 +77,20 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
     switch = BoundUnboundSwitchCube("Bound/Unbound Switch", title='Bound/Unbound Switch')
 
     gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
-    gathering.promote_parameter('map_file', promoted_name=options['edge_map_file'])
+    gathering.promote_parameter('map_file', promoted_name=options['edge_map_file'], order=2)
 
     chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
     chimera.promote_parameter("trajectory_frames", promoted_name="trajectory_frames",
                               default=options['n_traj_frames'],
-                              description="The total number of trajectory frames to be used along the NE switching")
+                              description="The total number of trajectory frames to be used along the NE switching", order=2)
 
     unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
     unbound_nes.promote_parameter("time", promoted_name="nes_time",
-                                  default=options['nes_switch_time_in_ns'])
+                                  default=options['nes_switch_time_in_ns'], order=3)
     # unbound_nes.modify_parameter(unbound_nes.instance_type, promoted=False, default='g4dn.2xlarge')
 
     bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
-    bound_nes.promote_parameter("time", promoted_name="nes_time")
+    bound_nes.promote_parameter("time", promoted_name="nes_time", order=3)
     # bound_nes.modify_parameter(bound_nes.instance_type, promoted=False, default='g3.4xlarge')
 
     nes_analysis = NESAnalysis("NES_Analysis")
@@ -157,10 +157,11 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
 
 
 def setup_PLComplex_for_MD(input_floe, fail_cube, options):
+
     # Ligand setting
     iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
     iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset",
-                            description="Ligand Dataset")
+                            description="Ligand Dataset", order=1)
 
     ligset = LigandSetting("LigandSetting", title="Ligand Setting")
     ligset.promote_parameter('max_md_runs', promoted_name='max_md_runs',
@@ -178,7 +179,7 @@ def setup_PLComplex_for_MD(input_floe, fail_cube, options):
     # output system files
     iprot = DatasetReaderCube("ProteinReader", title="Protein Reader")
     iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input Dataset',
-                            description="Protein Dataset")
+                            description="Protein Dataset", order=0)
 
     # Protein Setting
     mdcomp = MDComponentCube("MD Components", title="MD Components")

@@ -38,16 +38,16 @@ job.tags = [tag for lists in job.classification for tag in lists]
 ifs = DatasetReaderCube("SystemReader", title="System Reader")
 ifs.promote_parameter("data_in", promoted_name="system",
                       title='STMDA Input File',
-                      description="The Dataset produced by the Short Trajectory MD with Analysis floe")
+                      description="The Dataset produced by the Short Trajectory MD with Analysis floe", order=0)
 
 data = ExtractMDDataCube("MDData", title="Extract MD Data")
 
 data.promote_parameter('out_file_name', promoted_name='out_file_name',
                        description="Output File name",
-                       default="md_data.tar.gz")
+                       default="md_data.tar.gz", oeder=1)
 
 fail = DatasetWriterCube('fail', title='Failures')
-fail.promote_parameter("data_out", promoted_name="fail", description="Fail Data Set")
+fail.promote_parameter("data_out", promoted_name="fail", description="Fail Data Set", order=2)
 
 job.add_cubes(ifs, data, fail)
 ifs.success.connect(data.intake)

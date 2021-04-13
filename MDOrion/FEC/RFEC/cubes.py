@@ -1128,11 +1128,11 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
                         continue
 
                     if self.opt['units'] == 'kcal/mol':
-                        conv_factor_kJ_mol_to_kcal_mol = 4.184
+                        conv_factor = 4.184
                     else:
-                        conv_factor_kJ_mol_to_kcal_mol = 1.0
+                        conv_factor = 1.0
 
-                    label = "BAR score:<br>{:.2f}  &plusmn; {:.2f} {}".format(results['BAR'][0]/conv_factor_kJ_mol_to_kcal_mol, results['BAR'][1]/conv_factor_kJ_mol_to_kcal_mol, self.opt['units'])
+                    label = "BAR score:<br>{:.2f}  &plusmn; {:.2f} {}".format(results['BAR'][0]/conv_factor, results['BAR'][1]/conv_factor, self.opt['units'])
                     new_record.set_value(Fields.floe_report_label, label)
 
                     new_record.set_value(Fields.FEC.RBFEC.edgeid, edgeid)

@@ -757,8 +757,8 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
 
     def make_plots(frames_f, frames_r, work_f, work_r, figure, row):
 
-        work_f = work_f/conv_factor_kJ_mol_to_kcal_mol
-        work_r = work_r/conv_factor_kJ_mol_to_kcal_mol
+        work_f = work_f/conv_factor
+        work_r = work_r/conv_factor
 
         # Forward color
         color_f = 'rgb(255,0,0)'
@@ -855,9 +855,9 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
     display_units = units
 
     if units == 'kcal/mol':
-        conv_factor_kJ_mol_to_kcal_mol = 4.184
+        conv_factor = 4.184
     else:
-        conv_factor_kJ_mol_to_kcal_mol = 1.0
+        conv_factor = 1.0
 
     # Extract data from the frame:work dictionary
     bound_frames_f, bound_frames_r, bound_work_f, bound_work_r = init(f_bound, r_bound)
@@ -884,9 +884,9 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
 
     for met, fecs in results.items():
         methods.append(met)
-        ddg.append("{:.2f} \u00B1 {:.2f}".format(fecs[0]/conv_factor_kJ_mol_to_kcal_mol, fecs[1]/conv_factor_kJ_mol_to_kcal_mol))
-        dgbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[2]/conv_factor_kJ_mol_to_kcal_mol, fecs[3]/conv_factor_kJ_mol_to_kcal_mol))
-        dgunbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[4]/conv_factor_kJ_mol_to_kcal_mol, fecs[5]/conv_factor_kJ_mol_to_kcal_mol))
+        ddg.append("{:.2f} \u00B1 {:.2f}".format(fecs[0]/conv_factor, fecs[1]/conv_factor))
+        dgbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[2]/conv_factor, fecs[3]/conv_factor))
+        dgunbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[4]/conv_factor, fecs[5]/conv_factor))
 
     data.append(methods)
     data.append(ddg)
@@ -1093,13 +1093,13 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
     def sub_plot(x, err_x, y, err_y, figure, hover_text, col, range):
 
-        x = x/conv_factor_kJ_mol_to_kcal_mol
-        y = y/conv_factor_kJ_mol_to_kcal_mol
-        err_x = err_x/conv_factor_kJ_mol_to_kcal_mol
-        err_y = err_y/conv_factor_kJ_mol_to_kcal_mol
+        x = x/conv_factor
+        y = y/conv_factor
+        err_x = err_x/conv_factor
+        err_y = err_y/conv_factor
 
-        range[0] = range[0]/conv_factor_kJ_mol_to_kcal_mol
-        range[1] = range[1]/conv_factor_kJ_mol_to_kcal_mol
+        range[0] = range[0]/conv_factor
+        range[1] = range[1]/conv_factor
 
         slope, intercept, r_value, p_value, std_err = sc.stats.linregress(np.array(x),
                                                                           np.array(y))
@@ -1107,8 +1107,8 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         x_plt = np.linspace(range[0], range[1], 100, endpoint=True)
         line = slope * np.array(x_plt) + intercept
 
-        x_plus_1kcal = x_plt + 4.184/conv_factor_kJ_mol_to_kcal_mol
-        x_minus_1kcal = x_plt - 4.184/conv_factor_kJ_mol_to_kcal_mol
+        x_plus_1kcal = x_plt + 4.184/conv_factor
+        x_minus_1kcal = x_plt - 4.184/conv_factor
 
         alpha_color = 'rgba(127, 166, 238, 0.4)'
 
@@ -1201,9 +1201,9 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
     display_units = units
 
     if units == 'kcal/mol':
-        conv_factor_kJ_mol_to_kcal_mol = 4.184
+        conv_factor = 4.184
     else:
-        conv_factor_kJ_mol_to_kcal_mol = 1.0
+        conv_factor = 1.0
 
     raw_results = []
 
@@ -1217,7 +1217,9 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
         res = wrangle.Result(ligA_name, ligB_name,
                              exp_val[0], exp_val[1],
-                             predicted_data_dic[edge_name][0], predicted_data_dic[edge_name][1], 0.0)
+                             predicted_data_dic[edge_name][0],
+                             predicted_data_dic[edge_name][1],
+                             0.0)
 
         raw_results.append(res)
 
@@ -1248,7 +1250,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
             hov_edge.append("{} to {}".format(lna, lnb))
 
     # Relative statistics
-    relative_statistics = calculate_statistics(exp_DDG/conv_factor_kJ_mol_to_kcal_mol, pred_DDG/conv_factor_kJ_mol_to_kcal_mol, plot_type="ddG")
+    relative_statistics = calculate_statistics(exp_DDG/conv_factor, pred_DDG/conv_factor, plot_type="ddG")
 
     if network.weakly_connected:
         figure = make_subplots(rows=2, cols=2,
@@ -1342,8 +1344,8 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         if relative_statistics is not None:
             # Absolute statistics
 
-            absolute_statistics = calculate_statistics(exp_DG/conv_factor_kJ_mol_to_kcal_mol,
-                                                       pred_DG/conv_factor_kJ_mol_to_kcal_mol,
+            absolute_statistics = calculate_statistics(exp_DG/conv_factor,
+                                                       pred_DG/conv_factor,
                                                        plot_type="dG")
 
         # Assuming that dic is in Order

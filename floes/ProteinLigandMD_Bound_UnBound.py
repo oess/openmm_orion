@@ -20,8 +20,8 @@ from MDOrion.System.cubes import MDComponentCube
 
 from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
-from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
-                                    RBFECMapping)
+from MDOrion.FEC.RFEC.cubes import BoundUnboundSwitchCube
+
 
 job = WorkFloe("MD of Ligand Bound and Unbound to Protein",
                title="MD of Ligand Bound and Unbound to Protein")

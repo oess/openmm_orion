@@ -23,7 +23,7 @@ from floe.api import (WorkFloe)
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from floes.SubfloeFunctions import setup_MD_startup
+from MDOrion.SubFloes.SubfloeFunctions import setup_MD_startup
 
 from MDOrion.System.cubes import MDComponentCube
 
@@ -46,7 +46,7 @@ job.tags = [tag for lists in job.classification for tag in lists]
 
 ifs = DatasetReaderCube("SystemReader", title="System Reader")
 ifs.promote_parameter("data_in", promoted_name="solute", title='Solute Input File',
-                      description="Solute input file")
+                      description="Solute input file", order=0)
 
 sysid = IDSettingCube("System Ids")
 
@@ -74,11 +74,11 @@ check_rec = ParallelRecordSizeCheck("Record Check Success")
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",
-                      title="MD Out", description="MD Dataset out")
+                      title="MD Out", description="MD Dataset out", order=1)
 
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
-                       description="MD Dataset Failures out")
+                       description="MD Dataset Failures out", order=2)
 
 job.add_cubes(ifs, sysid, md_comp, solvate, coll_open,
               coll_close, check_rec, ofs, fail)
