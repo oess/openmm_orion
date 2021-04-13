@@ -548,12 +548,56 @@ def StyleTrajProteinLigandClusters( protein, ligand):
     return True
 
 
-class ClusterStyler:
+class DUClusterStyler:
 
-    def __init__(self, num_clusters=0):
-        self._confRGB = clusutl.ColorblindRGBMarkerColors(num_clusters)
+    def __init__(self):
+        self.b_factor_color_grad = GetBFactorColorGradient()
 
-    def apply_style(self, du, cluster_id):
-        # TODO: Consider special style on waters and cofactors too
-        SetProteinLigandVizStyle(du.GetImpl().GetProtein(), du.GetImpl().GetLigand(), self._confRGB[cluster_id])
-        return True
+        self.acolorer = oechem.OEMolStyleColorer(oechem.OEAtomColorScheme_Element)
+
+
+        self.protein_style = oechem.OE3DMolStyle()
+        self.protein_style.SetAtomStyle(oechem.OEAtomStyle_Hidden)
+        self.protein_style.SetHydrogenVisibility(oechem.OEHydrogenVisibility_Polar)
+        self.protein_style.SetProteinStyle(oechem.OEProteinStyle_Ribbons)
+        self.protein_style.SetProteinColorer(oechem.OEMolStyleColorer(oechem.OEProteinColorScheme_AtomColor))
+
+        self.asite_style = oechem.OE3DMolStyle()
+        self.asite_style.SetAtomStyle(oechem.OEAtomStyle_Wireframe)
+        self.asite_style.SetHydrogenVisibility(oechem.OEHydrogenVisibility_Polar)
+        self.asite_style.SetProteinStyle(oechem.OEProteinStyle_Ribbons)
+        self.asite_style.SetProteinColorer(oechem.OEMolStyleColorer(oechem.OEProteinColorScheme_AtomColor))
+
+        self.ligand_style = oechem.OE3DMolStyle()
+        self.ligand_style.SetAtomStyle(oechem.OEAtomStyle_Stick)
+        self.ligand_style.SetHydrogenVisibility(oechem.OEHydrogenVisibility_Polar)
+
+    def apply_style(self, du):
+        impl = du.GetImpl()
+        asitePred = oechem.OEAtomMatchResidue(du.GetSiteResidues())
+
+        protein = impl.GetProtein()
+        oechem.OEClearStyle(protein)
+
+        for atom in protein.GetAtoms():
+            res = oechem.OEAtomGetResidue(atom)
+            bfactor = res.GetBFactor()
+            color = self.b_factor_color_grad.GetColorAt(bfactor)
+            self.acolorer.AddColor(atom.GetAtomicNum(), color)
+            if asitePred(atom):
+                self.asite_style.SetAtomColorer(self.acolorer)
+                oechem.OESetStyle(atom, self.asite_style)
+            else:
+                self.protein_style.SetAtomColorer(self.acolorer)
+                oechem.OESetStyle(atom, self.protein_style)
+
+        if du.HasLigand():
+            ligand = impl.GetLigand()
+            oechem.OEClearStyle(ligand)
+            for atom in ligand.GetAtoms():
+                res = oechem.OEAtomGetResidue(atom)
+                bfactor = res.GetBFactor()
+                color = self.b_factor_color_grad.GetColorAt(bfactor)
+                self.acolorer.AddColor(atom.GetAtomicNum(), color)
+                self.ligand_style.SetAtomColorer(self.acolorer)
+                oechem.OESetStyle(atom, self.ligand_style)

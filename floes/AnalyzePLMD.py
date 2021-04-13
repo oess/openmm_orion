@@ -53,13 +53,13 @@ coll_close.set_parameters(open=False)
 
 check_rec = ParallelRecordSizeCheck("Record Check Success", title="Record Check Success")
 
-ofs = DatasetWriterCube('ofs', title='MD Out')
+ofs = DatasetWriterCube('ofs', title='MD Out Ligand Centric Ouput')
 ofs.promote_parameter("data_out", promoted_name="out",
-                      title="MD Out", description="MD Dataset out")
+                      title="MD Out Ligand Centric Ouput", description="MD Out Ligand Centric Output")
 
-ofs_du = DatasetWriterCube('ofs_du', title='MD Out DU Cluster Medoid')
+ofs_du = DatasetWriterCube('ofs_du', title='MD Out Cluster Centric Output')
 ofs_du.promote_parameter("data_out", promoted_name="du",
-                         title="MD Out DU Cluster Medoid", description="DU Cluster Med MD Dataset out")
+                         title="MD Out Cluster Centric Output", description="MD Out Cluster Centric Output")
 
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
