@@ -114,7 +114,6 @@ class FEMap(object):
         self.n_ligands = self.graph.number_of_nodes()
         self.degree = self.graph.number_of_edges() / self.n_ligands
 
-
         # check the graph has minimal connectivity
         self.check_weakly_connected()
         if not self.weakly_connected:

@@ -236,14 +236,14 @@ class Fields:
 
         max_waters = OEField("MaxWaters_OPLMD", Types.Int, meta=_metaHidden)
 
-        # Free Energy Yank
-        # Analysis Fields
-        free_energy = OEField('FE_OPLMD', Types.Float,
-                              meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
-
-        metaFreeEnergy_err = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
-        metaFreeEnergy_err.add_relation(Meta.Relations.ErrorsFor, free_energy)
-        free_energy_err = OEField('FE_Error_OPLMD', Types.Float, meta=metaFreeEnergy_err)
+        # # Free Energy
+        # # Analysis Fields
+        # free_energy = OEField('FE_OPLMD', Types.Float,
+        #                       meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
+        #
+        # metaFreeEnergy_err = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
+        # metaFreeEnergy_err.add_relation(Meta.Relations.ErrorsFor, free_energy)
+        # free_energy_err = OEField('FE_Error_OPLMD', Types.Float, meta=metaFreeEnergy_err)
 
     class Bint:
 
@@ -261,15 +261,25 @@ class Fields:
         # Free Energy
         free_energy = OEField('FE_OPLMD', Types.Float,
                               meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
-
         metaFreeEnergy_err = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
         metaFreeEnergy_err.add_relation(Meta.Relations.ErrorsFor, free_energy)
         free_energy_err = OEField('FE_Error_OPLMD', Types.Float, meta=metaFreeEnergy_err)
+
+        binding_fe = OEField('BindDeltaG_OPLMD', Types.Float, meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
+        meta_binding_fe_err = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
+        meta_binding_fe_err.add_relation(Meta.Relations.ErrorsFor, binding_fe)
+        binding_fe_err = OEField('BindDeltaG_Error_OPLMD', Types.Float, meta=meta_binding_fe_err)
+
+        binding_exptl_fe = OEField('BindDeltaG_Exptl_OPLMD', Types.Float, meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
+        meta_binding_exptl_fe_err = OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)
+        meta_binding_exptl_fe_err.add_relation(Meta.Relations.ErrorsFor, binding_exptl_fe)
+        binding_exptl_fe_err = OEField('BindDeltaG_Exptl_Error_OPLMD', Types.Float, meta=meta_binding_exptl_fe_err)
 
         class RBFEC:
             # Oriented Edge field for relative free energy calculations
             # The first integer of the list is the ligand ID of the starting
             # thermodynamic state and the second the final one
+
             edgeid = OEField("EdgeID_OPLMD", Types.Int, meta=_metaHidden)
             edge_name = OEField("EdgeName_OPLMD", Types.String)
 

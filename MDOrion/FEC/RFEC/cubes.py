@@ -21,8 +21,6 @@ from orionplatform.mixins import RecordPortsMixin
 from orionplatform.ports import (RecordInputPort,
                                  RecordOutputPort)
 
-from orionclient.session import in_orion
-
 from floe.api import (parameters,
                       ComputeCube,
                       ParallelMixin)
@@ -48,15 +46,14 @@ from MDOrion.FEC.RFEC.utils import (gmx_chimera_topology_injection,
                                     upload_gmx_files,
                                     download_gmx_file)
 
-from MDOrion.FEC.RFEC.utils import (parmed_find_ligand,
-                                    fix_gromacs_water_names)
+from MDOrion.FEC.RFEC.utils import parmed_find_ligand
+
 
 from datarecord import (Types,
                         OEField,
                         Meta,
                         OEFieldMeta)
 
-from MDOrion.Standards.standards import CollectionsNames
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
@@ -774,8 +771,19 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         "spot_policy": {"default": "Required"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1},  # 1 molecule at a time
-        "max_failures": {"default": 1}  # just one retry
+        "max_failures": {"default": 2}  # it is going to retry just one more time
     }
+
+    # parameter_overrides = {
+    #     "cpu_count": {"default": 16},
+    #     "memory_mb": {"default": float(8 * 1.8 * 1024)},
+    #     "gpu_count": {"default": 1},
+    #     "disk_space": {"default": float(6.0 * 1024)},
+    #     "spot_policy": {"default": "Required"},
+    #     "prefetch_count": {"default": 1},  # 1 molecule at a time
+    #     "item_count": {"default": 1},  # 1 molecule at a time
+    #     "max_failures": {"default": 2}  # just one retry
+    # }
 
     temperature = parameters.DecimalParameter(
         'temperature',
@@ -949,6 +957,13 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
         default=300.0,
         help_text="Temperature (Kelvin)")
 
+    units = parameters.StringParameter(
+        'units',
+        choices=['kcal/mol', 'kJ/mol'],
+        default='kcal/mol',
+        help_text='Units to use to display the plots'
+    )
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -1029,6 +1044,7 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
 
     def end(self):
         count = 0
+
         try:
             for edgeid, work_list in self.edgeid_works.items():
                 try:
@@ -1096,7 +1112,9 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
                                                         forward_unbound,
                                                         reverse_unbound,
                                                         results,
-                                                        title, edge_depiction_image)
+                                                        title,
+                                                        edge_depiction_string,
+                                                        self.opt['units'])
                     new_record = OERecord()
 
                     new_record.set_value(Fields.floe_report, report_string)
@@ -1109,7 +1127,12 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
                             "and it will be skipped".format(edgeid))
                         continue
 
-                    label = "BAR score:<br>{:.2f}  &plusmn; {:.2f} kJ/mol".format(results['BAR'][0], results['BAR'][1])
+                    if self.opt['units'] == 'kcal/mol':
+                        conv_factor = 4.184
+                    else:
+                        conv_factor = 1.0
+
+                    label = "BAR score:<br>{:.2f}  &plusmn; {:.2f} {}".format(results['BAR'][0]/conv_factor, results['BAR'][1]/conv_factor, self.opt['units'])
                     new_record.set_value(Fields.floe_report_label, label)
 
                     new_record.set_value(Fields.FEC.RBFEC.edgeid, edgeid)
@@ -1118,11 +1141,18 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
                     meta_unit = OEFieldMeta().set_option(Meta.Units.Energy.kJ_per_mol)
 
                     analysis_rec = OERecord()
-                    analysis_rec.set_value(OEField("DDG_BAR", Types.Float, meta=meta_unit), results['BAR'][0])
-                    analysis_rec.set_value(OEField("dDDG_BAR", Types.Float, meta=meta_unit), results['BAR'][1])
+                    # analysis_rec.set_value(OEField("DDG_BAR", Types.Float, meta=meta_unit), results['BAR'][0])
+                    # analysis_rec.set_value(OEField("dDDG_BAR", Types.Float, meta=meta_unit), results['BAR'][1])
 
-                    new_record.set_value(Fields.FEC.free_energy, results['BAR'][0])
-                    new_record.set_value(Fields.FEC.free_energy_err, results['BAR'][1])
+                    analysis_rec.set_value(
+                        OEField(Fields.FEC.binding_fe.get_name(), Fields.FEC.binding_fe.get_type(), meta=meta_unit),
+                        results['BAR'][0])
+                    analysis_rec.set_value(
+                        OEField(Fields.FEC.binding_fe_err.get_name(), Fields.FEC.binding_fe_err.get_type(),
+                                meta=meta_unit), results['BAR'][1])
+
+                    new_record.set_value(Fields.FEC.binding_fe, results['BAR'][0])
+                    new_record.set_value(Fields.FEC.binding_fe_err, results['BAR'][1])
 
                     new_record.set_value(Fields.FEC.RBFEC.NESC.DDG_rec, analysis_rec)
 
@@ -1195,6 +1225,13 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
         help_text="""Select if symmetrize the Relative Binding affinity plot"""
     )
 
+    units = parameters.StringParameter(
+        'units',
+        choices=['kcal/mol', 'kJ/mol'],
+        default='kcal/mol',
+        help_text='Units to use to display the plots'
+    )
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -1221,6 +1258,12 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
         for lig_ln in lig_list:
 
             if not lig_ln:
+                continue
+
+            if lig_ln.startswith(";") or lig_ln.startswith("#"):
+                continue
+
+            if lig_ln == '\n':
                 continue
 
             expr = utils.rbfe_file_grammar(lig_ln)
@@ -1274,8 +1317,8 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
             DDG_rec = record.get_value(Fields.FEC.RBFEC.NESC.DDG_rec)
 
             # Free energy values
-            DDG_A_to_B_pred = DDG_rec.get_value(OEField("DDG_BAR", Types.Float))
-            ddG_A_to_B_pred = DDG_rec.get_value(OEField("dDDG_BAR", Types.Float))
+            DDG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe)
+            ddG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe_err)
 
             self.edge_pred_dic[edge_name] = [DDG_A_to_B_pred, ddG_A_to_B_pred]
 
@@ -1293,18 +1336,50 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
         try:
             self.opt['Logger'].info("....Generating Floe Report")
 
-            repport_html_str = utils.generate_plots_and_stats(self.edge_exp_dic,
-                                                              self.edge_pred_dic,
-                                                              DDG_symmetrize=self.opt['symmetrize'])
+            removed_edge_list = list()
+            for edge_name, v in self.edge_pred_dic.items():
+                if edge_name not in self.edge_exp_dic:
+                    removed_edge_list.append(edge_name)
+
+            if removed_edge_list:
+                self.opt['Logger'].warn('The following edges were skipped because '
+                                        'no experimental data has been provided: {}\n'.format(removed_edge_list))
+
+                self.edge_pred_dic = {edge_name: v for edge_name, v in self.edge_pred_dic.items() if edge_name not in removed_edge_list}
+
+            report_html_str, affinity_dic = utils.generate_plots_and_stats(self.edge_exp_dic,
+                                                                           self.edge_pred_dic,
+                                                                           DDG_symmetrize=self.opt['symmetrize'],
+                                                                           units=self.opt['units'])
 
             index = self.floe_report.create_page("index", is_index=True)
 
-            index.set_from_string(repport_html_str)
+            index.set_from_string(report_html_str)
 
             self.floe_report.finish_report()
 
+            if affinity_dic:
+                meta_unit = OEFieldMeta().set_option(Meta.Units.Energy.kJ_per_mol)
+                binding_fe_exptl = OEField(Fields.FEC.binding_exptl_fe.get_name(), Fields.FEC.binding_exptl_fe.get_type(), meta=meta_unit)
+                binding_fe_exptl_err = OEField(Fields.FEC.binding_exptl_fe_err.get_name(), Fields.FEC.binding_exptl_fe_err.get_type(), meta=meta_unit)
+                binding_fe_pred = OEField(Fields.FEC.binding_fe.get_name(), Fields.FEC.binding_fe_err.get_type(), meta=meta_unit)
+                binding_fe_pred_err = OEField(Fields.FEC.binding_fe_err.get_name(), Fields.FEC.binding_fe_err.get_type(), meta=meta_unit)
+                lig_name = Fields.ligand_name
+
+                for name, aff_list in affinity_dic.items():
+                    rec = OERecord()
+                    rec.set_value(lig_name, name)
+                    rec.set_value(binding_fe_exptl, aff_list[0])
+                    rec.set_value(binding_fe_exptl_err, aff_list[1])
+                    rec.set_value(binding_fe_pred, aff_list[2])
+                    rec.set_value(binding_fe_pred_err, aff_list[3])
+                    self.success.emit(rec)
+            else:
+                self.opt['Logger'].warn("It was not possible to generate the output affinity records "
+                                        "because the edge mapping graph is not enough connected")
+
         except Exception as e:
-            self.opt['Warning'].warn("It was not possible to generate the floe report: {}".format(str(e)))
+            self.opt['Logger'].warn("It was not possible to generate the floe report: {}".format(str(e)))
 
         return
 

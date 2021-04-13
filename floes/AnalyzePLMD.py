@@ -21,11 +21,11 @@ from os import path
 
 from floe.api import (WorkFloe)
 
-from floes.SubfloeFunctions import setup_traj_analysis
+from MDOrion.SubFloes.SubfloeFunctions import setup_traj_analysis
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
-from MDOrion.System.cubes import (ParallelRecordSizeCheck)
+from MDOrion.System.cubes import ParallelRecordSizeCheck
 
 from MDOrion.System.cubes import CollectionSetting
 
@@ -41,7 +41,7 @@ job.tags = [tag for lists in job.classification for tag in lists]
 # Ligand setting
 iMDInput = DatasetReaderCube("MDInputReader", title="MD Input Reader")
 iMDInput.promote_parameter("data_in", promoted_name="in",
-                           title="MD Input Dataset", description="MD Input Dataset")
+                           title="MD Input Dataset", description="MD Input Dataset", order=0)
 
 # This Cube is necessary for the correct work of collection and shard
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
@@ -55,11 +55,11 @@ check_rec = ParallelRecordSizeCheck("Record Check Success", title="Record Check 
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",
-                      title="MD Out", description="MD Dataset out")
+                      title="MD Out", description="MD Dataset out", order=1)
 
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
-                       description="MD Dataset Failures out")
+                       description="MD Dataset Failures out", order=2)
 
 job.add_cubes(iMDInput, coll_open,
               coll_close, check_rec,  ofs, fail)

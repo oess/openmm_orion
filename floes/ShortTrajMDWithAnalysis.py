@@ -19,14 +19,13 @@
 
 from os import path
 
-from floe.api import (WorkFloe,
-                      ParallelCubeGroup)
+from floe.api import WorkFloe
 
-from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
+from orionplatform.cubes import DatasetWriterCube
 
-from floes.SubfloeFunctions import (setup_MD_startup,
-                                    setup_PLComplex_for_MD,
-                                    setup_traj_analysis)
+from MDOrion.SubFloes.SubfloeFunctions import (setup_MD_startup,
+                                               setup_PLComplex_for_MD,
+                                               setup_traj_analysis)
 
 from MDOrion.System.cubes import (CollectionSetting,
                                   ParallelRecordSizeCheck)
@@ -54,11 +53,11 @@ check_rec = ParallelRecordSizeCheck("Record Check Success")
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",
-                      title="MD Out", description="MD Dataset out")
+                      title="MD Out", description="MD Dataset out", order=2)
 
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
-                       description="MD Dataset Failures out")
+                       description="MD Dataset Failures out", order=3)
 
 job.add_cubes(coll_open, coll_close, check_rec, ofs, fail)
 

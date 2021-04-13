@@ -17,10 +17,9 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-from floe.api import (WorkFloe,
-                      ParallelCubeGroup)
+from floe.api import (WorkFloe)
 
-from floes.SubfloeFunctions import setup_bint
+from MDOrion.SubFloes.SubfloeFunctions import setup_bint
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 

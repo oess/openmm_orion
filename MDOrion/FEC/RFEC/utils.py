@@ -414,8 +414,10 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
 
     if morph == "A_to_B":
         pmd_initial = chimera.pmdA
+        pmd_final = chimera.pmdB
     else:
         pmd_initial = chimera.pmdB
+        pmd_final = chimera.pmdA
 
     pmd_flask = mdrecord.get_parmed(sync_stage_name="last")
 
@@ -491,6 +493,10 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
         sorted_coords = np.array([p[1] for p in sorted(pmd_chimera_initial_coords.items())])
         pmd_chimera.coordinates = sorted_coords.reshape(len(pmd_chimera.atoms), 3)
 
+        # Optimize in place the pmd_chimera coordinates
+        optmize_initial_atom_idxs = list(map_excess_final_new_idxs.values())
+        chimera._optimize_chimera_coords(pmd_chimera, pmd_final, map_chimera_to_final_idxs, optmize_initial_atom_idxs)
+
         pmd_flask.coordinates = frame_xyz
         pmd_flask.box_vectors = bv
         pmd_flask.velocities = vel.in_units_of(unit.angstrom / unit.picosecond)
@@ -558,7 +564,8 @@ def gmx_chimera_coordinate_injection(pmd_chimera, mdrecord, tot_frames, query_mo
 
             # TODO PARMED ERROR
             try:
-                new_pmd_structure.save(flask_gro_fn, overwrite=True)
+                new_pmd_structure.save(flask_gro_fn, overwrite=True, combine='all')
+                # new_pmd_structure.save(flask_gro_fn, overwrite=True)
             except:
                 lig, lig_idx = parmed_find_ligand(new_pmd_structure, lig_res_name="CMR")
 
@@ -737,7 +744,7 @@ def make_edge_depiction(ligandA, ligandB):
     return edge_depiction_string, image
 
 
-def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_depiction_image):
+def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_depiction_string, units='kJ/mol'):
 
     def init(f_dic, r_dic):
 
@@ -750,6 +757,9 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
 
     def make_plots(frames_f, frames_r, work_f, work_r, figure, row):
 
+        work_f = work_f/conv_factor
+        work_r = work_r/conv_factor
+
         # Forward color
         color_f = 'rgb(255,0,0)'
 
@@ -757,14 +767,14 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
         color_r = 'rgb(0,0,255)'
 
         # Axis definition
-        x_left = 'x'+str(row+1)
-        x_right = 'x'+str(row+2)
-        y_left = 'y'+str(row+1)
-        y_right = 'y'+str(row+2)
+        x_left = 'x'+str(row)
+        x_right = 'x'+str(row+1)
+        y_left = 'y'+str(row)
+        y_right = 'y'+str(row+1)
 
         legend = False
 
-        if row == 2:
+        if row == 1:
             legend = True
 
         # Works vs Frames
@@ -840,21 +850,30 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
 
         return figure
 
+    ##############
+
+    display_units = units
+
+    if units == 'kcal/mol':
+        conv_factor = 4.184
+    else:
+        conv_factor = 1.0
+
     # Extract data from the frame:work dictionary
     bound_frames_f, bound_frames_r, bound_work_f, bound_work_r = init(f_bound, r_bound)
 
     unbound_frames_f, unbound_frames_r, unbound_work_f, unbound_work_r = init(f_unbound, r_unbound)
 
-    fig = make_subplots(rows=4, cols=2,
+    fig = make_subplots(rows=3, cols=2,
                         horizontal_spacing=0.01,
                         vertical_spacing=0.1,
                         column_widths=[0.7, 0.3],
                         shared_yaxes=True)
     # Bound Plot
-    make_plots(bound_frames_f, bound_frames_r, bound_work_f, bound_work_r, fig, row=2)
+    make_plots(bound_frames_f, bound_frames_r, bound_work_f, bound_work_r, fig, row=1)
 
     # Unbound Plot
-    make_plots(unbound_frames_f, unbound_frames_r, unbound_work_f, unbound_work_r, fig, row=3)
+    make_plots(unbound_frames_f, unbound_frames_r, unbound_work_f, unbound_work_r, fig, row=2)
 
     # Result table
     data = []
@@ -865,10 +884,10 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
 
     for met, fecs in results.items():
         methods.append(met)
-        ddg.append("{:.2f} \u00B1 {:.2f}".format(fecs[0], fecs[1]))
-        dgbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[2], fecs[3]))
-        dgunbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[4], fecs[5]))
-    #
+        ddg.append("{:.2f} \u00B1 {:.2f}".format(fecs[0]/conv_factor, fecs[1]/conv_factor))
+        dgbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[2]/conv_factor, fecs[3]/conv_factor))
+        dgunbound.append("{:.2f} \u00B1 {:.2f}".format(fecs[4]/conv_factor, fecs[5]/conv_factor))
+
     data.append(methods)
     data.append(ddg)
     data.append(dgbound)
@@ -877,7 +896,9 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
     fig.add_trace(
         go.Table(
             header=dict(
-                values=["Method", "\u0394\u0394G kJ/mol", "\u0394G Bound kJ/mol", "\u0394G Unbound kJ/mol"],
+                values=["Method", "\u0394\u0394G {}".format(display_units),
+                        "\u0394G Bound {}".format(display_units),
+                        "\u0394G Unbound {}".format(display_units)],
                 font=dict(size=14),
                 align="center",
                 fill_color='paleturquoise',
@@ -887,45 +908,35 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
                 align="center"),
 
             domain=dict(x=[0, 1],
-                        y=[0, 0.15])
+                        y=[0, 0.25])
         )
 
     )
 
-    # Add edge depiction
-    with TemporaryDirectory() as outdir:
-
-        fn = os.path.join(outdir, "depiction.png")
-
-        oedepict.OEWriteImage(fn, edge_depiction_image)
-
-        image1 = Image.open(fn)
-
-        fig.add_layout_image(
-            dict(
-                source=image1,
-                xref="x1", yref="y1",
-                x=-0.5, y=5.8,
-                sizex=10, sizey=8,
-                xanchor="left", yanchor="top",
-                layer="above", opacity=1), row=1, col=1
-
-        )
-
-    # Muatuation Axes
+    # Bound data Frames vs Work
     xaxis1 = dict(
-        zeroline=False,
-        showgrid=False,
-        title="Mutation",
-        showticklabels=False,
-        visible=True
-
+        zeroline=True,
+        showgrid=True,
+        title="Frames"
     )
 
     yaxis1 = dict(
+        zeroline=True,
+        showgrid=True,
+        title="Work Bound {}".format(display_units)
+    )
+
+    # Bound data PDF
+    xaxis2 = dict(
         zeroline=False,
         showgrid=False,
-        title="Molecule",
+        visible=True,
+        title="PDF"
+    )
+
+    yaxis2 = dict(
+        zeroline=False,
+        showgrid=False,
         visible=False
     )
 
@@ -939,14 +950,13 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
     yaxis3 = dict(
         zeroline=True,
         showgrid=True,
-        title="Work Bound kJ/mol"
+        title="Work Unbound {}".format(display_units)
     )
 
     # Bound data PDF
     xaxis4 = dict(
         zeroline=False,
         showgrid=False,
-        visible=True,
         title="PDF"
     )
 
@@ -956,60 +966,30 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
         visible=False
     )
 
-    # Bound data Frames vs Work
-    xaxis5 = dict(
-        zeroline=True,
-        showgrid=True,
-        title="Frames"
-    )
-
-    yaxis5 = dict(
-        zeroline=True,
-        showgrid=True,
-        title="Work Unbound kJ/mol"
-    )
-
-    # Bound data PDF
-    xaxis6 = dict(
-        zeroline=False,
-        showgrid=False,
-        title="PDF"
-    )
-
-    yaxis6 = dict(
-        zeroline=False,
-        showgrid=False,
-        visible=False
-    )
-
     fig.update_layout(
 
-        legend=dict(x=0.7, y=0.8),
+        legend=dict(x=0.7, y=1.08),
 
         barmode='overlay',
         hovermode="closest",
         bargap=0,
         title="Non Equilibrium Switching Results: {}".format(title),
 
-        # Mutation axes
+        # Bound data frames
         xaxis1=xaxis1,
         yaxis1=yaxis1,
 
-        # Bound data frames
+        # Bound data PDF
+        xaxis2=xaxis2,
+        yaxis2=yaxis2,
+
+        # Unbound data frames
         xaxis3=xaxis3,
         yaxis3=yaxis3,
 
-        # Bound data PDF
+        # Unbound data PDF
         xaxis4=xaxis4,
         yaxis4=yaxis4,
-
-        # Unbound data frames
-        xaxis5=xaxis5,
-        yaxis5=yaxis5,
-
-        # Unbound data PDF
-        xaxis6=xaxis6,
-        yaxis6=yaxis6,
 
         # plot_bgcolor="rgba(0, 0, 0, 0)",
         # paper_bgcolor="rgba(0, 0, 0, 0)",
@@ -1037,6 +1017,26 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
         # Add the following lines for Orion CSS Plotly integration
         report_str = ""
 
+        edge_string = """
+        <style>
+            .mutation {
+                display: block;
+                width: 400px;
+                height: 250px;
+        }
+
+        .mutation svg {
+            display: block;
+            max-width: 100%;
+            }
+        </style>"""
+
+        edge_string += """
+        <main class="mutation">
+            {svg}
+        </main>\n
+        """.format(svg=edge_depiction_string)
+
         for idx in range(0, len(report_string_list)):
             line = report_string_list[idx]
             if "<head>" in line:
@@ -1049,10 +1049,12 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
 
             report_str += line
 
+        report_str = edge_string + "\n" + report_str
+
     return report_str
 
 
-def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG_symmetrize=False):
+def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG_symmetrize=False, units='kcal/mol'):
 
     def calculate_statistics(exp, pred, plot_type='ddG'):
 
@@ -1091,50 +1093,49 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
     def sub_plot(x, err_x, y, err_y, figure, hover_text, col, range):
 
-        if col == 1:
-            hov_label = "<b>%{text}</b><br><br>" + "\u0394\u0394G_Exp: %{x:.2f}<br>" + "\u0394\u0394G_Pred: %{y:.2f}<br>"
-        else:
-            hov_label = "<b>%{text}</b><br><br>" + "\u0394G_Exp: %{x:.2f}<br>" + "\u0394G_Pred: %{y:.2f}<br>"
+        x = x/conv_factor
+        y = y/conv_factor
+        err_x = err_x/conv_factor
+        err_y = err_y/conv_factor
 
-        figure.add_trace(go.Scatter(x=x, y=y,
-                                    text=hover_text,
-                                    hovertemplate=hov_label,
-                                    name='\u0394\u0394G',
-                                    mode='markers',
-                                    xaxis='x1',
-                                    yaxis='y1',
-                                    showlegend=False,
-                                    error_x=dict(
-                                        type='data',
-                                        array=err_x,
-                                        color='purple',
-                                        visible=True),
-                                    error_y=dict(
-                                        type='data',
-                                        array=err_y,
-                                        color='purple',
-                                        visible=True),
-
-                                    marker=dict(color='purple', size=8)
-                                    ),
-                         row=1, col=col)
+        range[0] = range[0]/conv_factor
+        range[1] = range[1]/conv_factor
 
         slope, intercept, r_value, p_value, std_err = sc.stats.linregress(np.array(x),
                                                                           np.array(y))
 
         x_plt = np.linspace(range[0], range[1], 100, endpoint=True)
-
         line = slope * np.array(x_plt) + intercept
 
-        # Best fit line
+        x_plus_1kcal = x_plt + 4.184/conv_factor
+        x_minus_1kcal = x_plt - 4.184/conv_factor
+
+        alpha_color = 'rgba(127, 166, 238, 0.4)'
+
+        # Theoretical line minus 1kcal
         figure.add_trace(go.Scatter(
             x=x_plt,
-            y=line,
-            hovertext="y = {:.2f} * x + {:.2f}".format(slope, intercept),
+            y=x_minus_1kcal,
+            fill=None,
+            hovertext="",
             hoverinfo="text",
             mode="lines",
             showlegend=False,
-            line=dict(color='red', width=2)),
+            line=dict(color=alpha_color, width=1)),
+            row=1, col=col
+        )
+
+        # Theoretical line plus 1kcal
+        figure.add_trace(go.Scatter(
+            x=x_plt,
+            y=x_plus_1kcal,
+            fill='tonexty',
+            fillcolor=alpha_color,
+            hovertext="",
+            hoverinfo="text",
+            mode="lines",
+            showlegend=False,
+            line=dict(color=alpha_color, width=1)),
             row=1, col=col
         )
 
@@ -1150,7 +1151,59 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
             row=1, col=col
         )
 
+        # Best fit line
+        figure.add_trace(go.Scatter(
+            x=x_plt,
+            y=line,
+            hovertext="y = {:.2f} * x + {:.2f}".format(slope, intercept),
+            hoverinfo="text",
+            mode="lines",
+            showlegend=False,
+            line=dict(color='red', width=2)),
+            row=1, col=col
+        )
+
+        if col == 1:
+            hov_label = "<b>%{text}</b><br><br>" + "\u0394\u0394G_Exp: %{x:.2f}<br>" + "\u0394\u0394G_Pred: %{y:.2f}<br>"
+            name_plot = '\u0394\u0394G'
+        else:
+            hov_label = "<b>%{text}</b><br><br>" + "\u0394G_Exp: %{x:.2f}<br>" + "\u0394G_Pred: %{y:.2f}<br>"
+            name_plot = '\u0394G'
+
+        figure.add_trace(go.Scatter(x=x, y=y,
+                                    text=hover_text,
+                                    hovertemplate=hov_label,
+                                    name=name_plot,
+                                    mode='markers',
+                                    xaxis='x1',
+                                    yaxis='y1',
+                                    showlegend=False,
+                                    error_x=dict(
+                                        type='data',
+                                        array=err_x,
+                                        color='blue',
+                                        visible=True),
+                                    error_y=dict(
+                                        type='data',
+                                        array=err_y,
+                                        color='blue',
+                                        visible=True),
+                                    marker=dict(color='blue', size=8)
+                                    ),
+                         row=1, col=col)
+
         return
+
+    #######################
+
+    skip_plot_methods = ['RMSE', 'RRMSE', 'RHO']
+
+    display_units = units
+
+    if units == 'kcal/mol':
+        conv_factor = 4.184
+    else:
+        conv_factor = 1.0
 
     raw_results = []
 
@@ -1164,7 +1217,9 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
         res = wrangle.Result(ligA_name, ligB_name,
                              exp_val[0], exp_val[1],
-                             predicted_data_dic[edge_name][0], predicted_data_dic[edge_name][1], 0.0)
+                             predicted_data_dic[edge_name][0],
+                             predicted_data_dic[edge_name][1],
+                             0.0)
 
         raw_results.append(res)
 
@@ -1195,7 +1250,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
             hov_edge.append("{} to {}".format(lna, lnb))
 
     # Relative statistics
-    relative_statistics = calculate_statistics(exp_DDG, pred_DDG, plot_type="ddG")
+    relative_statistics = calculate_statistics(exp_DDG/conv_factor, pred_DDG/conv_factor, plot_type="ddG")
 
     if network.weakly_connected:
         figure = make_subplots(rows=2, cols=2,
@@ -1239,7 +1294,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         ),
         range=range_axis_DDG,
         constrain='domain',
-        title="Experimental \u0394\u0394G kJ/mol",
+        title="Experimental \u0394\u0394G {}".format(display_units),
         titlefont=dict(
             size=20
         )
@@ -1254,7 +1309,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         scaleanchor="x1",
         scaleratio=1,
         range=range_axis_DDG,
-        title="Predicted \u0394\u0394G kJ/mol",
+        title="Predicted \u0394\u0394G {}".format(display_units),
         titlefont=dict(
             size=20
         )
@@ -1271,6 +1326,8 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
     if network.weakly_connected:
 
+        affinity_dic = dict()
+
         # Absolute Binding Affinity from Hanna's code
         graph = network.graph
 
@@ -1286,12 +1343,24 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
         if relative_statistics is not None:
             # Absolute statistics
-            absolute_statistics = calculate_statistics(exp_DG, pred_DG, plot_type="dG")
+
+            absolute_statistics = calculate_statistics(exp_DG/conv_factor,
+                                                       pred_DG/conv_factor,
+                                                       plot_type="dG")
 
         # Assuming that dic is in Order
         hov_ligs = []
         for name, id in network._name_to_id.items():
             hov_ligs.append(name)
+
+        if not (len(hov_ligs) == len(exp_DG) == len(dexp_DG) == len(pred_DG) == len(dpred_DG)):
+            raise ValueError("List size mismatch")
+
+        for name, exp, exp_err, pred, pred_err in zip(hov_ligs, exp_DG, dexp_DG, pred_DG, dpred_DG):
+            affinity_dic[name] = [exp, exp_err, pred, pred_err]
+
+        # for name, l in affinity_dic.items():
+        #     print("name {} exp {} +- {} pred {} +- {}".format(name, l[0], l[1], l[2], l[3]))
 
         # Axis range:
         conc_DG = np.concatenate((exp_DG, pred_DG))
@@ -1324,7 +1393,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
             range=range_axis_DG,
             constrain='domain',
-            title="Experimental \u0394G kJ/mol",
+            title="Experimental \u0394G {}".format(display_units),
             titlefont=dict(
                 size=20
             )
@@ -1339,7 +1408,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
             scaleanchor="x2",
             scaleratio=1,
             range=range_axis_DG,
-            title="Predicted \u0394G kJ/mol",
+            title="Predicted \u0394G {}".format(display_units),
             titlefont=dict(
                 size=20
             )
@@ -1357,8 +1426,11 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
     values = []
 
     if relative_statistics is not None:
-
         for meth, val in relative_statistics.items():
+
+            # Skip these methods
+            if meth in skip_plot_methods:
+                continue
             if meth == 'RAE':
                 meth = "Relative MAE"
             if meth == 'RRMSE':
@@ -1372,7 +1444,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
             methods.append(meth)
 
-            vl_line = "{:.2f} [ {:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
+            vl_line = "{:.2f} [{:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
             values.append(vl_line)
 
         data.append(methods)
@@ -1384,27 +1456,32 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
         if network.weakly_connected:
             for meth, val in absolute_statistics.items():
-                vl_line = "{:.2f} [ {:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
+
+                if meth in skip_plot_methods:
+                    continue
+
+                vl_line = "{:.2f} [{:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
                 values.append(vl_line)
 
         data.append(methods)
         data.append(values)
 
         # Add Table with statistics. Data in kJ/mol
+        alpha_color = 'rgba(127, 166, 238, 0.4)'
         figure.add_trace(
             go.Table(
                 header=dict(
-                    values=["Method", "\u0394\u0394G kJ/mol", "", "Method", "\u0394G kJ/mol"],
+                    values=["Method", "\u0394\u0394G", "", "Method", "\u0394G"],
                     font=dict(size=14),
                     align="center",
-                    fill_color='paleturquoise',
+                    fill_color=alpha_color,
                 ),
                 cells=dict(
                     values=data,
                     align="center"),
 
                 domain=dict(x=[0, 1],
-                            y=[0, 0.25])
+                            y=[0, 0.35])
             )
         )
 
@@ -1434,7 +1511,10 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
 
             report_str += line
 
-    return report_str
+    if network.weakly_connected:
+        return report_str, affinity_dic
+    else:
+        return report_str, None
 
 
 def upload_gmx_files(tar_fn, record, shard_name=""):

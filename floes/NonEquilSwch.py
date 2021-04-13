@@ -13,12 +13,11 @@ from os import path
 
 from floe.api import WorkFloe
 
-from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
+from orionplatform.cubes import DatasetReaderCube
 
+from MDOrion.System.cubes import ParallelRecordSizeCheck
 
-from MDOrion.System.cubes import (ParallelRecordSizeCheck)
-
-from floes.SubfloeFunctions import (setup_NonEquilSwch_GMX)
+from MDOrion.SubFloes.SubfloeFunctions import setup_NonEquilSwch_GMX
 
 
 job = WorkFloe("Non-Equilibrium Switching", title="Non-Equilibrium Switching")
@@ -31,11 +30,11 @@ job.tags = [tag for lists in job.classification for tag in lists]
 
 
 # Unbound Reader
-iun = DatasetReaderCube("UnboundReader", title="Unbound Reader")
-iun.promote_parameter("data_in", promoted_name="unbound", title="Unbound Input Dataset", description="Unbound Input Dataset")
-
 ibn = DatasetReaderCube("BoundReader", title="Bound Reader")
-ibn.promote_parameter("data_in", promoted_name="bound", title="Bound Input Dataset", description="Bound Input Dataset")
+ibn.promote_parameter("data_in", promoted_name="bound", title="Bound Input Dataset", description="Bound Input Dataset", order=0)
+
+iun = DatasetReaderCube("UnboundReader", title="Unbound Reader")
+iun.promote_parameter("data_in", promoted_name="unbound", title="Unbound Input Dataset", description="Unbound Input Dataset", order=1)
 
 check_rec = ParallelRecordSizeCheck("Record Check Success")
 
@@ -51,5 +50,3 @@ setup_NonEquilSwch_GMX(job, ibn, iun, check_rec, NonEquilSwch_startup_options)
 
 if __name__ == "__main__":
     job.run()
-
-
