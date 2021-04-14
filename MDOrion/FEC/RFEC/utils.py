@@ -893,6 +893,7 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
     data.append(dgbound)
     data.append(dgunbound)
 
+    alpha_color = 'rgba(127, 166, 238, 0.4)'
     fig.add_trace(
         go.Table(
             header=dict(
@@ -901,7 +902,7 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
                         "\u0394G Unbound {}".format(display_units)],
                 font=dict(size=14),
                 align="center",
-                fill_color='paleturquoise',
+                fill_color=alpha_color,
             ),
             cells=dict(
                 values=data,
@@ -1431,6 +1432,8 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
             # Skip these methods
             if meth in skip_plot_methods:
                 continue
+            if meth == 'MAE':
+                meth = 'MAE [' + display_units + ']'
             if meth == 'RAE':
                 meth = "Relative MAE"
             if meth == 'RRMSE':
@@ -1466,7 +1469,7 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         data.append(methods)
         data.append(values)
 
-        # Add Table with statistics. Data in kJ/mol
+        # Add Table with statistics.
         alpha_color = 'rgba(127, 166, 238, 0.4)'
         figure.add_trace(
             go.Table(
