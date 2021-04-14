@@ -55,7 +55,8 @@ job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
 iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
-iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset", description="Ligand Dataset")
+iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset",
+                        description="Ligand Dataset", order=1)
 
 ligset = LigandSetting("Ligand Setting", title="Ligand Setting")
 ligset.set_parameters(lig_res_name='LIG')
@@ -74,7 +75,7 @@ md_lig_components.set_parameters(multiple_flasks=True)
 # output system files
 iprot = DatasetReaderCube("ProteinReader", title="Protein Reader")
 iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input Dataset',
-                        description="Protein Dataset")
+                        description="Protein Dataset", order=0)
 
 md_prot_components = MDComponentCube("MD Protein Components", title="MD Protein Components")
 md_prot_components.promote_parameter("flask_title", promoted_name="flask_title",
@@ -248,7 +249,7 @@ coll_write.set_parameters(write_new_collection='NES_OPLMD')
 
 gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
 gathering.promote_parameter('map_file', promoted_name='map',
-                            description='The edge mapping file used to run the RBFE calculations')
+                            description='The edge mapping file used to run the RBFE calculations', order=2)
 
 chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
 chimera.promote_parameter("trajectory_frames", promoted_name="trajectory_frames", default=80,
@@ -274,23 +275,22 @@ check_rec = ParallelRecordSizeCheck("Record Check Success")
 ofs = DatasetWriterCube('ofs', title='NES Out')
 ofs.promote_parameter("data_out", promoted_name="out",
                       title="NES Dataset Out",
-                      description="NES Dataset Out")
+                      description="NES Dataset Out", order=5)
 
 fail = DatasetWriterCube('fail', title='NES Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="NES Failures",
-                       description="NES Dataset Failures out")
-
+                       description="NES Dataset Failures out", order=6)
 
 # TODO DEBUG ONLY TO BE REMOVED
 ofs_lig = DatasetWriterCube('ofs_unbound', title='Equilibrium Unbound Out')
 ofs_lig.promote_parameter("data_out", promoted_name="out_unbound",
                           title="Equilibrium Unbound Out",
-                          description="Equilibrium Unbound Out")
+                          description="Equilibrium Unbound Out", order=4)
 
 ofs_prot = DatasetWriterCube('ofs_bound', title='Equilibrium Bound Out')
 ofs_prot.promote_parameter("data_out", promoted_name="out_bound",
                            title="Equilibrium Bound Out",
-                           description="Equilibrium Bound Out")
+                           description="Equilibrium Bound Out", order=3)
 
 job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
               iprot, md_prot_components, complx, solvate, ff, switch,
