@@ -1,4 +1,7 @@
 # PIP
+
+-e .
+
 attrs==18.2.0
 invoke==1.2.0
 pip==19.1
