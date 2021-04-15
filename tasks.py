@@ -48,15 +48,11 @@ def test_cubes(ctx):
 
 
 @task
-def test_floes(ctx, test="all"):
+def test_floes(ctx):
     """
     run tests
     """
-    clean(ctx)
-    if test == "all":
-        run("py.test -s -v ./tests ")
-    else:
-        run("""py.test -s -v -m "{}" ./tests """.format(test))
+    run("py.test -s -v -m 'local' ./tests ")
 
 
 @task

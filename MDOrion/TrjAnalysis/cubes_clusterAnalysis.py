@@ -112,7 +112,10 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
 
             system_title = mdrecord.get_title
 
-            if mdrecord.has_conf_id:
+            if record.has_field(Fields.floe_report_sort_string):
+                sort_key = record.get_value(Fields.floe_report_sort_string)
+
+            elif mdrecord.has_conf_id:
                 sort_key = (1000 * mdrecord.get_lig_id) + mdrecord.get_conf_id
             else:
                 sort_key = mdrecord.get_lig_id
@@ -173,45 +176,44 @@ class MDFloeReportCube(RecordPortsMixin, ComputeCube):
             index = self.floe_report.create_page("index", is_index=True)
 
             index_content = """
-            <style>
-            .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            grid-gap: 20px;
-            align-items: stretch;
-            }
+               <style>
+               .grid {
+               display: grid;
+               grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+               grid-gap: 20px;
+               align-items: stretch;
+               }
 
-            .grid a {
-            border: 1px solid #ccc;
-            padding: 25px
-            }
+               .grid a {
+               border: 1px solid #ccc;
+               padding: 25px
+               }
 
-            .grid svg {
-            display: block;
-            max-width: 100%;
-            }
+               .grid svg {
+               display: block;
+               max-width: 100%;
+               }
 
-            .grid p{
-            text-align: center;
-            }
-            </style>
-            <main class="grid">
-            """
+               .grid p{
+               text-align: center;
+               }
+               </style>
+               <main class="grid">
+               """
             # Sort the dictionary keys by using the ligand ID
             for key in sorted(self.floe_report_dic.keys()):
-
                 page_link, ligand_svg, label = self.floe_report_dic[key]
 
                 index_content += """
-                <a href='{}'>
-                {}
-                <p> {} </p>
-                </a>
-                """.format(page_link, ligand_svg, label)
+                   <a href='{}'>
+                   {}
+                   <p> {} </p>
+                   </a>
+                   """.format(page_link, ligand_svg, label)
 
             index_content += """
-            </main>
-            """
+               </main>
+               """
 
             index.set_from_string(index_content)
 

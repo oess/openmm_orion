@@ -1134,7 +1134,7 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
 
                     label = "BAR score:<br>{:.2f}  &plusmn; {:.2f} {}".format(results['BAR'][0]/conv_factor, results['BAR'][1]/conv_factor, self.opt['units'])
                     new_record.set_value(Fields.floe_report_label, label)
-
+                    new_record.set_value(Fields.floe_report_sort_string, title)
                     new_record.set_value(Fields.FEC.RBFEC.edgeid, edgeid)
                     new_record.set_value(Fields.FEC.RBFEC.edge_name, title)
 
