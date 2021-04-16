@@ -1413,19 +1413,6 @@ class PredictDG_FromDDG(RecordPortsMixin, ComputeCube):
         "item_count": {"default": 1}  # 1 molecule at a time
     }
 
-    symmetrize = parameters.BooleanParameter(
-        'symmetrize',
-        default=True,
-        help_text="""Select if symmetrize the Relative Binding affinity plot"""
-    )
-
-    units = parameters.StringParameter(
-        'units',
-        choices=['kcal/mol', 'kJ/mol'],
-        default='kcal/mol',
-        help_text='Units to use to display the plots'
-    )
-
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
