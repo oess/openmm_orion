@@ -1216,14 +1216,14 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         ligB_name = edge_name.split()[2]
 
         res = wrangle.Result(ligA_name, ligB_name,
-                             exp_val[0], exp_val[1],
                              predicted_data_dic[edge_name][0],
                              predicted_data_dic[edge_name][1],
-                             0.0)
+                             0.0,
+                             exp_val[0], exp_val[1])
 
         raw_results.append(res)
 
-    network = wrangle.FEMap(raw_results)
+    network = wrangle.FEMap_with_exp(raw_results)
 
     network.check_weakly_connected()
 
@@ -1515,6 +1515,62 @@ def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG
         return report_str, affinity_dic
     else:
         return report_str, None
+
+
+def predictDGsfromDDGs(predicted_data_dic):
+
+    #print('predicted_data_dic:',predicted_data_dic)
+    raw_results = []
+
+    for edge_name, exp_val in predicted_data_dic.items():
+        ligA_name = edge_name.split()[0]
+        ligB_name = edge_name.split()[2]
+
+        res = wrangle.Result(ligA_name, ligB_name,
+                             predicted_data_dic[edge_name][0],
+                             predicted_data_dic[edge_name][1],
+                             0.0)
+
+        raw_results.append(res)
+
+    network = wrangle.FEMap(raw_results)
+
+    network.check_weakly_connected()
+
+    if network.weakly_connected:
+
+        affinity_dic = dict()
+
+        # Absolute Binding Affinity from Hanna's code
+        graph = network.graph
+
+        pred_DG = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
+        dpred_DG = np.asarray([node[1]['df_i_calc'] for node in graph.nodes(data=True)])
+
+        # centralising
+        # this should be replaced by providing one experimental result
+        #exp_DG = exp_DG - np.mean(exp_DG)
+        pred_DG = pred_DG - np.mean(pred_DG)
+
+        # Assuming that dic is in Order
+        hov_ligs = []
+        for name, id in network._name_to_id.items():
+            hov_ligs.append(name)
+
+        if not (len(hov_ligs) == len(pred_DG) == len(dpred_DG)):
+            raise ValueError("List size mismatch")
+
+        for name, pred, pred_err in zip(hov_ligs, pred_DG, dpred_DG):
+            affinity_dic[name] = [pred, pred_err]
+
+#        for name, l in affinity_dic.items():
+#            print("name {} pred {} +- {}".format(name, l[0], l[1]))
+
+
+    if network.weakly_connected:
+        return affinity_dic
+    else:
+        return None
 
 
 def upload_gmx_files(tar_fn, record, shard_name=""):
