@@ -105,11 +105,11 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
     ofs = DatasetWriterCube('ofs', title='NES Out')
     ofs.promote_parameter("data_out", promoted_name="out",
                           title="NES Dataset Out",
-                          description="NES Dataset Out")
+                          description="NES Dataset Out", order=4)
 
     fail = DatasetWriterCube('fail', title='NES Failures')
     fail.promote_parameter("data_out", promoted_name="fail", title="NES Failures",
-                           description="NES Dataset Failures out")
+                           description="NES Dataset Failures out", order=5)
 
     input_floe.add_cubes(coll_open_write, switch, gathering,
                         chimera, bound_nes, unbound_nes,

@@ -78,7 +78,7 @@ coll_open.set_parameters(write_new_collection='MD_OPLMD')
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.0')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.1a1')
 
 # Switching Bound and Unbound runs
 switch = BoundUnboundSwitchCube("Bound/Unbound In Switch", title='Bound/Unbound In Switch')

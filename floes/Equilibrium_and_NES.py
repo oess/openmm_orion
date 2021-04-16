@@ -22,7 +22,6 @@ from MDOrion.System.cubes import MDComponentCube
 from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
 from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
-                                    RBFECMapping,
                                     RBFECEdgeGathering,
                                     ParallelGMXChimera,
                                     ParallelNESGMX,
@@ -98,7 +97,7 @@ solvate.modify_parameter(solvate.close_solvent, promoted=False, default=False)
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.0')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.1a1')
 
 # Switching Bound and Unbound runs
 switch = BoundUnboundSwitchCube("Bound/Unbound Switch", title='Bound/Unbound Switch')
