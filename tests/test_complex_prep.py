@@ -60,14 +60,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_lig26.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_protein_ACE_NMA_caps.pdb"
@@ -160,14 +160,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "retigabine.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "kcnq_fix_ARG_fc.oeb"

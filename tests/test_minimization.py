@@ -94,7 +94,7 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        system = DatasetWrapper.get_dataset(
+        system = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "pbace_lcat13a.oedb"
@@ -197,7 +197,7 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        system = DatasetWrapper.get_dataset(
+        system = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "pbace_lcat13a.oedb"

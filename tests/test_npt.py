@@ -113,7 +113,7 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        system = DatasetWrapper.get_dataset(
+        system = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "pP38_lig38a_2n_npt_5ns.oedb"
@@ -211,7 +211,7 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        system = DatasetWrapper.get_dataset(
+        system = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "pP38_lig38a_2n_npt_5ns.oedb"

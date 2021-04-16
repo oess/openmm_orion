@@ -53,7 +53,7 @@ class TestMDOrionFloes(FloeTestCase):
             run_timeout=43200,
             queue_timeout=2000
         )
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "4JOO_truncNoLig.pdb"
@@ -107,7 +107,7 @@ class TestMDOrionFloes(FloeTestCase):
             run_timeout=43200,
             queue_timeout=2000
         )
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_lig26.oeb"
@@ -162,7 +162,7 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "4JOO_truncNoLig.pdb"
@@ -219,7 +219,7 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        user_tpr_file = FileWrapper.get_file(
+        user_tpr_file = FileWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "pL99_ltoluene.tpr"

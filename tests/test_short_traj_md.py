@@ -57,14 +57,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_lig26.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_protein_ACE_NMA_caps.pdb"
@@ -133,14 +133,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_lig26.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_protein_ACE_NMA_caps.pdb"
@@ -207,14 +207,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "Hunt13_lig13.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "4JOO_truncNoLig.pdb"
@@ -282,14 +282,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "Hunt13_lig13.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "4JOO_truncNoLig.pdb"
@@ -357,14 +357,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "4YFF_lig.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "4YFF_prot.oeb"
@@ -432,14 +432,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_ligs_5.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_protein_ACE_NMA_caps.pdb"
@@ -509,14 +509,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_lig26.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_protein_ACE_NMA_caps.pdb"
@@ -587,14 +587,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_lig26.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_protein_ACE_NMA_caps.pdb"
@@ -664,14 +664,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "Hunt13_lig13.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "4JOO_truncNoLig.pdb"
@@ -741,14 +741,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "Hunt13_lig13.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "4JOO_truncNoLig.pdb"
@@ -818,14 +818,14 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.get_dataset(
+        ligand_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_ligs_5.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.get_dataset(
+        protein_file = DatasetWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "MCL1_protein_ACE_NMA_caps.pdb"

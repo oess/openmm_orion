@@ -27,7 +27,7 @@ import os
 
 import pytest
 
-from datarecord import read_records
+from datarecord import read_record
 
 from openeye import oechem
 
@@ -51,8 +51,7 @@ class ForceFieldPrepTester(unittest.TestCase):
         # File name
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'Gaff2'
@@ -73,8 +72,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'Smirnoff99Frosst'
@@ -93,8 +91,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'OpenFF_1.1.1'
@@ -113,8 +110,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'OpenFF_1.2.1'
@@ -133,8 +129,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'OpenFF_1.3.0'
@@ -153,8 +148,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Process the molecules
         self.cube.process(record, self.cube.intake.name)
@@ -170,8 +164,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'Gaff2'
@@ -193,8 +186,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'OpenFF_1.2.1'
@@ -216,8 +208,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'OpenFF_1.3.0'
@@ -239,8 +230,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'Gaff2'
@@ -262,8 +252,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'OpenFF_1.2.1'
@@ -285,8 +274,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'OpenFF_1.3.0'
@@ -308,8 +296,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'Gaff2'
@@ -331,8 +318,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
             ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-            for record in read_records(ifs):
-                pass
+            record = read_record(ifs)
 
             # Selecting ligand and excipient parametrization
             self.cube.args.ligand_forcefield = 'OpenFF_1.2.1'
@@ -354,8 +340,7 @@ class ForceFieldPrepTester(unittest.TestCase):
 
         ifs = oechem.oeifstream(os.path.join(FILE_DIR, "6puq_solvated.oedb"))
 
-        for record in read_records(ifs):
-            pass
+        record = read_record(ifs)
 
         # Selecting ligand and excipient parametrization
         self.cube.args.ligand_forcefield = 'OpenFF_1.3.0'
@@ -373,4 +358,5 @@ class ForceFieldPrepTester(unittest.TestCase):
 
 
 if __name__ == "__main__":
-        unittest.main()
+    unittest.main()
+
