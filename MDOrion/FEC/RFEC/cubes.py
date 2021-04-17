@@ -764,26 +764,26 @@ class NESGMX(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
 
-    parameter_overrides = {
-        "gpu_count": {"default": 1},
-        "instance_type": {"default": "g3.4xlarge"},  # Gpu Family selection
-        "memory_mb": {"default": 14000},
-        "spot_policy": {"default": "Required"},
-        "prefetch_count": {"default": 1},  # 1 molecule at a time
-        "item_count": {"default": 1},  # 1 molecule at a time
-        "max_failures": {"default": 2}  # it is going to retry just one more time
-    }
-
     # parameter_overrides = {
-    #     "cpu_count": {"default": 16},
-    #     "memory_mb": {"default": float(8 * 1.8 * 1024)},
     #     "gpu_count": {"default": 1},
-    #     "disk_space": {"default": float(6.0 * 1024)},
+    #     "instance_type": {"default": "g3.4xlarge"},  # Gpu Family selection
+    #     "memory_mb": {"default": 14000},
     #     "spot_policy": {"default": "Required"},
     #     "prefetch_count": {"default": 1},  # 1 molecule at a time
     #     "item_count": {"default": 1},  # 1 molecule at a time
-    #     "max_failures": {"default": 2}  # just one retry
+    #     "max_failures": {"default": 2}  # it is going to retry just one more time
     # }
+
+    parameter_overrides = {
+        "cpu_count": {"default": 16},
+        "memory_mb": {"default": float(8 * 1.8 * 1024)},
+        "gpu_count": {"default": 1},
+        "disk_space": {"default": float(6.0 * 1024)},
+        "spot_policy": {"default": "Required"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1},  # 1 molecule at a time
+        "max_failures": {"default": 2}  # just one retry
+    }
 
     temperature = parameters.DecimalParameter(
         'temperature',

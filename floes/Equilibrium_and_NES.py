@@ -255,6 +255,8 @@ chimera.promote_parameter("trajectory_frames", promoted_name="trajectory_frames"
                           description="The total number of trajectory frames to be used along the NE switching")
 unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
 unbound_nes.promote_parameter("time", promoted_name="nes_time", default=0.05)
+unbound_nes.modify_parameter(unbound_nes.cpu_count, promoted=False, default=8)
+unbound_nes.modify_parameter(unbound_nes.gpu_count, promoted=False, default=0)
 
 bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
 bound_nes.promote_parameter("time", promoted_name="nes_time")
