@@ -20,7 +20,7 @@ import os
 from artemis.wrappers import (WorkFloeWrapper,
                               DatasetWrapper,
                               OutputDatasetWrapper,
-                              FileWrapper,)
+                              FileWrapper)
 
 from artemis.test import FloeTestCase
 
