@@ -88,6 +88,8 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
     unbound_nes.promote_parameter("time", promoted_name="nes_time",
                                   default=options['nes_switch_time_in_ns'], order=3)
     # unbound_nes.modify_parameter(unbound_nes.instance_type, promoted=False, default='g4dn.2xlarge')
+    # unbound_nes.modify_parameter(unbound_nes.cpu_count, promoted=False, default=8)
+    # unbound_nes.modify_parameter(unbound_nes.gpu_count, promoted=False, default=0)
 
     bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
     bound_nes.promote_parameter("time", promoted_name="nes_time", order=3)

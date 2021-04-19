@@ -19,7 +19,8 @@ import os
 
 from artemis.wrappers import (WorkFloeWrapper,
                               DatasetWrapper,
-                              OutputDatasetWrapper)
+                              OutputDatasetWrapper,
+                              FileWrapper)
 
 from artemis.test import FloeTestCase
 
@@ -71,7 +72,7 @@ class TestMDOrionFloes(FloeTestCase):
             )
         )
 
-        map_file = DatasetWrapper.from_file(
+        map_file = FileWrapper.from_file(
             os.path.join(
                 FILE_DIR,
                 "thrombin_one_edge.txt"
