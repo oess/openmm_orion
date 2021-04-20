@@ -117,29 +117,6 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
-        records_fail = []
-
-        for rec_fail in read_records(fail_ifs):
-            records_fail.append(rec_fail)
-        fail_ifs.close()
-
-        count = len(records_fail)
-        # The fail record must be empty
-        self.assertEqual(count, 0)
-
-        # Check output
-        ifs = oechem.oeifstream(output_nes_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
-        # Check the out record list
-        self.assertEqual(count, 1)
-
         # Check output
         ifs = oechem.oeifstream(output_bound_eq_file.path)
         records = []
@@ -163,3 +140,26 @@ class TestMDOrionFloes(FloeTestCase):
         count = len(records)
         # Check the out record list
         self.assertEqual(count, 5)
+
+        fail_ifs = oechem.oeifstream(output_fail_file.path)
+        records_fail = []
+
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
+
+        # Check output
+        ifs = oechem.oeifstream(output_nes_file.path)
+        records = []
+
+        for rec in read_records(ifs):
+            records.append(rec)
+        ifs.close()
+
+        count = len(records)
+        # Check the out record list
+        self.assertEqual(count, 1)
