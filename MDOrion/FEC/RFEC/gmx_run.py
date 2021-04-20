@@ -258,6 +258,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
 
                     subprocess.check_call(['gmx',
                                            'mdrun',
+                                           '-ntomp', '16',
+                                           '-ntmpi', '1,',
                                            '-v',
                                            '-s', tpr_fn,
                                            '-cpo', cpto_fn,
@@ -266,6 +268,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
                 else:
                     subprocess.check_call(['gmx',
                                            'mdrun',
+                                           '-ntomp', '16',
+                                           '-ntmpi', '1,',
                                            '-v',
                                            '-s', tpr_fn,
                                            '-noappend',
@@ -302,6 +306,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
             if cpti_fn is None and cpto_fn is None:
                 subprocess.check_call(['gmx',
                                        'mdrun',
+                                       '-ntomp', '16',
+                                       '-ntmpi', '1,',
                                        '-v',
                                        '-s', tpr_fn,
                                        '-deffnm', deffnm_fn
@@ -312,6 +318,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
                 if cpti_fn is None and cpto_fn is not None:
                     subprocess.check_call(['gmx',
                                            'mdrun',
+                                           '-ntomp', '16',
+                                           '-ntmpi', '1,',
                                            '-v',
                                            '-s', tpr_fn,
                                            '-cpo', cpto_fn,
@@ -321,6 +329,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
                 else:
                     subprocess.check_call(['gmx',
                                            'mdrun',
+                                           '-ntomp', '16',
+                                           '-ntmpi', '1,',
                                            '-v',
                                            '-s', tpr_fn,
                                            '-noappend',
