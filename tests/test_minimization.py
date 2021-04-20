@@ -38,7 +38,6 @@ from simtk import (unit,
 
 from simtk.openmm import app
 
-from openeye import oechem
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
@@ -128,15 +127,15 @@ class TestMDOrionFloes(FloeTestCase):
             # Calculate the initial potential energy
             eng_i = calculate_eng(mdstate, parmed_structure)
 
-        output_file = OutputDatasetWrapper(extension=".oedb")
-        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+        output = OutputDatasetWrapper(extension=".oedb")
+        fail_output = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "system": system.identifier,
-                    "out": output_file.identifier,
-                    "fail": fail_output_file.identifier
+                    "out": output.identifier,
+                    "fail": fail_output.identifier
                 },
 
                 "cube": {
@@ -149,31 +148,14 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream(fail_output_file.path)
-        records_fail = []
-
-        for rec_fail in read_records(fail_ifs):
-            records_fail.append(rec_fail)
-        fail_ifs.close()
-
-        count = len(records_fail)
         # The fail record must be empty
-        self.assertEqual(count, 0)
+        self.assertEqual(fail_output.count, 0)
 
-        # Read output record
-        ifs = oeifstream(output_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
         # The records list must have just one record
-        self.assertEqual(count, 1)
+        self.assertEqual(output.count, 1)
 
         # Calculate the final potential energy
-        for record in records:
+        for record in output.records():
 
             mdrecord = MDDataRecord(record)
 
@@ -217,16 +199,16 @@ class TestMDOrionFloes(FloeTestCase):
         # Check the out record list
         self.assertEqual(count, 1)
 
-        output_file = OutputDatasetWrapper(extension=".oedb")
-        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+        output = OutputDatasetWrapper(extension=".oedb")
+        fail_output = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "system": system.identifier,
                     "md_engine": "Gromacs",
-                    "out": output_file.identifier,
-                    "fail": fail_output_file.identifier
+                    "out": output.identifier,
+                    "fail": fail_output.identifier
                 },
 
                 "cube": {
@@ -239,25 +221,8 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream(fail_output_file.path)
-        records_fail = []
-
-        for rec_fail in read_records(fail_ifs):
-            records_fail.append(rec_fail)
-        fail_ifs.close()
-
-        count = len(records_fail)
         # The fail record must be empty
-        self.assertEqual(count, 0)
+        self.assertEqual(fail_output.count, 0)
 
-        # Read output record
-        ifs = oeifstream(output_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
         # The records list must have just one record
-        self.assertEqual(count, 1)
+        self.assertEqual(output.count, 1)
