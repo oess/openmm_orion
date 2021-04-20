@@ -30,9 +30,6 @@ import pytest
 
 import MDOrion
 
-from openeye import oechem
-
-from datarecord import read_records
 
 from artemis.wrappers import using_orion
 
@@ -79,10 +76,10 @@ class TestMDOrionFloes(FloeTestCase):
             )
         )
 
-        output_bound_eq_file = OutputDatasetWrapper(extension=".oedb")
-        output_unbound_eq_file = OutputDatasetWrapper(extension=".oedb")
-        output_nes_file = OutputDatasetWrapper(extension=".oedb")
-        output_fail_file = OutputDatasetWrapper(extension=".oedb")
+        output_bound_eq = OutputDatasetWrapper(extension=".oedb")
+        output_unbound_eq = OutputDatasetWrapper(extension=".oedb")
+        output_nes = OutputDatasetWrapper(extension=".oedb")
+        output_fail = OutputDatasetWrapper(extension=".oedb")
 
         if using_orion():
             workfloe.start(
@@ -91,10 +88,10 @@ class TestMDOrionFloes(FloeTestCase):
                         "ligands": ligand_file.identifier,
                         "protein": protein_file.identifier,
                         "map": map_file.identifier,
-                        "out_bound": output_bound_eq_file.identifier,
-                        "out_unbound": output_unbound_eq_file.identifier,
-                        "out": output_nes_file.identifier,
-                        "fail": output_fail_file.identifier
+                        "out_bound": output_bound_eq.identifier,
+                        "out_unbound": output_unbound_eq.identifier,
+                        "out": output_nes.identifier,
+                        "fail": output_fail.identifier
                     }
                 }
             )
@@ -105,10 +102,10 @@ class TestMDOrionFloes(FloeTestCase):
                         "ligands": ligand_file.identifier,
                         "protein": protein_file.identifier,
                         "map": map_file.identifier,
-                        "out_bound": output_bound_eq_file.identifier,
-                        "out_unbound": output_unbound_eq_file.identifier,
-                        "out": output_nes_file.identifier,
-                        "fail": output_fail_file.identifier
+                        "out_bound": output_bound_eq.identifier,
+                        "out_unbound": output_unbound_eq.identifier,
+                        "out": output_nes.identifier,
+                        "fail": output_fail.identifier
                     },
 
                     "mp": num_proc
@@ -117,49 +114,14 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
-        records_fail = []
+        # Check the out record list
+        self.assertEqual(output_bound_eq.count, 5)
 
-        for rec_fail in read_records(fail_ifs):
-            records_fail.append(rec_fail)
-        fail_ifs.close()
+        # Check the out record list
+        self.assertEqual(output_unbound_eq.count, 5)
 
-        count = len(records_fail)
         # The fail record must be empty
-        self.assertEqual(count, 0)
+        self.assertEqual(output_fail.count, 0)
 
-        # Check output
-        ifs = oechem.oeifstream(output_nes_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
         # Check the out record list
-        self.assertEqual(count, 1)
-
-        # Check output
-        ifs = oechem.oeifstream(output_bound_eq_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
-        # Check the out record list
-        self.assertEqual(count, 5)
-
-        # Check output
-        ifs = oechem.oeifstream(output_unbound_eq_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
-        # Check the out record list
-        self.assertEqual(count, 5)
+        self.assertEqual(output_nes.count, 1)

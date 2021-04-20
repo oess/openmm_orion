@@ -27,9 +27,6 @@ from artemis.decorators import package
 
 import pytest
 
-from openeye.oechem import oeifstream
-
-from datarecord import read_records
 
 import MDOrion
 
@@ -38,7 +35,6 @@ from simtk import (unit,
 
 from simtk.openmm import app
 
-from openeye import oechem
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
@@ -120,8 +116,8 @@ class TestMDOrionFloes(FloeTestCase):
             )
         )
 
-        output_file = OutputDatasetWrapper(extension=".oedb")
-        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+        output = OutputDatasetWrapper(extension=".oedb")
+        fail_output = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
@@ -132,8 +128,8 @@ class TestMDOrionFloes(FloeTestCase):
                     "pressure": 1.0,
                     "trajectory_interval": 0.0,
                     "reporter_interval": 0.0,
-                    "out": output_file.identifier,
-                    "fail": fail_output_file.identifier
+                    "out": output.identifier,
+                    "fail": fail_output.identifier
                 },
 
                 "cube": {
@@ -149,29 +145,13 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
-        records_fail = []
-
-        for rec_fail in read_records(fail_ifs):
-            records_fail.append(rec_fail)
-        fail_ifs.close()
-
-        count = len(records_fail)
         # The fail record must be empty
-        self.assertEqual(count, 0)
+        self.assertEqual(fail_output.count, 0)
 
-        ifs = oeifstream(output_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
         # Check the out record list
-        self.assertEqual(count, 1)
+        self.assertEqual(output.count, 1)
 
-        for record in records:
+        for record in output.records():
 
             mdrecord = MDDataRecord(record)
 
@@ -218,8 +198,8 @@ class TestMDOrionFloes(FloeTestCase):
             )
         )
 
-        output_file = OutputDatasetWrapper(extension=".oedb")
-        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+        output = OutputDatasetWrapper(extension=".oedb")
+        fail_output = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
@@ -231,8 +211,8 @@ class TestMDOrionFloes(FloeTestCase):
                     "pressure": 1.0,
                     "trajectory_interval": 0.0,
                     "reporter_interval": 0.0,
-                    "out": output_file.identifier,
-                    "fail": fail_output_file.identifier
+                    "out": output.identifier,
+                    "fail": fail_output.identifier
                 },
 
                 "cube": {
@@ -248,31 +228,14 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
-        records_fail = []
-
-        for rec_fail in read_records(fail_ifs):
-            records_fail.append(rec_fail)
-        fail_ifs.close()
-
-        count = len(records_fail)
         # The fail record must be empty
-        self.assertEqual(count, 0)
+        self.assertEqual(fail_output.count, 0)
 
-        ifs = oeifstream(output_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
         # Check the out record list
-        self.assertEqual(count, 1)
+        self.assertEqual(output.count, 1)
 
-        for record in records:
+        for record in output.records():
             mdrecord = MDDataRecord(record)
 
             stages = mdrecord.get_stages
             self.assertEqual(len(stages), 3)
-

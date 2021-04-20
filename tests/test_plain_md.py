@@ -30,10 +30,6 @@ import pytest
 
 import MDOrion
 
-from openeye import oechem
-
-from datarecord import read_records
-
 PACKAGE_DIR = os.path.dirname(os.path.dirname(MDOrion.__file__))
 
 FILE_DIR = os.path.join(PACKAGE_DIR, "tests", "data")
@@ -60,44 +56,27 @@ class TestMDOrionFloes(FloeTestCase):
             )
         )
 
-        output_file = OutputDatasetWrapper(extension=".oedb")
-        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+        output = OutputDatasetWrapper(extension=".oedb")
+        fail_output = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "solute": protein_file.identifier,
                     "prod_ns": 1,
-                    "out": output_file.identifier,
-                    "fail": fail_output_file.identifier
+                    "out": output.identifier,
+                    "fail": fail_output.identifier
                 }
             }
         )
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
-        records_fail = []
-
-        for rec_fail in read_records(fail_ifs):
-            records_fail.append(rec_fail)
-        fail_ifs.close()
-
-        count = len(records_fail)
         # The fail record must be empty
-        self.assertEqual(count, 0)
+        self.assertEqual(fail_output.count, 0)
 
-        # Check output
-        ifs = oechem.oeifstream(output_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
         # Check the out record list
-        self.assertEqual(count, 1)
+        self.assertEqual(output.count, 1)
 
     @pytest.mark.local
     @pytest.mark.orion
@@ -114,44 +93,27 @@ class TestMDOrionFloes(FloeTestCase):
             )
         )
 
-        output_file = OutputDatasetWrapper(extension=".oedb")
-        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+        output = OutputDatasetWrapper(extension=".oedb")
+        fail_output = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "solute": protein_file.identifier,
                     "prod_ns": 1,
-                    "out": output_file.identifier,
-                    "fail": fail_output_file.identifier
+                    "out": output.identifier,
+                    "fail": fail_output.identifier
                 }
             }
         )
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
-        records_fail = []
-
-        for rec_fail in read_records(fail_ifs):
-            records_fail.append(rec_fail)
-        fail_ifs.close()
-
-        count = len(records_fail)
         # The fail record must be empty
-        self.assertEqual(count, 0)
+        self.assertEqual(fail_output.count, 0)
 
-        # Check output
-        ifs = oechem.oeifstream(output_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
         # Check the out record list
-        self.assertEqual(count, 1)
+        self.assertEqual(output.count, 1)
 
     @pytest.mark.local
     @pytest.mark.orion
@@ -169,8 +131,8 @@ class TestMDOrionFloes(FloeTestCase):
             )
         )
 
-        output_file = OutputDatasetWrapper(extension=".oedb")
-        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+        output = OutputDatasetWrapper(extension=".oedb")
+        fail_output = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
@@ -178,36 +140,19 @@ class TestMDOrionFloes(FloeTestCase):
                     "solute": protein_file.identifier,
                     "md_engine": "Gromacs",
                     "prod_ns": 1,
-                    "out": output_file.identifier,
-                    "fail": fail_output_file.identifier
+                    "out": output.identifier,
+                    "fail": fail_output.identifier
                 }
             }
         )
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
-        records_fail = []
-
-        for rec_fail in read_records(fail_ifs):
-            records_fail.append(rec_fail)
-        fail_ifs.close()
-
-        count = len(records_fail)
         # The fail record must be empty
-        self.assertEqual(count, 0)
+        self.assertEqual(fail_output.count, 0)
 
-        # Check output
-        ifs = oechem.oeifstream(output_file.path)
-        records = []
-
-        for rec in read_records(ifs):
-            records.append(rec)
-        ifs.close()
-
-        count = len(records)
         # Check the out record list
-        self.assertEqual(count, 1)
+        self.assertEqual(output.count, 1)
 
     @pytest.mark.local
     @pytest.mark.orion
@@ -226,13 +171,13 @@ class TestMDOrionFloes(FloeTestCase):
             )
         )
 
-        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "tpr": user_tpr_file.identifier,
-                    "fail": fail_output_file.identifier
+                    "fail": fail_output.identifier
                 },
 
                 "cube": {
@@ -245,13 +190,5 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        fail_ifs = oechem.oeifstream()
-        records_fail = []
-
-        for rec_fail in read_records(fail_ifs):
-            records_fail.append(rec_fail)
-        fail_ifs.close()
-
-        count = len(records_fail)
         # The fail record must be empty
-        self.assertEqual(count, 0)
+        self.assertEqual(fail_output.count, 0)
