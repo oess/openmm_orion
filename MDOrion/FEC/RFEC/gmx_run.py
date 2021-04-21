@@ -213,6 +213,8 @@ def check_gmx_grompp(gro, top, sim_type=None, verbose=False):
 
     except subprocess.CalledProcessError:
         raise ValueError("Subprocess CalledProcess Error. Cannot assemble the Gromacs .tpr file for the sim type: {}".format(sim_type))
+    except subprocess.TimeoutExpired:
+        raise ValueError("Subprocess Timeout Error")
     except OSError:
         ValueError("OS Error. Cannot assemble the Gromacs .tpr file for the sim type: {}".format(sim_type))
 
@@ -248,8 +250,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
             if cpti_fn is None and cpto_fn is None:
                 subprocess.check_call(['gmx',
                                        'mdrun',
-                                       '-ntomp', '16',
-                                       '-ntmpi', '1',
+                                       '-ntomp', str(opt['gmx_openmp_threads']),
+                                       '-ntmpi', str(opt['gmx_mpi_threads']),
                                        '-v',
                                        '-s', tpr_fn,
                                        '-deffnm', deffnm_fn
@@ -260,8 +262,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
 
                     subprocess.check_call(['gmx',
                                            'mdrun',
-                                           '-ntomp', '16',
-                                           '-ntmpi', '1',
+                                           '-ntomp', str(opt['gmx_openmp_threads']),
+                                           '-ntmpi', str(opt['gmx_mpi_threads']),
                                            '-v',
                                            '-s', tpr_fn,
                                            '-cpo', cpto_fn,
@@ -270,8 +272,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
                 else:
                     subprocess.check_call(['gmx',
                                            'mdrun',
-                                           '-ntomp', '16',
-                                           '-ntmpi', '1',
+                                           '-ntomp', str(opt['gmx_openmp_threads']),
+                                           '-ntmpi', str(opt['gmx_mpi_threads']),
                                            '-v',
                                            '-s', tpr_fn,
                                            '-noappend',
@@ -308,8 +310,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
             if cpti_fn is None and cpto_fn is None:
                 subprocess.check_call(['gmx',
                                        'mdrun',
-                                       '-ntomp', '16',
-                                       '-ntmpi', '1',
+                                       '-ntomp', str(opt['gmx_openmp_threads']),
+                                       '-ntmpi', str(opt['gmx_mpi_threads']),
                                        '-v',
                                        '-s', tpr_fn,
                                        '-deffnm', deffnm_fn
@@ -320,8 +322,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
                 if cpti_fn is None and cpto_fn is not None:
                     subprocess.check_call(['gmx',
                                            'mdrun',
-                                           '-ntomp', '16',
-                                           '-ntmpi', '1',
+                                           '-ntomp', str(opt['gmx_openmp_threads']),
+                                           '-ntmpi', str(opt['gmx_mpi_threads']),
                                            '-v',
                                            '-s', tpr_fn,
                                            '-cpo', cpto_fn,
@@ -331,8 +333,8 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
                 else:
                     subprocess.check_call(['gmx',
                                            'mdrun',
-                                           '-ntomp', '16',
-                                           '-ntmpi', '1',
+                                           '-ntomp', str(opt['gmx_openmp_threads']),
+                                           '-ntmpi', str(opt['gmx_mpi_threads']),
                                            '-v',
                                            '-s', tpr_fn,
                                            '-noappend',
@@ -343,8 +345,10 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
                                           timeout=opt['gmx_process_timeout'])
     except subprocess.CalledProcessError as e:
         raise ValueError("Subprocess Called Process Error: {}".format(e))
+    except subprocess.TimeoutExpired as e:
+        raise ValueError("Subprocess Timeout Error: {}".format(e))
     except OSError:
-        ValueError("Gromacs call OS Error")
+        ValueError("Subprocess call OS Error")
 
 
 def gmx_run(gmx_gro, gmx_top, opt):

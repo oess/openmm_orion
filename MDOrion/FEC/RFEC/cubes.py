@@ -830,6 +830,16 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         default=3600.0,
         help_text="Gromacs process timeout in seconds")
 
+    gmx_openmp_threads = parameters.IntegerParameter(
+        'gmx_openmp_threads',
+        default=16,
+        help_text='Number of OpenMP threads')
+
+    gmx_mpi_threads = parameters.IntegerParameter(
+        'gmx_mpi_threads',
+        default=1,
+        help_text='Number of MPI threads')
+
     def begin(self):
             self.opt = vars(self.args)
             self.opt['Logger'] = self.log
