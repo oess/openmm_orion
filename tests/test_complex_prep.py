@@ -25,11 +25,17 @@ from artemis.test import FloeTestCase
 
 from artemis.decorators import package
 
+from openeye.oechem import oeifstream
+
+from datarecord import read_records
+
 import MDOrion
 
 from MDOrion.Standards import Fields
 
 from oeommtools import utils as oeommutils
+
+from openeye import oechem
 
 import pytest
 
@@ -54,30 +60,30 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.from_file(
+        ligand_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
                 "MCL1_lig26.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.from_file(
+        protein_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
                 "MCL1_protein_ACE_NMA_caps.pdb"
             )
         )
 
-        output = OutputDatasetWrapper(extension=".oedb")
-        fail_output = OutputDatasetWrapper(extension=".oedb")
+        output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "ligands": ligand_file.identifier,
                     "protein": protein_file.identifier,
-                    "out": output.identifier,
-                    "fail": fail_output.identifier
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
                 }
 
             }
@@ -85,14 +91,30 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        # The fail record must be empty
-        self.assertEqual(fail_output.count, 0)
+        fail_ifs = oechem.oeifstream()
+        records_fail = []
 
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
+
+        ifs = oeifstream(output_file.path)
+        records = []
+
+        for rec in read_records(ifs):
+            records.append(rec)
+        ifs.close()
+
+        count = len(records)
         # Check the out record list
-        self.assertEqual(output.count, 1)
+        self.assertEqual(count, 1)
 
         # Each record should have the MD record interface
-        for record in output.records():
+        for record in records:
 
             mdrecord = MDDataRecord(record)
 
@@ -138,30 +160,30 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.from_file(
+        ligand_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
                 "retigabine.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.from_file(
+        protein_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
                 "kcnq_fix_ARG_fc.oeb"
             )
         )
 
-        output = OutputDatasetWrapper(extension=".oedb")
-        fail_output = OutputDatasetWrapper(extension=".oedb")
+        output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "ligands": ligand_file.identifier,
                     "protein": protein_file.identifier,
-                    "out": output.identifier,
-                    "fail": fail_output.identifier
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
                 }
 
             }
@@ -169,13 +191,29 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
+        fail_ifs = oechem.oeifstream()
+        records_fail = []
+
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
         # The fail record must be empty
-        self.assertEqual(fail_output.count, 0)
+        self.assertEqual(count, 0)
 
+        ifs = oeifstream(output_file.path)
+        records = []
+
+        for rec in read_records(ifs):
+            records.append(rec)
+        ifs.close()
+
+        count = len(records)
         # Check the out record list
-        self.assertEqual(output.count, 1)
+        self.assertEqual(count, 1)
 
-        for record in output.records():
+        for record in records:
 
             md_components = record.get_value(Fields.md_components)
 

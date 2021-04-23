@@ -833,12 +833,12 @@ class NESGMX(RecordPortsMixin, ComputeCube):
     gmx_openmp_threads = parameters.IntegerParameter(
         'gmx_openmp_threads',
         default=16,
-        help_text='Number of OpenMP threads')
+        help_text='Number of Gromacs OpenMP threads')
 
     gmx_mpi_threads = parameters.IntegerParameter(
         'gmx_mpi_threads',
         default=1,
-        help_text='Number of MPI threads')
+        help_text='Number of Gromacs MPI threads')
 
     def begin(self):
             self.opt = vars(self.args)

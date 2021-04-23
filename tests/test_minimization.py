@@ -38,6 +38,7 @@ from simtk import (unit,
 
 from simtk.openmm import app
 
+from openeye import oechem
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
@@ -93,7 +94,7 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        system = DatasetWrapper.from_file(
+        system = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
                 "pbace_lcat13a.oedb"
@@ -127,15 +128,15 @@ class TestMDOrionFloes(FloeTestCase):
             # Calculate the initial potential energy
             eng_i = calculate_eng(mdstate, parmed_structure)
 
-        output = OutputDatasetWrapper(extension=".oedb")
-        fail_output = OutputDatasetWrapper(extension=".oedb")
+        output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "system": system.identifier,
-                    "out": output.identifier,
-                    "fail": fail_output.identifier
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
                 },
 
                 "cube": {
@@ -148,14 +149,31 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        # The fail record must be empty
-        self.assertEqual(fail_output.count, 0)
+        fail_ifs = oechem.oeifstream()
+        records_fail = []
 
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
+
+        # Read output record
+        ifs = oeifstream(output_file.path)
+        records = []
+
+        for rec in read_records(ifs):
+            records.append(rec)
+        ifs.close()
+
+        count = len(records)
         # The records list must have just one record
-        self.assertEqual(output.count, 1)
+        self.assertEqual(count, 1)
 
         # Calculate the final potential energy
-        for record in output.records():
+        for record in records:
 
             mdrecord = MDDataRecord(record)
 
@@ -179,7 +197,7 @@ class TestMDOrionFloes(FloeTestCase):
             queue_timeout=2000
         )
 
-        system = DatasetWrapper.from_file(
+        system = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
                 "pbace_lcat13a.oedb"
@@ -199,16 +217,16 @@ class TestMDOrionFloes(FloeTestCase):
         # Check the out record list
         self.assertEqual(count, 1)
 
-        output = OutputDatasetWrapper(extension=".oedb")
-        fail_output = OutputDatasetWrapper(extension=".oedb")
+        output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "system": system.identifier,
                     "md_engine": "Gromacs",
-                    "out": output.identifier,
-                    "fail": fail_output.identifier
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
                 },
 
                 "cube": {
@@ -221,8 +239,25 @@ class TestMDOrionFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-        # The fail record must be empty
-        self.assertEqual(fail_output.count, 0)
+        fail_ifs = oechem.oeifstream()
+        records_fail = []
 
+        for rec_fail in read_records(fail_ifs):
+            records_fail.append(rec_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
+
+        # Read output record
+        ifs = oeifstream(output_file.path)
+        records = []
+
+        for rec in read_records(ifs):
+            records.append(rec)
+        ifs.close()
+
+        count = len(records)
         # The records list must have just one record
-        self.assertEqual(output.count, 1)
+        self.assertEqual(count, 1)
