@@ -59,7 +59,7 @@ from datarecord import (Types,
 
 from MDOrion.Standards.mdrecord import MDDataRecord
 
-import MDOrion.TrjAnalysis.TrajAnFloeReport_utils as flrpt
+import MDOrion.TrjAnalysis.STMD_FloeReport_utils as flrpt
 
 import tarfile
 
@@ -1083,10 +1083,10 @@ class ExtractMDDataCube(RecordPortsMixin, ComputeCube):
     tags = ['Report']
     description = """
     The cube extracts the relevant MD data generated from the Short
-    Trajectory MD with Analysis floe saving the results as file in Amazon S3 
-    ready to be downloaded. The extracted MD data includes the protein, 
-    ligand and binding site water oemol trajectories, the recorded average 
-    and median cluster poses for the protein and ligand and the generated 
+    Trajectory MD with Analysis floe saving the results as file in Amazon S3
+    ready to be downloaded. The extracted MD data includes the protein,
+    ligand and binding site water oemol trajectories, the recorded average
+    and median cluster poses for the protein and ligand and the generated
     floe report.
     """
 

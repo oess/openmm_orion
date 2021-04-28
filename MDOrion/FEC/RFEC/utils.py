@@ -74,11 +74,9 @@ from datarecord import Meta
 
 import random
 
-from MDOrion.FEC.RFEC import stats
-
 from MDOrion.FEC.RFEC.freeenergyframework import wrangle
 
-import scipy as sc
+import MDOrion.TrjAnalysis.Affinity_FloeReport_utils as flrpt
 
 from MDOrion.FEC.RFEC.gmx_run import gmx_run
 
@@ -1054,467 +1052,90 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
     return report_str
 
 
-def generate_plots_and_stats(exp_data_dic, predicted_data_dic, method='BAR', DDG_symmetrize=False, units='kcal/mol'):
+def generate_plots_and_stats(lig_pred_expt_dic, edge_pred_expt_dic,
+                             DDG_symmetrize=False, units='kcal/mol', dataset_name=''):
 
-    def calculate_statistics(exp, pred, plot_type='ddG'):
+    # Generate html table for predicted DGs, with corresponding expt DG where available
+    # We will make a floe report of this no matter what
+    html_predDGTable = flrpt.GeneratePredDGTable(lig_pred_expt_dic, units='kcal/mol')
 
-        try:
-            mae = stats.bootstrap_statistic(exp, pred, statistic="MAE", plot_type=plot_type)
-            rae = stats.bootstrap_statistic(exp, pred, statistic="RAE", plot_type=plot_type)
-            rmse = stats.bootstrap_statistic(exp, pred, statistic="RMSE", plot_type=plot_type)
-            rrmse = stats.bootstrap_statistic(exp, pred, statistic="RRMSE", plot_type=plot_type)
-            r2 = stats.bootstrap_statistic(exp, pred, statistic="R2", plot_type=plot_type)
-            rho = stats.bootstrap_statistic(exp, pred, statistic="RHO", plot_type=plot_type)
-            ktau = stats.bootstrap_statistic(exp, pred, statistic="KTAU", plot_type=plot_type)
+    # DG graph/table: only make this if there are more than two points with expt and predicted
+    # Determine how many points there are to correlate
+    n_DG_expt_pred_points = 0
+    for name, data in lig_pred_expt_dic.items():
+        if data[2] is not None:
+            n_DG_expt_pred_points += 1
 
-            # Generate statistic without bootstraping
-            mae['data'] = stats.compute_statistic(exp, pred, "MAE")
-            rae['data'] = stats.compute_statistic(exp, pred, "RAE")
-            rmse['data'] = stats.compute_statistic(exp, pred, "RMSE")
-            rrmse['data'] = stats.compute_statistic(exp, pred, "RRMSE")
-            r2['data'] = stats.compute_statistic(exp, pred, "R2")
-            rho['data'] = stats.compute_statistic(exp, pred, "RHO")
-            ktau['data'] = stats.compute_statistic(exp, pred, "KTAU")
+    # Proceed with generating correlation graphs/table if there are more than two points to correlate
+    if n_DG_expt_pred_points>2:
+        html_stats_DG, html_RLModel_DG, html_fig_DG = flrpt.GenerateAffinityGraphTablesHTML(
+            lig_pred_expt_dic, '\u0394G', units='kcal/mol')
 
-            statistics = dict()
+    # Generate html table for predicted DGs, with corresponding expt DG where available
+    # We will make a floe report of this no matter what
+    html_predDDGTable = flrpt.GeneratePredDGTable(edge_pred_expt_dic, units='kcal/mol',
+                                                  glabel='\u0394\u0394G')
 
-            statistics['MAE'] = mae
-            statistics['RAE'] = rae
-            statistics['RMSE'] = rmse
-            statistics['RRMSE'] = rrmse
-            statistics['R2'] = r2
-            statistics['RHO'] = rho
-            statistics['KTAU'] = ktau
+    # DDG graph/table: only make this if there are more than two points with expt and predicted
+    # Determine how many points there are to correlate
+    n_DDG_expt_pred_points = 0
+    for name, data in edge_pred_expt_dic.items():
+        if data[2] is not None:
+            n_DDG_expt_pred_points += 1
 
-            return statistics
+    # Proceed with generating correlation graphs/table if there are more than two points to correlate
+    if n_DDG_expt_pred_points>2:
+        html_stats_DDG, html_RLModel_DDG, html_fig_DDG = flrpt.GenerateAffinityGraphTablesHTML(
+            edge_pred_expt_dic, '\u0394\u0394G', units='kcal/mol', symmetrize=DDG_symmetrize)
 
-        except Exception as e:
-            return None
 
-    def sub_plot(x, err_x, y, err_y, figure, hover_text, col, range):
+    # html for the title for the correlation floe report
+    dataset_name = ''
+    if dataset_name != '':
+        dataset_name += ': '
+    #
+    html_DG_corr_report_title = '''
+    <div class="affinity-report-wrapper">  <br>
+      <h1 style="text-align: center;">{}Binding Free Energy Predictions by {}</h1>
+      <hr style="max-width: 1000px;">
+    </div>
+    '''.format(dataset_name, 'NES')
 
-        x = x/conv_factor
-        y = y/conv_factor
-        err_x = err_x/conv_factor
-        err_y = err_y/conv_factor
+    htmlString = (flrpt._affnty_floe_report_header +
+                  flrpt._statsTableStyle +
+                  flrpt._RLModelTableStyle +
+                  flrpt._affnty_style_footer)
 
-        range[0] = range[0]/conv_factor
-        range[1] = range[1]/conv_factor
+    htmlString += html_DG_corr_report_title
 
-        slope, intercept, r_value, p_value, std_err = sc.stats.linregress(np.array(x),
-                                                                          np.array(y))
-
-        x_plt = np.linspace(range[0], range[1], 100, endpoint=True)
-        line = slope * np.array(x_plt) + intercept
-
-        x_plus_1kcal = x_plt + 4.184/conv_factor
-        x_minus_1kcal = x_plt - 4.184/conv_factor
-
-        alpha_color = 'rgba(127, 166, 238, 0.4)'
-
-        # Theoretical line minus 1kcal
-        figure.add_trace(go.Scatter(
-            x=x_plt,
-            y=x_minus_1kcal,
-            fill=None,
-            hovertext="",
-            hoverinfo="text",
-            mode="lines",
-            showlegend=False,
-            line=dict(color=alpha_color, width=1)),
-            row=1, col=col
-        )
-
-        # Theoretical line plus 1kcal
-        figure.add_trace(go.Scatter(
-            x=x_plt,
-            y=x_plus_1kcal,
-            fill='tonexty',
-            fillcolor=alpha_color,
-            hovertext="",
-            hoverinfo="text",
-            mode="lines",
-            showlegend=False,
-            line=dict(color=alpha_color, width=1)),
-            row=1, col=col
-        )
-
-        # Theoretical line
-        figure.add_trace(go.Scatter(
-            x=x_plt,
-            y=x_plt,
-            hovertext="1:1",
-            hoverinfo="text",
-            mode="lines",
-            showlegend=False,
-            line=dict(color='black', width=2, dash='dash')),
-            row=1, col=col
-        )
-
-        # Best fit line
-        figure.add_trace(go.Scatter(
-            x=x_plt,
-            y=line,
-            hovertext="y = {:.2f} * x + {:.2f}".format(slope, intercept),
-            hoverinfo="text",
-            mode="lines",
-            showlegend=False,
-            line=dict(color='red', width=2)),
-            row=1, col=col
-        )
-
-        if col == 1:
-            hov_label = "<b>%{text}</b><br><br>" + "\u0394\u0394G_Exp: %{x:.2f}<br>" + "\u0394\u0394G_Pred: %{y:.2f}<br>"
-            name_plot = '\u0394\u0394G'
-        else:
-            hov_label = "<b>%{text}</b><br><br>" + "\u0394G_Exp: %{x:.2f}<br>" + "\u0394G_Pred: %{y:.2f}<br>"
-            name_plot = '\u0394G'
-
-        figure.add_trace(go.Scatter(x=x, y=y,
-                                    text=hover_text,
-                                    hovertemplate=hov_label,
-                                    name=name_plot,
-                                    mode='markers',
-                                    xaxis='x1',
-                                    yaxis='y1',
-                                    showlegend=False,
-                                    error_x=dict(
-                                        type='data',
-                                        array=err_x,
-                                        color='blue',
-                                        visible=True),
-                                    error_y=dict(
-                                        type='data',
-                                        array=err_y,
-                                        color='blue',
-                                        visible=True),
-                                    marker=dict(color='blue', size=8)
-                                    ),
-                         row=1, col=col)
-
-        return
-
-    #######################
-
-    skip_plot_methods = ['RMSE', 'RRMSE', 'RHO']
-
-    display_units = units
-
-    if units == 'kcal/mol':
-        conv_factor = 4.184
+    if n_DG_expt_pred_points > 2:
+        htmlString += flrpt.GenerateGraphTablesHeaderHTML('\u0394G')
+        htmlString += html_fig_DG + '\n  </div>\n\n'
+        htmlString += flrpt._AffinityTableSectionHeader
+        htmlString += html_stats_DG
+        htmlString += html_RLModel_DG
+        htmlString += '\n  </div>\n</div>\n\n'
     else:
-        conv_factor = 1.0
+        print('Not writing DG Graph/Tables in floe report; not enough points')
 
-    raw_results = []
+    htmlString += html_predDGTable
 
-    if len(exp_data_dic) != len(predicted_data_dic):
-        raise ValueError("Experimental vs Predicted data mismatch number: {} vs {}".
-                         format(len(exp_data_dic), len(predicted_data_dic)))
-
-    for edge_name, exp_val in exp_data_dic.items():
-        ligA_name = edge_name.split()[0]
-        ligB_name = edge_name.split()[2]
-
-        res = wrangle.Result(ligA_name, ligB_name,
-                             predicted_data_dic[edge_name][0],
-                             predicted_data_dic[edge_name][1],
-                             0.0,
-                             exp_val[0], exp_val[1])
-
-        raw_results.append(res)
-
-    network = wrangle.FEMap_with_exp(raw_results)
-
-    network.check_weakly_connected()
-
-    # Relative Binding Affinity
-    exp_DDG = np.asanyarray([x.exp_DDG for x in network.results])
-    dexp_DDG = np.asanyarray([x.dexp_DDG for x in network.results])
-    ligA_names = [x.ligandA for x in network.results]
-
-    pred_DDG = np.asanyarray([y.calc_DDG for y in network.results])
-    dpred_DDG = np.asanyarray([y.mbar_dDDG for y in network.results])
-    ligB_names = [y.ligandB for y in network.results]
-
-    hov_edge = []
-    for lna, lnb in zip(ligA_names, ligB_names):
-        hov_edge.append("{} to {}".format(lna, lnb))
-
-    if DDG_symmetrize:
-        exp_DDG = np.asarray([x.exp_DDG for x in network.results] + [-x.exp_DDG for x in network.results])
-        dexp_DDG = np.asarray([x.dexp_DDG for x in network.results] + [x.dexp_DDG for x in network.results])
-
-        pred_DDG = np.asarray([y.calc_DDG for y in network.results] + [-y.calc_DDG for y in network.results])
-        dpred_DDG = np.asarray([y.mbar_dDDG for y in network.results] + [y.mbar_dDDG for y in network.results])
-        for lna, lnb in zip(ligB_names, ligA_names):
-            hov_edge.append("{} to {}".format(lna, lnb))
-
-    # Relative statistics
-    relative_statistics = calculate_statistics(exp_DDG/conv_factor, pred_DDG/conv_factor, plot_type="ddG")
-
-    if network.weakly_connected:
-        figure = make_subplots(rows=2, cols=2,
-                               subplot_titles=("Relative Binding Affinity",
-                                               "Centered Binding Affinity"),
-                               vertical_spacing=0.0,
-                               row_heights=[0.5, 0.5],
-                               )
+    if n_DDG_expt_pred_points > 2:
+        htmlString += flrpt._section_divider
+        htmlString += flrpt.GenerateGraphTablesHeaderHTML('\u0394\u0394G')
+        htmlString += html_fig_DDG + '\n  </div>\n\n'
+        htmlString += flrpt._AffinityTableSectionHeader
+        htmlString += html_stats_DDG
+        htmlString += html_RLModel_DDG
+        htmlString += '\n  </div>\n</div>\n\n'
     else:
-        figure = make_subplots(rows=2, cols=2, subplot_titles=("Relative Binding Affinity",
-                                                               "Centered Binding Affinity Not Available"))
+        print('Not writing DDG Graph/Tables in floe report; not enough points')
 
-    # Axis range:
-    conc_DDG = np.concatenate((exp_DDG, pred_DDG))
+    htmlString += html_predDDGTable
 
-    min_range_DDG = np.min(conc_DDG)
-    max_range_DDG = np.max(conc_DDG)
+    htmlString += flrpt._html_trailer
 
-    conc_dDDG = np.concatenate((dexp_DDG, dpred_DDG))
-
-    max_dDDG = np.max(conc_dDDG)
-
-    # Correct for the error bars
-    min_range_DDG -= max_dDDG
-    max_range_DDG += max_dDDG
-
-    padding = int(round((np.abs(min_range_DDG) + np.abs(max_range_DDG)) * 0.05))
-
-    min_range_DDG -= padding
-    max_range_DDG += padding
-
-    range_axis_DDG = [min_range_DDG, max_range_DDG]
-
-    sub_plot(exp_DDG, dexp_DDG, pred_DDG, dpred_DDG, figure, hov_edge, 1, range_axis_DDG)
-
-    xaxis1 = dict(
-        zeroline=True,
-        showgrid=True,
-        tickfont=dict(
-            size=18,
-        ),
-        range=range_axis_DDG,
-        constrain='domain',
-        title="Experimental \u0394\u0394G {}".format(display_units),
-        titlefont=dict(
-            size=20
-        )
-    )
-
-    yaxis1 = dict(
-        zeroline=True,
-        showgrid=True,
-        tickfont=dict(
-            size=18,
-        ),
-        scaleanchor="x1",
-        scaleratio=1,
-        range=range_axis_DDG,
-        title="Predicted \u0394\u0394G {}".format(display_units),
-        titlefont=dict(
-            size=20
-        )
-    )
-
-    figure.update_layout(
-        title='Method used to estimate \u0394\u0394G: {}'.format(method),
-        xaxis1=xaxis1,
-        yaxis1=yaxis1,
-        autosize=False,
-        width=1100,
-        height=1000,
-    )
-
-    if network.weakly_connected:
-
-        affinity_dic = dict()
-
-        # Absolute Binding Affinity from Hanna's code
-        graph = network.graph
-
-        exp_DG = np.asarray([node[1]['f_i_exp'] for node in graph.nodes(data=True)])
-        pred_DG = np.asarray([node[1]['f_i_calc'] for node in graph.nodes(data=True)])
-        dexp_DG = np.asarray([node[1]['df_i_exp'] for node in graph.nodes(data=True)])
-        dpred_DG = np.asarray([node[1]['df_i_calc'] for node in graph.nodes(data=True)])
-
-        # centralising
-        # this should be replaced by providing one experimental result
-        exp_DG = exp_DG - np.mean(exp_DG)
-        pred_DG = pred_DG - np.mean(pred_DG)
-
-        if relative_statistics is not None:
-            # Absolute statistics
-
-            absolute_statistics = calculate_statistics(exp_DG/conv_factor,
-                                                       pred_DG/conv_factor,
-                                                       plot_type="dG")
-
-        # Assuming that dic is in Order
-        hov_ligs = []
-        for name, id in network._name_to_id.items():
-            hov_ligs.append(name)
-
-        if not (len(hov_ligs) == len(exp_DG) == len(dexp_DG) == len(pred_DG) == len(dpred_DG)):
-            raise ValueError("List size mismatch")
-
-        for name, exp, exp_err, pred, pred_err in zip(hov_ligs, exp_DG, dexp_DG, pred_DG, dpred_DG):
-            affinity_dic[name] = [exp, exp_err, pred, pred_err]
-
-        # for name, l in affinity_dic.items():
-        #     print("name {} exp {} +- {} pred {} +- {}".format(name, l[0], l[1], l[2], l[3]))
-
-        # Axis range:
-        conc_DG = np.concatenate((exp_DG, pred_DG))
-
-        min_range_DG = np.min(conc_DG)
-        max_range_DG = np.max(conc_DG)
-
-        conc_dDG = np.concatenate((dexp_DG, dpred_DG))
-        max_dDG = np.max(conc_dDG)
-
-        # Correct for the error bars
-        min_range_DG -= max_dDG
-        max_range_DG += max_dDG
-
-        padding = int(round((np.abs(min_range_DG) + np.abs(max_range_DG)) * 0.05))
-
-        min_range_DG -= padding
-        max_range_DG += padding
-
-        range_axis_DG = [min_range_DG, max_range_DG]
-
-        sub_plot(exp_DG, dexp_DG, pred_DG, dpred_DG, figure, hov_ligs, 2, range_axis_DG)
-
-        xaxis2 = dict(
-            zeroline=True,
-            showgrid=True,
-            tickfont=dict(
-                size=18,
-            ),
-
-            range=range_axis_DG,
-            constrain='domain',
-            title="Experimental \u0394G {}".format(display_units),
-            titlefont=dict(
-                size=20
-            )
-        )
-
-        yaxis2 = dict(
-            zeroline=True,
-            showgrid=True,
-            tickfont=dict(
-                size=18,
-            ),
-            scaleanchor="x2",
-            scaleratio=1,
-            range=range_axis_DG,
-            title="Predicted \u0394G {}".format(display_units),
-            titlefont=dict(
-                size=20
-            )
-        )
-
-        figure.update_layout(
-            xaxis2=xaxis2,
-            yaxis2=yaxis2
-        )
-    else:
-        print('Graph is not connected enough to compute absolute values')
-
-    data = []
-    methods = []
-    values = []
-
-    if relative_statistics is not None:
-        for meth, val in relative_statistics.items():
-
-            # Skip these methods
-            if meth in skip_plot_methods:
-                continue
-            if meth == 'RAE':
-                meth = "Relative MAE"
-            if meth == 'RRMSE':
-                meth = "Relative RMSE"
-            if meth == 'R2':
-                meth = "Pearson's R\N{SUPERSCRIPT TWO}"
-            if meth == 'RHO':
-                meth = "Spearman's \u03C1"
-            if meth == "KTAU":
-                meth = "Kendall's \u03C4"
-
-            methods.append(meth)
-
-            vl_line = "{:.2f} [{:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
-            values.append(vl_line)
-
-        data.append(methods)
-        data.append(values)
-
-        data.append([])
-
-        values = []
-
-        if network.weakly_connected:
-            for meth, val in absolute_statistics.items():
-
-                if meth in skip_plot_methods:
-                    continue
-
-                vl_line = "{:.2f} [{:.2f} {:.2f}]".format(val['data'], val['low'], val['high'])
-                values.append(vl_line)
-
-        data.append(methods)
-        data.append(values)
-
-        # Add Table with statistics. Data in kJ/mol
-        alpha_color = 'rgba(127, 166, 238, 0.4)'
-        figure.add_trace(
-            go.Table(
-                header=dict(
-                    values=["Method", "\u0394\u0394G", "", "Method", "\u0394G"],
-                    font=dict(size=14),
-                    align="center",
-                    fill_color=alpha_color,
-                ),
-                cells=dict(
-                    values=data,
-                    align="center"),
-
-                domain=dict(x=[0, 1],
-                            y=[0, 0.35])
-            )
-        )
-
-    # figure.show()
-
-    with TemporaryDirectory() as outdir:
-
-        fn = os.path.join(outdir, "report.html")
-
-        plotly.offline.plot(figure, filename=fn)
-
-        with open(fn, 'r') as f:
-            report_string_list = f.readlines()
-
-        # Add the following lines for Orion CSS Plotly integration
-        report_str = ""
-
-        for idx in range(0, len(report_string_list)):
-            line = report_string_list[idx]
-            if "<head>" in line:
-                report_str += """<head><meta charset="utf-8" />   
-                   <style>
-                       .modebar { display:unset; }
-                       .js-plotly-plot { min-height: 900px; }
-                       .js-plotly-plot { min-width: 900px; }
-                   </style></head>\n"""
-
-            report_str += line
-
-    if network.weakly_connected:
-        return report_str, affinity_dic
-    else:
-        return report_str, None
+    return htmlString
 
 
 def predictDGsfromDDGs(predicted_data_dic):
