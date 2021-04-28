@@ -45,7 +45,7 @@ os.chdir(FILE_DIR)
 @package(PACKAGE_DIR)
 class TestMDOrionFloes(FloeTestCase):
 
-    @pytest.mark.local
+    @pytest.mark.orion
     def test_eq_and_nes_floe(self):
 
         workfloe = WorkFloeWrapper.get_workfloe(
