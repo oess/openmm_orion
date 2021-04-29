@@ -117,8 +117,7 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
 
             # Parametrize the whole flask
             flask_pmd_structure = md_components.parametrize_components(protein_ff=opt['protein_forcefield'],
-                                                                       ligand_ff=opt['ligand_forcefield'],
-                                                                       other_ff=opt['ligand_forcefield'])
+                                                                       ligand_ff=opt['ligand_forcefield'])
 
             # Set Parmed structure box_vectors
             is_periodic = True
