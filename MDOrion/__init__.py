@@ -17,7 +17,6 @@
 
 __version__ = '4.0.0b12'
 
-
 from .ComplexPrep.cubes import ComplexPrepCube
 
 from .ForceField.cubes import ForceFieldCube

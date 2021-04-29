@@ -27,6 +27,8 @@ from floe.api import (parameters,
 
 from floereport import FloeReport, LocalFloeReport
 
+import MDOrion.TrjAnalysis.Affinity_FloeReport_utils as flrpt
+
 from MDOrion.Standards.standards import Fields
 
 import traceback
@@ -1208,7 +1210,7 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
 class PlotRBFEResults(RecordPortsMixin, ComputeCube):
     title = "RBFE Plot"
     # version = "0.1.4"
-    classification = [["FEC Analysis"]]
+    classification = [["RBFE Analysis"]]
     tags = ['Complex', 'Protein', 'Ligand']
     description = """
     TO BE DECIDED
@@ -1246,7 +1248,6 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
         self.lig_name_dic = dict()
-        self.edge_exp_dic = dict()
         self.edge_pred_dic = dict()
 
         if in_orion():
@@ -1256,6 +1257,7 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
             self.floe_report = LocalFloeReport.start_report("floe_report")
 
         file = list(self.args.lig_exp_file)
+
         for file_obj in file:
             with TemporaryPath() as path:
                 file_obj.copy_to(path)
@@ -1309,17 +1311,6 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
 
             edge_name = record.get_value(Fields.FEC.RBFEC.edge_name)
 
-            lig_name_state_A = edge_name.split()[0]
-            lig_name_state_B = edge_name.split()[2]
-
-            if lig_name_state_A in self.lig_name_dic.keys() and lig_name_state_B in self.lig_name_dic.keys():
-                # Experimental relative binding affinity in kJ/mol
-                DDG_A_to_B_exp = self.lig_name_dic[lig_name_state_B][0] - self.lig_name_dic[lig_name_state_A][0]
-                # Experimental relative binding affinity error
-                ddG_A_to_B_exp = math.sqrt(self.lig_name_dic[lig_name_state_B][1]**2 + self.lig_name_dic[lig_name_state_A][1]**2)
-
-                self.edge_exp_dic[edge_name] = [DDG_A_to_B_exp, ddG_A_to_B_exp]
-
             # Predicted relative binding affinity in kJ/mol
             if not record.has_field(Fields.FEC.RBFEC.NESC.DDG_rec):
                 raise ValueError("The current record is missing the Binding Affinity Record")
@@ -1327,8 +1318,17 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
             DDG_rec = record.get_value(Fields.FEC.RBFEC.NESC.DDG_rec)
 
             # Free energy values
-            DDG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe)
-            ddG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe_err)
+            if  DDG_rec.has_field(Fields.FEC.binding_fe):
+                DDG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe)
+                ddG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe_err)
+            # NOTE WELL: this elif is only for temporary back compatibility in 1Q2021; remove later
+            elif DDG_rec.has_field(OEField('DDG_BAR', Types.Float)):
+                DDG_A_to_B_pred = DDG_rec.get_value(OEField('DDG_BAR', Types.Float,
+                                          meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)))
+                ddG_A_to_B_pred = DDG_rec.get_value(OEField('dDDG_BAR', Types.Float))
+                # End NOTE WELL
+            else:
+                raise ValueError("The DDG_rec record is missing the Binding Free Energy")
 
             self.edge_pred_dic[edge_name] = [DDG_A_to_B_pred, ddG_A_to_B_pred]
 
@@ -1346,21 +1346,27 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
         try:
             self.opt['Logger'].info("....Generating Floe Report")
 
-            removed_edge_list = list()
-            for edge_name, v in self.edge_pred_dic.items():
-                if edge_name not in self.edge_exp_dic:
-                    removed_edge_list.append(edge_name)
+            affinity_dic = utils.predictDGsfromDDGs(self.edge_pred_dic)
+            if affinity_dic is None:
+                raise ValueError("value_error: no DeltaGs were predicted; probably graph weakly connected")
 
-            if removed_edge_list:
-                self.opt['Logger'].warn('The following edges were skipped because '
-                                        'no experimental data has been provided: {}\n'.format(removed_edge_list))
+            # Add expt ligand DG data (where available) to predicted ligands
+            lig_pred_expt_dic = flrpt.CombineAndOffsetPredExptDGs(self.lig_name_dic, affinity_dic)
+            # print('lig_pred_expt_dic', lig_pred_expt_dic)
 
-                self.edge_pred_dic = {edge_name: v for edge_name, v in self.edge_pred_dic.items() if edge_name not in removed_edge_list}
+            # Add expt edge DDG data (where available) to predicted edges
+            edge_pred_expt_dic = flrpt.CombinePredExptDDGs(self.lig_name_dic, self.edge_pred_dic)
 
-            report_html_str, affinity_dic = utils.generate_plots_and_stats(self.edge_exp_dic,
-                                                                           self.edge_pred_dic,
-                                                                           DDG_symmetrize=self.opt['symmetrize'],
-                                                                           units=self.opt['units'])
+            #print('Debug: self.lig_name_dic', self.lig_name_dic)
+            #print('Debug: self.edge_pred_dic', self.edge_pred_dic)
+            #print('Debug: affinity_dic', affinity_dic)
+
+            report_html_str = utils.generate_plots_and_stats(
+                                                            lig_pred_expt_dic,
+                                                            edge_pred_expt_dic,
+                                                            DDG_symmetrize=self.opt['symmetrize'],
+                                                            units=self.opt['units']
+                                                            )
 
             index = self.floe_report.create_page("index", is_index=True)
 
@@ -1368,7 +1374,7 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
 
             self.floe_report.finish_report()
 
-            if affinity_dic:
+            if lig_pred_expt_dic:
                 meta_unit = OEFieldMeta().set_option(Meta.Units.Energy.kJ_per_mol)
                 binding_fe_exptl = OEField(Fields.FEC.binding_exptl_fe.get_name(), Fields.FEC.binding_exptl_fe.get_type(), meta=meta_unit)
                 binding_fe_exptl_err = OEField(Fields.FEC.binding_exptl_fe_err.get_name(), Fields.FEC.binding_exptl_fe_err.get_type(), meta=meta_unit)
@@ -1376,13 +1382,14 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
                 binding_fe_pred_err = OEField(Fields.FEC.binding_fe_err.get_name(), Fields.FEC.binding_fe_err.get_type(), meta=meta_unit)
                 lig_name = Fields.ligand_name
 
-                for name, aff_list in affinity_dic.items():
+                for name, aff_list in lig_pred_expt_dic.items():
                     rec = OERecord()
                     rec.set_value(lig_name, name)
-                    rec.set_value(binding_fe_exptl, aff_list[0])
-                    rec.set_value(binding_fe_exptl_err, aff_list[1])
-                    rec.set_value(binding_fe_pred, aff_list[2])
-                    rec.set_value(binding_fe_pred_err, aff_list[3])
+                    rec.set_value(binding_fe_pred, aff_list[0])
+                    rec.set_value(binding_fe_pred_err, aff_list[1])
+                    if aff_list[2] is not None:
+                        rec.set_value(binding_fe_exptl, aff_list[2])
+                        rec.set_value(binding_fe_exptl_err, aff_list[2])
                     self.success.emit(rec)
             else:
                 self.opt['Logger'].warn("It was not possible to generate the output affinity records "
@@ -1392,6 +1399,100 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
             self.opt['Logger'].warn("It was not possible to generate the floe report: {}".format(str(e)))
 
         return
+
+
+class PredictDG_FromDDG(RecordPortsMixin, ComputeCube):
+    title = "PredictDG_FromDDG Plot"
+    # version = "0.1.4"
+    classification = [["FEC Analysis"]]
+    tags = ['Protein', 'Ligand','FEC','RBFE','NES']
+    description = """
+    TO BE DECIDED
+    """
+
+    #uuid = "a62fd733-132b-4619-bb8b-68f373020a79"
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 2000},
+        "spot_policy": {"default": "Prohibited"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+        self.edge_exp_dic = dict()
+        self.edge_pred_dic = dict()
+
+    def process(self, record, port):
+        try:
+            if not record.has_field(Fields.FEC.RBFEC.edge_name):
+                raise ValueError("The current record is missing the edge name field")
+
+            edge_name = record.get_value(Fields.FEC.RBFEC.edge_name)
+
+            # RBFE results subrecord with Predicted relative binding affinity in kJ/mol
+            if not record.has_field(Fields.FEC.RBFEC.NESC.DDG_rec):
+                raise ValueError("The current record is missing the Binding Affinity Record")
+
+            DDG_rec = record.get_value(Fields.FEC.RBFEC.NESC.DDG_rec)
+
+            # Get calculated relative binding Free energy values
+            if  DDG_rec.has_field(Fields.FEC.binding_fe):
+                DDG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe)
+                ddG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe_err)
+            # NOTE WELL: this elif is only for temporary back compatibility in 1Q2021; remove later
+            elif DDG_rec.has_field(OEField('DDG_BAR', Types.Float)):
+                DDG_A_to_B_pred = DDG_rec.get_value(OEField('DDG_BAR', Types.Float,
+                                          meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)))
+                ddG_A_to_B_pred = DDG_rec.get_value(OEField('dDDG_BAR', Types.Float))
+                # End NOTE WELL
+            else:
+                raise ValueError("The DDG_rec record is missing the Binding Free Energy")
+
+            self.edge_pred_dic[edge_name] = [DDG_A_to_B_pred, ddG_A_to_B_pred]
+
+            # self.success.emit(record)
+
+        except Exception as e:
+
+            print("Failed to complete", str(e), flush=True)
+            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            self.log.error(traceback.format_exc())
+            self.failure.emit(record)
+
+    def end(self):
+
+        try:
+            self.opt['Logger'].info("....Predicting DeltaGs from DeltaDeltaGs")
+
+            affinity_dic = utils.predictDGsfromDDGs( self.edge_pred_dic)
+
+            if affinity_dic:
+                meta_unit = OEFieldMeta().set_option(Meta.Units.Energy.kJ_per_mol)
+                binding_fe_pred = OEField(Fields.FEC.binding_fe.get_name(),
+                                          Fields.FEC.binding_fe_err.get_type(), meta=meta_unit)
+                binding_fe_pred_err = OEField(Fields.FEC.binding_fe_err.get_name(),
+                                              Fields.FEC.binding_fe_err.get_type(), meta=meta_unit)
+                lig_name = Fields.ligand_name
+
+                for name, aff_list in affinity_dic.items():
+                    rec = OERecord()
+                    rec.set_value(lig_name, name)
+                    rec.set_value(binding_fe_pred, aff_list[0])
+                    rec.set_value(binding_fe_pred_err, aff_list[1])
+                    self.success.emit(rec)
+            else:
+                self.opt['Logger'].warn("It was not possible to generate the output affinity records "
+                                        "because the edge mapping graph is not enough connected")
+
+        except Exception as e:
+            self.opt['Logger'].warn("It was not possible to generate the floe report: {}".format(str(e)))
+
+        return
+
 
 
 class ParallelGMXChimera(ParallelMixin,  GMXChimera):
