@@ -14,7 +14,7 @@
 # PARTICULAR PURPOSE AND NONINFRINGEMENT. In no event shall OpenEye be
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
-#
+
 import os
 
 from artemis.wrappers import (WorkFloeWrapper,
@@ -28,18 +28,16 @@ from artemis.decorators import package
 
 import pytest
 
+from openeye.oechem import oeifstream
+
+from datarecord import read_records
+
 import MDOrion
-
-
-from artemis.wrappers import using_orion
-
-num_proc = 5
 
 PACKAGE_DIR = os.path.dirname(os.path.dirname(MDOrion.__file__))
 
 FILE_DIR = os.path.join(PACKAGE_DIR, "tests", "data")
 FLOES_DIR = os.path.join(PACKAGE_DIR, "floes")
-
 
 os.chdir(FILE_DIR)
 
@@ -48,80 +46,87 @@ os.chdir(FILE_DIR)
 class TestMDOrionFloes(FloeTestCase):
 
     @pytest.mark.orion
-    def test_EQ_and_NES_floe(self):
+    def test_eq_and_nes_floe(self):
+
         workfloe = WorkFloeWrapper.get_workfloe(
             os.path.join(FLOES_DIR, "Equilibrium_and_NES.py"),
             run_timeout=43200,
             queue_timeout=2000
         )
 
-        ligand_file = DatasetWrapper.from_file(
+        ligand_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
                 "Thrombin3Series_5ligs.oeb"
             )
         )
 
-        protein_file = DatasetWrapper.from_file(
+        protein_file = DatasetWrapper.get_dataset(
             os.path.join(
                 FILE_DIR,
-                "Thrombin.pdb"
+                "Thrombin.oeb"
             )
         )
 
-        map_file = FileWrapper.from_file(
+        map_file = FileWrapper.get_file(
             os.path.join(
                 FILE_DIR,
                 "thrombin_one_edge.txt"
             )
         )
 
-        output_bound_eq = OutputDatasetWrapper(extension=".oedb")
-        output_unbound_eq = OutputDatasetWrapper(extension=".oedb")
-        output_nes = OutputDatasetWrapper(extension=".oedb")
-        output_fail = OutputDatasetWrapper(extension=".oedb")
+        unbound_file = OutputDatasetWrapper(extension=".oedb")
+        bound_file = OutputDatasetWrapper(extension=".oedb")
 
-        if using_orion():
-            workfloe.start(
-                {
-                    "promoted": {
-                        "ligands": ligand_file.identifier,
-                        "protein": protein_file.identifier,
-                        "map": map_file.identifier,
-                        "out_bound": output_bound_eq.identifier,
-                        "out_unbound": output_unbound_eq.identifier,
-                        "out": output_nes.identifier,
-                        "fail": output_fail.identifier
-                    }
-                }
-            )
-        else:
-            workfloe.start(
-                {
-                    "promoted": {
-                        "ligands": ligand_file.identifier,
-                        "protein": protein_file.identifier,
-                        "map": map_file.identifier,
-                        "out_bound": output_bound_eq.identifier,
-                        "out_unbound": output_unbound_eq.identifier,
-                        "out": output_nes.identifier,
-                        "fail": output_fail.identifier
-                    },
+        output_nes_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
 
-                    "mp": num_proc
-                }
-            )
+        workfloe.start(
+            {
+                "promoted": {
+                    "ligands": ligand_file.identifier,
+                    "protein": protein_file.identifier,
+                    "map": map_file.identifier,
+                    "out_unbound": unbound_file.identifier,
+                    "out_bound": bound_file.identifier,
+                    "out": output_nes_file.identifier,
+                    "fail": fail_output_file.identifier
+                },
+
+            }
+        )
 
         self.assertWorkFloeComplete(workfloe)
 
-        # Check the out record list
-        self.assertEqual(output_bound_eq.count, 5)
+        ifs_unbound = oeifstream(unbound_file.path)
+        records = []
 
-        # Check the out record list
-        self.assertEqual(output_unbound_eq.count, 5)
+        for rec in read_records(ifs_unbound):
+            records.append(rec)
+        ifs_unbound.close()
 
-        # The fail record must be empty
-        self.assertEqual(output_fail.count, 0)
-
+        count = len(records)
         # Check the out record list
-        self.assertEqual(output_nes.count, 1)
+        self.assertEqual(count, 5)
+
+        ifs_bound = oeifstream(bound_file.path)
+        records = []
+
+        for rec in read_records(ifs_bound):
+            records.append(rec)
+        ifs_bound.close()
+
+        count = len(records)
+        # Check the out record list
+        self.assertEqual(count, 5)
+
+        ifs_nes = oeifstream(output_nes_file.path)
+        records = []
+
+        for rec in read_records(ifs_nes):
+            records.append(rec)
+        ifs_nes.close()
+
+        count = len(records)
+        # Check the out record list
+        self.assertEqual(count, 1)

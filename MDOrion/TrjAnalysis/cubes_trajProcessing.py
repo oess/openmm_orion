@@ -103,36 +103,51 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             # Logger string
             opt['Logger'].info(' ')
             system_title = mdrecord.get_title
-            #sys_id = mdrecord.get_flask_id
             opt['Logger'].info('{}: Attempting MD Traj conversion into OEMols'.format(system_title))
 
             traj_fn = mdrecord.get_stage_trajectory()
 
-            opt['Logger'].info('{} Temp Directory: {}'.format(system_title, os.path.dirname(traj_fn)))
-            opt['Logger'].info('{} Trajectory filename: {}'.format(system_title, traj_fn))
+            # opt['Logger'].info('{} Temp Directory: {}'.format(system_title, os.path.dirname(traj_fn)))
+            # opt['Logger'].info('{} Trajectory filename: {}'.format(system_title, traj_fn))
 
             # Generate multi-conformer protein and ligand OEMols from the trajectory
-            opt['Logger'].info('{} Generating protein and ligand trajectory OEMols'.format(system_title))
+            opt['Logger'].info('{} Generating trajectory OEMols'.format(system_title))
 
             flask = mdrecord.get_flask
 
-            md_components = record.get_value(Fields.md_components)
+            md_components = mdrecord.get_md_components
 
-            # opt['Logger'].info(md_components.get_info)
+            # Checking
+            if not md_components.has_ligand:
+                raise ValueError("The Ligand MD component is missing and the Analysis cannot be performed")
+            if not md_components.has_protein:
+                raise ValueError("The Protein MD component is missing and the Analysis cannot be performed")
+            if not md_components.has_water:
+                raise ValueError("The Water MD component is missing and the Analysis cannot be performed")
+
+            if not record.has_value(Fields.ligand):
+                raise ValueError("The Reference Ligand cannot be found. This Cube should be used "
+                                 "after the Solvate and Run Protein and Ligand MD floe has been completed")
 
             # Check Ligand Isomeric Smiles
-            lig_comp = md_components.get_ligand
             lig_ref = record.get_value(Fields.ligand)
+            lig_comp = md_components.get_ligand
 
             smi_lig_comp = oechem.OECreateSmiString(lig_comp)
             smi_lig_ref = oechem.OECreateSmiString(lig_ref)
 
             if smi_lig_ref != smi_lig_comp:
-                raise ValueError("Ligand Isomeric Smiles String check failure: {} vs {}".format(smi_lig_comp,
-                                                                                                smi_lig_ref))
+                raise ValueError("The Reference Ligand and the Ligand MD component mismatch."
+                                 " Isomeric Smiles String check failure: {} vs {}".format(smi_lig_comp, smi_lig_ref))
 
             ptraj, ltraj, wtraj = utl.extract_aligned_prot_lig_wat_traj(md_components, flask, traj_fn, opt,
                                                                         water_cutoff=opt['water_cutoff'])
+
+            if not record.has_value(Fields.ligand_name):
+                raise ValueError("The ligand name is missing from the record")
+
+            if not record.has_value(Fields.protein_name):
+                raise ValueError("The protein name is missing from the record")
 
             ltraj.SetTitle(record.get_value(Fields.ligand_name))
             ptraj.SetTitle(record.get_value(Fields.protein_name))

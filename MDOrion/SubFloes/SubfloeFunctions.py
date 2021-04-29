@@ -228,7 +228,7 @@ def setup_MD_startup(input_floe, input_cube, fail_cube, options):
     # Force Field Application
     ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
     ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
-    ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.0')
+    ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='Gaff')
 
     # Production run
     prod = ParallelMDNptCube("Production", title="Production")

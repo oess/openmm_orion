@@ -16,3 +16,4 @@ by a warm up (NVT ensemble) and three equilibration stages (NPT ensemble). In th
 minimization, warm up and equilibration stages positional harmonic restraints are
 applied. At the end of the equilibration stages a
 production run (default 2ns) is performed on the unrestrained system.
+**The output produced by the floe is not compatible with the Analyze Protein-Ligand MD floe**

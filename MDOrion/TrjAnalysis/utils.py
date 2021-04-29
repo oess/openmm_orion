@@ -144,7 +144,7 @@ def extract_aligned_prot_lig_wat_traj(md_components, flask, trj_fn, opt, nmax=30
     # trjImaged = trjImaged[:10]
 
     for frame in trjImaged:
-        # print(count, flush=True)
+        # print("{}/{}".format(count, len(trjImaged)-1, flush=True))
 
         # Water oxygen binding site indexes
         water_O_bs_idx = md.compute_neighbors(frame,

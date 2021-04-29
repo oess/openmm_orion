@@ -18,7 +18,7 @@
 
 import subprocess
 
-from subprocess import STDOUT, PIPE, Popen, DEVNULL
+from subprocess import STDOUT, PIPE, DEVNULL
 
 from simtk import unit
 
@@ -216,7 +216,7 @@ def check_gmx_grompp(gro, top, sim_type=None, verbose=False):
     except subprocess.TimeoutExpired:
         raise ValueError("Subprocess Timeout Error")
     except OSError:
-        ValueError("OS Error. Cannot assemble the Gromacs .tpr file for the sim type: {}".format(sim_type))
+        raise ValueError("OS Error. Cannot assemble the Gromacs .tpr file for the sim type: {}".format(sim_type))
 
 
 def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_fn=None):
@@ -348,7 +348,7 @@ def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_
     except subprocess.TimeoutExpired as e:
         raise ValueError("Subprocess Timeout Error: {}".format(e))
     except OSError:
-        ValueError("Subprocess call OS Error")
+        raise ValueError("Subprocess call OS Error")
 
 
 def gmx_run(gmx_gro, gmx_top, opt):
@@ -356,7 +356,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     min_box = opt['min_box']
 
     # Cutoff in A
-    cutoff = 10
+    cutoff = 11
 
     # in A
     theshold = (min_box / 2.0) * 0.85
