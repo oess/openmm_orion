@@ -445,14 +445,43 @@ def CombineAndOffsetPredExptDGs(lig_expt,affinity_pred):
     return combined
 
 
+def GeneratePredExptBothDatavecs(pred_expt_dic, units='kcal/mol', symmetrize=False):
+    # Extract separate datavecs for items having both predicted and experimental data
+
+    if units == 'kcal/mol':
+        conv_factor = 1 / 4.184
+    else:
+        conv_factor = 1.0
+
+    # Extract data only for items which have both predicted and expt data
+    pred = []
+    dpred = []
+    expt = []
+    dexpt = []
+    #
+    for name, item in pred_expt_dic.items():
+        if item[2] is not None:
+            pred.append(conv_factor * item[0])
+            dpred.append(conv_factor * item[1])
+            expt.append(conv_factor * item[2])
+            dexpt.append(conv_factor * item[3])
+            if symmetrize:
+                pred.append(conv_factor * -item[0])
+                dpred.append(conv_factor * item[1])
+                expt.append(conv_factor * -item[2])
+                dexpt.append(conv_factor * item[3])
+    #
+    return pred, dpred, expt, dexpt
+
+
 def Generate_DDG_Plot(edge_pred_expt_dic,units='kcal/mol',symmetrize=True):
-    # Set constants
-    display_units = units
+    #
     if units == 'kcal/mol':
         conv_factor = 1/4.184
     else:
         conv_factor = 1.0
-    # Aggregate plot data only for edges which have both predicted and expt data
+    #
+    #Aggregate plot data only for edges which have both predicted and expt data
     pred_DDG = []
     dpred_DDG = []
     exp_DDG = []
@@ -485,8 +514,8 @@ def Generate_DDG_Plot(edge_pred_expt_dic,units='kcal/mol',symmetrize=True):
     fig_DDG_plt = MakeAffinityModelFigure(fig_DDG_base, exp_DDG, dexp_DDG, pred_DDG, dpred_DDG,
                                           hov_edge, hov_label)
     #
-    xlabel = 'Experimental \u0394\u0394G {}'.format(display_units)
-    ylabel = 'Predicted \u0394\u0394G {}'.format(display_units)
+    xlabel = 'Experimental \u0394\u0394G ({})'.format(units)
+    ylabel = 'Predicted \u0394\u0394G ({})'.format(units)
     fig_DDG = AffinityModelFigureAddLayout(fig_DDG_plt,xlabel,ylabel,range_axis_DDG)
     #
     return fig_DDG
@@ -666,25 +695,12 @@ def GenerateRLModelTable(RLModelInfo, xlabel, ylabel, units='kcal/mol'):
 
 def GenerateAffinityGraphTablesHTML(pred_expt_dic, glabel,
                                     units='kcal/mol',
-                                    symmetrize=True,
+                                    symmetrize=False,
                                     nreps=1000,
                                     showMAE=True):
 
-    if units == 'kcal/mol':
-        conv_factor = 1/4.184
-    else:
-        conv_factor = 1.0
-
     # Extract data only for ligands which have both predicted and expt data
-    pred = []
-    expt = []
-    #
-    for lig_name in pred_expt_dic.keys():
-        lig = pred_expt_dic[lig_name]
-        # print('lig', lig)
-        if lig[2] is not None:
-            pred.append(conv_factor * lig[0])
-            expt.append(conv_factor * lig[2])
+    pred, dpred, expt, dexpt = GeneratePredExptBothDatavecs(pred_expt_dic, units=units, symmetrize=symmetrize)
 
     # Calculate Correlation Stats, raw MAE, and raw Relative MAE
     statsResult = trjstats.PearsonKendallMAEStats(expt, pred)
@@ -701,17 +717,7 @@ def GenerateAffinityGraphTablesHTML(pred_expt_dic, glabel,
     html_statsTable = GenerateCorrTable(statsResult, xlabel, ylabel, nreps, units=units, showMAE=showMAE)
 
     # Robust linear estimators of deltaG
-    lModResult = {}
-
-    # Huber regressor
-    hregr_label = 'Huber'
-    hregr = linear_model.HuberRegressor()
-    trjstats.RobustLinearModelWithStats(pred, expt, lModResult, hregr, hregr_label)
-
-    # Theil-Sen regressor
-    tregr_label = 'Theil-Sen'
-    tregr = linear_model.TheilSenRegressor()
-    trjstats.RobustLinearModelWithStats(pred, expt, lModResult, tregr, tregr_label)
+    lModResult = trjstats.GenerateHuberTheilSenRLModels(pred, expt)
 
     # Generate html table for Robust Linear (RL) models
     html_RLModelTable = GenerateRLModelTable(lModResult, xlabel, ylabel, units=units)
@@ -722,12 +728,14 @@ def GenerateAffinityGraphTablesHTML(pred_expt_dic, glabel,
     else:
         fig = Generate_DG_Plot(pred_expt_dic, units=units)
 
-    trace_TheilSen = PlotlyLinearModelOfX(expt, pred,
+    range_axis_DG = FindAxisRangeForSquarePlot(pred, dpred, expt, dexpt)
+
+    trace_TheilSen = PlotlyLinearModelOfX(range_axis_DG, range_axis_DG,
                                                 lModResult['Theil-Sen slope'],
                                                 lModResult['Theil-Sen intcp'],
                                                 label='Theil-Sen Estimator', lineColor='red')
 
-    trace_Huber = PlotlyLinearModelOfX(expt, pred,
+    trace_Huber = PlotlyLinearModelOfX(range_axis_DG, range_axis_DG,
                                              lModResult['Huber slope'],
                                              lModResult['Huber intcp'],
                                              label='Huber Estimator', lineColor='orange')

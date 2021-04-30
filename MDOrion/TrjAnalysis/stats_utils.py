@@ -143,3 +143,20 @@ def RobustLinearModelWithStats(var_indep, var_dep, results, regressor, regressor
     results[regressor_label+'RMAE'] = RMAE
     #
     return True
+
+
+def GenerateHuberTheilSenRLModels(indep_var, dep_var):
+    RLModResult = {}
+    # Huber regressor
+    hregr_label = 'Huber'
+    hregr = linear_model.HuberRegressor()
+    RobustLinearModelWithStats(indep_var, dep_var, RLModResult, hregr, hregr_label)
+    #
+    # Theil-Sen regressor
+    tregr_label = 'Theil-Sen'
+    tregr = linear_model.TheilSenRegressor()
+    RobustLinearModelWithStats(indep_var, dep_var, RLModResult, tregr, tregr_label)
+    #
+    return RLModResult
+
+
