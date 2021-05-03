@@ -38,25 +38,13 @@ def flake8(ctx):
 
 
 @task
-def test_cubes(ctx):
+def test_local(ctx):
     """
-    run cube tests
+    run cube and floe local tests
     """
 
     clean(ctx)
     run("py.test -s -v -m 'local'")
-
-
-@task
-def test_floes(ctx, test="all"):
-    """
-    run tests
-    """
-    clean(ctx)
-    if test == "all":
-        run("py.test -s -v ./tests ")
-    else:
-        run("""py.test -s -v -m "{}" ./tests """.format(test))
 
 
 @task

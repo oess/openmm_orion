@@ -141,27 +141,27 @@ def TrimPlotlyHTML( plotly_figure):
     return plotly_figure[start_trim:end_trim]
 
 
-def PlotlyLinearModelOfX(xdata, ydata, slope, intercept,lineColor='red',label=None):
+def PlotlyLinearModelOfX(xdata, ydata, slope, intercept, lineColor='red', label=None):
     # Interpolate range of x
     pltx = np.linspace(math.floor(np.min(xdata)), math.ceil(np.max(xdata)), 100, endpoint=True)
-    plty = trjstats.xFromYLinearModel(pltx,slope,intercept)
+    plty = trjstats.xFromYLinearModel(pltx, slope, intercept)
 
     #
     # exclude interpolated points that fall outside ydata range
     TSLine_x = []
     TSLine_y = []
-    for x,y in zip(pltx,plty):
-        if y>=math.floor(np.min(ydata)) and y<=math.ceil(np.max(ydata)):
+    for x, y in zip(pltx, plty):
+        if y >= math.floor(np.min(ydata)) and y<= math.ceil(np.max(ydata)):
             TSLine_x.append(x)
             TSLine_y.append(y)
     #print(len(TSLine_x),len(TSLine_y))
     #
     if label is not None:
-        hovtext = '{}<br>x = {:.3f} * y + {:.3f}'.format(label,slope,intercept)
+        hovtext = '{}<br>x = {:.3f} * y + {:.3f}'.format(label, slope, intercept)
         gname = label
         showlegd=True
     else:
-        hovtext = 'x = {:.3f} * y + {:.3f}'.format(slope,intercept)
+        hovtext = 'x = {:.3f} * y + {:.3f}'.format(slope, intercept)
         gname = ''
         showlegd=False
     # generate the dynamically labeled interpolation line
@@ -474,90 +474,63 @@ def GeneratePredExptBothDatavecs(pred_expt_dic, units='kcal/mol', symmetrize=Fal
     return pred, dpred, expt, dexpt
 
 
-def Generate_DDG_Plot(edge_pred_expt_dic,units='kcal/mol',symmetrize=True):
-    #
-    if units == 'kcal/mol':
-        conv_factor = 1/4.184
-    else:
-        conv_factor = 1.0
-    #
-    #Aggregate plot data only for edges which have both predicted and expt data
-    pred_DDG = []
-    dpred_DDG = []
-    exp_DDG = []
-    dexp_DDG = []
+def Generate_DDG_Plot(edge_pred_expt_dic, units='kcal/mol', symmetrize=True):
+
+    # Extract data only for ligands which have both predicted and expt data
+    pred_DDG, dpred_DDG, exp_DDG, dexp_DDG = GeneratePredExptBothDatavecs(edge_pred_expt_dic,
+                                                                          units=units,
+                                                                          symmetrize=symmetrize)
+
+    # Generate text for hover labels on graph. Note: vec must be in step with datavecs above
     hov_edge = []
-    #
     for edge_name in edge_pred_expt_dic.keys():
         lig_name_state_A = edge_name.split()[0]
         lig_name_state_B = edge_name.split()[2]
         edge = edge_pred_expt_dic[edge_name]
         if edge[2] is not None:
-            pred_DDG.append(conv_factor * edge[0])
-            dpred_DDG.append(conv_factor * edge[1])
-            exp_DDG.append(conv_factor * edge[2])
-            dexp_DDG.append(conv_factor * edge[3])
             hov_edge.append('{} to {}'.format(lig_name_state_A, lig_name_state_B))
             if symmetrize:
-                pred_DDG.append(conv_factor * -edge[0])
-                dpred_DDG.append(conv_factor * edge[1])
-                exp_DDG.append(conv_factor * -edge[2])
-                dexp_DDG.append(conv_factor * edge[3])
                 hov_edge.append('{} to {}'.format(lig_name_state_B, lig_name_state_A))
-    #
+
     range_axis_DDG = FindAxisRangeForSquarePlot(exp_DDG, dexp_DDG, pred_DDG, dpred_DDG)
-    #print(range_axis_DDG)
-    #
+
     fig_DDG_base = FreeEnergyBasePlot(range_axis_DDG)
-    #
+
     hov_label = "<b>%{text}</b><br>" + "Expt \u0394\u0394G: %{x:.2f}<br>" + "Pred \u0394\u0394G: %{y:.2f}<br>"
     fig_DDG_plt = MakeAffinityModelFigure(fig_DDG_base, exp_DDG, dexp_DDG, pred_DDG, dpred_DDG,
                                           hov_edge, hov_label)
-    #
+
     xlabel = 'Experimental \u0394\u0394G ({})'.format(units)
     ylabel = 'Predicted \u0394\u0394G ({})'.format(units)
     fig_DDG = AffinityModelFigureAddLayout(fig_DDG_plt,xlabel,ylabel,range_axis_DDG)
-    #
+
     return fig_DDG
 
 
-def Generate_DG_Plot(lig_pred_expt_dic,units='kcal/mol'):
-    # Set constants
-    display_units = units
-    if units == 'kcal/mol':
-        conv_factor = 1/4.184
-    else:
-        conv_factor = 1.0
-    # Aggregate plot data only for edges which have both predicted and expt data
-    pred_DG = []
-    dpred_DG = []
-    exp_DG = []
-    dexp_DG = []
+def Generate_DG_Plot(lig_pred_expt_dic, units='kcal/mol'):
+
+    #Extract data only for ligands which have both predicted and expt data
+    pred_DG, dpred_DG, exp_DG, dexp_DG = GeneratePredExptBothDatavecs(lig_pred_expt_dic, units=units)
+
+    # Generate text for hover labels on graph. Note: vec must be in step with datavecs above
     hov_ligs = []
-    #
     for lig_name in lig_pred_expt_dic.keys():
         lig = lig_pred_expt_dic[lig_name]
-        #print('lig', lig)
         if lig[2] is not None:
-            pred_DG.append(conv_factor * lig[0])
-            dpred_DG.append(conv_factor * lig[1])
-            exp_DG.append(conv_factor * lig[2])
-            dexp_DG.append(conv_factor * lig[3])
             hov_ligs.append(lig_name)
-    #
+
     range_axis_DG = FindAxisRangeForSquarePlot(exp_DG, dexp_DG, pred_DG, dpred_DG)
-    #print(range_axis_DG)
-    #
+
     fig_DG_base = FreeEnergyBasePlot(range_axis_DG)
-    #
+
     hov_label = "<b>%{text}</b><br>" + "Expt \u0394G: %{x:.2f}<br>" + "Pred \u0394G: %{y:.2f}<br>"
     fig_DG_pred = MakeAffinityModelFigure(fig_DG_base, exp_DG, dexp_DG, pred_DG, dpred_DG,
                                           hov_ligs, hov_label)
-    #
-    xlabel = 'Experimental \u0394G {}'.format(display_units)
-    ylabel = 'Predicted \u0394G {}'.format(display_units)
+
+    xlabel = 'Experimental \u0394G {}'.format(units)
+    ylabel = 'Predicted \u0394G {}'.format(units)
     fig_DG = AffinityModelFigureAddLayout(fig_DG_pred, xlabel, ylabel, range_axis_DG)
-    #
+
     return fig_DG
 
 
@@ -568,7 +541,7 @@ def GeneratePredDGTable(lig_pred_expt, units='kcal/mol', glabel='\u0394G'):
         conv_factor = 1.0
         #
     tabName = 'AffinityModelTable'
-    if glabel=='\u0394\u0394G':
+    if glabel == '\u0394\u0394G':
         headers = ['RBFE Edge', 'Predicted<sup>a</sup>', 'Experiment<sup>a</sup>']
     else:
         headers = ['Ligand Name', 'Predicted<sup>a,b</sup>', 'Experiment<sup>b</sup>']
@@ -595,11 +568,11 @@ def GeneratePredDGTable(lig_pred_expt, units='kcal/mol', glabel='\u0394G'):
             ddg = conv_factor*lig[1][3]
             table += strt+'{:.1f} &plusmn; {:.1f}'.format(dg, ddg)+end
     #
-    table+= '</LinearModelStatsTable-container>\n'
+    table += '</LinearModelStatsTable-container>\n'
     #
     # table footer
-    if glabel=='\u0394\u0394G':
-        table+= '''  <p class=\"AffinityModel_headermods\"> 
+    if glabel == '\u0394\u0394G':
+        table += '''  <p class=\"AffinityModel_headermods\"> 
         <sup>a</sup>Values in {}.
         <sup>c</sup>No experimental data provided.<br>\n\n'''.format(units)
     else:
@@ -615,9 +588,9 @@ def GeneratePredDGTable(lig_pred_expt, units='kcal/mol', glabel='\u0394G'):
 def GenerateCorrTable(statsResult, xlabel, ylabel, boot_nreps, units='kcal/mol', showMAE=False):
     tabName = 'AffinityModelTable'
     colNames = ['Metric', 'Value [5%,95%]<sup>a</sup>', 'StdErr<sup>a</sup>', '<i>p</i>-value']
-    metrics = [ 'Pearsons r-sq', 'Kendalls tau', 'MAE', 'RMAE']
-    metricHTML = {'Pearsons r-sq':"Pearson's <i>r</i>&sup2;",
-                  'Kendalls tau':"Kendall's &tau;",
+    metrics = ['Pearsons r-sq', 'Kendalls tau', 'MAE', 'RMAE']
+    metricHTML = {'Pearsons r-sq': "Pearson's <i>r</i>&sup2;",
+                  'Kendalls tau': "Kendall's &tau;",
                   'MAE': 'MAE<sup>b</sup>',
                   'RMAE': 'RMAE<sup>c</sup>'
                  }
@@ -631,17 +604,18 @@ def GenerateCorrTable(statsResult, xlabel, ylabel, boot_nreps, units='kcal/mol',
     table += '\n<AffinityModelStatsTable-container>\n'
     for field in colNames:
         table += strtBold+field+end
-    #
-    #for name, rowVals in zip(metrics, tabVals):
+
+    # for name, rowVals in zip(metrics, tabVals):
+
     for metric in metrics:
         if metric not in metricHTML.keys():
             continue
         if not showMAE and (metric=='MAE' or metric=='RMAE'):
             continue
         table += strtBold+metricHTML[metric]+end
-        table += (strt+'{:.3f}'.format(statsResult[metric]['value'])+' ['
-                    +'{:.3f}'.format(statsResult[metric]['bootconf05'])+', '
-                    +'{:.3f}'.format(statsResult[metric]['bootconf95'])+']'+end)
+        table += (strt+'{:.3f}'.format(statsResult[metric]['value'])+
+                  ' ['+'{:.3f}'.format(statsResult[metric]['bootconf05'])+', '
+                  + '{:.3f}'.format(statsResult[metric]['bootconf95'])+']'+end)
         table += strt+'{:.3f}'.format(statsResult[metric]['bootstd'])+end
         pval = statsResult[metric]['p-value']
         if pval:
@@ -659,13 +633,14 @@ def GenerateCorrTable(statsResult, xlabel, ylabel, boot_nreps, units='kcal/mol',
     #
     return table
 
+
 def GenerateRLModelTable(RLModelInfo, xlabel, ylabel, units='kcal/mol'):
     tabName = 'AffinityModelTable'
     models = ['Theil-Sen', 'Huber']
-    metricHTML = {'slope':'Slope',
-                  'intcp':'Intercept',
-                  'MAE':"MAE<sup>a</sup>",
-                  'RMAE':"Relative MAE<sup>b</sup>"}
+    metricHTML = {'slope': 'Slope',
+                  'intcp': 'Intercept',
+                  'MAE': "MAE<sup>a</sup>",
+                  'RMAE': "Relative MAE<sup>b</sup>"}
     #
     # table header
     table = '  <br><h3 class="AffinityModel_headermods">Robust Linear Models of {}</h3>'.format(xlabel)
@@ -677,8 +652,8 @@ def GenerateRLModelTable(RLModelInfo, xlabel, ylabel, units='kcal/mol'):
     table += strtBold+'Metric'+end
     for model in models:
         table += strtBold+model+end
-    #for name, rowVals in zip(metrics, tabVals):
-    #for metric in metrics:
+    # for name, rowVals in zip(metrics, tabVals):
+    # for metric in metrics:
     for metric in metricHTML:
         table += strtBold+metricHTML[metric]+end
         table += strt+'{:.3f}'.format(RLModelInfo['Theil-Sen '+metric])+end
@@ -723,8 +698,8 @@ def GenerateAffinityGraphTablesHTML(pred_expt_dic, glabel,
     html_RLModelTable = GenerateRLModelTable(lModResult, xlabel, ylabel, units=units)
 
     # Generate the DG plot and add lines for RL models
-    if glabel=='\u0394\u0394G':
-        fig = Generate_DDG_Plot(pred_expt_dic,units=units,symmetrize=symmetrize)
+    if glabel == '\u0394\u0394G':
+        fig = Generate_DDG_Plot(pred_expt_dic, units=units, symmetrize=symmetrize)
     else:
         fig = Generate_DG_Plot(pred_expt_dic, units=units)
 

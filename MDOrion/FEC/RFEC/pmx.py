@@ -333,16 +333,17 @@ class BAR(object):
         nr = len(wr)
         dg_boots = []
         for k in range(nboots):
-            sys.stdout.write('\r  Bootstrap (Std Err): iteration %s/%s'
-                             % (k+1, nboots))
-            sys.stdout.flush()
+            # sys.stdout.write('\r  Bootstrap (Std Err): iteration %s/%s'
+            #                  % (k+1, nboots))
+            # sys.stdout.flush()
 
             bootA = np.random.choice(wf, size=nf, replace=True)
             bootB = np.random.choice(wr, size=nr, replace=True)
             dg_boot = BAR.calc_dg(bootA, bootB, T)
             dg_boots.append(dg_boot)
 
-        sys.stdout.write('\n')
+        print("Bootstrap iterations Stderr {} completed\n".format(nboots))
+
         err_boot = np.std(dg_boots)
 
         return err_boot
@@ -423,15 +424,16 @@ class BAR(object):
         nr = len(wr)
         conv_boots = []
         for k in range(nboots):
-            sys.stdout.write('\r  Bootstrap (Conv): '
-                             'iteration %s/%s' % (k+1, nboots))
-            sys.stdout.flush()
+            # sys.stdout.write('\r  Bootstrap (Conv): '
+            #                  'iteration %s/%s' % (k+1, nboots))
+            # sys.stdout.flush()
 
             bootA = np.random.choice(wf, size=nf, replace=True)
             bootB = np.random.choice(wr, size=nr, replace=True)
             conv_boot = BAR.calc_conv(dg, bootA, bootB, T)
             conv_boots.append(conv_boot)
 
-        sys.stdout.write('\n')
+        print("Bootstrap iterations Conv {} completed\n".format(nboots))
+
         err = np.std(conv_boots)
         return err

@@ -123,7 +123,7 @@ def yFromXLinearModel(x, slope, intercept):
 
 def RobustLinearModelWithStats(var_indep, var_dep, results, regressor, regressor_label=''):
     # add a space to the regressor_label
-    if regressor_label!='':
+    if regressor_label != '':
         regressor_label += ' '
     # reformat independent variable as 1 dimensional feature vectors
     features = [[i] for i in var_indep]

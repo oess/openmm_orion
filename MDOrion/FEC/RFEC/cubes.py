@@ -466,7 +466,7 @@ class GMXChimera(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
     parameter_overrides = {
-        "memory_mb": {"default": 14000},
+        "memory_mb": {"default": 32000},
         "spot_policy": {"default": "Prohibited"},
         "prefetch_count": {"default": 1},  # 1 molecule at a time
         "item_count": {"default": 1}  # 1 molecule at a time
@@ -766,26 +766,26 @@ class NESGMX(RecordPortsMixin, ComputeCube):
 
     # Override defaults for some parameters
 
-    parameter_overrides = {
-        "gpu_count": {"default": 1},
-        "instance_type": {"default": "g3.4xlarge"},  # Gpu Family selection
-        "memory_mb": {"default": 14000},
-        "spot_policy": {"default": "Required"},
-        "prefetch_count": {"default": 1},  # 1 molecule at a time
-        "item_count": {"default": 1},  # 1 molecule at a time
-        "max_failures": {"default": 2}  # it is going to retry just one more time
-    }
-
     # parameter_overrides = {
-    #     "cpu_count": {"default": 16},
-    #     "memory_mb": {"default": float(8 * 1.8 * 1024)},
     #     "gpu_count": {"default": 1},
-    #     "disk_space": {"default": float(6.0 * 1024)},
+    #     "instance_type": {"default": "g3.4xlarge"},  # Gpu Family selection
+    #     "memory_mb": {"default": 14000},
     #     "spot_policy": {"default": "Required"},
     #     "prefetch_count": {"default": 1},  # 1 molecule at a time
     #     "item_count": {"default": 1},  # 1 molecule at a time
-    #     "max_failures": {"default": 2}  # just one retry
+    #     "max_failures": {"default": 2}  # it is going to retry just one more time
     # }
+
+    parameter_overrides = {
+        "cpu_count": {"default": 16},
+        "memory_mb": {"default": float(8 * 1.8 * 1024)},
+        "gpu_count": {"default": 1},
+        "disk_space": {"default": float(6.0 * 1024)},
+        "spot_policy": {"default": "Required"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1},  # 1 molecule at a time
+        "max_failures": {"default": 2}  # just one retry
+    }
 
     temperature = parameters.DecimalParameter(
         'temperature',
@@ -831,6 +831,16 @@ class NESGMX(RecordPortsMixin, ComputeCube):
         'gmx_process_timeout',
         default=3600.0,
         help_text="Gromacs process timeout in seconds")
+
+    gmx_openmp_threads = parameters.IntegerParameter(
+        'gmx_openmp_threads',
+        default=16,
+        help_text='Number of Gromacs OpenMP threads')
+
+    gmx_mpi_threads = parameters.IntegerParameter(
+        'gmx_mpi_threads',
+        default=1,
+        help_text='Number of Gromacs MPI threads')
 
     def begin(self):
             self.opt = vars(self.args)
@@ -1136,7 +1146,7 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
 
                     label = "BAR score:<br>{:.2f}  &plusmn; {:.2f} {}".format(results['BAR'][0]/conv_factor, results['BAR'][1]/conv_factor, self.opt['units'])
                     new_record.set_value(Fields.floe_report_label, label)
-
+                    new_record.set_value(Fields.floe_report_sort_string, title)
                     new_record.set_value(Fields.FEC.RBFEC.edgeid, edgeid)
                     new_record.set_value(Fields.FEC.RBFEC.edge_name, title)
 

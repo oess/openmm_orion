@@ -168,6 +168,8 @@ class Fields:
     floe_report_svg_lig_depiction = OEField("Floe_report_lig_svg_OPLMD", Types.String,
                                             meta=OEFieldMeta().set_option(Meta.Hints.Image_SVG))
 
+    floe_report_sort_string = OEField('Floe_report_sort_OPLMD', Types.String, meta=_metaHidden)
+
     floe_report_label = OEField('Floe_report_label_OPLMD', Types.String, meta=_metaHidden)
 
     floe_report_URL = OEField('Floe_report_URL_OPLMD', Types.String, meta=OEFieldMeta(options=[Meta.Hints.URL]))

@@ -87,11 +87,23 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
     unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
     unbound_nes.promote_parameter("time", promoted_name="nes_time",
                                   default=options['nes_switch_time_in_ns'], order=3)
-    # unbound_nes.modify_parameter(unbound_nes.instance_type, promoted=False, default='g4dn.2xlarge')
+
+    unbound_nes.modify_parameter(unbound_nes.instance_type, promoted=False, default='c5')
+    unbound_nes.modify_parameter(unbound_nes.cpu_count, promoted=False, default=2)
+    unbound_nes.modify_parameter(unbound_nes.gpu_count, promoted=False, default=0)
+    unbound_nes.modify_parameter(unbound_nes.memory_mb, promoted=False, default=3*1024)
+    unbound_nes.modify_parameter(unbound_nes.gmx_mpi_threads, promoted=False, default=1)
+    unbound_nes.modify_parameter(unbound_nes.gmx_openmp_threads, promoted=False, default=2)
+    unbound_nes.modify_parameter(unbound_nes.max_parallel, promoted=False, default=10000)
 
     bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
     bound_nes.promote_parameter("time", promoted_name="nes_time", order=3)
-    # bound_nes.modify_parameter(bound_nes.instance_type, promoted=False, default='g3.4xlarge')
+    # bound_nes.modify_parameter(bound_nes.instance_type, promoted=False, default='g3')
+    bound_nes.modify_parameter(bound_nes.cpu_count, promoted=False, default=16)
+    bound_nes.modify_parameter(bound_nes.gpu_count, promoted=False, default=1)
+    bound_nes.modify_parameter(bound_nes.gmx_mpi_threads, promoted=False, default=1)
+    bound_nes.modify_parameter(bound_nes.gmx_openmp_threads, promoted=False, default=16)
+    bound_nes.modify_parameter(bound_nes.max_parallel, promoted=False, default=10000)
 
     nes_analysis = NESAnalysis("NES_Analysis")
 
@@ -105,11 +117,11 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
     ofs = DatasetWriterCube('ofs', title='NES Out')
     ofs.promote_parameter("data_out", promoted_name="out",
                           title="NES Dataset Out",
-                          description="NES Dataset Out")
+                          description="NES Dataset Out", order=4)
 
     fail = DatasetWriterCube('fail', title='NES Failures')
     fail.promote_parameter("data_out", promoted_name="fail", title="NES Failures",
-                           description="NES Dataset Failures out")
+                           description="NES Dataset Failures out", order=5)
 
     input_floe.add_cubes(coll_open_write, switch, gathering,
                         chimera, bound_nes, unbound_nes,

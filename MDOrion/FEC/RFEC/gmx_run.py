@@ -18,7 +18,7 @@
 
 import subprocess
 
-from subprocess import STDOUT, PIPE, Popen, DEVNULL
+from subprocess import STDOUT, PIPE, DEVNULL
 
 from simtk import unit
 
@@ -211,120 +211,144 @@ def check_gmx_grompp(gro, top, sim_type=None, verbose=False):
                                        '-s', gmx_tpr_fn,
                                        ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT, timeout=500)
 
-    except:
-        raise ValueError("Cannot Assemble the Gromacs .tpr file for the sim type: {}".format(sim_type))
+    except subprocess.CalledProcessError:
+        raise ValueError("Subprocess CalledProcess Error. Cannot assemble the Gromacs .tpr file for the sim type: {}".format(sim_type))
+    except subprocess.TimeoutExpired:
+        raise ValueError("Subprocess Timeout Error")
+    except OSError:
+        raise ValueError("OS Error. Cannot assemble the Gromacs .tpr file for the sim type: {}".format(sim_type))
 
 
 def _run_gmx(mdp_fn, gro_fn, top_fn, tpr_fn, deffnm_fn, opt, cpti_fn=None, cpto_fn=None):
 
-    if opt['verbose']:
+    try:
 
-        # Assemble the Gromacs system to run
-        if not opt['restraints']:
-            subprocess.check_call(['gmx',
-                                   'grompp',
-                                   '-f', mdp_fn,
-                                   '-c', gro_fn,
-                                   '-p', top_fn,
-                                   '-o', tpr_fn,
-                                   '-maxwarn', '4'
-                                   ], timeout=100)
-        else:
-            subprocess.check_call(['gmx',
-                                   'grompp',
-                                   '-f', mdp_fn,
-                                   '-c', gro_fn,
-                                   '-r', gro_fn,
-                                   '-p', top_fn,
-                                   '-o', tpr_fn,
-                                   '-maxwarn', '4'
-                                   ], timeout=100)
+        if opt['verbose']:
 
-        # Run Gromacs
-        if cpti_fn is None and cpto_fn is None:
-            subprocess.check_call(['gmx',
-                                   'mdrun',
-                                   '-v',
-                                   '-s', tpr_fn,
-                                   '-deffnm', deffnm_fn
-                                   ], timeout=opt['gmx_process_timeout'])
-        else:
+            # Assemble the Gromacs system to run
+            if not opt['restraints']:
+                subprocess.check_call(['gmx',
+                                       'grompp',
+                                       '-f', mdp_fn,
+                                       '-c', gro_fn,
+                                       '-p', top_fn,
+                                       '-o', tpr_fn,
+                                       '-maxwarn', '4'
+                                       ], timeout=100)
+            else:
+                subprocess.check_call(['gmx',
+                                       'grompp',
+                                       '-f', mdp_fn,
+                                       '-c', gro_fn,
+                                       '-r', gro_fn,
+                                       '-p', top_fn,
+                                       '-o', tpr_fn,
+                                       '-maxwarn', '4'
+                                       ], timeout=100)
 
-            if cpti_fn is None and cpto_fn is not None:
-
+            # Run Gromacs
+            if cpti_fn is None and cpto_fn is None:
                 subprocess.check_call(['gmx',
                                        'mdrun',
+                                       '-ntomp', str(opt['gmx_openmp_threads']),
+                                       '-ntmpi', str(opt['gmx_mpi_threads']),
                                        '-v',
                                        '-s', tpr_fn,
-                                       '-cpo', cpto_fn,
                                        '-deffnm', deffnm_fn
                                        ], timeout=opt['gmx_process_timeout'])
             else:
+
+                if cpti_fn is None and cpto_fn is not None:
+
+                    subprocess.check_call(['gmx',
+                                           'mdrun',
+                                           '-ntomp', str(opt['gmx_openmp_threads']),
+                                           '-ntmpi', str(opt['gmx_mpi_threads']),
+                                           '-v',
+                                           '-s', tpr_fn,
+                                           '-cpo', cpto_fn,
+                                           '-deffnm', deffnm_fn
+                                           ], timeout=opt['gmx_process_timeout'])
+                else:
+                    subprocess.check_call(['gmx',
+                                           'mdrun',
+                                           '-ntomp', str(opt['gmx_openmp_threads']),
+                                           '-ntmpi', str(opt['gmx_mpi_threads']),
+                                           '-v',
+                                           '-s', tpr_fn,
+                                           '-noappend',
+                                           '-cpi', cpti_fn,
+                                           '-cpo', cpto_fn,
+                                           '-deffnm', deffnm_fn
+                                           ], timeout=opt['gmx_process_timeout'])
+
+        else:
+            # Assemble the Gromacs system to run
+            if not opt['restraints']:
+                subprocess.check_call(['gmx',
+                                       'grompp',
+                                       '-f', mdp_fn,
+                                       '-c', gro_fn,
+                                       '-p', top_fn,
+                                       '-o', tpr_fn,
+                                       '-maxwarn', '4'
+                                       ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
+                                      timeout=100)
+            else:
+                subprocess.check_call(['gmx',
+                                       'grompp',
+                                       '-f', mdp_fn,
+                                       '-c', gro_fn,
+                                       '-r', gro_fn,
+                                       '-p', top_fn,
+                                       '-o', tpr_fn,
+                                       '-maxwarn', '4'
+                                       ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
+                                      timeout=100)
+
+            # Run Gromacs
+            if cpti_fn is None and cpto_fn is None:
                 subprocess.check_call(['gmx',
                                        'mdrun',
+                                       '-ntomp', str(opt['gmx_openmp_threads']),
+                                       '-ntmpi', str(opt['gmx_mpi_threads']),
                                        '-v',
                                        '-s', tpr_fn,
-                                       '-noappend',
-                                       '-cpi', cpti_fn,
-                                       '-cpo', cpto_fn,
-                                       '-deffnm', deffnm_fn
-                                       ], timeout=opt['gmx_process_timeout'])
-
-    else:
-        # Assemble the Gromacs system to run
-        if not opt['restraints']:
-            subprocess.check_call(['gmx',
-                                   'grompp',
-                                   '-f', mdp_fn,
-                                   '-c', gro_fn,
-                                   '-p', top_fn,
-                                   '-o', tpr_fn,
-                                   '-maxwarn', '4'
-                                   ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
-                                  timeout=100)
-        else:
-            subprocess.check_call(['gmx',
-                                   'grompp',
-                                   '-f', mdp_fn,
-                                   '-c', gro_fn,
-                                   '-r', gro_fn,
-                                   '-p', top_fn,
-                                   '-o', tpr_fn,
-                                   '-maxwarn', '4'
-                                   ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
-                                  timeout=100)
-
-        # Run Gromacs
-        if cpti_fn is None and cpto_fn is None:
-            subprocess.check_call(['gmx',
-                                   'mdrun',
-                                   '-v',
-                                   '-s', tpr_fn,
-                                   '-deffnm', deffnm_fn
-                                   ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
-                                  timeout=opt['gmx_process_timeout'])
-        else:
-
-            if cpti_fn is None and cpto_fn is not None:
-                subprocess.check_call(['gmx',
-                                       'mdrun',
-                                       '-v',
-                                       '-s', tpr_fn,
-                                       '-cpo', cpto_fn,
                                        '-deffnm', deffnm_fn
                                        ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
                                       timeout=opt['gmx_process_timeout'])
             else:
-                subprocess.check_call(['gmx',
-                                       'mdrun',
-                                       '-v',
-                                       '-s', tpr_fn,
-                                       '-noappend',
-                                       '-cpi', cpti_fn,
-                                       '-cpo', cpto_fn,
-                                       '-deffnm', deffnm_fn
-                                       ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
-                                      timeout=opt['gmx_process_timeout'])
+
+                if cpti_fn is None and cpto_fn is not None:
+                    subprocess.check_call(['gmx',
+                                           'mdrun',
+                                           '-ntomp', str(opt['gmx_openmp_threads']),
+                                           '-ntmpi', str(opt['gmx_mpi_threads']),
+                                           '-v',
+                                           '-s', tpr_fn,
+                                           '-cpo', cpto_fn,
+                                           '-deffnm', deffnm_fn
+                                           ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
+                                          timeout=opt['gmx_process_timeout'])
+                else:
+                    subprocess.check_call(['gmx',
+                                           'mdrun',
+                                           '-ntomp', str(opt['gmx_openmp_threads']),
+                                           '-ntmpi', str(opt['gmx_mpi_threads']),
+                                           '-v',
+                                           '-s', tpr_fn,
+                                           '-noappend',
+                                           '-cpi', cpti_fn,
+                                           '-cpo', cpto_fn,
+                                           '-deffnm', deffnm_fn
+                                           ], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT,
+                                          timeout=opt['gmx_process_timeout'])
+    except subprocess.CalledProcessError as e:
+        raise ValueError("Subprocess Called Process Error: {}".format(e))
+    except subprocess.TimeoutExpired as e:
+        raise ValueError("Subprocess Timeout Error: {}".format(e))
+    except OSError:
+        raise ValueError("Subprocess call OS Error")
 
 
 def gmx_run(gmx_gro, gmx_top, opt):
@@ -332,7 +356,7 @@ def gmx_run(gmx_gro, gmx_top, opt):
     min_box = opt['min_box']
 
     # Cutoff in A
-    cutoff = 10
+    cutoff = 11
 
     # in A
     theshold = (min_box / 2.0) * 0.85

@@ -64,7 +64,7 @@ import plotly.graph_objects as go
 
 from scipy.stats import norm
 
-from PIL import Image
+from parmed.gromacs.gromacstop import _Defaults
 
 import h5py
 
@@ -244,8 +244,11 @@ def gmx_chimera_topology_injection(pmd_flask, pmd_chimera_start, pmd_chimera_fin
         flask_top_fn = os.path.join(outputdir, "flask.top")
         gmx_chimera_fn_prefix = os.path.join(outputdir, "gmx_chimera")
 
+        defaults = _Defaults(fudgeLJ=0.5, fudgeQQ=0.8333, gen_pairs='yes')
+        pmd_flask.defaults = defaults
+
         top_gmx = parmed.gromacs.GromacsTopologyFile.from_structure(pmd_flask)
-        top_gmx.defaults = parmed.gromacs.gromacstop._Defaults(fudgeLJ=0.5, fudgeQQ=0.8333, gen_pairs='yes')
+        # top_gmx.defaults = parmed.gromacs.gromacstop._Defaults(fudgeLJ=0.5, fudgeQQ=0.8333, gen_pairs='yes')
         top_gmx.write(flask_top_fn)
 
         with open(flask_top_fn, 'r') as f:
@@ -891,6 +894,7 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
     data.append(dgbound)
     data.append(dgunbound)
 
+    alpha_color = 'rgba(127, 166, 238, 0.4)'
     fig.add_trace(
         go.Table(
             header=dict(
@@ -899,7 +903,7 @@ def plot_work_pdf(f_bound, r_bound, f_unbound, r_unbound, results, title, edge_d
                         "\u0394G Unbound {}".format(display_units)],
                 font=dict(size=14),
                 align="center",
-                fill_color='paleturquoise',
+                fill_color=alpha_color,
             ),
             cells=dict(
                 values=data,
@@ -1057,7 +1061,7 @@ def generate_plots_and_stats(lig_pred_expt_dic, edge_pred_expt_dic,
 
     # Generate html table for predicted DGs, with corresponding expt DG where available
     # We will make a floe report of this no matter what
-    html_predDGTable = flrpt.GeneratePredDGTable(lig_pred_expt_dic, units='kcal/mol')
+    html_predDGTable = flrpt.GeneratePredDGTable(lig_pred_expt_dic, units=units)
 
     # DG graph/table: only make this if there are more than two points with expt and predicted
     # Determine how many points there are to correlate
@@ -1067,13 +1071,13 @@ def generate_plots_and_stats(lig_pred_expt_dic, edge_pred_expt_dic,
             n_DG_expt_pred_points += 1
 
     # Proceed with generating correlation graphs/table if there are more than two points to correlate
-    if n_DG_expt_pred_points>2:
+    if n_DG_expt_pred_points > 2:
         html_stats_DG, html_RLModel_DG, html_fig_DG = flrpt.GenerateAffinityGraphTablesHTML(
-            lig_pred_expt_dic, '\u0394G', units='kcal/mol')
+            lig_pred_expt_dic, '\u0394G', units=units)
 
     # Generate html table for predicted DGs, with corresponding expt DG where available
     # We will make a floe report of this no matter what
-    html_predDDGTable = flrpt.GeneratePredDGTable(edge_pred_expt_dic, units='kcal/mol',
+    html_predDDGTable = flrpt.GeneratePredDGTable(edge_pred_expt_dic, units=units,
                                                   glabel='\u0394\u0394G')
 
     # DDG graph/table: only make this if there are more than two points with expt and predicted
@@ -1084,10 +1088,9 @@ def generate_plots_and_stats(lig_pred_expt_dic, edge_pred_expt_dic,
             n_DDG_expt_pred_points += 1
 
     # Proceed with generating correlation graphs/table if there are more than two points to correlate
-    if n_DDG_expt_pred_points>2:
+    if n_DDG_expt_pred_points > 2:
         html_stats_DDG, html_RLModel_DDG, html_fig_DDG = flrpt.GenerateAffinityGraphTablesHTML(
-            edge_pred_expt_dic, '\u0394\u0394G', units='kcal/mol', symmetrize=DDG_symmetrize)
-
+            edge_pred_expt_dic, '\u0394\u0394G', units=units, symmetrize=DDG_symmetrize)
 
     # html for the title for the correlation floe report
     dataset_name = ''
@@ -1140,7 +1143,8 @@ def generate_plots_and_stats(lig_pred_expt_dic, edge_pred_expt_dic,
 
 def predictDGsfromDDGs(predicted_data_dic):
 
-    #print('predicted_data_dic:',predicted_data_dic)
+    # print('predicted_data_dic:',predicted_data_dic)
+
     raw_results = []
 
     for edge_name, exp_val in predicted_data_dic.items():
@@ -1170,7 +1174,7 @@ def predictDGsfromDDGs(predicted_data_dic):
 
         # centralising
         # this should be replaced by providing one experimental result
-        #exp_DG = exp_DG - np.mean(exp_DG)
+        # exp_DG = exp_DG - np.mean(exp_DG)
         pred_DG = pred_DG - np.mean(pred_DG)
 
         # Assuming that dic is in Order
@@ -1186,7 +1190,6 @@ def predictDGsfromDDGs(predicted_data_dic):
 
 #        for name, l in affinity_dic.items():
 #            print("name {} pred {} +- {}".format(name, l[0], l[1]))
-
 
     if network.weakly_connected:
         return affinity_dic

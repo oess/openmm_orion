@@ -22,7 +22,6 @@ from MDOrion.System.cubes import MDComponentCube
 from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
 from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
-                                    RBFECMapping,
                                     RBFECEdgeGathering,
                                     ParallelGMXChimera,
                                     ParallelNESGMX,
@@ -55,7 +54,8 @@ job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
 iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
-iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset", description="Ligand Dataset")
+iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input Dataset",
+                        description="Ligand Dataset", order=1)
 
 ligset = LigandSetting("Ligand Setting", title="Ligand Setting")
 ligset.set_parameters(lig_res_name='LIG')
@@ -74,7 +74,7 @@ md_lig_components.set_parameters(multiple_flasks=True)
 # output system files
 iprot = DatasetReaderCube("ProteinReader", title="Protein Reader")
 iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input Dataset',
-                        description="Protein Dataset")
+                        description="Protein Dataset", order=0)
 
 md_prot_components = MDComponentCube("MD Protein Components", title="MD Protein Components")
 md_prot_components.promote_parameter("flask_title", promoted_name="flask_title",
@@ -97,7 +97,7 @@ solvate.modify_parameter(solvate.close_solvent, promoted=False, default=False)
 # Force Field Application
 ff = ParallelForceFieldCube("ForceField", title="Apply Force Field")
 ff.promote_parameter('protein_forcefield', promoted_name='protein_ff', default='Amber14SB')
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.0')
+ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='OpenFF_1.3.1a1')
 
 # Switching Bound and Unbound runs
 switch = BoundUnboundSwitchCube("Bound/Unbound Switch", title='Bound/Unbound Switch')
@@ -248,16 +248,28 @@ coll_write.set_parameters(write_new_collection='NES_OPLMD')
 
 gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
 gathering.promote_parameter('map_file', promoted_name='map',
-                            description='The edge mapping file used to run the RBFE calculations')
+                            description='The edge mapping file used to run the RBFE calculations', order=2)
 
 chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
 chimera.promote_parameter("trajectory_frames", promoted_name="trajectory_frames", default=80,
                           description="The total number of trajectory frames to be used along the NE switching")
 unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")
 unbound_nes.promote_parameter("time", promoted_name="nes_time", default=0.05)
+unbound_nes.modify_parameter(unbound_nes.instance_type, promoted=False, default='c5')
+unbound_nes.modify_parameter(unbound_nes.cpu_count, promoted=False, default=2)
+unbound_nes.modify_parameter(unbound_nes.gpu_count, promoted=False, default=0)
+unbound_nes.modify_parameter(unbound_nes.memory_mb, promoted=False, default=3 * 1024)
+unbound_nes.modify_parameter(unbound_nes.gmx_mpi_threads, promoted=False, default=1)
+unbound_nes.modify_parameter(unbound_nes.gmx_openmp_threads, promoted=False, default=2)
+unbound_nes.modify_parameter(unbound_nes.max_parallel, promoted=False, default=10000)
 
 bound_nes = ParallelNESGMX("GMXBoundNES", title="GMX Bound NES")
 bound_nes.promote_parameter("time", promoted_name="nes_time")
+bound_nes.modify_parameter(bound_nes.cpu_count, promoted=False, default=16)
+bound_nes.modify_parameter(bound_nes.gpu_count, promoted=False, default=1)
+bound_nes.modify_parameter(bound_nes.gmx_mpi_threads, promoted=False, default=1)
+bound_nes.modify_parameter(bound_nes.gmx_openmp_threads, promoted=False, default=16)
+bound_nes.modify_parameter(bound_nes.max_parallel, promoted=False, default=10000)
 
 nes_analysis = NESAnalysis("NES_Analysis")
 
@@ -274,23 +286,22 @@ check_rec = ParallelRecordSizeCheck("Record Check Success")
 ofs = DatasetWriterCube('ofs', title='NES Out')
 ofs.promote_parameter("data_out", promoted_name="out",
                       title="NES Dataset Out",
-                      description="NES Dataset Out")
+                      description="NES Dataset Out", order=5)
 
 fail = DatasetWriterCube('fail', title='NES Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="NES Failures",
-                       description="NES Dataset Failures out")
-
+                       description="NES Dataset Failures out", order=6)
 
 # TODO DEBUG ONLY TO BE REMOVED
 ofs_lig = DatasetWriterCube('ofs_unbound', title='Equilibrium Unbound Out')
 ofs_lig.promote_parameter("data_out", promoted_name="out_unbound",
                           title="Equilibrium Unbound Out",
-                          description="Equilibrium Unbound Out")
+                          description="Equilibrium Unbound Out", order=4)
 
 ofs_prot = DatasetWriterCube('ofs_bound', title='Equilibrium Bound Out')
 ofs_prot.promote_parameter("data_out", promoted_name="out_bound",
                            title="Equilibrium Bound Out",
-                           description="Equilibrium Bound Out")
+                           description="Equilibrium Bound Out", order=3)
 
 job.add_cubes(iligs, ligset, chargelig, ligid, md_lig_components, coll_open,
               iprot, md_prot_components, complx, solvate, ff, switch,
