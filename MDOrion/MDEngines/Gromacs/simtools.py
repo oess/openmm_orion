@@ -55,6 +55,8 @@ from subprocess import STDOUT, PIPE, Popen, DEVNULL
 
 import math
 
+from parmed.gromacs.gromacstop import _Defaults
+
 
 class GromacsSimulations(MDSimulations):
 
@@ -82,6 +84,10 @@ class GromacsSimulations(MDSimulations):
         # # Copy the topology and positions
         topology = parmed_structure.topology
         positions = parmed_structure.positions
+
+        # Parmed GMX set 1-4 scaling
+        defaults = _Defaults(fudgeLJ=0.5, fudgeQQ=0.8333, gen_pairs='yes')
+        parmed_structure.defaults = defaults
 
         def check_water(res):
             two_bonds = list(res.bonds())
@@ -146,6 +152,7 @@ class GromacsSimulations(MDSimulations):
         new_system_structure.positions = parmed_structure.positions
         new_system_structure.velocities = parmed_structure.velocities
         new_system_structure.box = parmed_structure.box
+        new_system_structure.defaults = defaults
 
         self.stepLen = 0.002 * unit.picoseconds
 
