@@ -64,7 +64,7 @@ import plotly.graph_objects as go
 
 from scipy.stats import norm
 
-from PIL import Image
+from parmed.gromacs.gromacstop import _Defaults
 
 import h5py
 
@@ -244,8 +244,11 @@ def gmx_chimera_topology_injection(pmd_flask, pmd_chimera_start, pmd_chimera_fin
         flask_top_fn = os.path.join(outputdir, "flask.top")
         gmx_chimera_fn_prefix = os.path.join(outputdir, "gmx_chimera")
 
+        defaults = _Defaults(fudgeLJ=0.5, fudgeQQ=0.8333, gen_pairs='yes')
+        pmd_flask.defaults = defaults
+
         top_gmx = parmed.gromacs.GromacsTopologyFile.from_structure(pmd_flask)
-        top_gmx.defaults = parmed.gromacs.gromacstop._Defaults(fudgeLJ=0.5, fudgeQQ=0.8333, gen_pairs='yes')
+        # top_gmx.defaults = parmed.gromacs.gromacstop._Defaults(fudgeLJ=0.5, fudgeQQ=0.8333, gen_pairs='yes')
         top_gmx.write(flask_top_fn)
 
         with open(flask_top_fn, 'r') as f:

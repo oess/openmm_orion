@@ -16,5 +16,5 @@ Openeye-orionplatform[artemis]==4.0.0b3
 OpenEye-ensemble2img==0.1.1
 OpenEye-floereport==0.1.11
 OpenEye_oetrajanalysis==0.8.0b1
-openeye-oemdtoolbox==2.0.0b60
+openeye-oemdtoolbox==2.0.0b62
 
