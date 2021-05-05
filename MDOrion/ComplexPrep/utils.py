@@ -156,7 +156,8 @@ def order_check(mol, fname):
     logger.addHandler(hdlr)
     logger.setLevel(logging.INFO)
 
-    #hv = oechem.OEHierView(mol, oechem.OEAssumption_BondedResidue + oechem.OEAssumption_ResPerceived)
+    # hv = oechem.OEHierView(mol, oechem.OEAssumption_BondedResidue + oechem.OEAssumption_ResPerceived)
+
     hv = oechem.OEHierView(mol)
 
     for chain in hv.GetChains():
@@ -168,3 +169,68 @@ def order_check(mol, fname):
                     logger.info('\t\t{} {}'.format(oe_at.GetName(), oe_at.GetIdx()))
 
     return
+
+
+def clash_detection(core_mol, check_mol, cutoff=2.0):
+
+    def info(info_list):
+        info_str = "Atom        Atom        Dist(A)  ratio\n"
+        info_str += 38 * '-' + "\n"
+        for tup in info_list:
+            info_str += "{:<11s} {:<11s} {:1.5f}  {:1.3f}\n".format(tup[0].GetName() + " " + str(tup[0].GetIdx()),
+                                                                    tup[1].GetName() + " " + str(tup[1].GetIdx()),
+                                                                    tup[3],
+                                                                    tup[2])
+
+        return info_str
+
+    # Create the Nearest neighbours
+    nn = oechem.OENearestNbrs(check_mol, cutoff)
+
+    severe_risk_list = list()
+    moderate_risk_list = list()
+    low_risk_list = list()
+
+    # Check neighbours setting the atom bit mask
+    for nbrs in nn.GetNbrs(core_mol):
+        atom_bgn = nbrs.GetBgn()
+        atom_end = nbrs.GetEnd()
+        dist = nbrs.GetDist()
+
+        if atom_bgn.GetAtomicNum() == 1:
+            continue
+        else:
+            atom_bgn_vdwr = oechem.OEGetBondiVdWRadius(atom_bgn.GetAtomicNum())
+        if atom_end.GetAtomicNum() == 1:
+            continue
+        else:
+            atom_end_vdwr = oechem.OEGetBondiVdWRadius(atom_end.GetAtomicNum())
+
+        # Polar Hydrogen VdW radii settings
+        # if atom_bgn.IsPolarHydrogen():
+        #     atom_bgn_vdwr = 0.95
+        # else:
+        #     atom_bgn_vdwr = oechem.OEGetBondiVdWRadius(atom_bgn.GetAtomicNum())
+        # if atom_end.IsPolarHydrogen():
+        #     atom_end_vdwr = 0.95
+        # else:
+        #     atom_end_vdwr = oechem.OEGetBondiVdWRadius(atom_end.GetAtomicNum())
+
+        alpha = dist / (atom_bgn_vdwr + atom_end_vdwr)
+
+        if alpha <= 0.3:
+            severe_risk_list.append((atom_bgn, atom_end, alpha, dist))
+        elif 0.3 < alpha <= 0.5:
+            moderate_risk_list.append((atom_bgn, atom_end, alpha, dist))
+        else:
+            low_risk_list.append((atom_bgn, atom_end, alpha, dist))
+
+    severe_risk_list.sort(key=lambda x: x[2])
+    moderate_risk_list.sort(key=lambda x: x[2])
+    low_risk_list.sort(key=lambda x: x[2])
+
+    severe_info = info(severe_risk_list)
+    moderate_info = info(moderate_risk_list)
+    low_risk_info = info(low_risk_list)
+
+    return [severe_risk_list, severe_info], [moderate_risk_list, moderate_info], [low_risk_list, low_risk_info]
