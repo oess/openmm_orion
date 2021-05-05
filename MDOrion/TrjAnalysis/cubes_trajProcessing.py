@@ -21,6 +21,8 @@ from floe.api import (ParallelMixin,
                       parameters,
                       ComputeCube)
 
+from snowball.utils.log_params import LogFieldParam
+
 from MDOrion.Standards import Fields, MDStageNames
 
 from oeommtools import utils as oeutils
@@ -66,6 +68,9 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
     """
 
     uuid = "3ad0e991-712f-4a87-903e-4e0edc774bb3"
+
+    # for Exception Handler
+    log_field = LogFieldParam()
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -195,6 +200,9 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
         except Exception as e:
             print("Failed to complete", str(e), flush=True)
             self.log.error(traceback.format_exc())
+            # Write field for Exception Handler
+            msg = '{}: {} Cube: {}'.format(system_title, self.title, str(e))
+            record.set_value(self.args.log_field, msg)
             # Return failed mol
             self.failure.emit(record)
 
