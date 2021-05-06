@@ -102,6 +102,9 @@ class TrajToOEMolCube(RecordPortsMixin, ComputeCube):
             # the parallel cube processes
             opt = dict(self.opt)
 
+            # Initialize system_title for exception handling
+            system_title = ''
+
             # Create the MD record to use the MD Record API
             mdrecord = MDDataRecord(record)
 

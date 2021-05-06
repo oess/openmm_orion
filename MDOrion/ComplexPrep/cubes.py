@@ -28,6 +28,8 @@ from floe.api import ComputeCube
 from orionplatform.mixins import RecordPortsMixin
 from orionplatform.ports import RecordInputPort
 
+from snowball.utils.log_params import LogFieldParam
+
 from openeye import oechem
 
 from MDOrion.ComplexPrep.utils import clash_detection
@@ -52,6 +54,9 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
     """
 
     uuid = "be2ac138-22ae-4412-9c38-886472c496b9"
+
+    # for Exception Handler
+    log_field = LogFieldParam()
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -78,6 +83,9 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
 
     def process(self, record, port):
         try:
+            # Initialize ligand_title for exception handling
+            ligand_title = ''
+
             if port == 'intake':
 
                 if not record.has_value(Fields.primary_molecule):
@@ -190,9 +198,12 @@ class ComplexPrepCube(RecordPortsMixin, ComputeCube):
                 self.success.emit(new_record)
 
         except Exception as e:
-            print("Failed to complete", str(e), flush=True)
-            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            msg = '{}: {} Cube exception: {}'.format(ligand_title, self.title, str(e))
+            self.opt['Logger'].info(msg)
             self.log.error(traceback.format_exc())
+            # Write field for Exception Handler
+            record.set_value(self.args.log_field, msg)
+            # Return failed mol
             self.failure.emit(record)
 
         return
