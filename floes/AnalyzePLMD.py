@@ -25,6 +25,9 @@ from MDOrion.SubFloes.SubfloeFunctions import setup_traj_analysis
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
+from snowball import (ExceptHandlerCube,
+                      SuccessCounterCube)
+
 from MDOrion.System.cubes import ParallelRecordSizeCheck
 
 from MDOrion.System.cubes import CollectionSetting
@@ -53,6 +56,8 @@ coll_close.set_parameters(open=False)
 
 check_rec = ParallelRecordSizeCheck("Record Check Success", title="Record Check Success")
 
+exceptions = ExceptHandlerCube(floe_report_name="Analyze Floe Failure Report")
+
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",
                       title="MD Out", description="MD Dataset out", order=1)
@@ -62,7 +67,7 @@ fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out", order=2)
 
 job.add_cubes(iMDInput, coll_open,
-              coll_close, check_rec,  ofs, fail)
+              coll_close, check_rec,  ofs, exceptions, fail)
 
 traj_anlys_outcube = setup_traj_analysis(job, coll_open, check_rec)
 
@@ -76,7 +81,8 @@ check_rec.success.connect(ofs.intake)
 traj_anlys_outcube.failure.connect(check_rec.fail_in)
 coll_open.failure.connect(check_rec.fail_in)
 coll_close.failure.connect(check_rec.fail_in)
-check_rec.failure.connect(fail.intake)
+check_rec.failure.connect(exceptions.intake)
+exceptions.failure.connect(fail.intake)
 
 
 if __name__ == "__main__":

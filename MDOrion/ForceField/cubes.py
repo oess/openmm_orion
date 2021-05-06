@@ -39,6 +39,8 @@ from simtk import unit
 
 import os
 
+from snowball.utils.log_params import LogFieldParam
+
 
 class ForceFieldCube(RecordPortsMixin, ComputeCube):
     title = "Force Field Application"
@@ -64,6 +66,9 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
     the provided cube parameter. Water is currently parametrized by 
     using TIP3P force field water model only.
     """
+
+    # for Exception Handler
+    log_field = LogFieldParam()
 
     uuid = "aac0d06f-afd3-4801-ba50-2d703a07ab35"
 
@@ -92,11 +97,16 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
         default='prep',
         help_text='Filename suffix for output simulation files')
 
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
 
     def process(self, record, port):
+
+        # Initialize ligand_title for exception handling
+        flask_title = ''
+
         try:
             opt = self.opt
             opt['CubeTitle'] = self.title
@@ -209,9 +219,12 @@ class ForceFieldCube(RecordPortsMixin, ComputeCube):
 
         except Exception as e:
 
-            print("Failed to complete", str(e), flush=True)
-            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            msg = '{}: {} Cube exception: {}'.format(flask_title, self.title, str(e))
+            self.opt['Logger'].info(msg)
             self.log.error(traceback.format_exc())
+            # Write field for Exception Handler
+            record.set_value(self.args.log_field, msg)
+            # Return failed mol
             self.failure.emit(record)
 
         return

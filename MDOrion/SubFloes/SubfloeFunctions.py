@@ -44,7 +44,7 @@ from MDOrion.LigPrep.cubes import (ParallelLigandChargeCube,
 
 from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
                                     RBFECEdgeGathering,
-                                    ParallelGMXChimera,
+                                    ParallelNESGMXChimera,
                                     ParallelNESGMX,
                                     NESAnalysis)
 
@@ -79,7 +79,7 @@ def setup_NonEquilSwch_GMX(input_floe, input_bound, input_unbound, check_rec, op
     gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
     gathering.promote_parameter('map_file', promoted_name=options['edge_map_file'], order=2)
 
-    chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
+    chimera = ParallelNESGMXChimera("GMXChimera", title="GMX Chimera")
     chimera.promote_parameter("trajectory_frames", promoted_name="trajectory_frames",
                               default=options['n_traj_frames'],
                               description="The total number of trajectory frames to be used along the NE switching", order=2)

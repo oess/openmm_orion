@@ -23,7 +23,7 @@ from MDOrion.ComplexPrep.cubes import ComplexPrepCube
 
 from MDOrion.FEC.RFEC.cubes import (BoundUnboundSwitchCube,
                                     RBFECEdgeGathering,
-                                    ParallelGMXChimera,
+                                    ParallelNESGMXChimera,
                                     ParallelNESGMX,
                                     NESAnalysis)
 
@@ -250,7 +250,7 @@ gathering = RBFECEdgeGathering("Gathering", title="Gathering Equilibrium Runs")
 gathering.promote_parameter('map_file', promoted_name='map',
                             description='The edge mapping file used to run the RBFE calculations', order=2)
 
-chimera = ParallelGMXChimera("GMXChimera", title="GMX Chimera")
+chimera = ParallelNESGMXChimera("GMXChimera", title="GMX Chimera")
 chimera.promote_parameter("trajectory_frames", promoted_name="trajectory_frames", default=80,
                           description="The total number of trajectory frames to be used along the NE switching")
 unbound_nes = ParallelNESGMX("GMXUnboundNES", title="GMX Unbound NES")

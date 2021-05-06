@@ -22,6 +22,8 @@ from orionplatform.mixins import RecordPortsMixin
 
 from orionplatform.ports import RecordInputPort
 
+from snowball.utils.log_params import LogFieldParam
+
 from floe.api import (ParallelMixin,
                       parameters,
                       ComputeCube)
@@ -539,10 +541,10 @@ class RecordSizeCheck(RecordPortsMixin, ComputeCube):
 
 
 class MDComponentCube(RecordPortsMixin, ComputeCube):
-    title = "MD Setting"
+    title = "Receptor Components"
     # version = "0.1.4"
-    classification = [["System Preparation"]]
-    tags = ['Protein']
+    classification = [["Flask Preparation"]]
+    tags = ['Receptor']
     description = """
     This Cube is used to componentize the cube input system.
     The cube detects if a Design Unit (DU) is present on the record 
@@ -555,6 +557,9 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
     """
 
     uuid = "b85d652f-188a-4cc0-aefd-35c98e737f8d"
+
+    # for Exception Handler
+    log_field = LogFieldParam()
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -572,7 +577,7 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
     multiple_flasks = parameters.BooleanParameter(
         'multiple_flasks',
         default=False,
-        help_text="If Checked/True multiple flasks will be allowed")
+        help_text="If Checked/True multiple receptors will be allowed")
 
     def begin(self):
         self.opt = vars(self.args)
@@ -584,7 +589,7 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
         try:
 
             if self.count > 0 and not self.opt['multiple_flasks']:
-                raise ValueError("Multiple Flasks have been Detected")
+                raise ValueError("Multiple receptors have been Detected")
 
             name = self.opt['flask_title']
 
@@ -632,10 +637,12 @@ class MDComponentCube(RecordPortsMixin, ComputeCube):
             self.success.emit(record)
 
         except Exception as e:
-
-            print("Failed to complete", str(e), flush=True)
-            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+            msg = '{} Cube exception: {}'.format(self.title, str(e))
+            self.opt['Logger'].info(msg)
+            # Write field for Exception Handler
+            record.set_value(self.args.log_field, msg)
             self.log.error(traceback.format_exc())
+            # Return failed mol
             self.failure.emit(record)
 
         return

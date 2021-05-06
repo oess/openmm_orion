@@ -19,7 +19,7 @@
 
 from floe.api import (WorkFloe)
 
-from MDOrion.SubFloes.SubfloeFunctions import setup_bint
+from MDOrion.TrjAnalysis.cubes_hintAnalysis import (ParallelBintScoreInitialPoseAndTrajectory)
 
 from orionplatform.cubes import DatasetReaderCube, DatasetWriterCube
 
@@ -47,6 +47,9 @@ AnlysInput.promote_parameter("data_in", promoted_name="in",
 coll_open = CollectionSetting("OpenCollection", title="Open Collection")
 coll_open.set_parameters(open=True)
 
+
+trajBints = ParallelBintScoreInitialPoseAndTrajectory("TrajBintsCube", title="Trajectory Binding Interactions")
+
 # Close collection
 coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
@@ -65,22 +68,19 @@ fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out")
 
 # Add cubes coming before and after the subfloe calls
-job.add_cubes(AnlysInput, coll_open,
+job.add_cubes(AnlysInput, coll_open, trajBints,
                 coll_close, check_rec,  ofs, fail)
-
-# Add other cubes through calling a subfloe function
-bint_outcube = setup_bint(job, coll_open, check_rec)
-
 
 # Success Connections
 AnlysInput.success.connect(coll_open.intake)
-bint_outcube.success.connect(coll_close.intake)
+coll_open.success.connect(trajBints.intake)
+trajBints.success.connect(coll_close.intake)
 coll_close.success.connect(check_rec.intake)
 check_rec.success.connect(ofs.intake)
 
 # Fail Connections
 coll_open.failure.connect(check_rec.fail_in)
-bint_outcube.failure.connect(check_rec.fail_in)
+trajBints.failure.connect(check_rec.fail_in)
 coll_close.failure.connect(check_rec.fail_in)
 check_rec.failure.connect(fail.intake)
 

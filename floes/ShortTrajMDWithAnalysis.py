@@ -23,6 +23,9 @@ from floe.api import WorkFloe
 
 from orionplatform.cubes import DatasetWriterCube
 
+from snowball import (ExceptHandlerCube,
+                      SuccessCounterCube)
+
 from MDOrion.SubFloes.SubfloeFunctions import (setup_MD_startup,
                                                setup_PLComplex_for_MD,
                                                setup_traj_analysis)
@@ -50,6 +53,8 @@ coll_close = CollectionSetting("CloseCollection", title="Close Collection")
 coll_close.set_parameters(open=False)
 
 check_rec = ParallelRecordSizeCheck("Record Check Success")
+
+exceptions = ExceptHandlerCube(floe_report_name="Analyze Floe Failure Report")
 
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",
@@ -86,7 +91,8 @@ traj_anlys_outcube.failure.connect(check_rec.fail_in)
 coll_close.success.connect(check_rec.intake)
 coll_close.failure.connect(check_rec.fail_in)
 check_rec.success.connect(ofs.intake)
-check_rec.failure.connect(fail.intake)
+check_rec.failure.connect(exceptions.intake)
+exceptions.failure.connect(fail.intake)
 
 
 if __name__ == "__main__":

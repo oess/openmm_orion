@@ -138,127 +138,127 @@ class BoundUnboundSwitchCube(RecordPortsMixin, ComputeCube):
         return
 
 
-class RBFECMapping(RecordPortsMixin, ComputeCube):
-    title = "RBFEC Edge Mapping"
-    # version = "0.1.4"
-    classification = [["Relative Free Energy"]]
-    tags = ['Ligand', 'Edge Mapping']
-    description = """
-    This cube set the edge mapping between the input ligands to perform relative
-    binding free energy calculations. The edge mapping is set by providing a text file 
-    where each row contains a string with the ligand names involved in the relative 
-    binding free energy calculation for example: 
-
-    ....
-    lig_i_name >> lig_j_name
-    ....
-
-
-    Input:
-    -------
-    Data record Stream - Streamed-in of the ligand molecules
-    File name - File with the relative binding free energy mapping
-
-    Output:
-    -------
-    Data Record Stream - Streamed-out of records where ligands have
-    been paired to run relative binding free energy calculations.
-    """
-
-    uuid = "e079546e-a9e7-4d1b-875e-cd180b785992"
-
-    # Override defaults for some parameters
-    parameter_overrides = {
-        "memory_mb": {"default": 14000},
-        "spot_policy": {"default": "Prohibited"},
-        "prefetch_count": {"default": 1},  # 1 molecule at a time
-        "item_count": {"default": 1}  # 1 molecule at a time
-    }
-
-    map_file = FileInputParameter("map_file", title="RBFEC Mapping file",
-                                  description="RBFEC mapping file", required=True,
-                                  default=None)
-
-    def begin(self):
-        self.opt = vars(self.args)
-        self.opt['Logger'] = self.log
-        self.A_State = list()
-        self.B_State = list()
-        self.ligand_names = list()
-        self.ligand_dic = dict()
-
-        file = list(self.args.map_file)
-        for file_obj in file:
-            with TemporaryPath() as path:
-                file_obj.copy_to(path)
-                with open(path, "r") as f:
-                    map_list = f.readlines()
-
-        if not map_list:
-            raise IOError("Map file is empty {}")
-
-        for m in map_list:
-
-            # Empty line
-            if not m:
-                continue
-
-            # Comment
-            if m.startswith(";") or m.startswith("#"):
-                continue
-
-            # New line
-            if m == '\n':
-                continue
-
-            expr = utils.edge_map_grammar(m)
-
-            if len(expr) > 3:
-                raise ValueError("Syntax Error Map File: {}".format(expr))
-
-            self.A_State.append(expr[0])
-            self.B_State.append(expr[2])
-
-    def process(self, record, port):
-        try:
-            lig_name = record.get_value(Fields.ligand_name)
-
-            if lig_name in self.ligand_names:
-                raise ValueError("All ligands must have different names. Duplicate: {}".format(lig_name))
-            else:
-                self.ligand_names.append(lig_name)
-
-            self.ligand_dic[lig_name] = record
-
-            return
-
-        except Exception as e:
-
-            print("Failed to complete", str(e), flush=True)
-            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
-            self.log.error(traceback.format_exc())
-            self.failure.emit(record)
-
-    def end(self):
-        try:
-            state_A_set = set(self.A_State)
-            state_B_set = set(self.B_State)
-            state_AB_set = state_A_set.union(state_B_set)
-
-            if not state_AB_set:
-                raise ValueError("The provide map will not produce any edge with the provided ligands")
-
-            for lig_name in state_AB_set:
-                if lig_name in self.ligand_dic:
-                    rec = self.ligand_dic[lig_name]
-                    self.success.emit(rec)
-                else:
-                    raise ValueError("The following ligand name has not been found: {}".format(lig_name))
-
-        except Exception as e:
-            print("Failed to complete", str(e), flush=True)
-            self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
-            self.log.error(traceback.format_exc())
+# class RBFECMapping(RecordPortsMixin, ComputeCube):
+#     title = "RBFEC Edge Mapping"
+#     # version = "0.1.4"
+#     classification = [["Relative Free Energy"]]
+#     tags = ['Ligand', 'Edge Mapping']
+#     description = """
+#     This cube set the edge mapping between the input ligands to perform relative
+#     binding free energy calculations. The edge mapping is set by providing a text file
+#     where each row contains a string with the ligand names involved in the relative
+#     binding free energy calculation for example:
+#
+#     ....
+#     lig_i_name >> lig_j_name
+#     ....
+#
+#
+#     Input:
+#     -------
+#     Data record Stream - Streamed-in of the ligand molecules
+#     File name - File with the relative binding free energy mapping
+#
+#     Output:
+#     -------
+#     Data Record Stream - Streamed-out of records where ligands have
+#     been paired to run relative binding free energy calculations.
+#     """
+#
+#     uuid = "e079546e-a9e7-4d1b-875e-cd180b785992"
+#
+#     # Override defaults for some parameters
+#     parameter_overrides = {
+#         "memory_mb": {"default": 14000},
+#         "spot_policy": {"default": "Prohibited"},
+#         "prefetch_count": {"default": 1},  # 1 molecule at a time
+#         "item_count": {"default": 1}  # 1 molecule at a time
+#     }
+#
+#     map_file = FileInputParameter("map_file", title="RBFEC Mapping file",
+#                                   description="RBFEC mapping file", required=True,
+#                                   default=None)
+#
+#     def begin(self):
+#         self.opt = vars(self.args)
+#         self.opt['Logger'] = self.log
+#         self.A_State = list()
+#         self.B_State = list()
+#         self.ligand_names = list()
+#         self.ligand_dic = dict()
+#
+#         file = list(self.args.map_file)
+#         for file_obj in file:
+#             with TemporaryPath() as path:
+#                 file_obj.copy_to(path)
+#                 with open(path, "r") as f:
+#                     map_list = f.readlines()
+#
+#         if not map_list:
+#             raise IOError("Map file is empty {}")
+#
+#         for m in map_list:
+#
+#             # Empty line
+#             if not m:
+#                 continue
+#
+#             # Comment
+#             if m.startswith(";") or m.startswith("#"):
+#                 continue
+#
+#             # New line
+#             if m == '\n':
+#                 continue
+#
+#             expr = utils.edge_map_grammar(m)
+#
+#             if len(expr) > 3:
+#                 raise ValueError("Syntax Error Map File: {}".format(expr))
+#
+#             self.A_State.append(expr[0])
+#             self.B_State.append(expr[2])
+#
+#     def process(self, record, port):
+#         try:
+#             lig_name = record.get_value(Fields.ligand_name)
+#
+#             if lig_name in self.ligand_names:
+#                 raise ValueError("All ligands must have different names. Duplicate: {}".format(lig_name))
+#             else:
+#                 self.ligand_names.append(lig_name)
+#
+#             self.ligand_dic[lig_name] = record
+#
+#             return
+#
+#         except Exception as e:
+#
+#             print("Failed to complete", str(e), flush=True)
+#             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+#             self.log.error(traceback.format_exc())
+#             self.failure.emit(record)
+#
+#     def end(self):
+#         try:
+#             state_A_set = set(self.A_State)
+#             state_B_set = set(self.B_State)
+#             state_AB_set = state_A_set.union(state_B_set)
+#
+#             if not state_AB_set:
+#                 raise ValueError("The provide map will not produce any edge with the provided ligands")
+#
+#             for lig_name in state_AB_set:
+#                 if lig_name in self.ligand_dic:
+#                     rec = self.ligand_dic[lig_name]
+#                     self.success.emit(rec)
+#                 else:
+#                     raise ValueError("The following ligand name has not been found: {}".format(lig_name))
+#
+#         except Exception as e:
+#             print("Failed to complete", str(e), flush=True)
+#             self.opt['Logger'].info('Exception {} {}'.format(str(e), self.title))
+#             self.log.error(traceback.format_exc())
 
 
 class RBFECEdgeGathering(RecordPortsMixin, ComputeCube):
@@ -267,7 +267,25 @@ class RBFECEdgeGathering(RecordPortsMixin, ComputeCube):
     classification = [["Relative Free Energy"]]
     tags = ['Ligand', 'Edge Mapping']
     description = """
-    TBD
+    This cube gathers the MD equilibrium simulation data related to the Bound and Unbound simulations
+    and creates edges used to perform relative binding affinity calculations. Each edge is created
+    providing an edge mapping text file where each row contains a string with the ligand 
+    names involved in the relative binding free energy calculation following the syntax:
+    ....
+    lig_i_name >> lig_j_name
+    ....
+    The cube produces as output records with the Bound and Unbound edge data
+
+    Input:
+    -------
+    Data record Stream - Streamed-in of the Bound simulation data
+    Data record Stream - Streamed-in of the Unbound simulation data
+    File name - File with the relative binding free energy mapping
+ 
+    Output:
+    -------
+    Data Record Stream - Streamed-out of records where Bound and Unbound 
+    data has been paired to run relative binding free energy calculations.
     """
 
     uuid = "970052ea-25dc-4aa6-87ee-840506022a8b"
@@ -451,13 +469,26 @@ class RBFECEdgeGathering(RecordPortsMixin, ComputeCube):
         return
 
 
-class GMXChimera(RecordPortsMixin, ComputeCube):
+class NESGMXChimera(RecordPortsMixin, ComputeCube):
     title = "GMX Chimera"
 
     classification = [["Relative Free Energy"]]
     tags = ['Ligand', 'Edge Mapping']
     description = """
-    TBD
+    Relative Binding Free Energy calculations via Alchemical Transformations are usually
+    done by using a chimeric molecule where the common scaffold between two ligands
+    involved in an edge is modified to contain the atom excesses of the two edge ligands. This
+    cube generates the chimera molecule and inject it on select frames from the Bound and 
+    Unbound simulations for the Gromacs forward and reverse Non Equilibrium simulations.  
+    
+    Input:
+    -------
+    Data record Stream - Streamed-in of the Gathered Bound and Unbound simulation data
+   
+    Output:
+    -------
+    Data Record Stream - Streamed-out of records containing Gromacs forward and reverse
+    Bound and Unbound data.
     """
 
     uuid = "0ccfad69-bada-48fa-a890-348d7784d7ea"
@@ -757,7 +788,20 @@ class NESGMX(RecordPortsMixin, ComputeCube):
     classification = [["Free Energy"]]
     tags = ["Ligand", "Protein", "Free Energy", "Non Equilibrium"]
     description = """
-    TO BE DECIDED
+    This cubes runs the forward and reverse Bound and Unbound starting equilibrium
+    frames by using Gromacs for each edge. The physical work associated with the 
+    edge mutations are calculated by using the Thermodynamic Integration method 
+    and saved on the record ready to be analyzed.
+    
+    Input:
+    -------
+    Data record Stream - Streamed-in of records containing Gromacs equilibrium frames 
+    data for the forward and reverse Bound and Unbound calculations 
+   
+    Output:
+    -------
+    Data Record Stream - Streamed-out of records containing work data used to generate relative
+    binding affinity data.
     """
 
     uuid = "3641fe19-780f-4998-90c5-2ec4102121ba"
@@ -949,7 +993,20 @@ class NESAnalysis(RecordPortsMixin, ComputeCube):
     classification = [["FEC Analysis"]]
     tags = ['Complex', 'Protein', 'Ligand', 'Solvation']
     description = """
-    TO BE DECIDED
+    The Analysis cube collects the data generated from the NES runs and calculates
+    the relative binding affinities for the edges involved in the Relative
+    binding affinity calculations. The binding affinities are estimated by using 
+    the Bennet Acceptance Ratio method.
+    
+     Input:
+    -------
+    Data Record Stream - Streamed-in of records containing work data produced by NES runs
+     
+    Output:
+    -------
+    Data record Stream - Streamed-out of records containing relative binding affinity data 
+    for each edge.
+   
     """
 
     uuid = "50ccc16d-67ae-4b4f-9a98-2e6b8ecb1868"
@@ -1316,13 +1373,13 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
             DDG_rec = record.get_value(Fields.FEC.RBFEC.NESC.DDG_rec)
 
             # Free energy values
-            if  DDG_rec.has_field(Fields.FEC.binding_fe):
+            if DDG_rec.has_field(Fields.FEC.binding_fe):
                 DDG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe)
                 ddG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe_err)
             # NOTE WELL: this elif is only for temporary back compatibility in 1Q2021; remove later
             elif DDG_rec.has_field(OEField('DDG_BAR', Types.Float)):
                 DDG_A_to_B_pred = DDG_rec.get_value(OEField('DDG_BAR', Types.Float,
-                                          meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)))
+                                                    meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)))
                 ddG_A_to_B_pred = DDG_rec.get_value(OEField('dDDG_BAR', Types.Float))
                 # End NOTE WELL
             else:
@@ -1399,11 +1456,11 @@ class PlotRBFEResults(RecordPortsMixin, ComputeCube):
         return
 
 
-class PredictDG_FromDDG(RecordPortsMixin, ComputeCube):
-    title = "PredictDG_FromDDG Plot"
+class PredictDGFromDDG(RecordPortsMixin, ComputeCube):
+    title = "PredictDG FromDDG Plot"
     # version = "0.1.4"
     classification = [["FEC Analysis"]]
-    tags = ['Protein', 'Ligand','FEC','RBFE','NES']
+    tags = ['Protein', 'Ligand', 'FEC', 'RBFE', 'NES']
     description = """
     TO BE DECIDED
     """
@@ -1438,13 +1495,13 @@ class PredictDG_FromDDG(RecordPortsMixin, ComputeCube):
             DDG_rec = record.get_value(Fields.FEC.RBFEC.NESC.DDG_rec)
 
             # Get calculated relative binding Free energy values
-            if  DDG_rec.has_field(Fields.FEC.binding_fe):
+            if DDG_rec.has_field(Fields.FEC.binding_fe):
                 DDG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe)
                 ddG_A_to_B_pred = DDG_rec.get_value(Fields.FEC.binding_fe_err)
             # NOTE WELL: this elif is only for temporary back compatibility in 1Q2021; remove later
             elif DDG_rec.has_field(OEField('DDG_BAR', Types.Float)):
                 DDG_A_to_B_pred = DDG_rec.get_value(OEField('DDG_BAR', Types.Float,
-                                          meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)))
+                                                            meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol)))
                 ddG_A_to_B_pred = DDG_rec.get_value(OEField('dDDG_BAR', Types.Float))
                 # End NOTE WELL
             else:
@@ -1466,21 +1523,21 @@ class PredictDG_FromDDG(RecordPortsMixin, ComputeCube):
         try:
             self.opt['Logger'].info("....Predicting DeltaGs from DeltaDeltaGs")
 
-            affinity_dic = utils.predictDGsfromDDGs( self.edge_pred_dic)
+            affinity_dic = utils.predictDGsfromDDGs(self.edge_pred_dic)
 
             if affinity_dic:
                 meta_unit = OEFieldMeta().set_option(Meta.Units.Energy.kJ_per_mol)
-                binding_fe_pred = OEField(Fields.FEC.binding_fe.get_name(),
-                                          Fields.FEC.binding_fe_err.get_type(), meta=meta_unit)
-                binding_fe_pred_err = OEField(Fields.FEC.binding_fe_err.get_name(),
-                                              Fields.FEC.binding_fe_err.get_type(), meta=meta_unit)
-                lig_name = Fields.ligand_name
+                binding_fe_pred_field = OEField(Fields.FEC.binding_fe.get_name(),
+                                                Fields.FEC.binding_fe_err.get_type(), meta=meta_unit)
+                binding_fe_pred_err_field = OEField(Fields.FEC.binding_fe_err.get_name(),
+                                                    Fields.FEC.binding_fe_err.get_type(), meta=meta_unit)
+                lig_name_field = Fields.ligand_name
 
                 for name, aff_list in affinity_dic.items():
                     rec = OERecord()
-                    rec.set_value(lig_name, name)
-                    rec.set_value(binding_fe_pred, aff_list[0])
-                    rec.set_value(binding_fe_pred_err, aff_list[1])
+                    rec.set_value(lig_name_field, name)
+                    rec.set_value(binding_fe_pred_field, aff_list[0])
+                    rec.set_value(binding_fe_pred_err_field, aff_list[1])
                     self.success.emit(rec)
             else:
                 self.opt['Logger'].warn("It was not possible to generate the output affinity records "
@@ -1492,9 +1549,9 @@ class PredictDG_FromDDG(RecordPortsMixin, ComputeCube):
         return
 
 
-class ParallelGMXChimera(ParallelMixin,  GMXChimera):
-    title = "Parallel " + GMXChimera.title
-    description = "(Parallel) " + GMXChimera.description
+class ParallelNESGMXChimera(ParallelMixin, NESGMXChimera):
+    title = "Parallel " + NESGMXChimera.title
+    description = "(Parallel) " + NESGMXChimera.description
     uuid = "676baf05-0571-4f14-9f84-d5b5a63729c2"
 
 

@@ -29,6 +29,10 @@ from orionplatform.cubes import DatasetWriterCube
 from MDOrion.System.cubes import (CollectionSetting,
                                   ParallelRecordSizeCheck)
 
+from snowball import (ExceptHandlerCube,
+                      SuccessCounterCube)
+
+
 job = WorkFloe('Solvate and Run Protein-Ligand MD', title='Solvate and Run Protein-Ligand MD')
 job.description = open(path.join(path.dirname(__file__), 'ProteinLigandMD_desc.rst'), 'r').read()
 job.classification = [['Specialized MD']]
@@ -47,6 +51,8 @@ coll_close.set_parameters(open=False)
 
 check_rec = ParallelRecordSizeCheck("Record Check Success")
 
+exceptions = ExceptHandlerCube(floe_report_name="Analyze Floe Failure Report")
+
 ofs = DatasetWriterCube('ofs', title='MD Out')
 ofs.promote_parameter("data_out", promoted_name="out",
                       title="MD Out", description="MD Dataset out", order=2)
@@ -55,7 +61,7 @@ fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail", title="Failures",
                        description="MD Dataset Failures out", order=3)
 
-job.add_cubes(coll_open, coll_close, check_rec, ofs, fail)
+job.add_cubes(coll_open, coll_close, check_rec, exceptions, ofs, fail)
 
 # Call subfloe function to set up the solvated protein-ligand complex
 PLComplex_for_MD_options = {}
@@ -79,7 +85,8 @@ MD_outcube.failure.connect(check_rec.fail_in)
 coll_close.success.connect(check_rec.intake)
 coll_close.failure.connect(check_rec.fail_in)
 check_rec.success.connect(ofs.intake)
-check_rec.failure.connect(fail.intake)
+check_rec.failure.connect(exceptions.intake)
+exceptions.failure.connect(fail.intake)
 
 
 if __name__ == "__main__":
