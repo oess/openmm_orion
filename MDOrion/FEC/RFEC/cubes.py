@@ -71,8 +71,6 @@ from simtk import unit
 
 import io
 
-import math
-
 from MDOrion.FEC.RFEC.gmx_run import check_gmx_grompp
 
 import tempfile
@@ -1410,7 +1408,7 @@ class PredictDG_FromDDG(RecordPortsMixin, ComputeCube):
     TO BE DECIDED
     """
 
-    #uuid = "a62fd733-132b-4619-bb8b-68f373020a79"
+    uuid = "9d8e9390-eb0d-4b97-afec-b0f6482f2843"
 
     # Override defaults for some parameters
     parameter_overrides = {
@@ -1492,7 +1490,6 @@ class PredictDG_FromDDG(RecordPortsMixin, ComputeCube):
             self.opt['Logger'].warn("It was not possible to generate the floe report: {}".format(str(e)))
 
         return
-
 
 
 class ParallelGMXChimera(ParallelMixin,  GMXChimera):
