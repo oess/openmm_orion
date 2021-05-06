@@ -11,7 +11,7 @@ lxml==4.6.0
 
 # OE Stack
 # Leave this here to avoid pip install issue
-Openeye-orionplatform[artemis]==4.0.0b4
+Openeye-orionplatform[artemis]==4.0.0b5
 
 OpenEye-ensemble2img==0.1.1
 OpenEye-floereport==0.1.11
